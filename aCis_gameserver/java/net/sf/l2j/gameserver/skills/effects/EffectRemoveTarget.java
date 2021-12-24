@@ -1,33 +1,30 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import net.sf.l2j.gameserver.enums.IntentionType;
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
-import net.sf.l2j.gameserver.model.L2Effect;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
-/**
- * @author -Nemesiss-
- */
-public class EffectRemoveTarget extends L2Effect
+public class EffectRemoveTarget extends AbstractEffect
 {
-	public EffectRemoveTarget(Env env, EffectTemplate template)
+	public EffectRemoveTarget(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
 	{
-		super(env, template);
+		super(template, skill, effected, effector);
 	}
 	
 	@Override
-	public L2EffectType getEffectType()
+	public EffectType getEffectType()
 	{
-		return L2EffectType.REMOVE_TARGET;
+		return EffectType.REMOVE_TARGET;
 	}
 	
 	@Override
 	public boolean onStart()
 	{
 		getEffected().setTarget(null);
-		getEffected().abortAttack();
-		getEffected().abortCast();
-		getEffected().getAI().setIntention(IntentionType.IDLE, getEffector());
+		getEffected().getAttack().stop();
+		getEffected().getCast().stop();
+		
 		return true;
 	}
 	

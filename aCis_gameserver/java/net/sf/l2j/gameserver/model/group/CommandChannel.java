@@ -5,13 +5,15 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import net.sf.l2j.gameserver.model.WorldObject;
-import net.sf.l2j.gameserver.model.actor.Attackable;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.pledge.Clan;
+import net.sf.l2j.gameserver.network.NpcStringId;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.CreatureSay;
 import net.sf.l2j.gameserver.network.serverpackets.ExCloseMPCC;
 import net.sf.l2j.gameserver.network.serverpackets.ExMPCCPartyInfoUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.ExOpenMPCC;
+import net.sf.l2j.gameserver.network.serverpackets.ExShowScreenMessage;
 import net.sf.l2j.gameserver.network.serverpackets.L2GameServerPacket;
 
 /**
@@ -25,6 +27,18 @@ import net.sf.l2j.gameserver.network.serverpackets.L2GameServerPacket;
  * <li>If the main party is disbanded, the CC is disbanded as well.</li>
  * <li>If the CC leader is disconnected from the channel, a random player from the main party will become the new leader.</li>
  * <li>You can change the leader of the CC and the leader of the main party at the same time using the /changepartyleader [Character Name] command or from the Action Window.</li>
+ * </ul>
+ * More infos regarding Command Channel in general, and looting priorities in particular (official IL patch notes) :
+ * <ul>
+ * <li>Even without the clan skill Clan Imperium, it is possible to set up an allies channel and to send out invitations through an item, the Strategy Guide. The Strategy Guide item can be purchased in the Town of Aden, Rune Township, and the Town of Schuttgart.</li>
+ * <li>While hunting a raid boss monster, the following requirements must be met in order to gain looting rights.
+ * <ul>
+ * <li>Raid monster: More than 18 members in the command channel.</li>
+ * <li>Boss monsters (Queen Ant, Zaken, Orfen, Core, etc): More than 36 members in the command channel. When raiding Antharas, more than 225 members of the command channel must appear at Antharas' Nest in order to obtain first looting rights.</li>
+ * </ul>
+ * </li>
+ * <li>Five minutes after the battle with a raid boss monster ends, the looting right automatically changes into ordinary looting. But if another raid succeeds in hunting the same raid monster before the looting right changes into ordinary looting, the first raid obtains the looting right to that
+ * raid boss monster.</li>
  * </ul>
  */
 public class CommandChannel extends AbstractGroup
@@ -54,18 +68,6 @@ public class CommandChannel extends AbstractGroup
 			member.sendPacket(SystemMessageId.JOINED_COMMAND_CHANNEL);
 			member.sendPacket(ExOpenMPCC.STATIC_PACKET);
 		}
-	}
-	
-	@Override
-	public boolean equals(Object obj)
-	{
-		if (!(obj instanceof CommandChannel))
-			return false;
-		
-		if (obj == this)
-			return true;
-		
-		return isLeader(((CommandChannel) obj).getLeader());
 	}
 	
 	/**
@@ -114,6 +116,18 @@ public class CommandChannel extends AbstractGroup
 	{
 		for (Party party : _parties)
 			party.broadcastCreatureSay(msg, broadcaster);
+	}
+	
+	@Override
+	public void broadcastOnScreen(int time, NpcStringId npcStringId)
+	{
+		broadcastPacket(new ExShowScreenMessage(npcStringId.getMessage(), time));
+	}
+	
+	@Override
+	public void broadcastOnScreen(int time, NpcStringId npcStringId, Object... params)
+	{
+		broadcastPacket(new ExShowScreenMessage(npcStringId.getMessage(params), time));
 	}
 	
 	@Override
@@ -205,30 +219,40 @@ public class CommandChannel extends AbstractGroup
 	}
 	
 	/**
-	 * @param attackable : the {@link Attackable} to check.
-	 * @return true if the members count is reached.
+	 * Check whether the leader of this {@link CommandChannel} is the same as the leader of the specified CommandChannel (which essentially means they're the same group).
+	 * @param cc : The other CommandChannel to check against.
+	 * @return true if this CommandChannel equals the specified CommandChannel, false otherwise.
 	 */
-	public boolean meetRaidWarCondition(Attackable attackable)
+	public boolean equals(CommandChannel cc)
 	{
-		switch (attackable.getNpcId())
+		return cc != null && getLeaderObjectId() == cc.getLeaderObjectId();
+	}
+	
+	/**
+	 * Check the possibility for a {@link Player} to setup a {@link CommandChannel}, and return him message if failed.
+	 * @param player : The Player to test.
+	 * @param deleteItem : If true, we delete the item, otherwise we simply check if it exists.
+	 * @return true if the given Player set as parameter is a level 5 clan member with either Clan Imperium skill (skillId: 391) or a valid Strategy Guide item (itemId: 8871).
+	 */
+	public static boolean checkAuthority(Player player, boolean deleteItem)
+	{
+		// The Player isn't a level 5 clan leader.
+		final Clan requestorClan = player.getClan();
+		if (requestorClan == null || requestorClan.getLeaderId() != player.getObjectId() || requestorClan.getLevel() < 5)
 		{
-			case 29001: // Queen Ant
-			case 29006: // Core
-			case 29014: // Orfen
-			case 29022: // Zaken
-				return getMembersCount() > 36;
-			
-			case 29020: // Baium
-				return getMembersCount() > 56;
-			
-			case 29019: // Antharas
-				return getMembersCount() > 225;
-			
-			case 29028: // Valakas
-				return getMembersCount() > 99;
-			
-			default: // normal Raidboss
-				return getMembersCount() > 18;
+			player.sendPacket(SystemMessageId.COMMAND_CHANNEL_ONLY_BY_LEVEL_5_CLAN_LEADER_PARTY_LEADER);
+			return false;
 		}
+		
+		// The Player has Clan Imperium skill, return true instantly.
+		if (player.getSkill(391) != null)
+			return true;
+		
+		// The Player is now tested for Strategy Guide.
+		final boolean hasItem = (deleteItem) ? player.destroyItemByItemId("CommandChannel Creation", 8871, 1, player, true) : player.getInventory().getItemByItemId(8871) != null;
+		if (!hasItem)
+			player.sendPacket(SystemMessageId.CANNOT_LONGER_SETUP_COMMAND_CHANNEL);
+		
+		return hasItem;
 	}
 }

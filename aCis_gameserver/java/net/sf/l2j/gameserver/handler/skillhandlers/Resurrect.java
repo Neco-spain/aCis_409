@@ -1,21 +1,21 @@
 package net.sf.l2j.gameserver.handler.skillhandlers;
 
 import net.sf.l2j.gameserver.enums.items.ShotType;
-import net.sf.l2j.gameserver.enums.skills.L2SkillType;
+import net.sf.l2j.gameserver.enums.skills.SkillType;
 import net.sf.l2j.gameserver.handler.ISkillHandler;
-import net.sf.l2j.gameserver.model.L2Skill;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Pet;
 import net.sf.l2j.gameserver.skills.Formulas;
+import net.sf.l2j.gameserver.skills.L2Skill;
 import net.sf.l2j.gameserver.taskmanager.DecayTaskManager;
 
 public class Resurrect implements ISkillHandler
 {
-	private static final L2SkillType[] SKILL_IDS =
+	private static final SkillType[] SKILL_IDS =
 	{
-		L2SkillType.RESURRECT
+		SkillType.RESURRECT
 	};
 	
 	@Override
@@ -48,7 +48,7 @@ public class Resurrect implements ISkillHandler
 	}
 	
 	@Override
-	public L2SkillType[] getSkillIds()
+	public SkillType[] getSkillIds()
 	{
 		return SKILL_IDS;
 	}

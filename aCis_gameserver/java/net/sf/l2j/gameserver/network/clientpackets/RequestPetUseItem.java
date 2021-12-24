@@ -1,7 +1,5 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
-import net.sf.l2j.commons.util.ArraysUtil;
-
 import net.sf.l2j.gameserver.handler.IItemHandler;
 import net.sf.l2j.gameserver.handler.ItemHandler;
 import net.sf.l2j.gameserver.model.actor.Player;
@@ -13,16 +11,6 @@ import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public final class RequestPetUseItem extends L2GameClientPacket
 {
-	private static final int[] PET_FOOD_IDS =
-	{
-		2515,
-		4038,
-		5168,
-		5169,
-		6316,
-		7582
-	};
-	
 	private int _objectId;
 	
 	@Override
@@ -34,19 +22,19 @@ public final class RequestPetUseItem extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null || !activeChar.hasPet())
+		final Player player = getClient().getPlayer();
+		if (player == null || !player.hasPet())
 			return;
 		
-		final Pet pet = (Pet) activeChar.getSummon();
+		final Pet pet = (Pet) player.getSummon();
 		
 		final ItemInstance item = pet.getInventory().getItemByObjectId(_objectId);
 		if (item == null)
 			return;
 		
-		if (activeChar.isAlikeDead() || pet.isDead())
+		if (player.isAlikeDead() || pet.isDead())
 		{
-			activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_CANNOT_BE_USED).addItemName(item));
+			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_CANNOT_BE_USED).addItemName(item));
 			return;
 		}
 		
@@ -59,42 +47,34 @@ public final class RequestPetUseItem extends L2GameClientPacket
 			// Verify if the pet can wear that item
 			if (!pet.canWear(item.getItem()))
 			{
-				activeChar.sendPacket(SystemMessageId.PET_CANNOT_USE_ITEM);
+				player.sendPacket(SystemMessageId.PET_CANNOT_USE_ITEM);
 				return;
 			}
 			
 			if (item.isEquipped())
 			{
-				pet.getInventory().unEquipItemInSlot(item.getLocationSlot());
-				activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.PET_TOOK_OFF_S1).addItemName(item));
+				pet.getInventory().unequipItemInSlot(item.getLocationSlot());
+				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.PET_TOOK_OFF_S1).addItemName(item));
 			}
 			else
 			{
 				pet.getInventory().equipPetItem(item);
-				activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.PET_PUT_ON_S1).addItemName(item));
+				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.PET_PUT_ON_S1).addItemName(item));
 			}
 			
-			activeChar.sendPacket(new PetItemList(pet));
+			player.sendPacket(new PetItemList(pet));
 			pet.updateAndBroadcastStatus(1);
 			return;
 		}
 		
-		if (ArraysUtil.contains(PET_FOOD_IDS, item.getItemId()) && !pet.getTemplate().canEatFood(item.getItemId()))
-		{
-			activeChar.sendPacket(SystemMessageId.PET_CANNOT_USE_ITEM);
-			return;
-		}
-		
-		// If pet food check is successful or if the item got an handler, use that item.
 		final IItemHandler handler = ItemHandler.getInstance().getHandler(item.getEtcItem());
-		if (handler != null)
+		if (handler == null || (!pet.getTemplate().canEatFood(item.getItemId()) && !item.isPotion()))
 		{
-			handler.useItem(pet, item, false);
-			pet.updateAndBroadcastStatus(1);
+			player.sendPacket(SystemMessageId.PET_CANNOT_USE_ITEM);
+			return;
 		}
-		else
-			activeChar.sendPacket(SystemMessageId.PET_CANNOT_USE_ITEM);
 		
-		return;
+		handler.useItem(pet, item, false);
+		pet.updateAndBroadcastStatus(1);
 	}
 }

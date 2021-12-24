@@ -2,14 +2,12 @@ package net.sf.l2j.gameserver.model.actor.template;
 
 import java.util.Map;
 
-import net.sf.l2j.commons.util.StatsSet;
+import net.sf.l2j.commons.data.StatSet;
 
 import net.sf.l2j.gameserver.model.PetDataEntry;
 
 public final class PetTemplate extends NpcTemplate
 {
-	public static final int MAX_LOAD = 54510;
-	
 	private final int _food1;
 	private final int _food2;
 	
@@ -19,7 +17,7 @@ public final class PetTemplate extends NpcTemplate
 	
 	private Map<Integer, PetDataEntry> _dataEntries;
 	
-	public PetTemplate(StatsSet set)
+	public PetTemplate(StatSet set)
 	{
 		super(set);
 		

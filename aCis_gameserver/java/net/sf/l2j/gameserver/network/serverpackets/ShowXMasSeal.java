@@ -1,8 +1,5 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
-/**
- * @author devScarlet & mrTJO
- */
 public class ShowXMasSeal extends L2GameServerPacket
 {
 	private final int _item;

@@ -60,7 +60,7 @@ public class RequestSetCrop extends L2GameClientPacket
 		
 		// Check player privileges
 		final Player player = getClient().getPlayer();
-		if (player == null || player.getClan() == null || player.getClan().getCastleId() != _manorId || ((player.getClanPrivileges() & Clan.CP_CS_MANOR_ADMIN) != Clan.CP_CS_MANOR_ADMIN) || !player.getCurrentFolk().canInteract(player))
+		if (player == null || player.getClan() == null || player.getClan().getCastleId() != _manorId || !player.hasClanPrivileges(Clan.CP_CS_MANOR_ADMIN) || !player.getAI().canDoInteract(player.getCurrentFolk()))
 		{
 			sendPacket(ActionFailed.STATIC_PACKET);
 			return;

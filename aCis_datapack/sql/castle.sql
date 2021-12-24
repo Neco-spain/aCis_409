@@ -1,13 +1,12 @@
 CREATE TABLE IF NOT EXISTS `castle` (
-  `id` INT NOT NULL default 0,
-  `name` varchar(25) NOT NULL,
-  `taxPercent` INT NOT NULL default 15,
-  `treasury` BIGINT NOT NULL default 0,
-  `siegeDate` DECIMAL(20,0) NOT NULL default 0,
-  `regTimeOver` enum('true','false') DEFAULT 'true' NOT NULL,
-  `certificates` SMALLINT NOT NULL DEFAULT 300,
-  PRIMARY KEY (`name`),
-  KEY `id` (`id`)
+  `id` INT NOT NULL DEFAULT '0',
+  `name` VARCHAR(25) NOT NULL,
+  `taxPercent` INT NOT NULL DEFAULT '15',
+  `treasury` BIGINT NOT NULL DEFAULT '0',
+  `siegeDate` DECIMAL(20,0) NOT NULL DEFAULT '0',
+  `regTimeOver` ENUM('true','false') DEFAULT 'true' NOT NULL,
+  `certificates` SMALLINT NOT NULL DEFAULT '300',
+  PRIMARY KEY (`id`)
 );
 
 INSERT IGNORE INTO `castle` VALUES

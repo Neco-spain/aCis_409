@@ -1,8 +1,7 @@
 package net.sf.l2j.gameserver.network;
 
-/**
- * @author KenM
- */
+import net.sf.l2j.Config;
+
 public class GameCrypt
 {
 	private final byte[] _inKey = new byte[16];
@@ -17,7 +16,7 @@ public class GameCrypt
 	
 	public void decrypt(byte[] raw, final int offset, final int size)
 	{
-		if (!_isEnabled)
+		if (!Config.USE_BLOWFISH_CIPHER || !_isEnabled)
 			return;
 		
 		int temp = 0;
@@ -45,7 +44,7 @@ public class GameCrypt
 	{
 		if (!_isEnabled)
 		{
-			_isEnabled = true;
+			_isEnabled = Config.USE_BLOWFISH_CIPHER;
 			return;
 		}
 		

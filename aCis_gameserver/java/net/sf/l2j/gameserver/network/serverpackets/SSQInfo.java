@@ -16,7 +16,7 @@ public class SSQInfo extends L2GameServerPacket
 	{
 		if (SevenSignsManager.getInstance().isSealValidationPeriod())
 		{
-			final CabalType winningCabal = SevenSignsManager.getInstance().getCabalHighestScore();
+			final CabalType winningCabal = SevenSignsManager.getInstance().getWinningCabal();
 			if (winningCabal == CabalType.DAWN)
 				return DAWN_SKY_PACKET;
 			

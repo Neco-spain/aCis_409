@@ -21,7 +21,7 @@ public class PartyMemberPosition extends L2GameServerPacket
 		_locations.clear();
 		
 		for (Player member : party.getMembers())
-			_locations.put(member.getObjectId(), new Location(member.getX(), member.getY(), member.getZ()));
+			_locations.put(member.getObjectId(), member.getPosition().clone());
 	}
 	
 	@Override

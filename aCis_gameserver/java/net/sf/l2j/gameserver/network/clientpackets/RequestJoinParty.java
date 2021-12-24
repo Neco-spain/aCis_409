@@ -3,7 +3,6 @@ package net.sf.l2j.gameserver.network.clientpackets;
 import net.sf.l2j.gameserver.enums.LootRule;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.actor.player.BlockList;
 import net.sf.l2j.gameserver.model.group.Party;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.AskJoinParty;
@@ -11,14 +10,14 @@ import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public final class RequestJoinParty extends L2GameClientPacket
 {
-	private String _name;
-	private int _itemDistribution;
+	private String _targetName;
+	private int _lootRuleId;
 	
 	@Override
 	protected void readImpl()
 	{
-		_name = readS();
-		_itemDistribution = readD();
+		_targetName = readS();
+		_lootRuleId = readD();
 	}
 	
 	@Override
@@ -28,20 +27,26 @@ public final class RequestJoinParty extends L2GameClientPacket
 		if (requestor == null)
 			return;
 		
-		final Player target = World.getInstance().getPlayer(_name);
+		final Player target = World.getInstance().getPlayer(_targetName);
 		if (target == null)
 		{
 			requestor.sendPacket(SystemMessageId.FIRST_SELECT_USER_TO_INVITE_TO_PARTY);
 			return;
 		}
 		
-		if (BlockList.isBlocked(target, requestor))
+		if (target.getBlockList().isBlockingAll())
+		{
+			requestor.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_BLOCKED_EVERYTHING).addCharName(target));
+			return;
+		}
+		
+		if (target.getBlockList().isInBlockList(requestor))
 		{
 			requestor.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_HAS_ADDED_YOU_TO_IGNORE_LIST).addCharName(target));
 			return;
 		}
 		
-		if (target.equals(requestor) || target.isCursedWeaponEquipped() || requestor.isCursedWeaponEquipped() || target.getAppearance().getInvisible())
+		if (target.equals(requestor) || target.isCursedWeaponEquipped() || requestor.isCursedWeaponEquipped() || !target.getAppearance().isVisible())
 		{
 			requestor.sendPacket(SystemMessageId.YOU_HAVE_INVITED_THE_WRONG_TARGET);
 			return;
@@ -104,11 +109,11 @@ public final class RequestJoinParty extends L2GameClientPacket
 			party.setPendingInvitation(true);
 		}
 		else
-			requestor.setLootRule(LootRule.VALUES[_itemDistribution]);
+			requestor.setLootRule(LootRule.VALUES[_lootRuleId]);
 		
 		requestor.onTransactionRequest(target);
 		requestor.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_INVITED_S1_TO_PARTY).addCharName(target));
 		
-		target.sendPacket(new AskJoinParty(requestor.getName(), (party != null) ? party.getLootRule().ordinal() : _itemDistribution));
+		target.sendPacket(new AskJoinParty(requestor.getName(), (party != null) ? party.getLootRule().ordinal() : _lootRuleId));
 	}
 }

@@ -3,21 +3,22 @@ package net.sf.l2j.gameserver.data.manager;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
 import net.sf.l2j.commons.logging.CLogger;
+import net.sf.l2j.commons.pool.ConnectionPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 
-import net.sf.l2j.L2DatabaseFactory;
 import net.sf.l2j.gameserver.data.sql.SpawnTable;
 import net.sf.l2j.gameserver.data.xml.NpcData;
 import net.sf.l2j.gameserver.enums.BossStatus;
 import net.sf.l2j.gameserver.model.actor.instance.RaidBoss;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
 import net.sf.l2j.gameserver.model.spawn.BossSpawn;
-import net.sf.l2j.gameserver.model.spawn.L2Spawn;
+import net.sf.l2j.gameserver.model.spawn.Spawn;
 
 /**
  * Loads and store {@link RaidBoss}es informations, using {@link BossSpawn} holder.
@@ -39,7 +40,7 @@ public class RaidBossManager
 	
 	private void load()
 	{
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(LOAD_RAIDBOSSES);
 			ResultSet rs = ps.executeQuery())
 		{
@@ -52,8 +53,8 @@ public class RaidBossManager
 					continue;
 				}
 				
-				// Generate a L2Spawn.
-				final L2Spawn spawn = new L2Spawn(template);
+				// Generate a Spawn.
+				final Spawn spawn = new Spawn(template);
 				spawn.setLoc(rs.getInt("loc_x"), rs.getInt("loc_y"), rs.getInt("loc_z"), rs.getInt("heading"));
 				spawn.setRespawnMinDelay(rs.getInt("spawn_time"));
 				spawn.setRespawnMaxDelay(rs.getInt("random_time"));
@@ -75,6 +76,14 @@ public class RaidBossManager
 		
 		// Load data.
 		load();
+	}
+	
+	/**
+	 * @return a {@link Collection} holding all existing {@link BossSpawn}s.
+	 */
+	public Collection<BossSpawn> getBossSpawns()
+	{
+		return _spawns.values();
 	}
 	
 	/**
@@ -108,7 +117,7 @@ public class RaidBossManager
 	}
 	
 	/**
-	 * Add a new {@link BossSpawn}, based on a {@link L2Spawn}. It is both used on server startup and admincommand.<br>
+	 * Add a new {@link BossSpawn}, based on a {@link Spawn}. It is both used on server startup and admincommand.<br>
 	 * <br>
 	 * Database is either refreshed using forceSave boolean flag, or if a difference of status has been detected.
 	 * @param spawn : The spawn used as reference.
@@ -117,7 +126,7 @@ public class RaidBossManager
 	 * @param currentMP : The MP of the instance to set.
 	 * @param forceSave : If true, we force the insertion of this spawn into the database.
 	 */
-	public void addNewSpawn(L2Spawn spawn, long respawnTime, double currentHP, double currentMP, boolean forceSave)
+	public void addNewSpawn(Spawn spawn, long respawnTime, double currentHP, double currentMP, boolean forceSave)
 	{
 		if (spawn == null)
 			return;
@@ -131,7 +140,7 @@ public class RaidBossManager
 		// Add the spawn.
 		SpawnTable.getInstance().addSpawn(spawn, false);
 		
-		// We generate the StatsSet.
+		// We generate the BossSpawn.
 		final BossSpawn bs = new BossSpawn();
 		bs.setSpawn(spawn);
 		
@@ -140,11 +149,11 @@ public class RaidBossManager
 		{
 			final RaidBoss raidboss = (RaidBoss) spawn.doSpawn(false);
 			
-			currentHP = (currentHP == 0) ? raidboss.getMaxHp() : currentHP;
-			currentMP = (currentMP == 0) ? raidboss.getMaxMp() : currentMP;
+			currentHP = (currentHP == 0) ? raidboss.getStatus().getMaxHp() : currentHP;
+			currentMP = (currentMP == 0) ? raidboss.getStatus().getMaxMp() : currentMP;
 			
 			// Set HP, MP.
-			raidboss.setCurrentHpMp(currentHP, currentMP);
+			raidboss.getStatus().setHpMp(currentHP, currentMP);
 			
 			bs.setStatus(BossStatus.ALIVE);
 			bs.setCurrentHp(currentHP);
@@ -154,7 +163,7 @@ public class RaidBossManager
 			// Time passed by, or we force the database save ; save data on database.
 			if (time > respawnTime || forceSave)
 			{
-				try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+				try (Connection con = ConnectionPool.getConnection();
 					PreparedStatement ps = con.prepareStatement(INSERT_RAIDBOSS))
 				{
 					ps.setInt(1, spawn.getNpcId());
@@ -190,10 +199,10 @@ public class RaidBossManager
 	}
 	
 	/**
-	 * Delete an existing {@link BossSpawn} based on a {@link L2Spawn}. Drop it from {@link SpawnTable}.
+	 * Delete an existing {@link BossSpawn} based on a {@link Spawn}. Drop it from {@link SpawnTable}.
 	 * @param spawn : The spawn used as reference.
 	 */
-	public void deleteSpawn(L2Spawn spawn)
+	public void deleteSpawn(Spawn spawn)
 	{
 		if (spawn == null)
 			return;
@@ -225,7 +234,7 @@ public class RaidBossManager
 		// Save HP/MP and locations if boolean flag is set to true.
 		if (saveOnDb)
 		{
-			try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+			try (Connection con = ConnectionPool.getConnection();
 				PreparedStatement ps = con.prepareStatement(SAVE_RAIDBOSS))
 			{
 				for (Entry<Integer, BossSpawn> entry : _spawns.entrySet())
@@ -235,9 +244,9 @@ public class RaidBossManager
 					// We only bother with living bosses.
 					if (bs.getStatus() == BossStatus.ALIVE)
 					{
-						ps.setDouble(2, bs.getBoss().getCurrentHp());
-						ps.setDouble(3, bs.getBoss().getCurrentMp());
-						ps.setInt(4, entry.getKey());
+						ps.setDouble(1, bs.getBoss().getStatus().getHp());
+						ps.setDouble(2, bs.getBoss().getStatus().getMp());
+						ps.setInt(3, entry.getKey());
 						ps.addBatch();
 					}
 				}

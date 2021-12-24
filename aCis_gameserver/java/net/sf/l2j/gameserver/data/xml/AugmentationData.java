@@ -7,16 +7,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
+import net.sf.l2j.commons.data.StatSet;
 import net.sf.l2j.commons.data.xml.IXmlReader;
 import net.sf.l2j.commons.random.Rnd;
-import net.sf.l2j.commons.util.StatsSet;
 
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.enums.skills.Stats;
-import net.sf.l2j.gameserver.model.L2Augmentation;
-import net.sf.l2j.gameserver.model.L2Skill;
+import net.sf.l2j.gameserver.model.Augmentation;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
 import net.sf.l2j.gameserver.network.clientpackets.AbstractRefinePacket;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 import org.w3c.dom.Document;
 
@@ -26,7 +26,7 @@ import org.w3c.dom.Document;
  * <li>{@link AugmentationStat} under 4 different tables of stats (pDef, etc)</li>
  * <li>Augmentation skills based on colors (blue, purple and red)</li>
  * </ul>
- * It is also used to generate new {@link L2Augmentation}, based on stored content.
+ * It is also used to generate new {@link Augmentation}, based on stored content.
  */
 public class AugmentationData implements IXmlReader
 {
@@ -115,7 +115,7 @@ public class AugmentationData implements IXmlReader
 		{
 			forEach(listNode, "augmentation", augmentationNode ->
 			{
-				final StatsSet set = parseAttributes(augmentationNode);
+				final StatSet set = parseAttributes(augmentationNode);
 				final int augmentationId = set.getInteger("id");
 				final int k = (augmentationId - BLUE_START) / SKILLS_BLOCKSIZE;
 				
@@ -155,10 +155,12 @@ public class AugmentationData implements IXmlReader
 							while (data.hasMoreTokens())
 								combinedValues.add(Float.parseFloat(data.nextToken()));
 					});
-					final float soloValuesArr[] = new float[soloValues.size()];
+					
+					final float[] soloValuesArr = new float[soloValues.size()];
 					for (int i = 0; i < soloValuesArr.length; i++)
 						soloValuesArr[i] = soloValues.get(i);
-					final float combinedValuesArr[] = new float[combinedValues.size()];
+					
+					final float[] combinedValuesArr = new float[combinedValues.size()];
 					for (int i = 0; i < combinedValuesArr.length; i++)
 						combinedValuesArr[i] = combinedValues.get(i);
 					statList.add(new AugmentationStat(Stats.valueOfXml(statName), soloValuesArr, combinedValuesArr));
@@ -167,7 +169,7 @@ public class AugmentationData implements IXmlReader
 		});
 	}
 	
-	public L2Augmentation generateRandomAugmentation(int lifeStoneLevel, int lifeStoneGrade)
+	public Augmentation generateRandomAugmentation(int lifeStoneLevel, int lifeStoneGrade)
 	{
 		// Note that stat12 stands for stat 1 AND 2 (same for stat34 ;p )
 		// this is because a value can contain up to 2 stat modifications
@@ -301,7 +303,7 @@ public class AugmentationData implements IXmlReader
 		}
 		stat12 = Rnd.get(offset, offset + STAT_SUBBLOCKSIZE - 1);
 		
-		return new L2Augmentation(((stat34 << 16) + stat12), skill);
+		return new Augmentation(((stat34 << 16) + stat12), skill);
 	}
 	
 	/**
@@ -321,7 +323,7 @@ public class AugmentationData implements IXmlReader
 		// the first 12 combined stats (14-26) is the stat 1 combined with stat 2-13
 		// the next 11 combined stats then are stat 2 combined with stat 3-13 and so on...
 		// to get the idea have a look @ optiondata_client-e.dat - thats where the data came from :)
-		int stats[] = new int[2];
+		int[] stats = new int[2];
 		stats[0] = 0x0000FFFF & augmentationId;
 		stats[1] = (augmentationId >> 16);
 		
@@ -403,16 +405,16 @@ public class AugmentationData implements IXmlReader
 		private final Stats _stat;
 		private final int _singleSize;
 		private final int _combinedSize;
-		private final float _singleValues[];
-		private final float _combinedValues[];
+		private final float[] _singleValues;
+		private final float[] _combinedValues;
 		
-		public AugmentationStat(Stats stat, float sValues[], float cValues[])
+		public AugmentationStat(Stats stat, float[] singleValues, float[] combinedValues)
 		{
 			_stat = stat;
-			_singleSize = sValues.length;
-			_singleValues = sValues;
-			_combinedSize = cValues.length;
-			_combinedValues = cValues;
+			_singleSize = singleValues.length;
+			_singleValues = singleValues;
+			_combinedSize = combinedValues.length;
+			_combinedValues = combinedValues;
 		}
 		
 		public int getSingleStatSize()

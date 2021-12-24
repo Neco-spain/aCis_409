@@ -2,10 +2,6 @@ package net.sf.l2j.gameserver.network.serverpackets;
 
 import java.util.Map;
 
-/**
- * Format: ch ddd [ddd]
- * @author KenM
- */
 public class ExGetBossRecord extends L2GameServerPacket
 {
 	private final Map<Integer, Integer> _bossRecordInfo;

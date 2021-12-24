@@ -2,7 +2,7 @@ package net.sf.l2j.gameserver.network.serverpackets;
 
 import java.util.Set;
 
-import net.sf.l2j.gameserver.model.actor.instance.Pet;
+import net.sf.l2j.gameserver.model.actor.Summon;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.item.kind.Item;
 
@@ -10,9 +10,9 @@ public class PetItemList extends L2GameServerPacket
 {
 	private final Set<ItemInstance> _items;
 	
-	public PetItemList(Pet character)
+	public PetItemList(Summon summon)
 	{
-		_items = character.getInventory().getItems();
+		_items = summon.getInventory().getItems();
 	}
 	
 	@Override

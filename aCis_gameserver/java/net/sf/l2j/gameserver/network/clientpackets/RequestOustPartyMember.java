@@ -6,12 +6,12 @@ import net.sf.l2j.gameserver.model.group.Party;
 
 public final class RequestOustPartyMember extends L2GameClientPacket
 {
-	private String _name;
+	private String _targetName;
 	
 	@Override
 	protected void readImpl()
 	{
-		_name = readS();
+		_targetName = readS();
 	}
 	
 	@Override
@@ -25,6 +25,6 @@ public final class RequestOustPartyMember extends L2GameClientPacket
 		if (party == null || !party.isLeader(player))
 			return;
 		
-		party.removePartyMember(_name, MessageType.EXPELLED);
+		party.removePartyMember(_targetName, MessageType.EXPELLED);
 	}
 }

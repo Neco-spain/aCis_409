@@ -3,7 +3,7 @@ package net.sf.l2j.gameserver.model.craft;
 import net.sf.l2j.commons.random.Rnd;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.gameserver.model.L2Skill;
+import net.sf.l2j.gameserver.enums.StatusType;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
 import net.sf.l2j.gameserver.model.item.Recipe;
@@ -16,6 +16,7 @@ import net.sf.l2j.gameserver.network.serverpackets.RecipeItemMakeInfo;
 import net.sf.l2j.gameserver.network.serverpackets.RecipeShopItemInfo;
 import net.sf.l2j.gameserver.network.serverpackets.StatusUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 /**
  * The core of craft system, which allow {@link Player} to exchange materials for a final product. Numerous checks are made (integrity checks, such as item existence, mana left, adena cost).<br>
@@ -73,7 +74,7 @@ public class RecipeItemMaker implements Runnable
 		// Check if that customer can afford to pay for creation services. Also check manufacturer integrity.
 		if (_player != _target)
 		{
-			for (ManufactureItem temp : _player.getCreateList().getList())
+			for (ManufactureItem temp : _player.getManufactureList())
 			{
 				// Find recipe for item we want manufactured.
 				if (temp.getId() == _recipe.getId())
@@ -98,7 +99,7 @@ public class RecipeItemMaker implements Runnable
 		}
 		
 		// Initial mana check requires MP as written on recipe.
-		if (_player.getCurrentMp() < _manaRequired)
+		if (_player.getStatus().getMp() < _manaRequired)
 		{
 			_target.sendPacket(SystemMessageId.NOT_ENOUGH_MP);
 			abort();
@@ -134,7 +135,7 @@ public class RecipeItemMaker implements Runnable
 			return;
 		}
 		
-		_player.reduceCurrentMp(_manaRequired);
+		_player.getStatus().reduceMp(_manaRequired);
 		
 		// First take adena for manufacture ; customer must pay for services.
 		if (_target != _player && _price > 0)
@@ -200,8 +201,8 @@ public class RecipeItemMaker implements Runnable
 	private void updateStatus()
 	{
 		final StatusUpdate su = new StatusUpdate(_target);
-		su.addAttribute(StatusUpdate.CUR_MP, (int) _target.getCurrentMp());
-		su.addAttribute(StatusUpdate.CUR_LOAD, _target.getCurrentLoad());
+		su.addAttribute(StatusType.CUR_MP, (int) _target.getStatus().getMp());
+		su.addAttribute(StatusType.CUR_LOAD, _target.getCurrentWeight());
 		_target.sendPacket(su);
 	}
 	

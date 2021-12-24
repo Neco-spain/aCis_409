@@ -2,21 +2,21 @@ package net.sf.l2j.gameserver.model.actor.instance;
 
 import java.util.List;
 
-import net.sf.l2j.gameserver.data.SkillTable.FrequentSkill;
 import net.sf.l2j.gameserver.data.xml.SkillTreeData;
 import net.sf.l2j.gameserver.enums.skills.AcquireSkillType;
-import net.sf.l2j.gameserver.model.L2Effect;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
 import net.sf.l2j.gameserver.model.holder.skillnode.EnchantSkillNode;
 import net.sf.l2j.gameserver.model.holder.skillnode.GeneralSkillNode;
 import net.sf.l2j.gameserver.network.SystemMessageId;
+import net.sf.l2j.gameserver.network.serverpackets.AcquireSkillDone;
 import net.sf.l2j.gameserver.network.serverpackets.AcquireSkillList;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 import net.sf.l2j.gameserver.network.serverpackets.ExEnchantSkillList;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
 import net.sf.l2j.gameserver.skills.effects.EffectBuff;
 import net.sf.l2j.gameserver.skills.effects.EffectDebuff;
 
@@ -26,11 +26,11 @@ public class Folk extends Npc
 	{
 		super(objectId, template);
 		
-		setIsMortal(false);
+		setMortal(false);
 	}
 	
 	@Override
-	public void addEffect(L2Effect newEffect)
+	public void addEffect(AbstractEffect newEffect)
 	{
 		if (newEffect instanceof EffectDebuff || newEffect instanceof EffectBuff)
 			super.addEffect(newEffect);
@@ -60,6 +60,8 @@ public class Folk extends Npc
 				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.DO_NOT_HAVE_FURTHER_SKILLS_TO_LEARN_S1).addNumber(minlevel));
 			else
 				player.sendPacket(SystemMessageId.NO_MORE_SKILLS_TO_LEARN);
+			
+			player.sendPacket(AcquireSkillDone.STATIC_PACKET);
 		}
 		else
 			player.sendPacket(new AcquireSkillList(AcquireSkillType.USUAL, skills));
@@ -81,7 +83,7 @@ public class Folk extends Npc
 			return;
 		}
 		
-		if (player.getClassId().level() < 3)
+		if (player.getClassId().getLevel() < 3)
 		{
 			final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
 			html.setHtml("<html><body> You must have 3rd class change quest completed.</body></html>");
@@ -94,35 +96,17 @@ public class Folk extends Npc
 		{
 			player.sendPacket(SystemMessageId.THERE_IS_NO_SKILL_THAT_ENABLES_ENCHANT);
 			
-			if (player.getLevel() < 74)
+			if (player.getStatus().getLevel() < 74)
 				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.DO_NOT_HAVE_FURTHER_SKILLS_TO_LEARN_S1).addNumber(74));
 			else
 				player.sendPacket(SystemMessageId.NO_MORE_SKILLS_TO_LEARN);
+			
+			player.sendPacket(AcquireSkillDone.STATIC_PACKET);
 		}
 		else
 			player.sendPacket(new ExEnchantSkillList(skills));
 		
 		player.sendPacket(ActionFailed.STATIC_PACKET);
-	}
-	
-	public void giveBlessingSupport(Player player)
-	{
-		if (player == null)
-			return;
-		
-		// Select the player
-		setTarget(player);
-		
-		// If the player is too high level, display a message and return
-		if (player.getLevel() > 39 || player.getClassId().level() >= 2)
-		{
-			final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
-			html.setHtml("<html><body>Newbie Guide:<br>I'm sorry, but you are not eligible to receive the protection blessing.<br1>It can only be bestowed on <font color=\"LEVEL\">characters below level 39 who have not made a seccond transfer.</font></body></html>");
-			html.replace("%objectId%", getObjectId());
-			player.sendPacket(html);
-			return;
-		}
-		doCast(FrequentSkill.BLESSING_OF_PROTECTION.getSkill());
 	}
 	
 	@Override
@@ -132,8 +116,6 @@ public class Folk extends Npc
 			showSkillList(player);
 		else if (command.startsWith("EnchantSkillList"))
 			showEnchantSkillList(player);
-		else if (command.startsWith("GiveBlessing"))
-			giveBlessingSupport(player);
 		else
 			super.onBypassFeedback(player, command);
 	}

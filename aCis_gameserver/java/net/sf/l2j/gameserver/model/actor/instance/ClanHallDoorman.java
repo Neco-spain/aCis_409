@@ -1,26 +1,22 @@
 package net.sf.l2j.gameserver.model.actor.instance;
 
-import net.sf.l2j.gameserver.data.manager.ClanHallManager;
 import net.sf.l2j.gameserver.data.sql.ClanTable;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
-import net.sf.l2j.gameserver.model.clanhall.ClanHall;
 import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
 
 /**
- * An instance type extending {@link Doorman}, used by clan hall doorman. The clan hall is linked during NPC spawn, based on distance.<br>
+ * An instance type extending {@link Doorman}, used by clan hall doorman.<br>
  * <br>
  * isOwnerClan() checks if the user is part of clan owning the clan hall.
  */
 public class ClanHallDoorman extends Doorman
 {
-	private ClanHall _clanHall;
-	
-	public ClanHallDoorman(int objectID, NpcTemplate template)
+	public ClanHallDoorman(int objectId, NpcTemplate template)
 	{
-		super(objectID, template);
+		super(objectId, template);
 	}
 	
 	@Override
@@ -28,12 +24,12 @@ public class ClanHallDoorman extends Doorman
 	{
 		player.sendPacket(ActionFailed.STATIC_PACKET);
 		
-		if (_clanHall == null)
+		if (getClanHall() == null)
 			return;
 		
 		final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
 		
-		final Clan owner = ClanTable.getInstance().getClan(_clanHall.getOwnerId());
+		final Clan owner = ClanTable.getInstance().getClan(getClanHall().getOwnerId());
 		if (isOwnerClan(player))
 		{
 			html.setFile("data/html/clanHallDoormen/doormen.htm");
@@ -50,7 +46,7 @@ public class ClanHallDoorman extends Doorman
 			else
 			{
 				html.setFile("data/html/clanHallDoormen/emptyowner.htm");
-				html.replace("%hallname%", _clanHall.getName());
+				html.replace("%hallname%", getClanHall().getName());
 			}
 		}
 		html.replace("%objectId%", getObjectId());
@@ -66,7 +62,7 @@ public class ClanHallDoorman extends Doorman
 	@Override
 	protected final void openDoors(Player player, String command)
 	{
-		_clanHall.openCloseDoors(true);
+		getClanHall().openCloseDoors(true);
 		
 		final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
 		html.setFile("data/html/clanHallDoormen/doormen-opened.htm");
@@ -77,7 +73,7 @@ public class ClanHallDoorman extends Doorman
 	@Override
 	protected final void closeDoors(Player player, String command)
 	{
-		_clanHall.openCloseDoors(false);
+		getClanHall().openCloseDoors(false);
 		
 		final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
 		html.setFile("data/html/clanHallDoormen/doormen-closed.htm");
@@ -88,16 +84,6 @@ public class ClanHallDoorman extends Doorman
 	@Override
 	protected final boolean isOwnerClan(Player player)
 	{
-		return _clanHall != null && player.getClan() != null && player.getClanId() == _clanHall.getOwnerId();
-	}
-	
-	@Override
-	public void onSpawn()
-	{
-		_clanHall = ClanHallManager.getInstance().getNearestClanHall(getX(), getY(), 500);
-		if (_clanHall == null)
-			LOGGER.warn("Couldn't find the nearest ClanHall for {}.", toString());
-		
-		super.onSpawn();
+		return getClanHall() != null && player.getClan() != null && player.getClanId() == getClanHall().getOwnerId();
 	}
 }

@@ -1,7 +1,7 @@
 package net.sf.l2j.loginserver.network.clientpackets;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.loginserver.LoginController;
+import net.sf.l2j.loginserver.model.Account;
 import net.sf.l2j.loginserver.network.SessionKey;
 import net.sf.l2j.loginserver.network.serverpackets.LoginFail;
 import net.sf.l2j.loginserver.network.serverpackets.PlayFail;
@@ -44,20 +44,31 @@ public class RequestServerLogin extends L2LoginClientPacket
 	@Override
 	public void run()
 	{
-		SessionKey sk = getClient().getSessionKey();
+		final SessionKey sk = getClient().getSessionKey();
 		
-		// if we didnt showed the license we cant check these values
-		if (!Config.SHOW_LICENCE || sk.checkLoginPair(_skey1, _skey2))
+		// Check Show Licence window.
+		if (Config.SHOW_LICENCE && !sk.checkLoginPair(_skey1, _skey2))
 		{
-			if (LoginController.getInstance().isLoginPossible(getClient(), _serverId))
-			{
-				getClient().setJoinedGS(true);
-				getClient().sendPacket(new PlayOk(sk));
-			}
-			else
-				getClient().close(PlayFail.REASON_TOO_MANY_PLAYERS);
-		}
-		else
 			getClient().close(LoginFail.REASON_ACCESS_FAILED);
+			return;
+		}
+		
+		// Check Account integrity.
+		final Account account = getClient().getAccount();
+		if (account == null)
+		{
+			getClient().close(LoginFail.REASON_ACCESS_FAILED);
+			return;
+		}
+		
+		// Check possibility of login.
+		if (!account.isLoginPossible(_serverId))
+		{
+			getClient().close(PlayFail.REASON_TOO_MANY_PLAYERS);
+			return;
+		}
+		
+		getClient().setJoinedGS(true);
+		getClient().sendPacket(new PlayOk(sk));
 	}
 }

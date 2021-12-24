@@ -1,12 +1,8 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
-import net.sf.l2j.commons.math.MathUtil;
-
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.model.World;
-import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.actor.player.BlockList;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SendTradeRequest;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
@@ -35,7 +31,10 @@ public final class TradeRequest extends L2GameClientPacket
 		}
 		
 		final Player target = World.getInstance().getPlayer(_objectId);
-		if (target == null || !player.getKnownType(Player.class).contains(target) || target.equals(player))
+		if (target == null)
+			return;
+		
+		if (!player.knows(target) || target == player)
 		{
 			player.sendPacket(SystemMessageId.TARGET_IS_INCORRECT);
 			return;
@@ -43,14 +42,19 @@ public final class TradeRequest extends L2GameClientPacket
 		
 		if (target.isInOlympiadMode() || player.isInOlympiadMode())
 		{
-			player.sendMessage("You or your target cannot trade during Olympiad.");
+			player.sendMessage("You cannot trade during Olympiad.");
 			return;
 		}
 		
-		// Alt game - Karma punishment
 		if (!Config.KARMA_PLAYER_CAN_TRADE && (player.getKarma() > 0 || target.getKarma() > 0))
 		{
 			player.sendMessage("You cannot trade in a chaotic state.");
+			return;
+		}
+		
+		if (player.isInManageStoreMode() || target.isInManageStoreMode())
+		{
+			player.sendPacket(SystemMessageId.PRIVATE_STORE_UNDER_WAY);
 			return;
 		}
 		
@@ -68,27 +72,19 @@ public final class TradeRequest extends L2GameClientPacket
 		
 		if (target.isProcessingRequest() || target.isProcessingTransaction())
 		{
-			SystemMessage sm = SystemMessage.getSystemMessage(SystemMessageId.S1_IS_BUSY_TRY_LATER).addCharName(target);
-			player.sendPacket(sm);
+			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_IS_BUSY_TRY_LATER).addCharName(target));
 			return;
 		}
 		
-		if (target.getTradeRefusal())
+		if (target.getBlockList().isBlockingAll())
 		{
-			player.sendMessage("Your target is in trade refusal mode.");
+			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_BLOCKED_EVERYTHING).addCharName(target));
 			return;
 		}
 		
-		if (BlockList.isBlocked(target, player))
+		if (target.getBlockList().isInBlockList(player))
 		{
-			SystemMessage sm = SystemMessage.getSystemMessage(SystemMessageId.S1_HAS_ADDED_YOU_TO_IGNORE_LIST).addCharName(target);
-			player.sendPacket(sm);
-			return;
-		}
-		
-		if (MathUtil.calculateDistance(player, target, true) > Npc.INTERACTION_DISTANCE)
-		{
-			player.sendPacket(SystemMessageId.TARGET_TOO_FAR);
+			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_HAS_ADDED_YOU_TO_IGNORE_LIST).addCharName(target));
 			return;
 		}
 		

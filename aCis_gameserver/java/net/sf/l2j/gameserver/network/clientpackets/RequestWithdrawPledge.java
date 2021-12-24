@@ -17,39 +17,39 @@ public final class RequestWithdrawPledge extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		final Clan clan = activeChar.getClan();
+		final Clan clan = player.getClan();
 		if (clan == null)
 		{
-			activeChar.sendPacket(SystemMessageId.YOU_ARE_NOT_A_CLAN_MEMBER);
+			player.sendPacket(SystemMessageId.YOU_ARE_NOT_A_CLAN_MEMBER);
 			return;
 		}
 		
-		if (activeChar.isClanLeader())
+		if (player.isClanLeader())
 		{
-			activeChar.sendPacket(SystemMessageId.CLAN_LEADER_CANNOT_WITHDRAW);
+			player.sendPacket(SystemMessageId.CLAN_LEADER_CANNOT_WITHDRAW);
 			return;
 		}
 		
-		if (activeChar.isInCombat())
+		if (player.isInCombat())
 		{
-			activeChar.sendPacket(SystemMessageId.YOU_CANNOT_LEAVE_DURING_COMBAT);
+			player.sendPacket(SystemMessageId.YOU_CANNOT_LEAVE_DURING_COMBAT);
 			return;
 		}
 		
-		clan.removeClanMember(activeChar.getObjectId(), System.currentTimeMillis() + Config.ALT_CLAN_JOIN_DAYS * 86400000L);
-		clan.broadcastToOnlineMembers(SystemMessage.getSystemMessage(SystemMessageId.S1_HAS_WITHDRAWN_FROM_THE_CLAN).addCharName(activeChar));
+		clan.removeClanMember(player.getObjectId(), System.currentTimeMillis() + Config.CLAN_JOIN_DAYS * 86400000L);
+		clan.broadcastToMembers(SystemMessage.getSystemMessage(SystemMessageId.S1_HAS_WITHDRAWN_FROM_THE_CLAN).addCharName(player));
 		
 		// Remove the player from the members list.
-		if (clan.isSubPledgeLeader(activeChar.getObjectId()))
+		if (clan.isSubPledgeLeader(player.getObjectId()))
 			clan.broadcastClanStatus(); // refresh list
 		else
-			clan.broadcastToOnlineMembers(new PledgeShowMemberListDelete(activeChar.getName()));
+			clan.broadcastToMembers(new PledgeShowMemberListDelete(player.getName()));
 		
-		activeChar.sendPacket(SystemMessageId.YOU_HAVE_WITHDRAWN_FROM_CLAN);
-		activeChar.sendPacket(SystemMessageId.YOU_MUST_WAIT_BEFORE_JOINING_ANOTHER_CLAN);
+		player.sendPacket(SystemMessageId.YOU_HAVE_WITHDRAWN_FROM_CLAN);
+		player.sendPacket(SystemMessageId.YOU_MUST_WAIT_BEFORE_JOINING_ANOTHER_CLAN);
 	}
 }

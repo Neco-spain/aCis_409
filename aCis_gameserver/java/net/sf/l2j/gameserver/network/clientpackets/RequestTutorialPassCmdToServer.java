@@ -5,7 +5,7 @@ import net.sf.l2j.gameserver.scripting.QuestState;
 
 public class RequestTutorialPassCmdToServer extends L2GameClientPacket
 {
-	String _bypass;
+	private String _bypass;
 	
 	@Override
 	protected void readImpl()
@@ -20,7 +20,7 @@ public class RequestTutorialPassCmdToServer extends L2GameClientPacket
 		if (player == null)
 			return;
 		
-		QuestState qs = player.getQuestState("Tutorial");
+		final QuestState qs = player.getQuestList().getQuestState("Tutorial");
 		if (qs != null)
 			qs.getQuest().notifyEvent(_bypass, null, player);
 	}

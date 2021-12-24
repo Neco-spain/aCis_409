@@ -4,10 +4,6 @@ import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.network.serverpackets.ExMPCCShowPartyMemberInfo;
 
-/**
- * Format:(ch) d
- * @author chris_00
- */
 public final class RequestExMPCCShowPartyMembersInfo extends L2GameClientPacket
 {
 	private int _partyLeaderId;
@@ -21,12 +17,12 @@ public final class RequestExMPCCShowPartyMembersInfo extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		Player player = World.getInstance().getPlayer(_partyLeaderId);
-		if (player != null && player.isInParty())
-			activeChar.sendPacket(new ExMPCCShowPartyMemberInfo(player.getParty()));
+		final Player leader = World.getInstance().getPlayer(_partyLeaderId);
+		if (leader != null && leader.isInParty())
+			player.sendPacket(new ExMPCCShowPartyMemberInfo(leader.getParty()));
 	}
 }

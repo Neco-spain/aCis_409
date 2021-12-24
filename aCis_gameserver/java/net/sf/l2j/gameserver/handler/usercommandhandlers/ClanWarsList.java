@@ -4,7 +4,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
-import net.sf.l2j.L2DatabaseFactory;
+import net.sf.l2j.commons.pool.ConnectionPool;
+
 import net.sf.l2j.gameserver.handler.IUserCommandHandler;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.pledge.Clan;
@@ -25,16 +26,16 @@ public class ClanWarsList implements IUserCommandHandler
 	};
 	
 	@Override
-	public boolean useUserCommand(int id, Player player)
+	public void useUserCommand(int id, Player player)
 	{
 		final Clan clan = player.getClan();
 		if (clan == null)
 		{
 			player.sendPacket(SystemMessageId.YOU_ARE_NOT_AUTHORIZED_TO_DO_THAT);
-			return false;
+			return;
 		}
 		
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement((id == 88) ? SELECT_ATTACK_LIST : ((id == 89) ? SELECT_UNDER_ATTACK_LIST : SELECT_WAR_LIST)))
 		{
 			ps.setInt(1, clan.getClanId());
@@ -79,7 +80,6 @@ public class ClanWarsList implements IUserCommandHandler
 		catch (Exception e)
 		{
 		}
-		return true;
 	}
 	
 	@Override

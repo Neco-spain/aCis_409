@@ -1,25 +1,23 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import net.sf.l2j.gameserver.enums.skills.L2EffectFlag;
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
-import net.sf.l2j.gameserver.model.L2Effect;
+import net.sf.l2j.gameserver.enums.skills.EffectFlag;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Playable;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
-/**
- * @author kerberos_20
- */
-public class EffectProtectionBlessing extends L2Effect
+public class EffectProtectionBlessing extends AbstractEffect
 {
-	public EffectProtectionBlessing(Env env, EffectTemplate template)
+	public EffectProtectionBlessing(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
 	{
-		super(env, template);
+		super(template, skill, effected, effector);
 	}
 	
 	@Override
-	public L2EffectType getEffectType()
+	public EffectType getEffectType()
 	{
-		return L2EffectType.PROTECTION_BLESSING;
+		return EffectType.PROTECTION_BLESSING;
 	}
 	
 	@Override
@@ -43,6 +41,6 @@ public class EffectProtectionBlessing extends L2Effect
 	@Override
 	public int getEffectFlags()
 	{
-		return L2EffectFlag.PROTECTION_BLESSING.getMask();
+		return EffectFlag.PROTECTION_BLESSING.getMask();
 	}
 }

@@ -43,11 +43,11 @@ public final class RequestExAcceptJoinMPCC extends L2GameClientPacket
 			CommandChannel channel = requestorParty.getCommandChannel();
 			if (channel == null)
 			{
-				// Consume a Strategy Guide item from requestor. If not possible, cancel the CommandChannel creation.
-				if (!requestor.destroyItemByItemId("CommandChannel Creation", 8871, 1, player, true))
+				// Check the possibility to setup the CommandChannel.
+				if (!CommandChannel.checkAuthority(requestor, true))
 					return;
 				
-				channel = new CommandChannel(requestorParty, targetParty);
+				new CommandChannel(requestorParty, targetParty);
 			}
 			else
 				channel.addParty(targetParty);

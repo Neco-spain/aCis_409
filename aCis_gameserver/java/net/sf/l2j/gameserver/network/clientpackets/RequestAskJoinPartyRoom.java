@@ -8,34 +8,34 @@ import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public class RequestAskJoinPartyRoom extends L2GameClientPacket
 {
-	private static String _name;
+	private String _targetName;
 	
 	@Override
 	protected void readImpl()
 	{
-		_name = readS();
+		_targetName = readS();
 	}
 	
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		// Send PartyRoom invite request (with activeChar) name to the target
-		final Player target = World.getInstance().getPlayer(_name);
+		// Send invite request with player name to the target.
+		final Player target = World.getInstance().getPlayer(_targetName);
 		if (target != null)
 		{
 			if (!target.isProcessingRequest())
 			{
-				activeChar.onTransactionRequest(target);
-				target.sendPacket(new ExAskJoinPartyRoom(activeChar.getName()));
+				player.onTransactionRequest(target);
+				target.sendPacket(new ExAskJoinPartyRoom(player.getName()));
 			}
 			else
-				activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_IS_BUSY_TRY_LATER).addCharName(target));
+				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_IS_BUSY_TRY_LATER).addCharName(target));
 		}
 		else
-			activeChar.sendPacket(SystemMessageId.TARGET_IS_NOT_FOUND_IN_THE_GAME);
+			player.sendPacket(SystemMessageId.TARGET_IS_NOT_FOUND_IN_THE_GAME);
 	}
 }

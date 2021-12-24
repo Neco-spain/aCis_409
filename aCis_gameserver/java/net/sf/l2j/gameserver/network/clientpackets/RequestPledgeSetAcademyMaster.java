@@ -7,10 +7,6 @@ import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.PledgeShowMemberListUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
-/**
- * Format: (ch) dSS
- * @author -Wooden-
- */
 public final class RequestPledgeSetAcademyMaster extends L2GameClientPacket
 {
 	private String _currPlayerName;
@@ -28,26 +24,31 @@ public final class RequestPledgeSetAcademyMaster extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		final Clan clan = activeChar.getClan();
+		final Clan clan = player.getClan();
 		if (clan == null)
 			return;
 		
-		if ((activeChar.getClanPrivileges() & Clan.CP_CL_MASTER_RIGHTS) != Clan.CP_CL_MASTER_RIGHTS)
+		if (!player.hasClanPrivileges(Clan.CP_CL_MASTER_RIGHTS))
 		{
-			activeChar.sendPacket(SystemMessageId.YOU_DO_NOT_HAVE_THE_RIGHT_TO_DISMISS_AN_APPRENTICE);
+			player.sendPacket(SystemMessageId.YOU_DO_NOT_HAVE_THE_RIGHT_TO_DISMISS_AN_APPRENTICE);
 			return;
 		}
 		
 		final ClanMember currentMember = clan.getClanMember(_currPlayerName);
-		final ClanMember targetMember = clan.getClanMember(_targetPlayerName);
-		if (currentMember == null || targetMember == null)
+		if (currentMember == null)
 			return;
 		
-		ClanMember apprenticeMember, sponsorMember;
+		final ClanMember targetMember = clan.getClanMember(_targetPlayerName);
+		if (targetMember == null)
+			return;
+		
+		ClanMember apprenticeMember;
+		ClanMember sponsorMember;
+		
 		if (currentMember.getPledgeType() == Clan.SUBUNIT_ACADEMY)
 		{
 			apprenticeMember = currentMember;
@@ -87,7 +88,7 @@ public final class RequestPledgeSetAcademyMaster extends L2GameClientPacket
 		{
 			if (apprenticeMember.getSponsor() != 0 || sponsorMember.getApprentice() != 0 || apprenticeMember.getApprentice() != 0 || sponsorMember.getSponsor() != 0)
 			{
-				activeChar.sendMessage("Remove previous connections first.");
+				player.sendMessage("Remove previous connections first.");
 				return;
 			}
 			
@@ -112,8 +113,8 @@ public final class RequestPledgeSetAcademyMaster extends L2GameClientPacket
 		sm.addString(sponsorMember.getName());
 		sm.addString(apprenticeMember.getName());
 		
-		if (sponsor != activeChar && sponsor != apprentice)
-			activeChar.sendPacket(sm);
+		if (sponsor != player && sponsor != apprentice)
+			player.sendPacket(sm);
 		
 		if (sponsor != null)
 			sponsor.sendPacket(sm);
@@ -121,6 +122,6 @@ public final class RequestPledgeSetAcademyMaster extends L2GameClientPacket
 		if (apprentice != null)
 			apprentice.sendPacket(sm);
 		
-		clan.broadcastToOnlineMembers(new PledgeShowMemberListUpdate(sponsorMember), new PledgeShowMemberListUpdate(apprenticeMember));
+		clan.broadcastToMembers(new PledgeShowMemberListUpdate(sponsorMember), new PledgeShowMemberListUpdate(apprenticeMember));
 	}
 }

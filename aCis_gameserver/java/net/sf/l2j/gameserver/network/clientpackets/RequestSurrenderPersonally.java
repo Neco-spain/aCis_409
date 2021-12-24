@@ -19,27 +19,27 @@ public final class RequestSurrenderPersonally extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		final Clan playerClan = activeChar.getClan();
+		final Clan playerClan = player.getClan();
 		if (playerClan == null)
 			return;
 		
-		Clan clan = ClanTable.getInstance().getClanByName(_pledgeName);
+		final Clan clan = ClanTable.getInstance().getClanByName(_pledgeName);
 		if (clan == null)
 			return;
 		
-		if (!playerClan.isAtWarWith(clan.getClanId()) || activeChar.wantsPeace())
+		if (!playerClan.isAtWarWith(clan.getClanId()) || player.wantsPeace())
 		{
-			activeChar.sendPacket(SystemMessageId.FAILED_TO_PERSONALLY_SURRENDER);
+			player.sendPacket(SystemMessageId.FAILED_TO_PERSONALLY_SURRENDER);
 			return;
 		}
 		
-		activeChar.setWantsPeace(true);
-		activeChar.deathPenalty(false, false, false);
-		activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_HAVE_PERSONALLY_SURRENDERED_TO_THE_S1_CLAN).addString(_pledgeName));
+		player.setWantsPeace(true);
+		player.applyDeathPenalty(false, false);
+		player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_HAVE_PERSONALLY_SURRENDERED_TO_THE_S1_CLAN).addString(_pledgeName));
 		ClanTable.getInstance().checkSurrender(playerClan, clan);
 	}
 }

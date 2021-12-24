@@ -3,7 +3,7 @@ package net.sf.l2j.gameserver.network.serverpackets;
 import java.util.List;
 
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.tradelist.TradeItem;
+import net.sf.l2j.gameserver.model.trade.TradeItem;
 
 public class PrivateStoreListSell extends L2GameServerPacket
 {
@@ -16,7 +16,7 @@ public class PrivateStoreListSell extends L2GameServerPacket
 	{
 		_playerAdena = player.getAdena();
 		_storePlayer = storePlayer;
-		_items = _storePlayer.getSellList().getItems();
+		_items = _storePlayer.getSellList();
 		_packageSale = _storePlayer.getSellList().isPackaged();
 	}
 	

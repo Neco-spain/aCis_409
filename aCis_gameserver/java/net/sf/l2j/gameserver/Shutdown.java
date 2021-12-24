@@ -1,12 +1,12 @@
 package net.sf.l2j.gameserver;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
 import net.sf.l2j.commons.lang.StringUtil;
 import net.sf.l2j.commons.logging.CLogger;
-import net.sf.l2j.commons.network.StatusType;
+import net.sf.l2j.commons.network.ServerType;
+import net.sf.l2j.commons.pool.ConnectionPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.L2DatabaseFactory;
 import net.sf.l2j.gameserver.data.manager.BufferManager;
 import net.sf.l2j.gameserver.data.manager.CastleManorManager;
 import net.sf.l2j.gameserver.data.manager.CoupleManager;
@@ -14,10 +14,10 @@ import net.sf.l2j.gameserver.data.manager.FestivalOfDarknessManager;
 import net.sf.l2j.gameserver.data.manager.FishingChampionshipManager;
 import net.sf.l2j.gameserver.data.manager.GrandBossManager;
 import net.sf.l2j.gameserver.data.manager.HeroManager;
+import net.sf.l2j.gameserver.data.manager.PetitionManager;
 import net.sf.l2j.gameserver.data.manager.RaidBossManager;
 import net.sf.l2j.gameserver.data.manager.SevenSignsManager;
 import net.sf.l2j.gameserver.data.manager.ZoneManager;
-import net.sf.l2j.gameserver.data.sql.ServerMemoTable;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.olympiad.Olympiad;
@@ -84,8 +84,9 @@ public class Shutdown extends Thread
 				disconnectAllPlayers();
 				LOGGER.info("All players have been disconnected.");
 			}
-			catch (Throwable t)
+			catch (Exception e)
 			{
+				// Silent catch.
 			}
 			
 			// stop all threadpolls
@@ -95,8 +96,9 @@ public class Shutdown extends Thread
 			{
 				LoginServerThread.getInstance().interrupt();
 			}
-			catch (Throwable t)
+			catch (Exception e)
 			{
+				// Silent catch.
 			}
 			
 			// Seven Signs data is now saved along with Festival data.
@@ -139,16 +141,16 @@ public class Shutdown extends Thread
 			BufferManager.getInstance().saveSchemes();
 			LOGGER.info("BufferTable data has been saved.");
 			
+			// Petitions save.
+			PetitionManager.getInstance().store();
+			LOGGER.info("Petitions data has been saved.");
+			
 			// Couples save.
 			if (Config.ALLOW_WEDDING)
 			{
 				CoupleManager.getInstance().save();
 				LOGGER.info("CoupleManager data has been saved.");
 			}
-			
-			// Save server memos.
-			ServerMemoTable.getInstance().storeMe();
-			LOGGER.info("ServerMemo data has been saved.");
 			
 			// Save items on ground before closing
 			ItemsOnGroundTaskManager.getInstance().save();
@@ -157,24 +159,27 @@ public class Shutdown extends Thread
 			{
 				Thread.sleep(5000);
 			}
-			catch (InterruptedException e)
+			catch (Exception e)
 			{
+				// Silent catch.
 			}
 			
 			try
 			{
 				GameServer.getInstance().getSelectorThread().shutdown();
 			}
-			catch (Throwable t)
+			catch (Exception e)
 			{
+				// Silent catch.
 			}
 			
 			try
 			{
-				L2DatabaseFactory.getInstance().shutdown();
+				ConnectionPool.shutdown();
 			}
-			catch (Throwable t)
+			catch (Exception e)
 			{
+				// Silent catch.
 			}
 			
 			Runtime.getRuntime().halt((SingletonHolder.INSTANCE._shutdownMode == GM_RESTART) ? 2 : 0);
@@ -286,8 +291,8 @@ public class Shutdown extends Thread
 				// Rehabilitate previous server status if shutdown is aborted.
 				if (_shutdownMode == ABORT)
 				{
-					if (LoginServerThread.getInstance().getServerStatus() == StatusType.DOWN)
-						LoginServerThread.getInstance().setServerStatus((Config.SERVER_GMONLY) ? StatusType.GM_ONLY : StatusType.AUTO);
+					if (LoginServerThread.getInstance().getServerType() == ServerType.DOWN)
+						LoginServerThread.getInstance().setServerType((Config.SERVER_GMONLY) ? ServerType.GM_ONLY : ServerType.AUTO);
 					
 					break;
 				}
@@ -315,8 +320,8 @@ public class Shutdown extends Thread
 				}
 				
 				// avoids new players from logging in
-				if (_secondsShut <= 60 && LoginServerThread.getInstance().getServerStatus() != StatusType.DOWN)
-					LoginServerThread.getInstance().setServerStatus(StatusType.DOWN);
+				if (_secondsShut <= 60 && LoginServerThread.getInstance().getServerType() != ServerType.DOWN)
+					LoginServerThread.getInstance().setServerType(ServerType.DOWN);
 				
 				_secondsShut--;
 				

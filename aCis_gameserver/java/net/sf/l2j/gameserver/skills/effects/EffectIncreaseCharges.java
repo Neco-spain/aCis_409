@@ -1,37 +1,31 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
-import net.sf.l2j.gameserver.model.L2Effect;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
-/**
- * Effect will generate charges for Player targets Number of charges in "value", maximum number in "count" effect variables
- * @author DS
- */
-public class EffectIncreaseCharges extends L2Effect
+public class EffectIncreaseCharges extends AbstractEffect
 {
-	public EffectIncreaseCharges(Env env, EffectTemplate template)
+	public EffectIncreaseCharges(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
 	{
-		super(env, template);
+		super(template, skill, effected, effector);
 	}
 	
 	@Override
-	public L2EffectType getEffectType()
+	public EffectType getEffectType()
 	{
-		return L2EffectType.INCREASE_CHARGES;
+		return EffectType.INCREASE_CHARGES;
 	}
 	
 	@Override
 	public boolean onStart()
 	{
-		if (getEffected() == null)
-			return false;
-		
 		if (!(getEffected() instanceof Player))
 			return false;
 		
-		((Player) getEffected()).increaseCharges((int) calc(), getCount());
+		((Player) getEffected()).increaseCharges((int) getTemplate().getValue(), getCount());
 		return true;
 	}
 	

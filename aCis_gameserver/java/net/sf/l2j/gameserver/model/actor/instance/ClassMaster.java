@@ -5,7 +5,7 @@ import java.util.List;
 import net.sf.l2j.commons.lang.StringUtil;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.gameserver.data.ItemTable;
+import net.sf.l2j.gameserver.data.xml.ItemData;
 import net.sf.l2j.gameserver.data.xml.PlayerData;
 import net.sf.l2j.gameserver.enums.actors.ClassId;
 import net.sf.l2j.gameserver.model.actor.Player;
@@ -13,7 +13,6 @@ import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
-import net.sf.l2j.gameserver.network.serverpackets.HennaInfo;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
 import net.sf.l2j.gameserver.network.serverpackets.UserInfo;
 
@@ -108,7 +107,7 @@ public final class ClassMaster extends Folk
 			final StringBuilder sb = new StringBuilder(100);
 			sb.append("<html><body>");
 			
-			switch (player.getClassId().level())
+			switch (player.getClassId().getLevel())
 			{
 				case 0:
 					if (Config.CLASS_MASTER_SETTINGS.isAllowed(1))
@@ -147,17 +146,17 @@ public final class ClassMaster extends Folk
 		else
 		{
 			final ClassId currentClassId = player.getClassId();
-			if (currentClassId.level() >= level)
+			if (currentClassId.getLevel() >= level)
 				html.setFile("data/html/classmaster/nomore.htm");
 			else
 			{
-				final int minLevel = getMinLevel(currentClassId.level());
-				if (player.getLevel() >= minLevel || Config.ALLOW_ENTIRE_TREE)
+				final int minLevel = getMinLevel(currentClassId.getLevel());
+				if (player.getStatus().getLevel() >= minLevel || Config.ALLOW_ENTIRE_TREE)
 				{
 					final StringBuilder menu = new StringBuilder(100);
 					for (ClassId cid : ClassId.VALUES)
 					{
-						if (cid.level() != level)
+						if (cid.getLevel() != level)
 							continue;
 						
 						if (validateClassId(currentClassId, cid))
@@ -197,18 +196,18 @@ public final class ClassMaster extends Folk
 	private static final boolean checkAndChangeClass(Player player, int val)
 	{
 		final ClassId currentClassId = player.getClassId();
-		if (getMinLevel(currentClassId.level()) > player.getLevel() && !Config.ALLOW_ENTIRE_TREE)
+		if (getMinLevel(currentClassId.getLevel()) > player.getStatus().getLevel() && !Config.ALLOW_ENTIRE_TREE)
 			return false;
 		
 		if (!validateClassId(currentClassId, val))
 			return false;
 		
-		int newJobLevel = currentClassId.level() + 1;
+		int newJobLevel = currentClassId.getLevel() + 1;
 		
 		// Weight/Inventory check
 		if (!Config.CLASS_MASTER_SETTINGS.getRewardItems(newJobLevel).isEmpty())
 		{
-			if (player.getWeightPenalty() > 2)
+			if (player.getWeightPenalty().ordinal() > 2)
 			{
 				player.sendPacket(SystemMessageId.INVENTORY_LESS_THAN_80_PERCENT);
 				return false;
@@ -220,7 +219,7 @@ public final class ClassMaster extends Folk
 		// check if player have all required items for class transfer
 		for (IntIntHolder item : neededItems)
 		{
-			if (player.getInventory().getInventoryItemCount(item.getId(), -1) < item.getValue())
+			if (player.getInventory().getItemCount(item.getId()) < item.getValue())
 			{
 				player.sendPacket(SystemMessageId.NOT_ENOUGH_ITEMS);
 				return false;
@@ -245,7 +244,7 @@ public final class ClassMaster extends Folk
 		else
 			player.setBaseClass(player.getActiveClass());
 		
-		player.sendPacket(new HennaInfo(player));
+		player.refreshHennaList();
 		player.broadcastUserInfo();
 		return true;
 	}
@@ -302,7 +301,7 @@ public final class ClassMaster extends Folk
 		if (oldCID == newCID.getParent())
 			return true;
 		
-		if (Config.ALLOW_ENTIRE_TREE && newCID.childOf(oldCID))
+		if (Config.ALLOW_ENTIRE_TREE && newCID.isChildOf(oldCID))
 			return true;
 		
 		return false;
@@ -316,7 +315,7 @@ public final class ClassMaster extends Folk
 		
 		final StringBuilder sb = new StringBuilder();
 		for (IntIntHolder item : neededItems)
-			StringUtil.append(sb, "<tr><td><font color=\"LEVEL\">", item.getValue(), "</font></td><td>", ItemTable.getInstance().getTemplate(item.getId()).getName(), "</td></tr>");
+			StringUtil.append(sb, "<tr><td><font color=\"LEVEL\">", item.getValue(), "</font></td><td>", ItemData.getInstance().getTemplate(item.getId()).getName(), "</td></tr>");
 		
 		return sb.toString();
 	}

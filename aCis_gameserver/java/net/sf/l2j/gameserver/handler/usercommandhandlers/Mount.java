@@ -11,9 +11,9 @@ public class Mount implements IUserCommandHandler
 	};
 	
 	@Override
-	public boolean useUserCommand(int id, Player activeChar)
+	public void useUserCommand(int id, Player player)
 	{
-		return activeChar.mountPlayer(activeChar.getSummon());
+		player.mountPlayer(player.getSummon());
 	}
 	
 	@Override

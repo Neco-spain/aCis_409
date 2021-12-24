@@ -2,77 +2,62 @@ package net.sf.l2j.gameserver.skills.effects;
 
 import net.sf.l2j.commons.math.MathUtil;
 
-import net.sf.l2j.gameserver.enums.IntentionType;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
 import net.sf.l2j.gameserver.enums.skills.FlyType;
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
 import net.sf.l2j.gameserver.geoengine.GeoEngine;
-import net.sf.l2j.gameserver.model.L2Effect;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.location.Location;
 import net.sf.l2j.gameserver.network.serverpackets.FlyToLocation;
 import net.sf.l2j.gameserver.network.serverpackets.ValidateLocation;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
-/**
- * This class handles warp effects, disappear and quickly turn up in a near location. If geodata enabled and an object is between initial and final point, flight is stopped just before colliding with object. Flight course and radius are set as skill properties (flyCourse and flyRadius):
- * <li>Fly Radius means the distance between starting point and final point, it must be an integer.</li>
- * <li>Fly Course means the movement direction: imagine a compass above player's head, making north player's heading. So if fly course is 180, player will go backwards (good for blink, e.g.). By the way, if flyCourse = 360 or 0, player will be moved in in front of him. <br>
- * <br>
- * If target is effector, put in XML self = "1". This will make _actor = getEffector(). This, combined with target type, allows more complex actions like flying target's backwards or player's backwards.<br>
- * <br>
- * @author House
- */
-public class EffectWarp extends L2Effect
+public class EffectWarp extends AbstractEffect
 {
-	private int x, y, z;
-	private Creature _actor;
-	
-	public EffectWarp(Env env, EffectTemplate template)
+	public EffectWarp(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
 	{
-		super(env, template);
+		super(template, skill, effected, effector);
 	}
 	
 	@Override
-	public L2EffectType getEffectType()
+	public EffectType getEffectType()
 	{
-		return L2EffectType.WARP;
+		return EffectType.WARP;
 	}
 	
 	@Override
 	public boolean onStart()
 	{
-		_actor = isSelfEffect() ? getEffector() : getEffected();
+		final Creature actor = (isSelfEffect()) ? getEffector() : getEffected();
 		
-		if (_actor.isMovementDisabled())
+		if (actor.isMovementDisabled())
 			return false;
 		
-		int _radius = getSkill().getFlyRadius();
+		final double angle = MathUtil.convertHeadingToDegree(actor.getHeading());
+		final double radian = Math.toRadians(angle);
+		final double course = Math.toRadians(getSkill().getFlyCourse());
 		
-		double angle = MathUtil.convertHeadingToDegree(_actor.getHeading());
-		double radian = Math.toRadians(angle);
-		double course = Math.toRadians(getSkill().getFlyCourse());
+		final int x1 = (int) (Math.cos(Math.PI + radian + course) * getSkill().getFlyRadius());
+		final int y1 = (int) (Math.sin(Math.PI + radian + course) * getSkill().getFlyRadius());
 		
-		int x1 = (int) (Math.cos(Math.PI + radian + course) * _radius);
-		int y1 = (int) (Math.sin(Math.PI + radian + course) * _radius);
+		int x = actor.getX() + x1;
+		int y = actor.getY() + y1;
+		int z = actor.getZ();
 		
-		x = _actor.getX() + x1;
-		y = _actor.getY() + y1;
-		z = _actor.getZ();
+		final Location loc = GeoEngine.getInstance().getValidLocation(actor, x, y, z);
+		x = loc.getX();
+		y = loc.getY();
+		z = loc.getZ();
 		
-		Location destiny = GeoEngine.getInstance().canMoveToTargetLoc(_actor.getX(), _actor.getY(), _actor.getZ(), x, y, z);
-		x = destiny.getX();
-		y = destiny.getY();
-		z = destiny.getZ();
+		// TODO: check if this AI intention is retail-like.
+		actor.getAI().tryToIdle();
 		
-		// TODO: check if this AI intention is retail-like. This stops player's previous movement
-		_actor.getAI().setIntention(IntentionType.IDLE);
+		actor.broadcastPacket(new FlyToLocation(actor, x, y, z, FlyType.DUMMY));
+		actor.getAttack().stop();
+		actor.getCast().stop();
 		
-		_actor.broadcastPacket(new FlyToLocation(_actor, x, y, z, FlyType.DUMMY));
-		_actor.abortAttack();
-		_actor.abortCast();
-		
-		_actor.setXYZ(x, y, z);
-		_actor.broadcastPacket(new ValidateLocation(_actor));
+		actor.setXYZ(x, y, z);
+		actor.broadcastPacket(new ValidateLocation(actor));
 		
 		return true;
 	}

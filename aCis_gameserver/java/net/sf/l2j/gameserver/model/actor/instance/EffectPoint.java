@@ -13,7 +13,8 @@ public class EffectPoint extends Npc
 	public EffectPoint(int objectId, NpcTemplate template, Creature owner)
 	{
 		super(objectId, template);
-		_owner = owner == null ? null : owner.getActingPlayer();
+		
+		_owner = (owner == null) ? null : owner.getActingPlayer();
 	}
 	
 	@Override
@@ -23,19 +24,19 @@ public class EffectPoint extends Npc
 	}
 	
 	@Override
-	public void onAction(Player player)
-	{
-		player.sendPacket(ActionFailed.STATIC_PACKET);
-	}
-	
-	@Override
-	public void onActionShift(Player player)
+	public void onAction(Player player, boolean isCtrlPressed, boolean isShiftPressed)
 	{
 		player.sendPacket(ActionFailed.STATIC_PACKET);
 	}
 	
 	@Override
 	public boolean hasRandomAnimation()
+	{
+		return false;
+	}
+	
+	@Override
+	public boolean isAttackableBy(Creature attacker)
 	{
 		return false;
 	}

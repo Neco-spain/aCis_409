@@ -9,35 +9,33 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
+import net.sf.l2j.commons.data.StatSet;
 import net.sf.l2j.commons.logging.CLogger;
+import net.sf.l2j.commons.pool.ConnectionPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 import net.sf.l2j.commons.random.Rnd;
-import net.sf.l2j.commons.util.StatsSet;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.L2DatabaseFactory;
 import net.sf.l2j.gameserver.data.sql.ClanTable;
 import net.sf.l2j.gameserver.data.sql.PlayerInfoTable;
 import net.sf.l2j.gameserver.data.sql.SpawnTable;
 import net.sf.l2j.gameserver.data.xml.MapRegionData.TeleportType;
-import net.sf.l2j.gameserver.data.xml.NpcData;
 import net.sf.l2j.gameserver.enums.CabalType;
 import net.sf.l2j.gameserver.enums.FestivalType;
 import net.sf.l2j.gameserver.enums.IntentionType;
 import net.sf.l2j.gameserver.enums.MessageType;
+import net.sf.l2j.gameserver.enums.SayType;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.FestivalMonster;
-import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
 import net.sf.l2j.gameserver.model.group.Party;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.location.Location;
 import net.sf.l2j.gameserver.model.pledge.Clan;
-import net.sf.l2j.gameserver.model.spawn.L2Spawn;
+import net.sf.l2j.gameserver.model.spawn.Spawn;
 import net.sf.l2j.gameserver.model.zone.type.PeaceZone;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.clientpackets.Say2;
 import net.sf.l2j.gameserver.network.serverpackets.CreatureSay;
 import net.sf.l2j.gameserver.network.serverpackets.MagicSkillUse;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
@@ -57,7 +55,7 @@ public class FestivalOfDarknessManager
 	 * This allows ample time for players to sign-up to participate in the festival. The intermission is the time between the festival participants being moved to the "arenas" and the spawning of the first set of mobs. The monster swarm time is the time before the monsters swarm to the center of the
 	 * arena, after they are spawned. The chest spawn time is for when the bonus festival chests spawn, usually towards the end of the festival.
 	 */
-	public static final long FESTIVAL_SIGNUP_TIME = Config.ALT_FESTIVAL_CYCLE_LENGTH - Config.ALT_FESTIVAL_LENGTH - 60000;
+	public static final long FESTIVAL_SIGNUP_TIME = Config.FESTIVAL_CYCLE_LENGTH - Config.FESTIVAL_LENGTH - 60000;
 	
 	// Key Constants \\
 	private static final int FESTIVAL_MAX_OFFSET_X = 230;
@@ -3133,7 +3131,7 @@ public class FestivalOfDarknessManager
 	private Map<Integer, Integer> _dawnFestivalScores = new HashMap<>();
 	private Map<Integer, Integer> _duskFestivalScores = new HashMap<>();
 	
-	private Map<Integer, Map<Integer, StatsSet>> _festivalData = new HashMap<>();
+	private Map<Integer, Map<Integer, StatSet>> _festivalData = new HashMap<>();
 	
 	protected FestivalOfDarknessManager()
 	{
@@ -3192,10 +3190,10 @@ public class FestivalOfDarknessManager
 		// Start the Festival Manager for the first time after the server has started at the specified time, then invoke it automatically after every cycle.
 		FestivalManager fm = new FestivalManager();
 		
-		setNextFestivalStart(Config.ALT_FESTIVAL_MANAGER_START + FESTIVAL_SIGNUP_TIME);
-		_managerScheduledTask = ThreadPool.scheduleAtFixedRate(fm, Config.ALT_FESTIVAL_MANAGER_START, Config.ALT_FESTIVAL_CYCLE_LENGTH);
+		setNextFestivalStart(Config.FESTIVAL_MANAGER_START + FESTIVAL_SIGNUP_TIME);
+		_managerScheduledTask = ThreadPool.scheduleAtFixedRate(fm, Config.FESTIVAL_MANAGER_START, Config.FESTIVAL_CYCLE_LENGTH);
 		
-		LOGGER.info("The first Festival of Darkness cycle begins in {} minute(s).", (Config.ALT_FESTIVAL_MANAGER_START / 60000));
+		LOGGER.info("The first Festival of Darkness cycle begins in {} minute(s).", (Config.FESTIVAL_MANAGER_START / 60000));
 	}
 	
 	/**
@@ -3203,7 +3201,7 @@ public class FestivalOfDarknessManager
 	 */
 	protected void restoreFestivalData()
 	{
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection())
+		try (Connection con = ConnectionPool.getConnection())
 		{
 			try (PreparedStatement ps = con.prepareStatement(RESTORE_FESTIVAL);
 				ResultSet rs = ps.executeQuery())
@@ -3214,7 +3212,7 @@ public class FestivalOfDarknessManager
 					int festivalId = rs.getInt("festivalId");
 					final String cabal = rs.getString("cabal");
 					
-					final StatsSet set = new StatsSet();
+					final StatSet set = new StatSet();
 					set.set("festivalId", festivalId);
 					set.set("cabal", Enum.valueOf(CabalType.class, cabal));
 					set.set("cycle", festivalCycle);
@@ -3225,7 +3223,7 @@ public class FestivalOfDarknessManager
 					if (cabal.equalsIgnoreCase("dawn"))
 						festivalId += FESTIVAL_COUNT;
 					
-					Map<Integer, StatsSet> map = _festivalData.get(festivalCycle);
+					Map<Integer, StatSet> map = _festivalData.get(festivalCycle);
 					if (map == null)
 						map = new HashMap<>();
 					
@@ -3243,7 +3241,7 @@ public class FestivalOfDarknessManager
 					_festivalCycle = rs.getInt("festival_cycle");
 					
 					for (int i = 0; i < FESTIVAL_COUNT; i++)
-						_accumulatedBonuses.add(i, rs.getInt("accumulated_bonus" + String.valueOf(i)));
+						_accumulatedBonuses.add(i, rs.getInt("accumulated_bonus" + i));
 				}
 			}
 		}
@@ -3261,20 +3259,20 @@ public class FestivalOfDarknessManager
 	 */
 	public void saveFestivalData(boolean updateSettings)
 	{
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(UPDATE);
 			PreparedStatement ps2 = con.prepareStatement(INSERT))
 		{
-			for (Map<Integer, StatsSet> map : _festivalData.values())
+			for (Map<Integer, StatSet> map : _festivalData.values())
 			{
-				for (StatsSet set : map.values())
+				for (StatSet set : map.values())
 				{
 					final int festivalCycle = set.getInteger("cycle");
 					final int festivalId = set.getInteger("festivalId");
 					final String cabal = set.getString("cabal");
 					
 					// Try to update an existing record.
-					ps.setLong(1, Long.valueOf(set.getString("date")));
+					ps.setLong(1, set.getLong("date"));
 					ps.setInt(2, set.getInteger("score"));
 					ps.setString(3, set.getString("members"));
 					ps.setInt(4, festivalCycle);
@@ -3288,7 +3286,7 @@ public class FestivalOfDarknessManager
 					ps2.setInt(1, festivalId);
 					ps2.setString(2, cabal);
 					ps2.setInt(3, festivalCycle);
-					ps2.setLong(4, Long.valueOf(set.getString("date")));
+					ps2.setLong(4, set.getLong("date"));
 					ps2.setInt(5, set.getInteger("score"));
 					ps2.setString(6, set.getString("members"));
 					ps2.execute();
@@ -3310,7 +3308,7 @@ public class FestivalOfDarknessManager
 	{
 		for (int i = 0; i < FESTIVAL_COUNT; i++)
 		{
-			final StatsSet set = getOverallHighestScoreData(i);
+			final StatSet set = getOverallHighestScoreData(i);
 			if (set != null)
 			{
 				for (String playerName : set.getString("members").split(","))
@@ -3327,12 +3325,12 @@ public class FestivalOfDarknessManager
 			if (player.getClan() != null)
 			{
 				player.getClan().addReputationScore(100);
-				player.getClan().broadcastToOnlineMembers(SystemMessage.getSystemMessage(SystemMessageId.CLAN_MEMBER_S1_WAS_IN_HIGHEST_RANKED_PARTY_IN_FESTIVAL_OF_DARKNESS_AND_GAINED_S2_REPUTATION).addString(playerName).addNumber(100));
+				player.getClan().broadcastToMembers(SystemMessage.getSystemMessage(SystemMessageId.CLAN_MEMBER_S1_WAS_IN_HIGHEST_RANKED_PARTY_IN_FESTIVAL_OF_DARKNESS_AND_GAINED_S2_REPUTATION).addString(playerName).addNumber(100));
 			}
 		}
 		else
 		{
-			try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+			try (Connection con = ConnectionPool.getConnection();
 				PreparedStatement ps = con.prepareStatement(GET_CLAN_NAME))
 			{
 				ps.setString(1, playerName);
@@ -3348,7 +3346,7 @@ public class FestivalOfDarknessManager
 							if (clan != null)
 							{
 								clan.addReputationScore(100);
-								clan.broadcastToOnlineMembers(SystemMessage.getSystemMessage(SystemMessageId.CLAN_MEMBER_S1_WAS_IN_HIGHEST_RANKED_PARTY_IN_FESTIVAL_OF_DARKNESS_AND_GAINED_S2_REPUTATION).addString(playerName).addNumber(100));
+								clan.broadcastToMembers(SystemMessage.getSystemMessage(SystemMessageId.CLAN_MEMBER_S1_WAS_IN_HIGHEST_RANKED_PARTY_IN_FESTIVAL_OF_DARKNESS_AND_GAINED_S2_REPUTATION).addString(playerName).addNumber(100));
 							}
 						}
 					}
@@ -3384,7 +3382,7 @@ public class FestivalOfDarknessManager
 		_duskFestivalScores.clear();
 		
 		// Set up a new data set for the current cycle of festivals
-		Map<Integer, StatsSet> map = new HashMap<>();
+		Map<Integer, StatSet> map = new HashMap<>();
 		
 		for (int i = 0; i < FESTIVAL_COUNT * 2; i++)
 		{
@@ -3393,8 +3391,8 @@ public class FestivalOfDarknessManager
 			if (i >= FESTIVAL_COUNT)
 				festivalId -= FESTIVAL_COUNT;
 			
-			// Create a new StatsSet with "default" data for Dusk
-			StatsSet set = new StatsSet();
+			// Create a new StatSet with "default" data for Dusk
+			StatSet set = new StatSet();
 			set.set("festivalId", festivalId);
 			set.set("cycle", _signsCycle);
 			set.set("date", "0");
@@ -3443,7 +3441,7 @@ public class FestivalOfDarknessManager
 	
 	public void setNextCycleStart()
 	{
-		_nextFestivalCycleStart = System.currentTimeMillis() + Config.ALT_FESTIVAL_CYCLE_LENGTH;
+		_nextFestivalCycleStart = System.currentTimeMillis() + Config.FESTIVAL_CYCLE_LENGTH;
 	}
 	
 	public void setNextFestivalStart(long milliFromNow)
@@ -3605,7 +3603,7 @@ public class FestivalOfDarknessManager
 			setParticipants(oracle, festivalId, festivalParty);
 			
 			// Check on disconnect if min player in party
-			if (festivalParty != null && festivalParty.getMembersCount() < Config.ALT_FESTIVAL_MIN_PLAYER)
+			if (festivalParty != null && festivalParty.getMembersCount() < Config.FESTIVAL_MIN_PLAYER)
 			{
 				updateParticipants(player, null); // under minimum count
 				festivalParty.removePartyMember(player, MessageType.EXPELLED);
@@ -3627,15 +3625,13 @@ public class FestivalOfDarknessManager
 	}
 	
 	/**
-	 * Returns a stats set containing the highest score <b>this cycle</b> for the the specified cabal and associated festival ID.
-	 * @param oracle
-	 * @param festivalId
-	 * @return StatsSet festivalDat
+	 * @param oracle : The {@link CabalType} to test.
+	 * @param festivalId : The festival id to test.
+	 * @return The {@link StatSet} containing the highest score <b>this cycle</b> for the the specified {@link CabalType} and festival id.
 	 */
-	public final StatsSet getHighestScoreData(CabalType oracle, int festivalId)
+	public final StatSet getHighestScoreData(CabalType oracle, int festivalId)
 	{
 		int offsetId = festivalId;
-		
 		if (oracle == CabalType.DAWN)
 			offsetId += 5;
 		
@@ -3643,18 +3639,17 @@ public class FestivalOfDarknessManager
 	}
 	
 	/**
-	 * Returns a stats set containing the highest ever recorded score data for the specified festival.
-	 * @param festivalId
-	 * @return StatsSet result
+	 * @param festivalId : The festival id to test.
+	 * @return The {@link StatSet} containing the highest ever recorded score data for the specified festival id.
 	 */
-	public final StatsSet getOverallHighestScoreData(int festivalId)
+	public final StatSet getOverallHighestScoreData(int festivalId)
 	{
-		StatsSet set = null;
+		StatSet set = null;
 		int highestScore = 0;
 		
-		for (Map<Integer, StatsSet> map : _festivalData.values())
+		for (Map<Integer, StatSet> map : _festivalData.values())
 		{
-			for (StatsSet setToTest : map.values())
+			for (StatSet setToTest : map.values())
 			{
 				int currFestID = setToTest.getInteger("festivalId");
 				int festivalScore = setToTest.getInteger("score");
@@ -3706,7 +3701,7 @@ public class FestivalOfDarknessManager
 			_duskFestivalScores.put(festivalId, offeringScore);
 		}
 		
-		StatsSet set = getHighestScoreData(oracle, festivalId);
+		StatSet set = getHighestScoreData(oracle, festivalId);
 		
 		// Check if this is the highest score for this level range so far for the player's cabal.
 		if (offeringScore > thisCabalHighScore)
@@ -3725,9 +3720,8 @@ public class FestivalOfDarknessManager
 			set.set("score", offeringScore);
 			set.set("members", String.join(",", partyMembers));
 			
-			// Only add the score to the cabal's overall if it's higher than the other cabal's score. Give this cabal the festival points, while deducting them from the other.
-			if (offeringScore > otherCabalHighScore)
-				SevenSignsManager.getInstance().addFestivalScore(oracle, festival.getMaxScore());
+			// Add the festival score to the cabal' score.
+			SevenSignsManager.getInstance().addFestivalScore(oracle, festival.getMaxScore());
 			
 			saveFestivalData(true);
 			
@@ -3780,17 +3774,17 @@ public class FestivalOfDarknessManager
 	 */
 	public final int distribAccumulatedBonus(Player player)
 	{
-		if (SevenSignsManager.getInstance().getPlayerCabal(player.getObjectId()) != SevenSignsManager.getInstance().getCabalHighestScore())
+		if (SevenSignsManager.getInstance().getPlayerCabal(player.getObjectId()) != SevenSignsManager.getInstance().getWinningCabal())
 			return 0;
 		
-		final Map<Integer, StatsSet> map = _festivalData.get(_signsCycle);
+		final Map<Integer, StatSet> map = _festivalData.get(_signsCycle);
 		if (map == null)
 			return 0;
 		
 		final String playerName = player.getName();
 		
 		int playerBonus = 0;
-		for (StatsSet set : map.values())
+		for (StatSet set : map.values())
 		{
 			final String members = set.getString("members");
 			if (members.indexOf(playerName) > -1)
@@ -3851,7 +3845,8 @@ public class FestivalOfDarknessManager
 	 */
 	public void sendMessageToAll(String senderName, String message)
 	{
-		final CreatureSay cs = new CreatureSay(0, Say2.SHOUT, senderName, message);
+		// TODO get NPC instance and convert to NpcSay
+		final CreatureSay cs = new CreatureSay(0, SayType.SHOUT, senderName, message);
 		
 		if (_dawnPeace != null)
 			for (PeaceZone zone : _dawnPeace)
@@ -3880,7 +3875,7 @@ public class FestivalOfDarknessManager
 			
 			// Set the next start timers.
 			setNextCycleStart();
-			setNextFestivalStart(Config.ALT_FESTIVAL_CYCLE_LENGTH - FESTIVAL_SIGNUP_TIME);
+			setNextFestivalStart(Config.FESTIVAL_CYCLE_LENGTH - FESTIVAL_SIGNUP_TIME);
 		}
 		
 		@Override
@@ -3892,7 +3887,7 @@ public class FestivalOfDarknessManager
 				
 			// If the next period is due to start before the end of this
 			// festival cycle, then don't run it.
-			if (SevenSignsManager.getInstance().getMilliToPeriodChange() < Config.ALT_FESTIVAL_CYCLE_LENGTH)
+			if (SevenSignsManager.getInstance().getMilliToPeriodChange() < Config.FESTIVAL_CYCLE_LENGTH)
 				return;
 			
 			if (getMinsToNextFestival() == 2)
@@ -3925,8 +3920,8 @@ public class FestivalOfDarknessManager
 					try
 					{
 						setNextCycleStart();
-						setNextFestivalStart(Config.ALT_FESTIVAL_CYCLE_LENGTH - FESTIVAL_SIGNUP_TIME);
-						wait(Config.ALT_FESTIVAL_CYCLE_LENGTH - FESTIVAL_SIGNUP_TIME);
+						setNextFestivalStart(Config.FESTIVAL_CYCLE_LENGTH - FESTIVAL_SIGNUP_TIME);
+						wait(Config.FESTIVAL_CYCLE_LENGTH - FESTIVAL_SIGNUP_TIME);
 						for (L2DarknessFestival festivalInst : _festivalInstances.values())
 						{
 							if (!festivalInst._npcInsts.isEmpty())
@@ -3959,19 +3954,19 @@ public class FestivalOfDarknessManager
 			// Prevent future signups while festival is in progress.
 			_festivalInitialized = true;
 			
-			setNextFestivalStart(Config.ALT_FESTIVAL_CYCLE_LENGTH);
+			setNextFestivalStart(Config.FESTIVAL_CYCLE_LENGTH);
 			sendMessageToAll("Festival Guide", "The main event is now starting.");
 			
 			// Stand by for a short length of time before starting the festival.
 			try
 			{
-				wait(Config.ALT_FESTIVAL_FIRST_SPAWN);
+				wait(Config.FESTIVAL_FIRST_SPAWN);
 			}
 			catch (InterruptedException e)
 			{
 			}
 			
-			elapsedTime = Config.ALT_FESTIVAL_FIRST_SPAWN;
+			elapsedTime = Config.FESTIVAL_FIRST_SPAWN;
 			
 			// Participants can now opt to increase the challenge, if desired.
 			_festivalInProgress = true;
@@ -3987,13 +3982,13 @@ public class FestivalOfDarknessManager
 			// After a short time period, move all idle spawns to the center of the arena.
 			try
 			{
-				wait(Config.ALT_FESTIVAL_FIRST_SWARM - Config.ALT_FESTIVAL_FIRST_SPAWN);
+				wait(Config.FESTIVAL_FIRST_SWARM - Config.FESTIVAL_FIRST_SPAWN);
 			}
 			catch (InterruptedException e)
 			{
 			}
 			
-			elapsedTime += Config.ALT_FESTIVAL_FIRST_SWARM - Config.ALT_FESTIVAL_FIRST_SPAWN;
+			elapsedTime += Config.FESTIVAL_FIRST_SWARM - Config.FESTIVAL_FIRST_SPAWN;
 			
 			for (L2DarknessFestival festivalInst : _festivalInstances.values())
 				festivalInst.moveMonstersToCenter();
@@ -4001,7 +3996,7 @@ public class FestivalOfDarknessManager
 			// Stand by until the time comes for the second spawn.
 			try
 			{
-				wait(Config.ALT_FESTIVAL_SECOND_SPAWN - Config.ALT_FESTIVAL_FIRST_SWARM);
+				wait(Config.FESTIVAL_SECOND_SPAWN - Config.FESTIVAL_FIRST_SWARM);
 			}
 			catch (InterruptedException e)
 			{
@@ -4013,16 +4008,16 @@ public class FestivalOfDarknessManager
 			{
 				festivalInst.spawnFestivalMonsters(FESTIVAL_DEFAULT_RESPAWN / 2, 2);
 				
-				long end = (Config.ALT_FESTIVAL_LENGTH - Config.ALT_FESTIVAL_SECOND_SPAWN) / 60000;
+				long end = (Config.FESTIVAL_LENGTH - Config.FESTIVAL_SECOND_SPAWN) / 60000;
 				festivalInst.sendMessageToParticipants("The Festival of Darkness will end in " + end + " minute(s).");
 			}
 			
-			elapsedTime += Config.ALT_FESTIVAL_SECOND_SPAWN - Config.ALT_FESTIVAL_FIRST_SWARM;
+			elapsedTime += Config.FESTIVAL_SECOND_SPAWN - Config.FESTIVAL_FIRST_SWARM;
 			
 			// After another short time period, again move all idle spawns to the center of the arena.
 			try
 			{
-				wait(Config.ALT_FESTIVAL_SECOND_SWARM - Config.ALT_FESTIVAL_SECOND_SPAWN);
+				wait(Config.FESTIVAL_SECOND_SWARM - Config.FESTIVAL_SECOND_SPAWN);
 			}
 			catch (InterruptedException e)
 			{
@@ -4031,12 +4026,12 @@ public class FestivalOfDarknessManager
 			for (L2DarknessFestival festivalInst : _festivalInstances.values())
 				festivalInst.moveMonstersToCenter();
 			
-			elapsedTime += Config.ALT_FESTIVAL_SECOND_SWARM - Config.ALT_FESTIVAL_SECOND_SPAWN;
+			elapsedTime += Config.FESTIVAL_SECOND_SWARM - Config.FESTIVAL_SECOND_SPAWN;
 			
 			// Stand by until the time comes for the chests to be spawned.
 			try
 			{
-				wait(Config.ALT_FESTIVAL_CHEST_SPAWN - Config.ALT_FESTIVAL_SECOND_SWARM);
+				wait(Config.FESTIVAL_CHEST_SPAWN - Config.FESTIVAL_SECOND_SWARM);
 			}
 			catch (InterruptedException e)
 			{
@@ -4050,12 +4045,12 @@ public class FestivalOfDarknessManager
 				festivalInst.sendMessageToParticipants("The chests have spawned! Be quick, the festival will end soon."); // FIXME What is the correct npcString?
 			}
 			
-			elapsedTime += Config.ALT_FESTIVAL_CHEST_SPAWN - Config.ALT_FESTIVAL_SECOND_SWARM;
+			elapsedTime += Config.FESTIVAL_CHEST_SPAWN - Config.FESTIVAL_SECOND_SWARM;
 			
 			// Stand by and wait until it's time to end the festival.
 			try
 			{
-				wait(Config.ALT_FESTIVAL_LENGTH - elapsedTime);
+				wait(Config.FESTIVAL_LENGTH - elapsedTime);
 			}
 			catch (InterruptedException e)
 			{
@@ -4178,7 +4173,7 @@ public class FestivalOfDarknessManager
 						y -= Rnd.get(FESTIVAL_MAX_OFFSET_Y);
 					}
 					
-					participant.getAI().setIntention(IntentionType.IDLE);
+					participant.getAI().tryToIdle();
 					participant.teleportTo(x, y, _startLocation._z, 20);
 					
 					// Remove all buffs from all participants on entry. Works like the skill Cancel.
@@ -4191,21 +4186,18 @@ public class FestivalOfDarknessManager
 				}
 			}
 			
-			NpcTemplate witchTemplate = NpcData.getInstance().getTemplate(_witchSpawn._npcId);
-			
 			// Spawn the festival witch for this arena
 			try
 			{
-				L2Spawn npcSpawn = new L2Spawn(witchTemplate);
-				
-				npcSpawn.setLoc(_witchSpawn._x, _witchSpawn._y, _witchSpawn._z, _witchSpawn._heading);
-				npcSpawn.setRespawnDelay(1);
+				final Spawn spawn = new Spawn(_witchSpawn._npcId);
+				spawn.setLoc(_witchSpawn._x, _witchSpawn._y, _witchSpawn._z, _witchSpawn._heading);
+				spawn.setRespawnDelay(1);
 				
 				// Needed as doSpawn() is required to be called also for the NpcInstance it returns.
-				npcSpawn.setRespawnState(true);
+				spawn.setRespawnState(true);
 				
-				SpawnTable.getInstance().addSpawn(npcSpawn, false);
-				_witchInst = npcSpawn.doSpawn(false);
+				SpawnTable.getInstance().addSpawn(spawn, false);
+				_witchInst = spawn.doSpawn(false);
 			}
 			catch (Exception e)
 			{
@@ -4237,7 +4229,7 @@ public class FestivalOfDarknessManager
 					continue;
 				
 				// Only move monsters that are idle or doing their usual functions.
-				IntentionType currIntention = festivalMob.getAI().getDesire().getIntention();
+				IntentionType currIntention = festivalMob.getAI().getCurrentIntention().getType();
 				
 				if (currIntention != IntentionType.IDLE && currIntention != IntentionType.ACTIVE)
 					continue;
@@ -4256,8 +4248,8 @@ public class FestivalOfDarknessManager
 					y -= Rnd.get(FESTIVAL_MAX_OFFSET_Y);
 				}
 				
-				festivalMob.setRunning();
-				festivalMob.getAI().setIntention(IntentionType.MOVE_TO, new Location(x, y, _startLocation._z));
+				festivalMob.forceRunStance();
+				festivalMob.getAI().tryToMoveTo(new Location(x, y, _startLocation._z), null);
 			}
 		}
 		
@@ -4273,58 +4265,56 @@ public class FestivalOfDarknessManager
 		 */
 		protected void spawnFestivalMonsters(int respawnDelay, int spawnType)
 		{
-			int[][] _npcSpawns = null;
+			int[][] npcSpawns = null;
 			
 			switch (spawnType)
 			{
 				case 0:
 				case 1:
-					_npcSpawns = (_cabal == CabalType.DAWN) ? FESTIVAL_DAWN_PRIMARY_SPAWNS[_levelRange] : FESTIVAL_DUSK_PRIMARY_SPAWNS[_levelRange];
+					npcSpawns = (_cabal == CabalType.DAWN) ? FESTIVAL_DAWN_PRIMARY_SPAWNS[_levelRange] : FESTIVAL_DUSK_PRIMARY_SPAWNS[_levelRange];
 					break;
 				
 				case 2:
-					_npcSpawns = (_cabal == CabalType.DAWN) ? FESTIVAL_DAWN_SECONDARY_SPAWNS[_levelRange] : FESTIVAL_DUSK_SECONDARY_SPAWNS[_levelRange];
+					npcSpawns = (_cabal == CabalType.DAWN) ? FESTIVAL_DAWN_SECONDARY_SPAWNS[_levelRange] : FESTIVAL_DUSK_SECONDARY_SPAWNS[_levelRange];
 					break;
 				
 				case 3:
-					_npcSpawns = (_cabal == CabalType.DAWN) ? FESTIVAL_DAWN_CHEST_SPAWNS[_levelRange] : FESTIVAL_DUSK_CHEST_SPAWNS[_levelRange];
+					npcSpawns = (_cabal == CabalType.DAWN) ? FESTIVAL_DAWN_CHEST_SPAWNS[_levelRange] : FESTIVAL_DUSK_CHEST_SPAWNS[_levelRange];
 					break;
 			}
 			
-			if (_npcSpawns != null)
+			if (npcSpawns == null)
+				return;
+			
+			for (int[] npcSpawn : npcSpawns)
 			{
-				for (int[] _npcSpawn : _npcSpawns)
+				FestivalSpawn currSpawn = new FestivalSpawn(npcSpawn);
+				
+				// Only spawn archers/marksmen if specified to do so.
+				if (spawnType == 1 && isFestivalArcher(currSpawn._npcId))
+					continue;
+				
+				try
 				{
-					FestivalSpawn currSpawn = new FestivalSpawn(_npcSpawn);
+					final Spawn spawn = new Spawn(currSpawn._npcId);
+					spawn.setLoc(currSpawn._x, currSpawn._y, currSpawn._z, Rnd.get(65536));
+					spawn.setRespawnDelay(respawnDelay);
+					spawn.setRespawnState(true);
 					
-					// Only spawn archers/marksmen if specified to do so.
-					if (spawnType == 1 && isFestivalArcher(currSpawn._npcId))
-						continue;
+					SpawnTable.getInstance().addSpawn(spawn, false);
+					FestivalMonster festivalMob = (FestivalMonster) spawn.doSpawn(false);
 					
-					NpcTemplate npcTemplate = NpcData.getInstance().getTemplate(currSpawn._npcId);
+					// Set the offering bonus to 2x or 5x the amount per kill, if this spawn is part of an increased challenge or is a festival chest.
+					if (spawnType == 1)
+						festivalMob.setOfferingBonus(2);
+					else if (spawnType == 3)
+						festivalMob.setOfferingBonus(5);
 					
-					try
-					{
-						final L2Spawn npcSpawn = new L2Spawn(npcTemplate);
-						npcSpawn.setLoc(currSpawn._x, currSpawn._y, currSpawn._z, Rnd.get(65536));
-						npcSpawn.setRespawnDelay(respawnDelay);
-						npcSpawn.setRespawnState(true);
-						
-						SpawnTable.getInstance().addSpawn(npcSpawn, false);
-						FestivalMonster festivalMob = (FestivalMonster) npcSpawn.doSpawn(false);
-						
-						// Set the offering bonus to 2x or 5x the amount per kill, if this spawn is part of an increased challenge or is a festival chest.
-						if (spawnType == 1)
-							festivalMob.setOfferingBonus(2);
-						else if (spawnType == 3)
-							festivalMob.setOfferingBonus(5);
-						
-						_npcInsts.add(festivalMob);
-					}
-					catch (Exception e)
-					{
-						LOGGER.error("Couldn't properly spawn Npc {}.", e, currSpawn._npcId);
-					}
+					_npcInsts.add(festivalMob);
+				}
+				catch (Exception e)
+				{
+					LOGGER.error("Couldn't properly spawn Npc {}.", e, currSpawn._npcId);
 				}
 			}
 		}
@@ -4345,7 +4335,7 @@ public class FestivalOfDarknessManager
 		public void sendMessageToParticipants(String message)
 		{
 			if (_participants != null && !_participants.isEmpty())
-				_witchInst.broadcastPacket(new CreatureSay(_witchInst.getObjectId(), Say2.ALL, "Festival Witch", message));
+				_witchInst.broadcastNpcSay(message);
 		}
 		
 		protected void festivalEnd()
@@ -4404,7 +4394,7 @@ public class FestivalOfDarknessManager
 				if (isRemoving)
 					_originalLocations.remove(participant.getObjectId());
 				
-				participant.getAI().setIntention(IntentionType.IDLE);
+				participant.getAI().tryToIdle();
 				participant.teleportTo(origPosition._x, origPosition._y, origPosition._z, 20);
 				participant.sendMessage("You have been removed from the festival arena.");
 			}

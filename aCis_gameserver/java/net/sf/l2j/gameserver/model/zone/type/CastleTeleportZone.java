@@ -5,7 +5,7 @@ import net.sf.l2j.commons.random.Rnd;
 import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.zone.ZoneType;
+import net.sf.l2j.gameserver.model.zone.type.subtype.ZoneType;
 
 /**
  * A zone extending {@link ZoneType} used for Mass Gatekeepers to teleport players on a specific location.<br>

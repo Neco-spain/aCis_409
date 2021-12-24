@@ -3,7 +3,7 @@ package net.sf.l2j.gameserver.data.manager;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.sf.l2j.commons.util.StatsSet;
+import net.sf.l2j.commons.data.StatSet;
 
 import net.sf.l2j.gameserver.idfactory.IdFactory;
 import net.sf.l2j.gameserver.model.World;
@@ -39,7 +39,7 @@ public class BoatManager
 	 */
 	public Boat getNewBoat(int boatId, int x, int y, int z, int heading)
 	{
-		final StatsSet set = new StatsSet();
+		final StatSet set = new StatSet();
 		set.set("id", boatId);
 		set.set("level", 0);
 		
@@ -76,6 +76,7 @@ public class BoatManager
 		
 		final Boat boat = new Boat(IdFactory.getInstance().getNextId(), new CreatureTemplate(set));
 		boat.spawnMe(x, y, z, heading);
+		boat.renewBoatEntrances();
 		
 		_boats.put(boat.getObjectId(), boat);
 		
@@ -117,19 +118,8 @@ public class BoatManager
 	{
 		for (Player player : World.getInstance().getPlayers())
 		{
-			double dx = (double) player.getX() - point1.getX();
-			double dy = (double) player.getY() - point1.getY();
-			
-			if (Math.sqrt(dx * dx + dy * dy) < BOAT_BROADCAST_RADIUS)
+			if (player.isIn2DRadius(point1, BOAT_BROADCAST_RADIUS) || player.isIn2DRadius(point2, BOAT_BROADCAST_RADIUS))
 				player.sendPacket(packet);
-			else
-			{
-				dx = (double) player.getX() - point2.getX();
-				dy = (double) player.getY() - point2.getY();
-				
-				if (Math.sqrt(dx * dx + dy * dy) < BOAT_BROADCAST_RADIUS)
-					player.sendPacket(packet);
-			}
 		}
 	}
 	
@@ -143,22 +133,10 @@ public class BoatManager
 	{
 		for (Player player : World.getInstance().getPlayers())
 		{
-			double dx = (double) player.getX() - point1.getX();
-			double dy = (double) player.getY() - point1.getY();
-			
-			if (Math.sqrt(dx * dx + dy * dy) < BOAT_BROADCAST_RADIUS)
+			if (player.isIn2DRadius(point1, BOAT_BROADCAST_RADIUS) || player.isIn2DRadius(point2, BOAT_BROADCAST_RADIUS))
 			{
-				for (L2GameServerPacket p : packets)
-					player.sendPacket(p);
-			}
-			else
-			{
-				dx = (double) player.getX() - point2.getX();
-				dy = (double) player.getY() - point2.getY();
-				
-				if (Math.sqrt(dx * dx + dy * dy) < BOAT_BROADCAST_RADIUS)
-					for (L2GameServerPacket p : packets)
-						player.sendPacket(p);
+				for (L2GameServerPacket packet : packets)
+					player.sendPacket(packet);
 			}
 		}
 	}

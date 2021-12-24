@@ -19,7 +19,7 @@ import net.sf.l2j.gameserver.model.group.Party;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.rift.DimensionalRift;
 import net.sf.l2j.gameserver.model.rift.DimensionalRiftRoom;
-import net.sf.l2j.gameserver.model.spawn.L2Spawn;
+import net.sf.l2j.gameserver.model.spawn.Spawn;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
 
 import org.w3c.dom.Document;
@@ -57,11 +57,11 @@ public class DimensionalRiftManager implements IXmlReader
 			
 			// Generate new layer of rooms if that type doesn't exist yet.
 			if (!_rooms.containsKey(type))
-				_rooms.put(type, new HashMap<Byte, DimensionalRiftRoom>(9));
+				_rooms.put(type, new HashMap<>(9));
 			
 			forEach(areaNode, "room", roomNode ->
 			{
-				// Generate the room using StatsSet content.
+				// Generate the room.
 				final DimensionalRiftRoom riftRoom = new DimensionalRiftRoom(type, parseAttributes(roomNode));
 				
 				// Store it.
@@ -86,7 +86,7 @@ public class DimensionalRiftManager implements IXmlReader
 					{
 						for (int i = 0; i < count; i++)
 						{
-							final L2Spawn spawnDat = new L2Spawn(template);
+							final Spawn spawnDat = new Spawn(template);
 							spawnDat.setLoc(riftRoom.getRandomX(), riftRoom.getRandomY(), DimensionalRiftRoom.Z_VALUE, -1);
 							spawnDat.setRespawnDelay(delay);
 							SpawnTable.getInstance().addSpawn(spawnDat, false);

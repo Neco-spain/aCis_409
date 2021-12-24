@@ -1,93 +1,85 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import net.sf.l2j.gameserver.enums.IntentionType;
-import net.sf.l2j.gameserver.enums.skills.L2EffectFlag;
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
-import net.sf.l2j.gameserver.geoengine.GeoEngine;
-import net.sf.l2j.gameserver.model.L2Effect;
-import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.commons.util.ArraysUtil;
+
+import net.sf.l2j.gameserver.enums.skills.EffectFlag;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.instance.Folk;
-import net.sf.l2j.gameserver.model.actor.instance.Pet;
 import net.sf.l2j.gameserver.model.actor.instance.SiegeFlag;
 import net.sf.l2j.gameserver.model.actor.instance.SiegeSummon;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
-/**
- * Implementation of the Fear Effect
- * @author littlecrow
- */
-public class EffectFear extends L2Effect
+public class EffectFear extends AbstractEffect
 {
-	public static final int FEAR_RANGE = 500;
-	
-	public EffectFear(Env env, EffectTemplate template)
+	private static final int[] REDUCED_DURATION_ON_PLAYABLE =
 	{
-		super(env, template);
+		65, // Horror
+		1092, // Fear
+		1169 // Curse Fear
+	};
+	
+	public static final int[] DOESNT_AFFECT_PLAYABLE =
+	{
+		98, // Sword Symphony
+		1272, // Word of Fear
+		1381 // Mass Fear
+	};
+	
+	public EffectFear(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
+	{
+		super(template, skill, effected, effector);
+		
+		if (getEffected() instanceof Playable && ArraysUtil.contains(REDUCED_DURATION_ON_PLAYABLE, skill.getId()))
+			setCount(getCount() / 2);
 	}
 	
 	@Override
-	public L2EffectType getEffectType()
+	public EffectType getEffectType()
 	{
-		return L2EffectType.FEAR;
+		return EffectType.FEAR;
 	}
 	
 	@Override
 	public boolean onStart()
 	{
-		if (getEffected() instanceof Player && getEffector() instanceof Player)
-		{
-			switch (getSkill().getId())
-			{
-				case 1376:
-				case 1169:
-				case 65:
-				case 1092:
-				case 98:
-				case 1272:
-				case 1381:
-				case 763:
-					break;
-				default:
-					return false;
-			}
-		}
-		
 		if (getEffected() instanceof Folk || getEffected() instanceof SiegeFlag || getEffected() instanceof SiegeSummon)
 			return false;
 		
 		if (getEffected().isAfraid())
 			return false;
 		
-		getEffected().startFear();
+		// Abort attack, cast and move.
+		getEffected().abortAll(false);
+		
+		// Refresh abnormal effects.
+		getEffected().updateAbnormalEffect();
+		
 		onActionTime();
+		
 		return true;
 	}
 	
 	@Override
 	public void onExit()
 	{
-		getEffected().stopFear(true);
+		getEffected().stopEffects(EffectType.FEAR);
+		
+		// Refresh abnormal effects.
+		getEffected().updateAbnormalEffect();
 	}
 	
 	@Override
 	public boolean onActionTime()
 	{
-		if (!(getEffected() instanceof Pet))
-			getEffected().setRunning();
-		
-		final int victimX = getEffected().getX();
-		final int victimY = getEffected().getY();
-		final int victimZ = getEffected().getZ();
-		
-		final int posX = victimX + (((victimX > getEffector().getX()) ? 1 : -1) * FEAR_RANGE);
-		final int posY = victimY + (((victimY > getEffector().getY()) ? 1 : -1) * FEAR_RANGE);
-		
-		getEffected().getAI().setIntention(IntentionType.MOVE_TO, GeoEngine.getInstance().canMoveToTargetLoc(victimX, victimY, victimZ, posX, posY, victimZ));
+		getEffected().fleeFrom(getEffector(), 500);
 		return true;
 	}
 	
 	@Override
-	public boolean onSameEffect(L2Effect effect)
+	public boolean onSameEffect(AbstractEffect effect)
 	{
 		return false;
 	}
@@ -95,6 +87,6 @@ public class EffectFear extends L2Effect
 	@Override
 	public int getEffectFlags()
 	{
-		return L2EffectFlag.FEAR.getMask();
+		return EffectFlag.FEAR.getMask();
 	}
 }

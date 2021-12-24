@@ -18,20 +18,20 @@ public final class RequestConfirmCancelItem extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		final ItemInstance item = activeChar.getInventory().getItemByObjectId(_objectId);
+		final ItemInstance item = player.getInventory().getItemByObjectId(_objectId);
 		if (item == null)
 			return;
 		
-		if (item.getOwnerId() != activeChar.getObjectId())
+		if (item.getOwnerId() != player.getObjectId())
 			return;
 		
 		if (!item.isAugmented())
 		{
-			activeChar.sendPacket(SystemMessageId.AUGMENTATION_REMOVAL_CAN_ONLY_BE_DONE_ON_AN_AUGMENTED_ITEM);
+			player.sendPacket(SystemMessageId.AUGMENTATION_REMOVAL_CAN_ONLY_BE_DONE_ON_AN_AUGMENTED_ITEM);
 			return;
 		}
 		
@@ -71,6 +71,6 @@ public final class RequestConfirmCancelItem extends L2GameClientPacket
 				return;
 		}
 		
-		activeChar.sendPacket(new ExConfirmCancelItem(item, price));
+		player.sendPacket(new ExConfirmCancelItem(item, price));
 	}
 }

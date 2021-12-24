@@ -47,7 +47,7 @@ public final class RequestShortCutReg extends L2GameClientPacket
 			case MACRO:
 			case RECIPE:
 				Shortcut shortcut = new Shortcut(_slot, _page, type, _id, -1, _characterType);
-				sendPacket(new ShortCutRegister(shortcut));
+				sendPacket(new ShortCutRegister(player, shortcut));
 				player.getShortcutList().addShortcut(shortcut);
 				break;
 			
@@ -56,7 +56,7 @@ public final class RequestShortCutReg extends L2GameClientPacket
 				if (level > 0)
 				{
 					shortcut = new Shortcut(_slot, _page, type, _id, level, _characterType);
-					sendPacket(new ShortCutRegister(shortcut));
+					sendPacket(new ShortCutRegister(player, shortcut));
 					player.getShortcutList().addShortcut(shortcut);
 				}
 				break;

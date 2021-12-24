@@ -1,9 +1,5 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
-/**
- * Format: ch - Trigger packet
- * @author KenM
- */
 public class ExRequestHackShield extends L2GameServerPacket
 {
 	public static final ExRequestHackShield STATIC_PACKET = new ExRequestHackShield();

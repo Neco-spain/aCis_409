@@ -1,23 +1,25 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
 import net.sf.l2j.gameserver.data.cache.HtmCache;
+import net.sf.l2j.gameserver.enums.SayType;
 import net.sf.l2j.gameserver.model.actor.Player;
 
-/**
- * the HTML parser in the client knowns these standard and non-standard tags and attributes VOLUMN UNKNOWN UL U TT TR TITLE TEXTCODE TEXTAREA TD TABLE SUP SUB STRIKE SPIN SELECT RIGHT PRE P OPTION OL MULTIEDIT LI LEFT INPUT IMG I HTML H7 H6 H5 H4 H3 H2 H1 FONT EXTEND EDIT COMMENT COMBOBOX CENTER
- * BUTTON BR BODY BAR ADDRESS A SEL LIST VAR FORE READONL ROWS VALIGN FIXWIDTH BORDERCOLORLI BORDERCOLORDA BORDERCOLOR BORDER BGCOLOR BACKGROUND ALIGN VALU READONLY MULTIPLE SELECTED TYP TYPE MAXLENGTH CHECKED SRC Y X QUERYDELAY NOSCROLLBAR IMGSRC B FG SIZE FACE COLOR DEFFON DEFFIXEDFONT WIDTH VALUE
- * TOOLTIP NAME MIN MAX HEIGHT DISABLED ALIGN MSG LINK HREF ACTION
- */
 public final class NpcHtmlMessage extends L2GameServerPacket
 {
-	private final int _npcObjId;
+	// Shared "config" used by Players GMs to see file directory.
+	public static boolean SHOW_FILE;
+	
+	private final int _objectId;
+	
 	private String _html;
+	private String _file;
+	
 	private int _itemId = 0;
 	private boolean _validate = true;
 	
-	public NpcHtmlMessage(int npcObjId)
+	public NpcHtmlMessage(int objectId)
 	{
-		_npcObjId = npcObjId;
+		_objectId = objectId;
 	}
 	
 	@Override
@@ -26,11 +28,14 @@ public final class NpcHtmlMessage extends L2GameServerPacket
 		if (!_validate)
 			return;
 		
-		Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		activeChar.clearBypass();
+		if (SHOW_FILE && player.isGM() && _file != null)
+			player.sendPacket(new CreatureSay(SayType.ALL, "HTML", _file));
+		
+		player.clearBypass();
 		for (int i = 0; i < _html.length(); i++)
 		{
 			int start = _html.indexOf("\"bypass ", i);
@@ -46,9 +51,9 @@ public final class NpcHtmlMessage extends L2GameServerPacket
 			i = finish;
 			int finish2 = _html.indexOf("$", start);
 			if (finish2 < finish && finish2 > 0)
-				activeChar.addBypass2(_html.substring(start, finish2).trim());
+				player.addBypass2(_html.substring(start, finish2).trim());
 			else
-				activeChar.addBypass(_html.substring(start, finish).trim());
+				player.addBypass(_html.substring(start, finish).trim());
 		}
 	}
 	
@@ -57,7 +62,7 @@ public final class NpcHtmlMessage extends L2GameServerPacket
 	{
 		writeC(0x0f);
 		
-		writeD(_npcObjId);
+		writeD(_objectId);
 		writeS(_html);
 		writeD(_itemId);
 	}
@@ -85,6 +90,15 @@ public final class NpcHtmlMessage extends L2GameServerPacket
 	
 	public void setFile(String filename)
 	{
+		// Avoid to generate file directory if config is off.
+		if (SHOW_FILE)
+		{
+			_file = filename;
+			
+			final int index = _file.indexOf("html/");
+			if (index != -1)
+				_file = _file.substring(index + 5, _file.length());
+		}
 		setHtml(HtmCache.getInstance().getHtmForce(filename));
 	}
 	

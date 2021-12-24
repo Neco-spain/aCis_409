@@ -1153,6 +1153,7 @@
 		<stats hp="543072" pDef="837" mDef="674" height="460" />
 	</door>
 	<door id="21210001" type="DOOR" level="1" name="partisan001">
+		<clanHall id="21" />
 		<position x="43656" y="108872" z="-1984" />
 		<coordinates>
 			<loc x="43643" y="108840" z="-2015" />
@@ -1163,6 +1164,7 @@
 		<stats hp="126600" pDef="644" mDef="518" height="450" />
 	</door>
 	<door id="21210002" type="DOOR" level="1" name="partisan002">
+		<clanHall id="21" />
 		<position x="43648" y="108818" z="-1984" />
 		<coordinates>
 			<loc x="43643" y="108778" z="-2015" />
@@ -1173,6 +1175,7 @@
 		<stats hp="126600" pDef="644" mDef="518" height="450" />
 	</door>
 	<door id="22170001" type="DOOR" level="1" name="Bandit_001">
+		<clanHall id="35" />
 		<position x="85512" y="-18200" z="-1792" />
 		<coordinates>
 			<loc x="85414" y="-18299" z="-1821" />
@@ -1183,6 +1186,7 @@
 		<stats hp="126600" pDef="644" mDef="518" height="350" />
 	</door>
 	<door id="22170002" type="DOOR" level="1" name="Bandit_002">
+		<clanHall id="35" />
 		<position x="85320" y="-18376" z="-1792" />
 		<coordinates>
 			<loc x="85208" y="-18466" z="-1821" />
@@ -1193,6 +1197,7 @@
 		<stats hp="126600" pDef="644" mDef="518" height="350" />
 	</door>
 	<door id="22170003" type="DOOR" level="1" name="Bandit_003">
+		<clanHall id="35" />
 		<position x="80824" y="-15400" z="-1800" />
 		<coordinates>
 			<loc x="80815" y="-15445" z="-1829" />
@@ -1203,6 +1208,7 @@
 		<stats hp="126600" pDef="644" mDef="518" height="450" />
 	</door>
 	<door id="22170004" type="DOOR" level="1" name="Bandit_004">
+		<clanHall id="35" />
 		<position x="80818" y="-15473" z="-1800" />
 		<coordinates>
 			<loc x="80815" y="-15525" z="-1829" />
@@ -1213,6 +1219,7 @@
 		<stats hp="126600" pDef="644" mDef="518" height="450" />
 	</door>
 	<door id="25170001" type="DOOR" level="1" name="Devastated_castle_outter_001">
+		<clanHall id="34" />
 		<position x="178283" y="-15028" z="-2256" />
 		<coordinates>
 			<loc x="178211" y="-15038" z="-2294" />
@@ -1224,6 +1231,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="25170002" type="DOOR" level="1" name="Devastated_castle_outter_002">
+		<clanHall id="34" />
 		<position x="178392" y="-15032" z="-2256" />
 		<coordinates>
 			<loc x="178339" y="-15038" z="-2295" />
@@ -1235,6 +1243,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="25170005" type="DOOR" level="1" name="Devastated_castle_001">
+		<clanHall id="34" />
 		<position x="178296" y="-18600" z="-2232" />
 		<coordinates>
 			<loc x="178302" y="-18611" z="-2272" />
@@ -1246,6 +1255,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="25170006" type="DOOR" level="1" name="Devastated_castle_002">
+		<clanHall id="34" />
 		<position x="178300" y="-18630" z="-2232" />
 		<coordinates>
 			<loc x="178302" y="-18648" z="-2272" />
@@ -1257,6 +1267,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="25170003" type="DOOR" level="1" name="Devastated_castle_003">
+		<clanHall id="34" />
 		<position x="178153" y="-18214" z="-2224" />
 		<coordinates>
 			<loc x="178120" y="-18225" z="-2262" />
@@ -1268,6 +1279,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="25170004" type="DOOR" level="1" name="Devastated_castle_004">
+		<clanHall id="34" />
 		<position x="178216" y="-18216" z="-2224" />
 		<coordinates>
 			<loc x="178182" y="-18225" z="-2262" />
@@ -1279,6 +1291,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="19210017" type="DOOR" level="1" name="gludio_castle_agit_001_001">
+		<clanHall id="22" />
 		<position x="-15964" y="123740" z="-3096" />
 		<coordinates>
 			<loc x="-15981" y="123746" z="-3131" />
@@ -1290,6 +1303,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="19210018" type="DOOR" level="1" name="gludio_castle_agit_001_002">
+		<clanHall id="22" />
 		<position x="-15926" y="123730" z="-3096" />
 		<coordinates>
 			<loc x="-15909" y="123725" z="-3131" />
@@ -1301,6 +1315,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="19210011" type="DOOR" level="1" name="gludio_castle_agit_002_001">
+		<clanHall id="23" />
 		<position x="-14789" y="125612" z="-3128" />
 		<coordinates>
 			<loc x="-14791" y="125632" z="-3158" />
@@ -1312,6 +1327,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="19210012" type="DOOR" level="1" name="gludio_castle_agit_002_002">
+		<clanHall id="23" />
 		<position x="-14791" y="125577" z="-3128" />
 		<coordinates>
 			<loc x="-14789" y="125557" z="-3158" />
@@ -1323,6 +1339,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="19210013" type="DOOR" level="1" name="gludio_castle_agit_003_001">
+		<clanHall id="24" />
 		<position x="-14116" y="125621" z="-3128" />
 		<coordinates>
 			<loc x="-14115" y="125602" z="-3157" />
@@ -1334,6 +1351,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="19210014" type="DOOR" level="1" name="gludio_castle_agit_003_002">
+		<clanHall id="24" />
 		<position x="-14117" y="125660" z="-3128" />
 		<coordinates>
 			<loc x="-14117" y="125677" z="-3157" />
@@ -1345,6 +1363,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="19210015" type="DOOR" level="1" name="gludio_castle_agit_004_001">
+		<clanHall id="25" />
 		<position x="-12618" y="123884" z="-3096" />
 		<coordinates>
 			<loc x="-12600" y="123888" z="-3131" />
@@ -1356,6 +1375,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="19210016" type="DOOR" level="1" name="gludio_castle_agit_004_002">
+		<clanHall id="25" />
 		<position x="-12659" y="123885" z="-3096" />
 		<coordinates>
 			<loc x="-12676" y="123888" z="-3131" />
@@ -1367,6 +1387,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="17220009" type="DOOR" level="1" name="gludin_agit_001_001">
+		<clanHall id="26" />
 		<position x="-83990" y="151880" z="-3120" />
 		<coordinates>
 			<loc x="-83971" y="151882" z="-3152" />
@@ -1378,6 +1399,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="17220010" type="DOOR" level="1" name="gludin_agit_001_002">
+		<clanHall id="26" />
 		<position x="-84027" y="151880" z="-3120" />
 		<coordinates>
 			<loc x="-84046" y="151879" z="-3152" />
@@ -1389,6 +1411,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="17220005" type="DOOR" level="1" name="gludin_agit_002_001">
+		<clanHall id="27" />
 		<position x="-83896" y="153064" z="-3160" />
 		<coordinates>
 			<loc x="-83878" y="153056" z="-3149" />
@@ -1400,6 +1423,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="17220006" type="DOOR" level="1" name="gludin_agit_002_002">
+		<clanHall id="27" />
 		<position x="-83944" y="153064" z="-3160" />
 		<coordinates>
 			<loc x="-83955" y="153072" z="-3149" />
@@ -1411,6 +1435,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="17220007" type="DOOR" level="1" name="gludin_agit_002_003">
+		<clanHall id="27" />
 		<position x="-83909" y="153597" z="-3160" />
 		<coordinates>
 			<loc x="-83927" y="153597" z="-3190" />
@@ -1422,6 +1447,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="17220008" type="DOOR" level="1" name="gludin_agit_002_004">
+		<clanHall id="27" />
 		<position x="-83868" y="153601" z="-3160" />
 		<coordinates>
 			<loc x="-83850" y="153599" z="-3190" />
@@ -1433,6 +1459,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="17220003" type="DOOR" level="1" name="gludin_agit_003_001">
+		<clanHall id="28" />
 		<position x="-83960" y="155240" z="-3160" />
 		<coordinates>
 			<loc x="-83952" y="155257" z="-3191" />
@@ -1444,6 +1471,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="17220004" type="DOOR" level="1" name="gludin_agit_003_002">
+		<clanHall id="28" />
 		<position x="-83960" y="155192" z="-3160" />
 		<coordinates>
 			<loc x="-83968" y="155180" z="-3191" />
@@ -1455,6 +1483,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="17220001" type="DOOR" level="1" name="gludin_agit_003_003">
+		<clanHall id="28" />
 		<position x="-84488" y="155224" z="-3160" />
 		<coordinates>
 			<loc x="-84480" y="155208" z="-3192" />
@@ -1466,6 +1495,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="17220002" type="DOOR" level="1" name="gludin_agit_003_004">
+		<clanHall id="28" />
 		<position x="-84488" y="155272" z="-3160" />
 		<coordinates>
 			<loc x="-84496" y="155286" z="-3192" />
@@ -1477,6 +1507,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="17220011" type="DOOR" level="1" name="gludin_agit_004_001">
+		<clanHall id="29" />
 		<position x="-79736" y="150084" z="-3040" />
 		<coordinates>
 			<loc x="-79735" y="150062" z="-3067" />
@@ -1488,6 +1519,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="17220012" type="DOOR" level="1" name="gludin_agit_004_002">
+		<clanHall id="29" />
 		<position x="-79736" y="150118" z="-3040" />
 		<coordinates>
 			<loc x="-79737" y="150138" z="-3067" />
@@ -1499,6 +1531,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="17220013" type="DOOR" level="1" name="gludin_agit_005_001">
+		<clanHall id="30" />
 		<position x="-79739" y="151543" z="-3040" />
 		<coordinates>
 			<loc x="-79728" y="151522" z="-3068" />
@@ -1510,6 +1543,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="17220014" type="DOOR" level="1" name="gludin_agit_005_002">
+		<clanHall id="30" />
 		<position x="-79740" y="151579" z="-3040" />
 		<coordinates>
 			<loc x="-79744" y="151597" z="-3068" />
@@ -1521,6 +1555,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="20220013" type="DOOR" level="1" name="dion_castle_agit_001_001">
+		<clanHall id="31" />
 		<position x="17640" y="145208" z="-3032" />
 		<coordinates>
 			<loc x="17616" y="145183" z="-3066" />
@@ -1532,6 +1567,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="20220014" type="DOOR" level="1" name="dion_castle_agit_001_002">
+		<clanHall id="31" />
 		<position x="17662" y="145214" z="-3032" />
 		<coordinates>
 			<loc x="17678" y="145227" z="-3066" />
@@ -1543,6 +1579,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="20220011" type="DOOR" level="1" name="dion_castle_agit_002_001">
+		<clanHall id="32" />
 		<position x="18875" y="143334" z="-3008" />
 		<coordinates>
 			<loc x="18878" y="143353" z="-3039" />
@@ -1554,6 +1591,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="20220012" type="DOOR" level="1" name="dion_castle_agit_002_002">
+		<clanHall id="32" />
 		<position x="18873" y="143297" z="-3008" />
 		<coordinates>
 			<loc x="18873" y="143278" z="-3039" />
@@ -1565,6 +1603,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="20220015" type="DOOR" level="1" name="dion_castle_agit_003_001">
+		<clanHall id="33" />
 		<position x="20136" y="145996" z="-3112" />
 		<coordinates>
 			<loc x="20118" y="145992" z="-3140" />
@@ -1576,6 +1615,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="20220016" type="DOOR" level="1" name="dion_castle_agit_003_002">
+		<clanHall id="33" />
 		<position x="20174" y="145995" z="-3112" />
 		<coordinates>
 			<loc x="20193" y="145995" z="-3140" />
@@ -1587,6 +1627,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24180024" type="DOOR" level="1" name="aden_castle_agit_001_001">
+		<clanHall id="36" />
 		<position x="149438" y="23154" z="-2120" />
 		<coordinates>
 			<loc x="149439" y="23135" z="-2152" />
@@ -1598,6 +1639,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24180025" type="DOOR" level="1" name="aden_castle_agit_001_002">
+		<clanHall id="36" />
 		<position x="149438" y="23116" z="-2120" />
 		<coordinates>
 			<loc x="149437" y="23136" z="-2152" />
@@ -1609,6 +1651,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24180026" type="DOOR" level="1" name="aden_castle_agit_002_001">
+		<clanHall id="37" />
 		<position x="150298" y="23674" z="-2112" />
 		<coordinates>
 			<loc x="150301" y="23653" z="-2141" />
@@ -1620,6 +1663,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24180027" type="DOOR" level="1" name="aden_castle_agit_002_002">
+		<clanHall id="37" />
 		<position x="150297" y="23636" z="-2112" />
 		<coordinates>
 			<loc x="150297" y="23655" z="-2141" />
@@ -1631,6 +1675,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24180022" type="DOOR" level="1" name="aden_castle_agit_003_001">
+		<clanHall id="38" />
 		<position x="145352" y="25368" z="-2112" />
 		<coordinates>
 			<loc x="145360" y="25343" z="-2142" />
@@ -1642,6 +1687,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24180023" type="DOOR" level="1" name="aden_castle_agit_003_002">
+		<clanHall id="38" />
 		<position x="145352" y="25320" z="-2112" />
 		<coordinates>
 			<loc x="145356" y="25345" z="-2142" />
@@ -1653,6 +1699,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24180028" type="DOOR" level="1" name="aden_castle_agit_004_001">
+		<clanHall id="39" />
 		<position x="150442" y="26562" z="-2248" />
 		<coordinates>
 			<loc x="150445" y="26542" z="-2278" />
@@ -1664,6 +1711,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24180029" type="DOOR" level="1" name="aden_castle_agit_004_002">
+		<clanHall id="39" />
 		<position x="150444" y="26524" z="-2248" />
 		<coordinates>
 			<loc x="150443" y="26543" z="-2278" />
@@ -1675,6 +1723,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24180030" type="DOOR" level="1" name="aden_castle_agit_005_001">
+		<clanHall id="41" />
 		<position x="144358" y="28218" z="-2240" />
 		<coordinates>
 			<loc x="144359" y="28197" z="-2270" />
@@ -1686,6 +1735,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24180031" type="DOOR" level="1" name="aden_castle_agit_005_002">
+		<clanHall id="41" />
 		<position x="144359" y="28178" z="-2240" />
 		<coordinates>
 			<loc x="144357" y="28198" z="-2270" />
@@ -1697,6 +1747,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24180032" type="DOOR" level="1" name="aden_castle_agit_006_001">
+		<clanHall id="40" />
 		<position x="144296" y="27108" z="-2248" />
 		<coordinates>
 			<loc x="144295" y="27089" z="-2280" />
@@ -1708,6 +1759,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24180033" type="DOOR" level="1" name="aden_castle_agit_006_002">
+		<clanHall id="40" />
 		<position x="144295" y="27070" z="-2248" />
 		<coordinates>
 			<loc x="144293" y="27090" z="-2280" />
@@ -1719,6 +1771,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24160001" type="DOOR" level="1" name="godad_castle_agit_001_001">
+		<clanHall id="47" />
 		<position x="146442" y="-55483" z="-2760" />
 		<coordinates>
 			<loc x="146450" y="-55504" z="-2820" />
@@ -1730,6 +1783,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24160002" type="DOOR" level="1" name="godad_castle_agit_001_002">
+		<clanHall id="47" />
 		<position x="146444" y="-55523" z="-2760" />
 		<coordinates>
 			<loc x="146437" y="-55499" z="-2819" />
@@ -1741,6 +1795,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24160003" type="DOOR" level="1" name="godad_castle_agit_002_001">
+		<clanHall id="48" />
 		<position x="147091" y="-56483" z="-2760" />
 		<coordinates>
 			<loc x="147117" y="-56489" z="-2815" />
@@ -1752,6 +1807,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24160004" type="DOOR" level="1" name="godad_castle_agit_002_002">
+		<clanHall id="48" />
 		<position x="147130" y="-56503" z="-2760" />
 		<coordinates>
 			<loc x="147105" y="-56498" z="-2818" />
@@ -1763,6 +1819,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24160005" type="DOOR" level="1" name="godad_castle_agit_003_001">
+		<clanHall id="49" />
 		<position x="148282" y="-56511" z="-2760" />
 		<coordinates>
 			<loc x="148302" y="-56490" z="-2823" />
@@ -1774,6 +1831,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24160006" type="DOOR" level="1" name="godad_castle_agit_003_002">
+		<clanHall id="49" />
 		<position x="148322" y="-56489" z="-2760" />
 		<coordinates>
 			<loc x="148303" y="-56508" z="-2824" />
@@ -1785,6 +1843,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24160007" type="DOOR" level="1" name="godad_castle_agit_004_001">
+		<clanHall id="50" />
 		<position x="148974" y="-55535" z="-2760" />
 		<coordinates>
 			<loc x="148971" y="-55509" z="-2812" />
@@ -1796,6 +1855,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24160008" type="DOOR" level="1" name="godad_castle_agit_004_002">
+		<clanHall id="50" />
 		<position x="148979" y="-55489" z="-2760" />
 		<coordinates>
 			<loc x="148982" y="-55520" z="-2821" />
@@ -1807,6 +1867,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="22220007" type="DOOR" level="1" name="giran_castle_agit_001_001">
+		<clanHall id="42" />
 		<position x="78593" y="148327" z="-3576" />
 		<coordinates>
 			<loc x="78622" y="148331" z="-3614" />
@@ -1818,6 +1879,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="22220008" type="DOOR" level="1" name="giran_castle_agit_001_002">
+		<clanHall id="42" />
 		<position x="78549" y="148328" z="-3576" />
 		<coordinates>
 			<loc x="78520" y="148323" z="-3614" />
@@ -1829,6 +1891,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="22220009" type="DOOR" level="1" name="giran_castle_agit_002_001">
+		<clanHall id="43" />
 		<position x="81832" y="145336" z="-3512" />
 		<coordinates>
 			<loc x="81827" y="145369" z="-3546" />
@@ -1840,6 +1903,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="22220010" type="DOOR" level="1" name="giran_castle_agit_002_002">
+		<clanHall id="43" />
 		<position x="81832" y="145295" z="-3512" />
 		<coordinates>
 			<loc x="81834" y="145265" z="-3546" />
@@ -1851,6 +1915,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="22220012" type="DOOR" level="1" name="giran_castle_agit_003_001">
+		<clanHall id="44" />
 		<position x="83624" y="145304" z="-3384" />
 		<coordinates>
 			<loc x="83621" y="145280" z="-3417" />
@@ -1862,6 +1927,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="22220011" type="DOOR" level="1" name="giran_castle_agit_003_002">
+		<clanHall id="44" />
 		<position x="83618" y="145358" z="-3384" />
 		<coordinates>
 			<loc x="83614" y="145383" z="-3417" />
@@ -1873,6 +1939,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="22220006" type="DOOR" level="1" name="giran_castle_agit_004_001">
+		<clanHall id="45" />
 		<position x="81195" y="151583" z="-3512" />
 		<coordinates>
 			<loc x="81200" y="151555" z="-3546" />
@@ -1884,6 +1951,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="22220005" type="DOOR" level="1" name="giran_castle_agit_004_002">
+		<clanHall id="45" />
 		<position x="81195" y="151630" z="-3512" />
 		<coordinates>
 			<loc x="81193" y="151658" z="-3546" />
@@ -1895,6 +1963,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="22220003" type="DOOR" level="1" name="giran_castle_agit_005_001">
+		<clanHall id="46" />
 		<position x="81873" y="151916" z="-3512" />
 		<coordinates>
 			<loc x="81871" y="151944" z="-3545" />
@@ -1906,6 +1975,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="22220004" type="DOOR" level="1" name="giran_castle_agit_005_002">
+		<clanHall id="46" />
 		<position x="81874" y="151870" z="-3512" />
 		<coordinates>
 			<loc x="81876" y="151842" z="-3545" />
@@ -1917,6 +1987,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="21160007" type="DOOR" level="1" name="rune_castle_agit_001_001">
+		<clanHall id="54" />
 		<position x="39338" y="-48266" z="896" />
 		<coordinates>
 			<loc x="39311" y="-48293" z="898" />
@@ -1928,6 +1999,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="21160008" type="DOOR" level="1" name="rune_castle_agit_001_002">
+		<clanHall id="54" />
 		<position x="39338" y="-48222" z="896" />
 		<coordinates>
 			<loc x="39311" y="-48249" z="898" />
@@ -1939,6 +2011,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="21160001" type="DOOR" level="1" name="rune_castle_agit_002_001">
+		<clanHall id="51" />
 		<position x="37705" y="-50427" z="896" />
 		<coordinates>
 			<loc x="37681" y="-50451" z="900" />
@@ -1950,6 +2023,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="21160002" type="DOOR" level="1" name="rune_castle_agit_002_002">
+		<clanHall id="51" />
 		<position x="37752" y="-50424" z="896" />
 		<coordinates>
 			<loc x="37716" y="-50451" z="900" />
@@ -1961,6 +2035,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="21160003" type="DOOR" level="1" name="rune_castle_agit_003_001">
+		<clanHall id="52" />
 		<position x="38550" y="-50140" z="896" />
 		<coordinates>
 			<loc x="38523" y="-50167" z="900" />
@@ -1972,6 +2047,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="21160004" type="DOOR" level="1" name="rune_castle_agit_003_002">
+		<clanHall id="52" />
 		<position x="38585" y="-50123" z="896" />
 		<coordinates>
 			<loc x="38558" y="-50150" z="900" />
@@ -1983,6 +2059,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="21160005" type="DOOR" level="1" name="rune_castle_agit_004_001">
+		<clanHall id="53" />
 		<position x="39130" y="-49515" z="896" />
 		<coordinates>
 			<loc x="39103" y="-49542" z="900" />
@@ -1994,6 +2071,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="21160006" type="DOOR" level="1" name="rune_castle_agit_004_002">
+		<clanHall id="53" />
 		<position x="39148" y="-49482" z="896" />
 		<coordinates>
 			<loc x="39121" y="-49509" z="900" />
@@ -2005,6 +2083,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="21160009" type="DOOR" level="1" name="rune_castle_agit_005_001">
+		<clanHall id="55" />
 		<position x="39161" y="-47001" z="896" />
 		<coordinates>
 			<loc x="39134" y="-47028" z="900" />
@@ -2016,6 +2095,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="21160010" type="DOOR" level="1" name="rune_castle_agit_005_002">
+		<clanHall id="55" />
 		<position x="39140" y="-46969" z="896" />
 		<coordinates>
 			<loc x="39113" y="-46996" z="900" />
@@ -2027,6 +2107,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="21160011" type="DOOR" level="1" name="rune_castle_agit_006_001">
+		<clanHall id="56" />
 		<position x="38599" y="-46364" z="896" />
 		<coordinates>
 			<loc x="38574" y="-46387" z="900" />
@@ -2038,6 +2119,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="21160012" type="DOOR" level="1" name="rune_castle_agit_006_002">
+		<clanHall id="56" />
 		<position x="38562" y="-46347" z="896" />
 		<coordinates>
 			<loc x="38535" y="-46374" z="900" />
@@ -2049,6 +2131,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="21160013" type="DOOR" level="1" name="rune_castle_agit_007_001">
+		<clanHall id="57" />
 		<position x="37762" y="-46049" z="896" />
 		<coordinates>
 			<loc x="37735" y="-46076" z="900" />
@@ -2060,6 +2143,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="21160014" type="DOOR" level="1" name="rune_castle_agit_007_002">
+		<clanHall id="57" />
 		<position x="37721" y="-46048" z="896" />
 		<coordinates>
 			<loc x="37691" y="-46073" z="900" />
@@ -2071,6 +2155,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="22130018" type="DOOR" level="1" name="schutt_castle_agit_001_001">
+		<clanHall id="58" />
 		<position x="86104" y="-143176" z="-1320" />
 		<coordinates>
 			<loc x="86114" y="-143196" z="-1352" />
@@ -2082,6 +2167,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="22130017" type="DOOR" level="1" name="schutt_castle_agit_001_002">
+		<clanHall id="58" />
 		<position x="86108" y="-143213" z="-1320" />
 		<coordinates>
 			<loc x="86105" y="-143190" z="-1352" />
@@ -2093,6 +2179,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="22130020" type="DOOR" level="1" name="schutt_castle_agit_002_001">
+		<clanHall id="59" />
 		<position x="86792" y="-142200" z="-1320" />
 		<coordinates>
 			<loc x="86770" y="-142211" z="-1352" />
@@ -2104,6 +2191,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="22130019" type="DOOR" level="1" name="schutt_castle_agit_002_002">
+		<clanHall id="59" />
 		<position x="86749" y="-142212" z="-1320" />
 		<coordinates>
 			<loc x="86769" y="-142199" z="-1352" />
@@ -2115,6 +2203,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="22130022" type="DOOR" level="1" name="schutt_castle_agit_003_001">
+		<clanHall id="60" />
 		<position x="87978" y="-142221" z="-1320" />
 		<coordinates>
 			<loc x="87955" y="-142216" z="-1352" />
@@ -2126,6 +2215,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="22130021" type="DOOR" level="1" name="schutt_castle_agit_003_002">
+		<clanHall id="60" />
 		<position x="87941" y="-142201" z="-1320" />
 		<coordinates>
 			<loc x="87964" y="-142209" z="-1352" />
@@ -2137,6 +2227,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="22130024" type="DOOR" level="1" name="schutt_castle_agit_004_001">
+		<clanHall id="61" />
 		<position x="88631" y="-143221" z="-1320" />
 		<coordinates>
 			<loc x="88621" y="-143198" z="-1352" />
@@ -2148,6 +2239,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="22130023" type="DOOR" level="1" name="schutt_castle_agit_004_002">
+		<clanHall id="61" />
 		<position x="88625" y="-143180" z="-1320" />
 		<coordinates>
 			<loc x="88633" y="-143203" z="-1352" />
@@ -2159,6 +2251,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24140001" type="DOOR" level="1" name="spa_agit_002_001">
+		<clanHall id="62" />
 		<position x="140739" y="-124457" z="-1864" />
 		<coordinates>
 			<loc x="140728" y="-124478" z="-1913" />
@@ -2170,6 +2263,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24140002" type="DOOR" level="1" name="spa_agit_002_002">
+		<clanHall id="62" />
 		<position x="140764" y="-124420" z="-1864" />
 		<coordinates>
 			<loc x="140776" y="-124399" z="-1923" />
@@ -2181,6 +2275,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24140003" type="DOOR" level="1" name="spa_agit_001_001">
+		<clanHall id="62" />
 		<position x="141176" y="-124328" z="-1864" />
 		<coordinates>
 			<loc x="141146" y="-124310" z="-1921" />
@@ -2192,6 +2287,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24140004" type="DOOR" level="1" name="spa_agit_001_002">
+		<clanHall id="62" />
 		<position x="141203" y="-124346" z="-1864" />
 		<coordinates>
 			<loc x="141225" y="-124358" z="-1920" />
@@ -2203,6 +2299,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24140005" type="DOOR" level="1" name="spa_agit_003_001">
+		<clanHall id="62" />
 		<position x="141268" y="-124757" z="-1864" />
 		<coordinates>
 			<loc x="141279" y="-124735" z="-1949" />
@@ -2214,6 +2311,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24140006" type="DOOR" level="1" name="spa_agit_003_002">
+		<clanHall id="62" />
 		<position x="141244" y="-124794" z="-1864" />
 		<coordinates>
 			<loc x="141231" y="-124814" z="-1947" />
@@ -2225,6 +2323,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="24140007" type="DOOR" level="1" name="spa_agit_004_001">
+		<clanHall id="62" />
 		<position x="140708" y="-123861" z="-1904" />
 		<coordinates>
 			<loc x="140715" y="-123885" z="-1941" />
@@ -2235,6 +2334,7 @@
 		<stats hp="126600" pDef="644" mDef="518" height="450" />
 	</door>
 	<door id="24140008" type="DOOR" level="1" name="spa_agit_004_002">
+		<clanHall id="62" />
 		<position x="140716" y="-123907" z="-1904" />
 		<coordinates>
 			<loc x="140723" y="-123934" z="-1941" />
@@ -2245,6 +2345,7 @@
 		<stats hp="126600" pDef="644" mDef="518" height="450" />
 	</door>
 	<door id="21150003" type="DOOR" level="1" name="Farm_001">
+		<clanHall id="63" />
 		<position x="55322" y="-93206" z="-1360" />
 		<coordinates>
 			<loc x="55333" y="-93274" z="-1396" />
@@ -2255,6 +2356,7 @@
 		<stats hp="126600" pDef="644" mDef="518" height="450" />
 	</door>
 	<door id="21150004" type="DOOR" level="1" name="Farm_002">
+		<clanHall id="63" />
 		<position x="55285" y="-93089" z="-1360" />
 		<coordinates>
 			<loc x="55296" y="-93152" z="-1396" />
@@ -2265,6 +2367,7 @@
 		<stats hp="126600" pDef="644" mDef="518" height="450" />
 	</door>
 	<door id="21150002" type="DOOR" level="1" name="Farm_003">
+		<clanHall id="63" />
 		<position x="59936" y="-94201" z="-1344" />
 		<coordinates>
 			<loc x="59917" y="-94227" z="-1382" />
@@ -2275,6 +2378,7 @@
 		<stats hp="126600" pDef="644" mDef="518" height="450" />
 	</door>
 	<door id="21150001" type="DOOR" level="1" name="Farm_004">
+		<clanHall id="63" />
 		<position x="59960" y="-94152" z="-1344" />
 		<coordinates>
 			<loc x="59944" y="-94176" z="-1382" />
@@ -2335,6 +2439,7 @@
 		<stats hp="126600" pDef="644" mDef="518" height="345" />
 	</door>
 	<door id="21170002" type="DOOR" level="1" name="fortress_outter_001">
+		<clanHall id="64" />
 		<position x="58006" y="-29480" z="568" />
 		<coordinates>
 			<loc x="58070" y="-29498" z="543" />
@@ -2346,6 +2451,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="21170001" type="DOOR" level="1" name="fortress_outter_002">
+		<clanHall id="64" />
 		<position x="57913" y="-29479" z="568" />
 		<coordinates>
 			<loc x="57849" y="-29465" z="544" />
@@ -2357,6 +2463,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="21170004" type="DOOR" level="1" name="fortress_001">
+		<clanHall id="64" />
 		<position x="56978" y="-27282" z="576" />
 		<coordinates>
 			<loc x="56971" y="-27251" z="550" />
@@ -2368,6 +2475,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="21170003" type="DOOR" level="1" name="fortress_002">
+		<clanHall id="64" />
 		<position x="56984" y="-27224" z="576" />
 		<coordinates>
 			<loc x="56972" y="-27188" z="550" />
@@ -2379,6 +2487,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="21170006" type="DOOR" level="1" name="fortress_003">
+		<clanHall id="64" />
 		<position x="57990" y="-26388" z="592" />
 		<coordinates>
 			<loc x="58036" y="-26400" z="563" />
@@ -2390,6 +2499,7 @@
 		<function openType="CLICK" />
 	</door>
 	<door id="21170005" type="DOOR" level="1" name="fortress_004">
+		<clanHall id="64" />
 		<position x="57934" y="-26389" z="592" />
 		<coordinates>
 			<loc x="57893" y="-26382" z="564" />
@@ -3583,22 +3693,22 @@
 		<function openType="SKILL" closeTime="10" />
 	</door>
 	<door id="19160017" type="DOOR" level="1" name="altar_flame_gate01">
-		<position x="-17432" y="-54840" z="-10448" />
+		<position x="-17416" y="-54840" z="-10448" />
 		<coordinates>
-			<loc x="-17421" y="-54960" z="-10448" />
-			<loc x="-17421" y="-54781" z="-10448" />
-			<loc x="-17451" y="-54781" z="-10448" />
-			<loc x="-17451" y="-54960" z="-10448" />
+			<loc x="-17406" y="-54960" z="-10448" />
+			<loc x="-17406" y="-54720" z="-10448" />
+			<loc x="-17426" y="-54720" z="-10448" />
+			<loc x="-17426" y="-54960" z="-10448" />
 		</coordinates>
 		<stats hp="126600" pDef="644" mDef="518" height="256" />
 	</door>
 	<door id="19160016" type="DOOR" level="1" name="altar_flame_gate02">
-		<position x="-15368" y="-54840" z="-10448" />
+		<position x="-15360" y="-54840" z="-10448" />
 		<coordinates>
-			<loc x="-15355" y="-54960" z="-10448" />
-			<loc x="-15355" y="-54781" z="-10448" />
-			<loc x="-15385" y="-54781" z="-10448" />
-			<loc x="-15385" y="-54960" z="-10448" />
+			<loc x="-15350" y="-54960" z="-10448" />
+			<loc x="-15350" y="-54720" z="-10448" />
+			<loc x="-15370" y="-54720" z="-10448" />
+			<loc x="-15370" y="-54960" z="-10448" />
 		</coordinates>
 		<stats hp="126600" pDef="644" mDef="518" height="256" />
 	</door>
@@ -3624,28 +3734,6 @@
 		<stats hp="126600" pDef="644" mDef="518" height="1024" />
 		<function openType="SKILL" closeTime="120" />
 	</door>
-	<door id="23150004" type="DOOR" level="3" name="brilliance_door_01">
-		<position x="112849" y="-78083" z="56" />
-		<coordinates>
-			<loc x="112782" y="-78096" z="22" />
-			<loc x="112957" y="-78096" z="22" />
-			<loc x="112958" y="-78064" z="22" />
-			<loc x="112782" y="-78064" z="22" />
-		</coordinates>
-		<stats hp="126600" pDef="644" mDef="518" height="610" />
-		<function triggeredId="23150003" openType="SKILL" closeTime="30" />
-	</door>
-	<door id="23150003" type="DOOR" level="3" name="brilliance_door_02">
-		<position x="112744" y="-78088" z="56" />
-		<coordinates>
-			<loc x="112641" y="-78096" z="22" />
-			<loc x="112816" y="-78096" z="22" />
-			<loc x="112816" y="-78065" z="22" />
-			<loc x="112641" y="-78064" z="22" />
-		</coordinates>
-		<stats hp="126600" pDef="644" mDef="518" height="610" />
-		<function triggeredId="23150004" openType="SKILL" closeTime="30" />
-	</door>
 	<door id="23150001" type="DOOR" level="3" name="solina_secret_door_01">
 		<position x="110719" y="-81567" z="-1584" />
 		<coordinates>
@@ -3655,7 +3743,7 @@
 			<loc x="110611" y="-81545" z="-1618" />
 		</coordinates>
 		<stats hp="126600" pDef="644" mDef="518" height="256" />
-		<function openType="SKILL" closeTime="60" />
+		<function openType="SKILL" closeTime="120" />
 	</door>
 	<door id="23150002" type="DOOR" level="3" name="solina_secret_door_02">
 		<position x="114881" y="-71454" z="-544" />
@@ -3666,7 +3754,29 @@
 			<loc x="114782" y="-71425" z="-578" />
 		</coordinates>
 		<stats hp="126600" pDef="644" mDef="518" height="256" />
-		<function openType="SKILL" closeTime="60" />
+		<function openType="SKILL" closeTime="120" />
+	</door>
+	<door id="23150003" type="DOOR" level="3" name="brilliance_door_02">
+		<position x="112744" y="-78088" z="56" />
+		<coordinates>
+			<loc x="112641" y="-78096" z="22" />
+			<loc x="112816" y="-78096" z="22" />
+			<loc x="112816" y="-78065" z="22" />
+			<loc x="112641" y="-78064" z="22" />
+		</coordinates>
+		<stats hp="126600" pDef="644" mDef="518" height="610" />
+		<function triggeredId="23150004" closeTime="60" />
+	</door>
+	<door id="23150004" type="DOOR" level="3" name="brilliance_door_01">
+		<position x="112849" y="-78083" z="56" />
+		<coordinates>
+			<loc x="112782" y="-78096" z="22" />
+			<loc x="112957" y="-78096" z="22" />
+			<loc x="112958" y="-78064" z="22" />
+			<loc x="112782" y="-78064" z="22" />
+		</coordinates>
+		<stats hp="126600" pDef="644" mDef="518" height="610" />
+		<function triggeredId="23150003" closeTime="60" />
 	</door>
 	<door id="18200001" type="DOOR" level="1" name="fortress_1820_001">
 		<position x="-54248" y="89592" z="-2824" />

@@ -5,18 +5,13 @@ import java.util.StringTokenizer;
 import net.sf.l2j.commons.lang.StringUtil;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.gameserver.data.SkillTable.FrequentSkill;
 import net.sf.l2j.gameserver.data.manager.CastleManager;
 import net.sf.l2j.gameserver.data.manager.CoupleManager;
-import net.sf.l2j.gameserver.enums.IntentionType;
 import net.sf.l2j.gameserver.model.World;
-import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
-import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 import net.sf.l2j.gameserver.network.serverpackets.ConfirmDlg;
 import net.sf.l2j.gameserver.network.serverpackets.MagicSkillUse;
-import net.sf.l2j.gameserver.network.serverpackets.MoveToPawn;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
 
 public class WeddingManagerNpc extends Folk
@@ -27,44 +22,22 @@ public class WeddingManagerNpc extends Folk
 	}
 	
 	@Override
-	public void onAction(Player player)
+	public void onInteract(Player player)
 	{
-		// Set the target of the player
-		if (player.getTarget() != this)
-			player.setTarget(this);
+		// Shouldn't be able to see wedding content if the mod isn't activated on configs
+		if (!Config.ALLOW_WEDDING)
+			sendHtmlMessage(player, "data/html/mods/wedding/disabled.htm");
 		else
 		{
-			// Calculate the distance between the Player and the Npc.
-			if (!canInteract(player))
-				player.getAI().setIntention(IntentionType.INTERACT, this);
+			// Married people got access to another menu
+			if (player.getCoupleId() > 0)
+				sendHtmlMessage(player, "data/html/mods/wedding/start2.htm");
+			// "Under marriage acceptance" people go to this one
+			else if (player.isUnderMarryRequest())
+				sendHtmlMessage(player, "data/html/mods/wedding/waitforpartner.htm");
+			// And normal players go here :)
 			else
-			{
-				// Stop moving if we're already in interact range.
-				if (player.isMoving() || player.isInCombat())
-					player.getAI().setIntention(IntentionType.IDLE);
-				
-				// Rotate the player to face the instance
-				player.sendPacket(new MoveToPawn(player, this, Npc.INTERACTION_DISTANCE));
-				
-				// Send ActionFailed to the player in order to avoid he stucks
-				player.sendPacket(ActionFailed.STATIC_PACKET);
-				
-				// Shouldn't be able to see wedding content if the mod isn't activated on configs
-				if (!Config.ALLOW_WEDDING)
-					sendHtmlMessage(player, "data/html/mods/wedding/disabled.htm");
-				else
-				{
-					// Married people got access to another menu
-					if (player.getCoupleId() > 0)
-						sendHtmlMessage(player, "data/html/mods/wedding/start2.htm");
-					// "Under marriage acceptance" people go to this one
-					else if (player.isUnderMarryRequest())
-						sendHtmlMessage(player, "data/html/mods/wedding/waitforpartner.htm");
-					// And normal players go here :)
-					else
-						sendHtmlMessage(player, "data/html/mods/wedding/start.htm");
-				}
-			}
+				sendHtmlMessage(player, "data/html/mods/wedding/start.htm");
 		}
 	}
 	
@@ -73,7 +46,7 @@ public class WeddingManagerNpc extends Folk
 	{
 		if (command.startsWith("AskWedding"))
 		{
-			StringTokenizer st = new StringTokenizer(command);
+			final StringTokenizer st = new StringTokenizer(command);
 			st.nextToken();
 			
 			if (st.hasMoreTokens())
@@ -203,8 +176,8 @@ public class WeddingManagerNpc extends Folk
 		partner.broadcastPacket(new MagicSkillUse(partner, partner, 2230, 1, 1, 0));
 		
 		// Fireworks
-		requester.doCast(FrequentSkill.LARGE_FIREWORK.getSkill());
-		partner.doCast(FrequentSkill.LARGE_FIREWORK.getSkill());
+		requester.broadcastPacket(new MagicSkillUse(requester, requester, 2025, 1, 1, 0));
+		partner.broadcastPacket(new MagicSkillUse(partner, partner, 2025, 1, 1, 0));
 		
 		World.announceToOnlinePlayers("Congratulations to " + requester.getName() + " and " + partner.getName() + "! They have been married.");
 	}

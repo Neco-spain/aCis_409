@@ -1,8 +1,5 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
-/**
- * @author godson
- */
 public class ExOlympiadMode extends L2GameServerPacket
 {
 	private final int _mode;

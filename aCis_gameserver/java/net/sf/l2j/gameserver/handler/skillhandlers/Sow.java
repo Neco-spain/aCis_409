@@ -2,10 +2,8 @@ package net.sf.l2j.gameserver.handler.skillhandlers;
 
 import net.sf.l2j.commons.random.Rnd;
 
-import net.sf.l2j.gameserver.enums.IntentionType;
-import net.sf.l2j.gameserver.enums.skills.L2SkillType;
+import net.sf.l2j.gameserver.enums.skills.SkillType;
 import net.sf.l2j.gameserver.handler.ISkillHandler;
-import net.sf.l2j.gameserver.model.L2Skill;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
@@ -14,13 +12,14 @@ import net.sf.l2j.gameserver.model.group.Party;
 import net.sf.l2j.gameserver.model.manor.Seed;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.PlaySound;
-import net.sf.l2j.gameserver.scripting.QuestState;
+import net.sf.l2j.gameserver.scripting.Quest;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class Sow implements ISkillHandler
 {
-	private static final L2SkillType[] SKILL_IDS =
+	private static final SkillType[] SKILL_IDS =
 	{
-		L2SkillType.SOW
+		SkillType.SOW
 	};
 	
 	@Override
@@ -36,10 +35,10 @@ public class Sow implements ISkillHandler
 		final Player player = (Player) activeChar;
 		final Monster target = (Monster) object;
 		
-		if (target.isDead() || !target.isSeeded() || target.getSeederId() != activeChar.getObjectId())
+		if (target.isDead() || !target.getSeedState().isActualSeeder(player))
 			return;
 		
-		final Seed seed = target.getSeed();
+		final Seed seed = target.getSeedState().getSeed();
 		if (seed == null)
 			return;
 		
@@ -50,8 +49,8 @@ public class Sow implements ISkillHandler
 		SystemMessageId smId;
 		if (calcSuccess(activeChar, target, seed))
 		{
-			player.sendPacket(new PlaySound(QuestState.SOUND_ITEMGET));
-			target.setSeeded(activeChar.getObjectId());
+			player.sendPacket(new PlaySound(Quest.SOUND_ITEMGET));
+			target.getSeedState().calculateHarvestItems(activeChar.getObjectId());
 			smId = SystemMessageId.THE_SEED_WAS_SUCCESSFULLY_SOWN;
 		}
 		else
@@ -62,8 +61,6 @@ public class Sow implements ISkillHandler
 			player.sendPacket(smId);
 		else
 			party.broadcastMessage(smId);
-		
-		target.getAI().setIntention(IntentionType.IDLE);
 	}
 	
 	private static boolean calcSuccess(Creature activeChar, Creature target, Seed seed)
@@ -71,8 +68,8 @@ public class Sow implements ISkillHandler
 		final int minlevelSeed = seed.getLevel() - 5;
 		final int maxlevelSeed = seed.getLevel() + 5;
 		
-		final int levelPlayer = activeChar.getLevel(); // Attacker Level
-		final int levelTarget = target.getLevel(); // target Level
+		final int levelPlayer = activeChar.getStatus().getLevel(); // Attacker Level
+		final int levelTarget = target.getStatus().getLevel(); // target Level
 		
 		int basicSuccess = (seed.isAlternative()) ? 20 : 90;
 		
@@ -99,7 +96,7 @@ public class Sow implements ISkillHandler
 	}
 	
 	@Override
-	public L2SkillType[] getSkillIds()
+	public SkillType[] getSkillIds()
 	{
 		return SKILL_IDS;
 	}

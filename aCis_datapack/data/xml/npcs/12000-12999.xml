@@ -857,7 +857,7 @@
 		<set name="int" val="21"/>
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
-		<set name="con" val="2"/>
+		<set name="con" val="1"/>
 		<set name="men" val="25"/>
 		<set name="corpseTime" val="1200"/>
 		<set name="walkSpd" val="60"/>
@@ -1210,8 +1210,8 @@
 	</npc>
 	<npc id="12778" name="High Quality Large Squash" title="">
 		<set name="level" val="1"/>
-		<set name="radius" val="34"/>
-		<set name="height" val="40"/>
+		<set name="radius" val="30"/>
+		<set name="height" val="31.5"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
 		<set name="type" val="Monster"/>

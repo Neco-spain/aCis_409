@@ -1,6 +1,6 @@
 package net.sf.l2j.gameserver.model.actor.template;
 
-import net.sf.l2j.commons.util.StatsSet;
+import net.sf.l2j.commons.data.StatSet;
 
 /**
  * The generic datatype used by any character template. It holds basic informations, such as base stats (STR, CON, DEX,...) and extended stats (power attack, magic attack, hp/mp regen, collision values).
@@ -17,8 +17,8 @@ public class CreatureTemplate
 	private final double _baseHpMax;
 	private final double _baseMpMax;
 	
-	private final double _baseHpReg;
-	private final double _baseMpReg;
+	private final double _baseHpRegen;
+	private final double _baseMpRegen;
 	
 	private final double _basePAtk;
 	private final double _baseMAtk;
@@ -35,7 +35,7 @@ public class CreatureTemplate
 	protected final double _collisionRadius;
 	protected final double _collisionHeight;
 	
-	public CreatureTemplate(StatsSet set)
+	public CreatureTemplate(StatSet set)
 	{
 		_baseSTR = set.getInteger("str", 40);
 		_baseCON = set.getInteger("con", 21);
@@ -47,8 +47,8 @@ public class CreatureTemplate
 		_baseHpMax = set.getDouble("hp", 0);
 		_baseMpMax = set.getDouble("mp", 0);
 		
-		_baseHpReg = set.getDouble("hpRegen", 1.5d);
-		_baseMpReg = set.getDouble("mpRegen", 0.9d);
+		_baseHpRegen = set.getDouble("hpRegen", 1.5d);
+		_baseMpRegen = set.getDouble("mpRegen", 0.9d);
 		
 		_basePAtk = set.getDouble("pAtk");
 		_baseMAtk = set.getDouble("mAtk");
@@ -106,14 +106,14 @@ public class CreatureTemplate
 		return _baseMpMax;
 	}
 	
-	public final double getBaseHpReg()
+	public double getBaseHpRegen(int level)
 	{
-		return _baseHpReg;
+		return _baseHpRegen;
 	}
 	
-	public final double getBaseMpReg()
+	public double getBaseMpRegen(int level)
 	{
-		return _baseMpReg;
+		return _baseMpRegen;
 	}
 	
 	public final double getBasePAtk()

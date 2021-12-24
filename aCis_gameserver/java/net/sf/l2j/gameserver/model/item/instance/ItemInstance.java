@@ -10,19 +10,20 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
+import net.sf.l2j.commons.pool.ConnectionPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.L2DatabaseFactory;
-import net.sf.l2j.gameserver.data.ItemTable;
 import net.sf.l2j.gameserver.data.manager.CastleManager;
-import net.sf.l2j.gameserver.enums.IntentionType;
+import net.sf.l2j.gameserver.data.xml.ItemData;
 import net.sf.l2j.gameserver.enums.items.EtcItemType;
+import net.sf.l2j.gameserver.enums.items.ItemLocation;
+import net.sf.l2j.gameserver.enums.items.ItemState;
 import net.sf.l2j.gameserver.enums.items.ItemType;
 import net.sf.l2j.gameserver.enums.items.ShotType;
 import net.sf.l2j.gameserver.geoengine.GeoEngine;
 import net.sf.l2j.gameserver.idfactory.IdFactory;
-import net.sf.l2j.gameserver.model.L2Augmentation;
+import net.sf.l2j.gameserver.model.Augmentation;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
@@ -38,7 +39,6 @@ import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 import net.sf.l2j.gameserver.network.serverpackets.DropItem;
 import net.sf.l2j.gameserver.network.serverpackets.GetItem;
-import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
 import net.sf.l2j.gameserver.network.serverpackets.SpawnItem;
 import net.sf.l2j.gameserver.scripting.Quest;
 import net.sf.l2j.gameserver.scripting.QuestState;
@@ -52,36 +52,15 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 {
 	private static final Logger ITEM_LOG = Logger.getLogger("item");
 	
-	private static final String DELETE_AUGMENTATION = "DELETE FROM augmentations WHERE item_id = ?";
-	private static final String RESTORE_AUGMENTATION = "SELECT attributes,skill_id,skill_level FROM augmentations WHERE item_id=?";
-	private static final String UPDATE_AUGMENTATION = "REPLACE INTO augmentations VALUES(?,?,?,?)";
+	private static final String DELETE_AUGMENTATION = "DELETE FROM augmentations WHERE item_oid = ?";
+	private static final String RESTORE_AUGMENTATION = "SELECT attributes, skill_id, skill_level FROM augmentations WHERE item_oid = ?";
+	private static final String UPDATE_AUGMENTATION = "REPLACE INTO augmentations VALUES(?, ?, ?, ?)";
 	
 	private static final String UPDATE_ITEM = "UPDATE items SET owner_id=?,count=?,loc=?,loc_data=?,enchant_level=?,custom_type1=?,custom_type2=?,mana_left=?,time=? WHERE object_id = ?";
 	private static final String INSERT_ITEM = "INSERT INTO items (owner_id,item_id,count,loc,loc_data,enchant_level,object_id,custom_type1,custom_type2,mana_left,time) VALUES (?,?,?,?,?,?,?,?,?,?,?)";
 	private static final String DELETE_ITEM = "DELETE FROM items WHERE object_id=?";
 	
 	private static final String DELETE_PET_ITEM = "DELETE FROM pets WHERE item_obj_id=?";
-	
-	public static enum ItemState
-	{
-		UNCHANGED,
-		ADDED,
-		MODIFIED,
-		REMOVED
-	}
-	
-	public static enum ItemLocation
-	{
-		VOID,
-		INVENTORY,
-		PAPERDOLL,
-		WAREHOUSE,
-		CLANWH,
-		PET,
-		PET_EQUIP,
-		LEASE,
-		FREIGHT
-	}
 	
 	private static final long REGULAR_LOOT_PROTECTION_TIME = 15000;
 	private static final long RAID_LOOT_PROTECTION_TIME = 300000;
@@ -90,10 +69,8 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 	private int _dropperObjectId = 0;
 	
 	private int _count;
-	private int _initCount;
 	
 	private long _time;
-	private boolean _decrease = false;
 	
 	private final int _itemId;
 	private final Item _item;
@@ -106,7 +83,7 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 	
 	private int _enchantLevel;
 	
-	private L2Augmentation _augmentation = null;
+	private Augmentation _augmentation = null;
 	
 	/** Shadow item */
 	private int _mana = -1;
@@ -136,7 +113,7 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 	{
 		super(objectId);
 		_itemId = itemId;
-		_item = ItemTable.getInstance().getTemplate(itemId);
+		_item = ItemData.getInstance().getTemplate(itemId);
 		
 		if (_itemId == 0 || _item == null)
 			throw new IllegalArgumentException();
@@ -177,13 +154,13 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 	/**
 	 * Sets the ownerID of the item
 	 * @param process : String Identifier of process triggering this action
-	 * @param owner_id : int designating the ID of the owner
+	 * @param ownerId : int designating the ID of the owner
 	 * @param creator : Player Player requesting the item creation
 	 * @param reference : WorldObject Object referencing current action like NPC selling item or previous item in transformation
 	 */
-	public void setOwnerId(String process, int owner_id, Player creator, WorldObject reference)
+	public void setOwnerId(String process, int ownerId, Player creator, WorldObject reference)
 	{
-		setOwnerId(owner_id);
+		setOwnerId(ownerId);
 		
 		if (Config.LOG_ITEMS)
 		{
@@ -201,14 +178,14 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 	
 	/**
 	 * Sets the ownerID of the item
-	 * @param owner_id : int designating the ID of the owner
+	 * @param ownerId : int designating the ID of the owner
 	 */
-	public void setOwnerId(int owner_id)
+	public void setOwnerId(int ownerId)
 	{
-		if (owner_id == _ownerId)
+		if (ownerId == _ownerId)
 			return;
 		
-		_ownerId = owner_id;
+		_ownerId = ownerId;
 		_storedInDb = false;
 	}
 	
@@ -235,15 +212,15 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 	 * <BR>
 	 * <U><I>Remark :</I></U> If loc and loc_data different from database, say datas not up-to-date
 	 * @param loc : ItemLocation (enumeration)
-	 * @param loc_data : int designating the slot where the item is stored or the village for freights
+	 * @param locData : int designating the slot where the item is stored or the village for freights
 	 */
-	public void setLocation(ItemLocation loc, int loc_data)
+	public void setLocation(ItemLocation loc, int locData)
 	{
-		if (loc == _loc && loc_data == _locData)
+		if (loc == _loc && locData == _locData)
 			return;
 		
 		_loc = loc;
-		_locData = loc_data;
+		_locData = locData;
 		_storedInDb = false;
 	}
 	
@@ -337,7 +314,6 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 	 */
 	public int getLocationSlot()
 	{
-		assert _loc == ItemLocation.PAPERDOLL || _loc == ItemLocation.PET_EQUIP || _loc == ItemLocation.FREIGHT;
 		return _locData;
 	}
 	
@@ -569,21 +545,22 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 	 * @param player : the player to check.
 	 * @param allowAdena : if true, count adenas.
 	 * @param allowNonTradable : if true, count non tradable items.
+	 * @param allowStoreBuy
 	 * @return if item is available for manipulation.
 	 */
-	public boolean isAvailable(Player player, boolean allowAdena, boolean allowNonTradable)
+	public boolean isAvailable(Player player, boolean allowAdena, boolean allowNonTradable, boolean allowStoreBuy)
 	{
-		return ((!isEquipped()) // Not equipped
+		return ((!isEquipped() || allowStoreBuy) // Not equipped
 			&& (getItem().getType2() != Item.TYPE2_QUEST) // Not Quest Item
 			&& (getItem().getType2() != Item.TYPE2_MONEY || getItem().getType1() != Item.TYPE1_SHIELD_ARMOR) // not money, not shield
 			&& (player.getSummon() == null || getObjectId() != player.getSummon().getControlItemId()) // Not Control item of currently summoned pet
 			&& (player.getActiveEnchantItem() != this) // Not momentarily used enchant scroll
 			&& (allowAdena || getItemId() != 57) // Not adena
-			&& (player.getCurrentSkill().getSkill() == null || player.getCurrentSkill().getSkill().getItemConsumeId() != getItemId()) && (!player.isCastingSimultaneouslyNow() || player.getLastSimultaneousSkillCast() == null || player.getLastSimultaneousSkillCast().getItemConsumeId() != getItemId()) && (allowNonTradable || isTradable()));
+			&& (player.getCast().getCurrentSkill() == null || player.getCast().getCurrentSkill().getItemConsumeId() != getItemId()) && (allowNonTradable || isTradable()));
 	}
 	
 	@Override
-	public void onAction(Player player)
+	public void onAction(Player player, boolean isCtrlPressed, boolean isShiftPressed)
 	{
 		if (player.isFlying())
 		{
@@ -622,24 +599,7 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 			}
 		}
 		
-		player.getAI().setIntention(IntentionType.PICK_UP, this);
-	}
-	
-	@Override
-	public void onActionShift(Player player)
-	{
-		if (player.isGM())
-		{
-			final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
-			html.setFile("data/html/admin/iteminfo.htm");
-			html.replace("%objid%", getObjectId());
-			html.replace("%itemid%", getItemId());
-			html.replace("%ownerid%", getOwnerId());
-			html.replace("%loc%", getLocation().toString());
-			html.replace("%class%", getClass().getSimpleName());
-			player.sendPacket(html);
-		}
-		super.onActionShift(player);
+		player.getAI().tryToPickUp(getObjectId(), isShiftPressed);
 	}
 	
 	/**
@@ -674,7 +634,7 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 	/**
 	 * @return the augmentation object for this item.
 	 */
-	public L2Augmentation getAugmentation()
+	public Augmentation getAugmentation()
 	{
 		return _augmentation;
 	}
@@ -684,7 +644,7 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 	 * @param augmentation : the augmentation object to apply.
 	 * @return return true if successfull.
 	 */
-	public boolean setAugmentation(L2Augmentation augmentation)
+	public boolean setAugmentation(Augmentation augmentation)
 	{
 		// there shall be no previous augmentation..
 		if (_augmentation != null)
@@ -705,7 +665,7 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 		
 		_augmentation = null;
 		
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(DELETE_AUGMENTATION))
 		{
 			ps.setInt(1, getObjectId());
@@ -719,7 +679,7 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 	
 	private void restoreAttributes()
 	{
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(RESTORE_AUGMENTATION))
 		{
 			ps.setInt(1, getObjectId());
@@ -727,7 +687,7 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 			try (ResultSet rs = ps.executeQuery())
 			{
 				if (rs.next())
-					_augmentation = new L2Augmentation(rs.getInt("attributes"), rs.getInt("skill_id"), rs.getInt("skill_level"));
+					_augmentation = new Augmentation(rs.getInt("attributes"), rs.getInt("skill_id"), rs.getInt("skill_level"));
 			}
 		}
 		catch (Exception e)
@@ -738,7 +698,7 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 	
 	private void updateItemAttributes()
 	{
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(UPDATE_AUGMENTATION))
 		{
 			ps.setInt(1, getObjectId());
@@ -751,7 +711,7 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 			}
 			else
 			{
-				ps.setInt(2, _augmentation.getAttributes());
+				ps.setInt(2, _augmentation.getId());
 				
 				if (_augmentation.getSkill() == null)
 				{
@@ -773,7 +733,7 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 	}
 	
 	/**
-	 * @return true if this item is a shadow item. Shadow items have a limited life-time.
+	 * @return True if this {@link ItemInstance} is a shadow item. Shadow items have a limited life-time.
 	 */
 	public boolean isShadowItem()
 	{
@@ -781,33 +741,23 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 	}
 	
 	/**
-	 * Sets the mana for this shadow item.
-	 * @param period
-	 * @return return remaining mana of this shadow item
+	 * Decrease the mana for this {@link ItemInstance}.
+	 * @return The remaining mana of this {@link ItemInstance}.
 	 */
-	public int decreaseMana(int period)
+	public int decreaseMana()
 	{
 		_storedInDb = false;
+		_mana--;
 		
-		return _mana -= period;
+		return _mana;
 	}
 	
 	/**
-	 * @return the remaining mana of this shadow item (left life-time).
+	 * @return The remaining mana of this {@link ItemInstance}.
 	 */
 	public int getMana()
 	{
 		return _mana / 60;
-	}
-	
-	/**
-	 * Returns false cause item can't be attacked
-	 * @return boolean false
-	 */
-	@Override
-	public boolean isAutoAttackable(Creature attacker)
-	{
-		return false;
 	}
 	
 	/**
@@ -868,106 +818,103 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 	 */
 	public static ItemInstance restoreFromDb(int ownerId, ResultSet rs)
 	{
-		ItemInstance inst = null;
-		int objectId, itemId, slot, enchant, type1, type2, manaLeft, count;
-		long time;
-		ItemLocation loc;
-		
 		try
 		{
-			objectId = rs.getInt(1);
-			itemId = rs.getInt("item_id");
-			count = rs.getInt("count");
-			loc = ItemLocation.valueOf(rs.getString("loc"));
-			slot = rs.getInt("loc_data");
-			enchant = rs.getInt("enchant_level");
-			type1 = rs.getInt("custom_type1");
-			type2 = rs.getInt("custom_type2");
-			manaLeft = rs.getInt("mana_left");
-			time = rs.getLong("time");
+			final int objectId = rs.getInt(1);
+			final int itemId = rs.getInt("item_id");
+			final int count = rs.getInt("count");
+			final ItemLocation loc = ItemLocation.valueOf(rs.getString("loc"));
+			final int slot = rs.getInt("loc_data");
+			final int enchant = rs.getInt("enchant_level");
+			final int type1 = rs.getInt("custom_type1");
+			final int type2 = rs.getInt("custom_type2");
+			final int manaLeft = rs.getInt("mana_left");
+			final long time = rs.getLong("time");
+			
+			final Item template = ItemData.getInstance().getTemplate(itemId);
+			if (template == null)
+				return null;
+			
+			final ItemInstance item = new ItemInstance(objectId, template);
+			item._ownerId = ownerId;
+			item.setCount(count);
+			item._enchantLevel = enchant;
+			item._type1 = type1;
+			item._type2 = type2;
+			item._loc = loc;
+			item._locData = slot;
+			item._existsInDb = true;
+			item._storedInDb = true;
+			
+			// Setup life time for shadow weapons
+			item._mana = manaLeft;
+			item._time = time;
+			
+			// load augmentation
+			if (item.isEquipable())
+				item.restoreAttributes();
+			
+			return item;
 		}
 		catch (Exception e)
 		{
 			LOGGER.error("Couldn't restore an item owned by {}.", e, ownerId);
 			return null;
 		}
-		
-		final Item item = ItemTable.getInstance().getTemplate(itemId);
-		if (item == null)
-			return null;
-		
-		inst = new ItemInstance(objectId, item);
-		inst._ownerId = ownerId;
-		inst.setCount(count);
-		inst._enchantLevel = enchant;
-		inst._type1 = type1;
-		inst._type2 = type2;
-		inst._loc = loc;
-		inst._locData = slot;
-		inst._existsInDb = true;
-		inst._storedInDb = true;
-		
-		// Setup life time for shadow weapons
-		inst._mana = manaLeft;
-		inst._time = time;
-		
-		// load augmentation
-		if (inst.isEquipable())
-			inst.restoreAttributes();
-		
-		return inst;
 	}
 	
 	/**
-	 * Init a dropped ItemInstance and add it in the world as a visible object.<BR>
-	 * <BR>
-	 * <FONT COLOR=#FF0000><B> <U>Caution</U> : This method DOESN'T ADD the object to _objects of World </B></FONT><BR>
-	 * <BR>
-	 * @param dropper : the character who dropped the item.
-	 * @param x : X location of the item.
-	 * @param y : Y location of the item.
-	 * @param z : Z location of the item.
+	 * Validate intended dropping location, set it and spawn this {@link ItemInstance} to the world.
+	 * @param dropper : The {@link Creature} dropper.
+	 * @param x : The X coordinate of intended location.
+	 * @param y : The Y coordinate of intended location.
+	 * @param z : The Z coordinate of intended location.
 	 */
 	public final void dropMe(Creature dropper, int x, int y, int z)
 	{
-		ThreadPool.execute(new ItemDropTask(this, dropper, x, y, z));
+		ThreadPool.execute(() ->
+		{
+			// Set the dropper OID for sendInfo show correct dropping animation.
+			setDropperObjectId(dropper.getObjectId());
+			
+			// Drop current World registration, mostly for FREIGHT case.
+			World.getInstance().removeObject(this);
+			
+			// Validate location and spawn.
+			spawnMe(GeoEngine.getInstance().getValidLocation(dropper, x, y, z));
+			ItemsOnGroundTaskManager.getInstance().add(this, dropper);
+			
+			// Set the dropper OID back to 0, so sendInfo show item on ground.
+			setDropperObjectId(0);
+		});
 	}
 	
-	public class ItemDropTask implements Runnable
+	/**
+	 * Calculate dropping location from {@link Creature} location and offset, validate it, set it and spawn this {@link ItemInstance} to the world.
+	 * @param dropper : The {@link Creature} dropper.
+	 * @param offset : The offset used to calculate dropping location around {@link Creature}.
+	 */
+	public final void dropMe(Creature dropper, int offset)
 	{
-		private int _x, _y, _z;
-		private final Creature _dropper;
-		private final ItemInstance _itm;
+		// Create drop location.
+		final Location loc = dropper.getPosition().clone();
+		loc.addRandomOffset(offset);
 		
-		public ItemDropTask(ItemInstance item, Creature dropper, int x, int y, int z)
+		ThreadPool.execute(() ->
 		{
-			_x = x;
-			_y = y;
-			_z = z;
-			_dropper = dropper;
-			_itm = item;
-		}
-		
-		@Override
-		public final void run()
-		{
-			assert _itm.getRegion() == null;
+			// Set the dropper OID for sendInfo show correct dropping animation.
+			setDropperObjectId(dropper.getObjectId());
 			
-			if (_dropper != null)
-			{
-				Location dropDest = GeoEngine.getInstance().canMoveToTargetLoc(_dropper.getX(), _dropper.getY(), _dropper.getZ(), _x, _y, _z);
-				_x = dropDest.getX();
-				_y = dropDest.getY();
-				_z = dropDest.getZ();
-			}
+			// Drop current World registration, mostly for FREIGHT case.
+			World.getInstance().removeObject(this);
 			
-			_itm.setDropperObjectId(_dropper != null ? _dropper.getObjectId() : 0); // Set the dropper Id for the knownlist packets in sendInfo
-			_itm.spawnMe(_x, _y, _z);
+			// Validate location itself and spawn.
+			spawnMe(GeoEngine.getInstance().getValidLocation(dropper, loc));
+			ItemsOnGroundTaskManager.getInstance().add(this, dropper);
 			
-			ItemsOnGroundTaskManager.getInstance().add(_itm, _dropper);
-			
-			_itm.setDropperObjectId(0); // Set the dropper Id back to 0 so it no longer shows the drop packet
-		}
+			// Set the dropper OID back to 0, so sendInfo show item on ground.
+			setDropperObjectId(0);
+		});
 	}
 	
 	/**
@@ -986,12 +933,12 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 		if (castle != null && castle.getTicket(_itemId) != null)
 			castle.removeDroppedTicket(this);
 		
-		if (!Config.DISABLE_TUTORIAL && (_itemId == 57 || _itemId == 6353))
+		if (_itemId == 57 || _itemId == 6353)
 		{
-			Player actor = player.getActingPlayer();
+			final Player actor = player.getActingPlayer();
 			if (actor != null)
 			{
-				QuestState qs = actor.getQuestState("Tutorial");
+				final QuestState qs = actor.getQuestList().getQuestState("Tutorial");
 				if (qs != null)
 					qs.getQuest().notifyEvent("CE" + _itemId + "", null, actor);
 			}
@@ -1011,7 +958,7 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 		if (_storedInDb)
 			return;
 		
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(UPDATE_ITEM))
 		{
 			ps.setInt(1, _ownerId);
@@ -1042,7 +989,7 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 	{
 		assert !_existsInDb && getObjectId() != 0;
 		
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(INSERT_ITEM))
 		{
 			ps.setInt(1, _ownerId);
@@ -1077,7 +1024,7 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 	{
 		assert _existsInDb;
 		
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection())
+		try (Connection con = ConnectionPool.getConnection())
 		{
 			try (PreparedStatement ps = con.prepareStatement(DELETE_ITEM))
 			{
@@ -1146,32 +1093,6 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 		return ((_itemId >= 8505 && _itemId <= 8513) || _itemId == 8485);
 	}
 	
-	public void setCountDecrease(boolean decrease)
-	{
-		_decrease = decrease;
-	}
-	
-	public boolean getCountDecrease()
-	{
-		return _decrease;
-	}
-	
-	public void setInitCount(int InitCount)
-	{
-		_initCount = InitCount;
-	}
-	
-	public int getInitCount()
-	{
-		return _initCount;
-	}
-	
-	public void restoreInitCount()
-	{
-		if (_decrease)
-			_count = _initCount;
-	}
-	
 	public long getTime()
 	{
 		return _time;
@@ -1200,6 +1121,11 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 	public boolean isHerb()
 	{
 		return getItem().getItemType() == EtcItemType.HERB;
+	}
+	
+	public boolean isSummonItem()
+	{
+		return getItem().getItemType() == EtcItemType.PET_COLLAR;
 	}
 	
 	public boolean isHeroItem()
@@ -1286,9 +1212,9 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 		}
 		
 		// if it's a pet control item, delete the pet as well
-		if (getItemType() == EtcItemType.PET_COLLAR)
+		if (isSummonItem())
 		{
-			try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+			try (Connection con = ConnectionPool.getConnection();
 				PreparedStatement ps = con.prepareStatement(DELETE_PET_ITEM))
 			{
 				ps.setInt(1, getObjectId());
@@ -1307,12 +1233,12 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 	}
 	
 	@Override
-	public void sendInfo(Player activeChar)
+	public void sendInfo(Player player)
 	{
 		if (_dropperObjectId != 0)
-			activeChar.sendPacket(new DropItem(this, _dropperObjectId));
+			player.sendPacket(new DropItem(this, _dropperObjectId));
 		else
-			activeChar.sendPacket(new SpawnItem(this));
+			player.sendPacket(new SpawnItem(this));
 	}
 	
 	public List<Quest> getQuestEvents()

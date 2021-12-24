@@ -18,15 +18,15 @@ public final class RequestQuestAbort extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		final Quest qe = ScriptData.getInstance().getQuest(_questId);
-		if (qe == null)
+		final Quest quest = ScriptData.getInstance().getQuest(_questId);
+		if (quest == null)
 			return;
 		
-		final QuestState qs = activeChar.getQuestState(qe.getName());
+		final QuestState qs = player.getQuestList().getQuestState(_questId);
 		if (qs != null)
 			qs.exitQuest(true);
 	}

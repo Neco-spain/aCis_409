@@ -5,22 +5,22 @@ import java.awt.Shape;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.sf.l2j.commons.data.StatSet;
 import net.sf.l2j.commons.random.Rnd;
-import net.sf.l2j.commons.util.StatsSet;
 
 import net.sf.l2j.gameserver.model.location.Location;
-import net.sf.l2j.gameserver.model.spawn.L2Spawn;
+import net.sf.l2j.gameserver.model.spawn.Spawn;
 
 /**
  * One cell of Dimensional Rift system.<br>
  * <br>
- * Each DimensionalRiftRoom holds specific {@link L2Spawn}s, a {@link Shape}, and a teleport {@link Location}.
+ * Each DimensionalRiftRoom holds specific {@link Spawn}s, a {@link Shape}, and a teleport {@link Location}.
  */
 public class DimensionalRiftRoom
 {
 	public static final int Z_VALUE = -6752;
 	
-	private final List<L2Spawn> _spawns = new ArrayList<>();
+	private final List<Spawn> _spawns = new ArrayList<>();
 	
 	private final byte _type;
 	private final byte _id;
@@ -38,7 +38,7 @@ public class DimensionalRiftRoom
 	
 	private boolean _partyInside;
 	
-	public DimensionalRiftRoom(byte type, StatsSet set)
+	public DimensionalRiftRoom(byte type, StatSet set)
 	{
 		final int xMin = set.getInteger("xMin");
 		final int xMax = set.getInteger("xMax");
@@ -113,7 +113,7 @@ public class DimensionalRiftRoom
 		return _isBossRoom;
 	}
 	
-	public List<L2Spawn> getSpawns()
+	public List<Spawn> getSpawns()
 	{
 		return _spawns;
 	}
@@ -130,16 +130,16 @@ public class DimensionalRiftRoom
 	
 	public void spawn()
 	{
-		for (L2Spawn spawn : _spawns)
+		for (Spawn spawn : _spawns)
 		{
 			spawn.doSpawn(false);
-			spawn.setRespawnState(true);
+			spawn.setRespawnState(!isBossRoom());
 		}
 	}
 	
 	public void unspawn()
 	{
-		for (L2Spawn spawn : _spawns)
+		for (Spawn spawn : _spawns)
 		{
 			spawn.setRespawnState(false);
 			if (spawn.getNpc() != null)

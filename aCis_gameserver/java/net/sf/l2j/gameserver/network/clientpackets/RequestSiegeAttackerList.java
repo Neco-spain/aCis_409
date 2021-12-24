@@ -1,31 +1,40 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
 import net.sf.l2j.gameserver.data.manager.CastleManager;
+import net.sf.l2j.gameserver.data.manager.ClanHallManager;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.clanhall.SiegableHall;
 import net.sf.l2j.gameserver.model.entity.Castle;
 import net.sf.l2j.gameserver.network.serverpackets.SiegeAttackerList;
 
 public final class RequestSiegeAttackerList extends L2GameClientPacket
 {
-	private int _castleId;
+	private int _id;
 	
 	@Override
 	protected void readImpl()
 	{
-		_castleId = readD();
+		_id = readD();
 	}
 	
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		final Castle castle = CastleManager.getInstance().getCastleById(_castleId);
-		if (castle == null)
+		// Check Castle entity associated to the id.
+		final Castle castle = CastleManager.getInstance().getCastleById(_id);
+		if (castle != null)
+		{
+			sendPacket(new SiegeAttackerList(castle));
 			return;
+		}
 		
-		sendPacket(new SiegeAttackerList(castle));
+		// Check SiegableHall entity associated to the id.
+		final SiegableHall sh = ClanHallManager.getInstance().getSiegableHall(_id);
+		if (sh != null)
+			sendPacket(new SiegeAttackerList(sh));
 	}
 }

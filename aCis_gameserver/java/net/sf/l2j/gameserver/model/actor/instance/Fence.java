@@ -3,13 +3,9 @@ package net.sf.l2j.gameserver.model.actor.instance;
 import net.sf.l2j.gameserver.geoengine.geodata.IGeoObject;
 import net.sf.l2j.gameserver.idfactory.IdFactory;
 import net.sf.l2j.gameserver.model.WorldObject;
-import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.network.serverpackets.ExColosseumFenceInfo;
 
-/**
- * @author Hasha
- */
 public class Fence extends WorldObject implements IGeoObject
 {
 	private static final int FENCE_HEIGHT = 24;
@@ -91,15 +87,9 @@ public class Fence extends WorldObject implements IGeoObject
 	}
 	
 	@Override
-	public boolean isAutoAttackable(Creature attacker)
+	public void sendInfo(Player player)
 	{
-		return false;
-	}
-	
-	@Override
-	public void sendInfo(Player activeChar)
-	{
-		activeChar.sendPacket(new ExColosseumFenceInfo(getObjectId(), this));
+		player.sendPacket(new ExColosseumFenceInfo(getObjectId(), this));
 	}
 	
 	@Override
@@ -134,7 +124,6 @@ public class Fence extends WorldObject implements IGeoObject
 	
 	/**
 	 * Dummy fence class in order to spawn/delete multi-layer fences correctly.
-	 * @author Hasha
 	 */
 	protected class L2DummyFence extends WorldObject
 	{
@@ -148,15 +137,9 @@ public class Fence extends WorldObject implements IGeoObject
 		}
 		
 		@Override
-		public boolean isAutoAttackable(Creature attacker)
+		public void sendInfo(Player player)
 		{
-			return false;
-		}
-		
-		@Override
-		public void sendInfo(Player activeChar)
-		{
-			activeChar.sendPacket(new ExColosseumFenceInfo(getObjectId(), _fence));
+			player.sendPacket(new ExColosseumFenceInfo(getObjectId(), _fence));
 		}
 	}
 }

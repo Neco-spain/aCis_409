@@ -1,31 +1,49 @@
 package net.sf.l2j.gameserver.model.zone.type;
 
+import net.sf.l2j.gameserver.data.manager.CastleManager;
+import net.sf.l2j.gameserver.enums.SpawnType;
 import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.zone.SpawnZoneType;
+import net.sf.l2j.gameserver.model.entity.Castle;
+import net.sf.l2j.gameserver.model.zone.type.subtype.ResidenceZoneType;
 
 /**
- * A zone extending {@link SpawnZoneType} which handles following spawns type :
+ * A zone extending {@link ResidenceZoneType} which handles following spawns type :
  * <ul>
  * <li>Generic spawn locs : owner_restart_point_list (spawns used on siege, to respawn on mass gatekeeper room.</li>
  * <li>Chaotic spawn locs : banish_point_list (spawns used to banish players on regular owner maintenance).</li>
  * </ul>
  */
-public class CastleZone extends SpawnZoneType
+public class CastleZone extends ResidenceZoneType
 {
-	private int _castleId;
-	
 	public CastleZone(int id)
 	{
 		super(id);
 	}
 	
 	@Override
+	public void banishForeigners(int clanId)
+	{
+		// Retrieve associated castle.
+		final Castle castle = CastleManager.getInstance().getCastleById(getResidenceId());
+		if (castle == null)
+			return;
+		
+		for (Player player : getKnownTypeInside(Player.class))
+		{
+			if (player.getClanId() == clanId)
+				continue;
+			
+			player.teleportTo(castle.getRndSpawn(SpawnType.BANISH), 20);
+		}
+	}
+	
+	@Override
 	public void setParameter(String name, String value)
 	{
 		if (name.equals("castleId"))
-			_castleId = Integer.parseInt(value);
+			setResidenceId(Integer.parseInt(value));
 		else
 			super.setParameter(name, value);
 	}
@@ -40,25 +58,5 @@ public class CastleZone extends SpawnZoneType
 	protected void onExit(Creature character)
 	{
 		character.setInsideZone(ZoneId.CASTLE, false);
-	}
-	
-	/**
-	 * Kick {@link Player}s who don't belong to the clan set as parameter from this zone. They are ported to a random "chaotic" location.
-	 * @param clanId : The castle owner clanId. Related players aren't teleported out.
-	 */
-	public void banishForeigners(int clanId)
-	{
-		for (Player player : getKnownTypeInside(Player.class))
-		{
-			if (player.getClanId() == clanId)
-				continue;
-			
-			player.teleportTo(getRandomChaoticLoc(), 20);
-		}
-	}
-	
-	public int getCastleId()
-	{
-		return _castleId;
 	}
 }

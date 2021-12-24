@@ -7,11 +7,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Future;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
 import net.sf.l2j.commons.lang.StringUtil;
 import net.sf.l2j.commons.logging.CLogger;
+import net.sf.l2j.commons.pool.ConnectionPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 
-import net.sf.l2j.L2DatabaseFactory;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.network.SystemMessageId;
@@ -50,12 +50,12 @@ public class Auction
 {
 	private static final CLogger LOGGER = new CLogger(Auction.class.getName());
 	
-	private static final String LOAD_BIDDERS = "SELECT bidderId, bidderName, maxBid, clan_name, time_bid FROM auction_bid WHERE auctionId = ? ORDER BY maxBid DESC";
-	private static final String UPDATE_DATE = "UPDATE clanhall SET endDate=? WHERE id=?";
-	private static final String INSERT_OR_UPDATE_BIDDER = "INSERT INTO auction_bid (id, auctionId, bidderId, bidderName, maxBid, clan_name, time_bid) VALUES (?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE bidderId=VALUES(bidderId), bidderName=VALUES(bidderName), maxBid=VALUES(maxBid), time_bid=VALUES(time_bid)";
-	private static final String DELETE_BIDDERS = "DELETE FROM auction_bid WHERE auctionId=?";
-	private static final String DELETE_BIDDER = "DELETE FROM auction_bid WHERE auctionId=? AND bidderId=?";
-	private static final String UPDATE_SELLER = "UPDATE clanhall SET sellerBid=?, sellerName=?, sellerClanName=?, endDate=? WHERE id=?";
+	private static final String LOAD_BIDDERS = "SELECT bidder_name, clan_oid, clan_name, max_bid, time_bid FROM auctions WHERE clanhall_id = ? ORDER BY max_bid DESC";
+	private static final String UPDATE_DATE = "UPDATE clanhall SET endDate = ? WHERE id = ?";
+	private static final String INSERT_OR_UPDATE_BIDDER = "INSERT INTO auctions (clanhall_id, bidder_name, clan_oid, clan_name, max_bid, time_bid) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE bidder_name = VALUES(bidder_name), max_bid = VALUES(max_bid), time_bid = VALUES(time_bid)";
+	private static final String DELETE_BIDDERS = "DELETE FROM auctions WHERE clanhall_id = ?";
+	private static final String DELETE_BIDDER = "DELETE FROM auctions WHERE clanhall_id = ? AND clan_oid = ?";
+	private static final String UPDATE_SELLER = "UPDATE clanhall SET sellerBid = ?, sellerName = ?, sellerClanName = ?, endDate = ? WHERE id = ?";
 	
 	private final Map<Integer, Bidder> _bidders = new HashMap<>();
 	private final ClanHall _ch;
@@ -77,7 +77,7 @@ public class Auction
 			_seller = new Seller(sellerName, sellerClanName, sellerBid);
 		
 		// Load Bidders.
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(LOAD_BIDDERS))
 		{
 			ps.setInt(1, ch.getId());
@@ -86,12 +86,12 @@ public class Auction
 			{
 				while (rs.next())
 				{
-					final Bidder bidder = new Bidder(rs.getString("bidderName"), rs.getString("clan_name"), rs.getInt("maxBid"), rs.getLong("time_bid"));
+					final Bidder bidder = new Bidder(rs.getString("bidder_name"), rs.getString("clan_name"), rs.getInt("max_bid"), rs.getLong("time_bid"));
 					
 					if (rs.isFirst())
 						_highestBidder = bidder;
 					
-					_bidders.put(rs.getInt("bidderId"), bidder);
+					_bidders.put(rs.getInt("clan_oid"), bidder);
 				}
 			}
 		}
@@ -150,7 +150,7 @@ public class Auction
 		{
 			_endDate = currentTime + 604800000; // 1 week
 			
-			try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+			try (Connection con = ConnectionPool.getConnection();
 				PreparedStatement ps = con.prepareStatement(UPDATE_DATE))
 			{
 				ps.setLong(1, _endDate);
@@ -165,7 +165,7 @@ public class Auction
 		else
 			taskDelay = _endDate - currentTime;
 		
-		_task = ThreadPool.schedule(() -> endAuction(), taskDelay);
+		_task = ThreadPool.schedule(this::endAuction, taskDelay);
 	}
 	
 	/**
@@ -237,16 +237,15 @@ public class Auction
 		clan.setAuctionBiddedAt(_ch.getId());
 		
 		// Save the bidder on database.
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(INSERT_OR_UPDATE_BIDDER))
 		{
-			ps.setInt(1, player.getClanId());
-			ps.setInt(2, _ch.getId());
+			ps.setInt(1, _ch.getId());
+			ps.setString(2, player.getName());
 			ps.setInt(3, player.getClanId());
-			ps.setString(4, player.getName());
+			ps.setString(4, clan.getName());
 			ps.setInt(5, bid);
-			ps.setString(6, clan.getName());
-			ps.setLong(7, time);
+			ps.setLong(6, time);
 			ps.execute();
 		}
 		catch (Exception e)
@@ -306,7 +305,7 @@ public class Auction
 	 */
 	public void removeBids(Clan newOwner)
 	{
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(DELETE_BIDDERS))
 		{
 			ps.setInt(1, _ch.getId());
@@ -329,7 +328,7 @@ public class Auction
 				returnItem(clan, bidder.getBid(), true); // 10 % tax
 				
 			if (newOwner != null)
-				clan.broadcastToOnlineMembers(SystemMessage.getSystemMessage(SystemMessageId.CLANHALL_AWARDED_TO_CLAN_S1).addString(newOwner.getName()));
+				clan.broadcastToMembers(SystemMessage.getSystemMessage(SystemMessageId.CLANHALL_AWARDED_TO_CLAN_S1).addString(newOwner.getName()));
 		}
 		_bidders.clear();
 	}
@@ -357,7 +356,7 @@ public class Auction
 				if (owner == null)
 					return;
 				
-				owner.broadcastToOnlineMembers(SystemMessage.getSystemMessage(SystemMessageId.CLANHALL_NOT_SOLD));
+				owner.broadcastToMembers(SystemMessage.getSystemMessage(SystemMessageId.CLANHALL_NOT_SOLD));
 			}
 			return;
 		}
@@ -376,16 +375,20 @@ public class Auction
 	}
 	
 	/**
-	 * Cancel bid
-	 * @param objectId : The objectId of the bidder.
+	 * Cancel the bid placed by a {@link Clan}.
+	 * @param clan : The Clan related to the bidder.
 	 */
-	public synchronized void cancelBid(int objectId)
+	public synchronized void cancelBid(Clan clan)
 	{
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		// Don't bother cancel if no Clan was set as parameter.
+		if (clan == null)
+			return;
+		
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(DELETE_BIDDER))
 		{
 			ps.setInt(1, _ch.getId());
-			ps.setInt(2, objectId);
+			ps.setInt(2, clan.getClanId());
 			ps.execute();
 		}
 		catch (Exception e)
@@ -393,18 +396,14 @@ public class Auction
 			LOGGER.error("Couldn't cancel Auction bid.", e);
 		}
 		
-		final Bidder bidder = _bidders.remove(objectId);
+		final Bidder bidder = _bidders.remove(clan.getClanId());
 		if (bidder != null)
 		{
-			final Clan clan = bidder.getClan();
-			if (clan != null)
-			{
-				// Return the money to CWH.
-				returnItem(clan, bidder.getBid(), true);
-				
-				// Drop the Auction id from Clan.
-				clan.setAuctionBiddedAt(0);
-			}
+			// Return the money to CWH.
+			returnItem(clan, bidder.getBid(), true);
+			
+			// Drop the Auction id from Clan.
+			clan.setAuctionBiddedAt(0);
 		}
 		
 		// The bidder was the highest bidder ; we recalculate it.
@@ -434,7 +433,7 @@ public class Auction
 		if (_seller == null)
 			return;
 		
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(UPDATE_SELLER))
 		{
 			ps.setInt(1, _seller.getBid());

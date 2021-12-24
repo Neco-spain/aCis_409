@@ -1,18 +1,17 @@
 package net.sf.l2j.gameserver.handler.itemhandlers;
 
 import net.sf.l2j.gameserver.handler.IItemHandler;
-import net.sf.l2j.gameserver.model.L2Skill;
-import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Chest;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 /**
  * That handler is used for the different types of keys. Such items aren't consumed until the skill is definitively launched.
- * @author Tryskell
  */
 public class Keys implements IItemHandler
 {
@@ -22,22 +21,28 @@ public class Keys implements IItemHandler
 		if (!(playable instanceof Player))
 			return;
 		
-		final Player activeChar = (Player) playable;
-		if (activeChar.isSitting())
+		final Player player = (Player) playable;
+		if (player.isSitting())
 		{
-			activeChar.sendPacket(SystemMessageId.CANT_MOVE_SITTING);
+			player.sendPacket(SystemMessageId.CANT_MOVE_SITTING);
 			return;
 		}
 		
-		if (activeChar.isMovementDisabled())
+		if (player.isMovementDisabled())
 			return;
 		
-		final Creature target = (Creature) activeChar.getTarget();
-		
+		final WorldObject target = playable.getTarget();
 		// Target must be a valid chest (not dead or already interacted).
-		if (!(target instanceof Chest) || target.isDead() || ((Chest) target).isInteracted())
+		if (!(target instanceof Chest))
 		{
-			activeChar.sendPacket(SystemMessageId.INCORRECT_TARGET);
+			player.sendPacket(SystemMessageId.INVALID_TARGET);
+			return;
+		}
+		
+		final Chest chest = (Chest) target;
+		if (chest.isDead() || chest.isInteracted())
+		{
+			player.sendPacket(SystemMessageId.INVALID_TARGET);
 			return;
 		}
 		
@@ -48,6 +53,7 @@ public class Keys implements IItemHandler
 			return;
 		}
 		
+		// TODO Necessary for loop?
 		for (IntIntHolder skillInfo : skills)
 		{
 			if (skillInfo == null)
@@ -58,7 +64,7 @@ public class Keys implements IItemHandler
 				continue;
 			
 			// Key consumption is made on skill call, not on item call.
-			playable.useMagic(itemSkill, false, false);
+			playable.getAI().tryToCast(chest, itemSkill);
 		}
 	}
 }

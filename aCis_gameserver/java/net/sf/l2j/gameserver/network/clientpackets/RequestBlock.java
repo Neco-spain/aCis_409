@@ -1,9 +1,11 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
 import net.sf.l2j.gameserver.data.sql.PlayerInfoTable;
+import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.actor.player.BlockList;
+import net.sf.l2j.gameserver.model.actor.container.player.BlockList;
 import net.sf.l2j.gameserver.network.SystemMessageId;
+import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public final class RequestBlock extends L2GameClientPacket
 {
@@ -13,7 +15,7 @@ public final class RequestBlock extends L2GameClientPacket
 	private static final int ALLBLOCK = 3;
 	private static final int ALLUNBLOCK = 4;
 	
-	private String _name;
+	private String _targetName;
 	private int _type;
 	
 	@Override
@@ -22,14 +24,14 @@ public final class RequestBlock extends L2GameClientPacket
 		_type = readD(); // 0x00 - block, 0x01 - unblock, 0x03 - allblock, 0x04 - allunblock
 		
 		if (_type == BLOCK || _type == UNBLOCK)
-			_name = readS();
+			_targetName = readS();
 	}
 	
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
 		switch (_type)
@@ -37,38 +39,50 @@ public final class RequestBlock extends L2GameClientPacket
 			case BLOCK:
 			case UNBLOCK:
 				// Can't block/unblock inexisting or self.
-				final int targetId = PlayerInfoTable.getInstance().getPlayerObjectId(_name);
-				if (targetId <= 0 || activeChar.getObjectId() == targetId)
+				final int targetId = PlayerInfoTable.getInstance().getPlayerObjectId(_targetName);
+				if (targetId <= 0 || player.getObjectId() == targetId)
 				{
-					activeChar.sendPacket(SystemMessageId.FAILED_TO_REGISTER_TO_IGNORE_LIST);
+					player.sendPacket(SystemMessageId.FAILED_TO_REGISTER_TO_IGNORE_LIST);
+					return;
+				}
+				
+				// L2OFF GF strange behavior with sending message for all.
+				if (player.getBlockList().getBlockList().contains(targetId) && _type == BLOCK)
+				{
+					player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_WAS_ADDED_TO_YOUR_IGNORE_LIST).addString(_targetName));
+					
+					final Player targetPlayer = World.getInstance().getPlayer(targetId);
+					if (targetPlayer != null)
+						targetPlayer.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_HAS_ADDED_YOU_TO_IGNORE_LIST).addString(player.getName()));
+					
 					return;
 				}
 				
 				// Can't block a GM character.
 				if (PlayerInfoTable.getInstance().getPlayerAccessLevel(targetId) > 0)
 				{
-					activeChar.sendPacket(SystemMessageId.YOU_MAY_NOT_IMPOSE_A_BLOCK_ON_GM);
+					player.sendPacket(SystemMessageId.YOU_MAY_NOT_IMPOSE_A_BLOCK_ON_GM);
 					return;
 				}
 				
 				if (_type == BLOCK)
-					BlockList.addToBlockList(activeChar, targetId);
+					BlockList.addToBlockList(player, targetId);
 				else
-					BlockList.removeFromBlockList(activeChar, targetId);
+					BlockList.removeFromBlockList(player, targetId);
 				break;
 			
 			case BLOCKLIST:
-				BlockList.sendListToOwner(activeChar);
+				BlockList.sendListToOwner(player);
 				break;
 			
 			case ALLBLOCK:
-				activeChar.sendPacket(SystemMessageId.MESSAGE_REFUSAL_MODE);// Update by rocknow
-				BlockList.setBlockAll(activeChar, true);
+				player.sendPacket(SystemMessageId.BLOCKING_ALL);
+				player.getBlockList().setInBlockingAll(true);
 				break;
 			
 			case ALLUNBLOCK:
-				activeChar.sendPacket(SystemMessageId.MESSAGE_ACCEPTANCE_MODE);// Update by rocknow
-				BlockList.setBlockAll(activeChar, false);
+				player.sendPacket(SystemMessageId.NOT_BLOCKING_ALL);
+				player.getBlockList().setInBlockingAll(false);
 				break;
 			
 			default:

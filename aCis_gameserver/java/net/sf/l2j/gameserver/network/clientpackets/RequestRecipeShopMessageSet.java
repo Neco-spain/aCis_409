@@ -1,5 +1,6 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
+import net.sf.l2j.gameserver.enums.actors.OperateType;
 import net.sf.l2j.gameserver.model.actor.Player;
 
 public class RequestRecipeShopMessageSet extends L2GameClientPacket
@@ -23,7 +24,7 @@ public class RequestRecipeShopMessageSet extends L2GameClientPacket
 		if (_name != null && _name.length() > MAX_MSG_LENGTH)
 			return;
 		
-		if (player.getCreateList() != null)
-			player.getCreateList().setStoreName(_name);
+		if (player.getOperateType() == OperateType.MANUFACTURE || player.getOperateType() == OperateType.MANUFACTURE_MANAGE)
+			player.getManufactureList().setStoreName(_name);
 	}
 }

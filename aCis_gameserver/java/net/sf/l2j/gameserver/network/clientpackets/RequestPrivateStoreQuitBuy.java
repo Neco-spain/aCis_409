@@ -1,5 +1,6 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
+import net.sf.l2j.gameserver.enums.actors.OperateType;
 import net.sf.l2j.gameserver.model.actor.Player;
 
 public final class RequestPrivateStoreQuitBuy extends L2GameClientPacket
@@ -16,6 +17,7 @@ public final class RequestPrivateStoreQuitBuy extends L2GameClientPacket
 		if (player == null)
 			return;
 		
-		player.forceStandUp();
+		player.setOperateType(OperateType.NONE);
+		player.broadcastUserInfo();
 	}
 }

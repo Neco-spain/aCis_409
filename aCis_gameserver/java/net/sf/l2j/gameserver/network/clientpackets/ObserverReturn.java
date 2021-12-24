@@ -12,11 +12,11 @@ public final class ObserverReturn extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		if (activeChar.isInObserverMode())
-			activeChar.leaveObserverMode();
+		if (player.isInObserverMode())
+			player.leaveObserverMode();
 	}
 }

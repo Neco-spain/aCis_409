@@ -4,8 +4,8 @@ import net.sf.l2j.gameserver.data.sql.ClanTable;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.pledge.Clan;
+import net.sf.l2j.gameserver.network.serverpackets.GMHennaInfo;
 import net.sf.l2j.gameserver.network.serverpackets.GMViewCharacterInfo;
-import net.sf.l2j.gameserver.network.serverpackets.GMViewHennaInfo;
 import net.sf.l2j.gameserver.network.serverpackets.GMViewItemList;
 import net.sf.l2j.gameserver.network.serverpackets.GMViewPledgeInfo;
 import net.sf.l2j.gameserver.network.serverpackets.GMViewQuestList;
@@ -27,12 +27,12 @@ public final class RequestGMCommand extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
 		// prevent non gm or low level GMs from viewing player stuff
-		if (!activeChar.isGM() || !activeChar.getAccessLevel().allowAltG())
+		if (!player.isGM() || !player.getAccessLevel().allowAltG())
 			return;
 		
 		final Player target = World.getInstance().getPlayer(_targetName);
@@ -45,7 +45,7 @@ public final class RequestGMCommand extends L2GameClientPacket
 		{
 			case 1: // target status
 				sendPacket(new GMViewCharacterInfo(target));
-				sendPacket(new GMViewHennaInfo(target));
+				sendPacket(new GMHennaInfo(target));
 				break;
 			
 			case 2: // target clan
@@ -63,7 +63,7 @@ public final class RequestGMCommand extends L2GameClientPacket
 			
 			case 5: // target inventory
 				sendPacket(new GMViewItemList(target));
-				sendPacket(new GMViewHennaInfo(target));
+				sendPacket(new GMHennaInfo(target));
 				break;
 			
 			case 6: // player or clan warehouse

@@ -1,47 +1,43 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import net.sf.l2j.gameserver.enums.IntentionType;
-import net.sf.l2j.gameserver.enums.skills.L2EffectFlag;
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
-import net.sf.l2j.gameserver.model.L2Effect;
+import net.sf.l2j.gameserver.enums.skills.EffectFlag;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.Summon;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
-/**
- * @author decad
- */
-final class EffectBetray extends L2Effect
+public class EffectBetray extends AbstractEffect
 {
-	public EffectBetray(Env env, EffectTemplate template)
+	public EffectBetray(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
 	{
-		super(env, template);
+		super(template, skill, effected, effector);
 	}
 	
 	@Override
-	public L2EffectType getEffectType()
+	public EffectType getEffectType()
 	{
-		return L2EffectType.BETRAY;
+		return EffectType.BETRAY;
 	}
 	
-	/** Notify started */
 	@Override
 	public boolean onStart()
 	{
 		if (getEffector() instanceof Player && getEffected() instanceof Summon)
 		{
-			Player targetOwner = getEffected().getActingPlayer();
-			getEffected().getAI().setIntention(IntentionType.ATTACK, targetOwner);
+			Player target = getEffected().getActingPlayer();
+			getEffected().getAI().tryToAttack(target, false, false);
 			return true;
 		}
 		return false;
 	}
 	
-	/** Notify exited */
 	@Override
 	public void onExit()
 	{
-		getEffected().getAI().setIntention(IntentionType.IDLE);
+		Player target = getEffected().getActingPlayer();
+		getEffected().getAI().tryToFollow(target, false);
 	}
 	
 	@Override
@@ -53,6 +49,6 @@ final class EffectBetray extends L2Effect
 	@Override
 	public int getEffectFlags()
 	{
-		return L2EffectFlag.BETRAYED.getMask();
+		return EffectFlag.BETRAYED.getMask();
 	}
 }

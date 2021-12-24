@@ -1,22 +1,23 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
-import net.sf.l2j.gameserver.model.L2Effect;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
-class EffectManaDamOverTime extends L2Effect
+public class EffectManaDamOverTime extends AbstractEffect
 {
-	public EffectManaDamOverTime(Env env, EffectTemplate template)
+	public EffectManaDamOverTime(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
 	{
-		super(env, template);
+		super(template, skill, effected, effector);
 	}
 	
 	@Override
-	public L2EffectType getEffectType()
+	public EffectType getEffectType()
 	{
-		return L2EffectType.MANA_DMG_OVER_TIME;
+		return EffectType.MANA_DMG_OVER_TIME;
 	}
 	
 	@Override
@@ -25,19 +26,13 @@ class EffectManaDamOverTime extends L2Effect
 		if (getEffected().isDead())
 			return false;
 		
-		double manaDam = calc();
-		
-		if (manaDam > getEffected().getCurrentMp())
+		if (getSkill().isToggle() && getTemplate().getValue() > getEffected().getStatus().getMp())
 		{
-			if (getSkill().isToggle())
-			{
-				SystemMessage sm = SystemMessage.getSystemMessage(SystemMessageId.SKILL_REMOVED_DUE_LACK_MP);
-				getEffected().sendPacket(sm);
-				return false;
-			}
+			getEffected().sendPacket(SystemMessage.getSystemMessage(SystemMessageId.SKILL_REMOVED_DUE_LACK_MP));
+			return false;
 		}
 		
-		getEffected().reduceCurrentMp(manaDam);
+		getEffected().getStatus().reduceMp(getTemplate().getValue());
 		return true;
 	}
 }

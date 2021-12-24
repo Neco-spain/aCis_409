@@ -5,12 +5,12 @@ import net.sf.l2j.gameserver.scripting.QuestState;
 
 public class RequestTutorialClientEvent extends L2GameClientPacket
 {
-	int eventId;
+	private int _eventId;
 	
 	@Override
 	protected void readImpl()
 	{
-		eventId = readD();
+		_eventId = readD();
 	}
 	
 	@Override
@@ -20,8 +20,8 @@ public class RequestTutorialClientEvent extends L2GameClientPacket
 		if (player == null)
 			return;
 		
-		QuestState qs = player.getQuestState("Tutorial");
+		final QuestState qs = player.getQuestList().getQuestState("Tutorial");
 		if (qs != null)
-			qs.getQuest().notifyEvent("CE" + eventId + "", null, player);
+			qs.getQuest().notifyEvent("CE" + _eventId + "", null, player);
 	}
 }

@@ -1,306 +1,399 @@
 package net.sf.l2j.gameserver.handler.admincommandhandlers;
 
+import java.awt.Color;
+import java.util.List;
+import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
+import net.sf.l2j.commons.data.Pagination;
 import net.sf.l2j.commons.lang.StringUtil;
+import net.sf.l2j.commons.pool.ThreadPool;
 
-import net.sf.l2j.Config;
-import net.sf.l2j.gameserver.data.ItemTable;
-import net.sf.l2j.gameserver.data.SkillTable;
-import net.sf.l2j.gameserver.data.cache.CrestCache;
 import net.sf.l2j.gameserver.data.cache.HtmCache;
-import net.sf.l2j.gameserver.data.manager.CursedWeaponManager;
-import net.sf.l2j.gameserver.data.manager.ZoneManager;
+import net.sf.l2j.gameserver.data.manager.BuyListManager;
 import net.sf.l2j.gameserver.data.xml.AdminData;
-import net.sf.l2j.gameserver.data.xml.AnnouncementData;
-import net.sf.l2j.gameserver.data.xml.DoorData;
-import net.sf.l2j.gameserver.data.xml.MultisellData;
-import net.sf.l2j.gameserver.data.xml.NpcData;
-import net.sf.l2j.gameserver.data.xml.TeleportLocationData;
 import net.sf.l2j.gameserver.data.xml.WalkerRouteData;
+import net.sf.l2j.gameserver.enums.TeleportMode;
 import net.sf.l2j.gameserver.handler.IAdminCommandHandler;
+import net.sf.l2j.gameserver.model.AdminCommand;
 import net.sf.l2j.gameserver.model.World;
-import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.network.SystemMessageId;
+import net.sf.l2j.gameserver.model.actor.instance.Door;
+import net.sf.l2j.gameserver.model.buylist.NpcBuyList;
+import net.sf.l2j.gameserver.model.location.Location;
+import net.sf.l2j.gameserver.model.location.WalkerLocation;
+import net.sf.l2j.gameserver.network.serverpackets.BuyList;
+import net.sf.l2j.gameserver.network.serverpackets.CameraMode;
+import net.sf.l2j.gameserver.network.serverpackets.ExServerPrimitive;
+import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
+import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
-/**
- * This class handles following admin commands:
- * <ul>
- * <li>admin/admin1/admin2/admin3/admin4 : the different admin menus.</li>
- * <li>gmlist : includes/excludes active character from /gmlist results.</li>
- * <li>kill : handles the kill command.</li>
- * <li>silence : toggles private messages acceptance mode.</li>
- * <li>tradeoff : toggles trade acceptance mode.</li>
- * <li>reload : reloads specified component.</li>
- * <li>script_load : loads following script. MUSTN'T be used instead of //reload quest !</li>
- * </ul>
- */
 public class AdminAdmin implements IAdminCommandHandler
 {
 	private static final String[] ADMIN_COMMANDS =
 	{
 		"admin_admin",
-		"admin_admin1",
-		"admin_admin2",
-		"admin_admin3",
-		"admin_admin4",
+		"admin_buy",
+		"admin_camera",
 		"admin_gmlist",
-		"admin_kill",
-		"admin_silence",
-		"admin_tradeoff",
-		"admin_reload"
+		"admin_gmoff",
+		"admin_help",
+		"admin_link",
+		"admin_msg",
+		"admin_show"
 	};
 	
 	@Override
-	public boolean useAdminCommand(String command, Player activeChar)
+	public void useAdminCommand(String command, Player player)
 	{
 		if (command.startsWith("admin_admin"))
-			showMainPage(activeChar, command);
-		else if (command.startsWith("admin_gmlist"))
-			activeChar.sendMessage((AdminData.getInstance().showOrHideGm(activeChar)) ? "Removed from GMList." : "Registered into GMList.");
-		else if (command.startsWith("admin_kill"))
+			showMainPage(player, command);
+		else if (command.startsWith("admin_camera"))
 		{
-			StringTokenizer st = new StringTokenizer(command, " ");
-			st.nextToken(); // skip command
-			
-			if (!st.hasMoreTokens())
+			if (player.getTeleportMode() != TeleportMode.CAMERA_MODE)
 			{
-				final WorldObject obj = activeChar.getTarget();
-				if (!(obj instanceof Creature))
-					activeChar.sendPacket(SystemMessageId.INCORRECT_TARGET);
-				else
-					kill(activeChar, (Creature) obj);
+				player.setTeleportMode(TeleportMode.CAMERA_MODE);
+				player.getAppearance().setVisible(false);
 				
-				return true;
-			}
-			
-			String firstParam = st.nextToken();
-			Player player = World.getInstance().getPlayer(firstParam);
-			if (player != null)
-			{
-				if (st.hasMoreTokens())
-				{
-					String secondParam = st.nextToken();
-					if (StringUtil.isDigit(secondParam))
-					{
-						int radius = Integer.parseInt(secondParam);
-						for (Creature knownChar : player.getKnownTypeInRadius(Creature.class, radius))
-						{
-							if (knownChar.equals(activeChar))
-								continue;
-							
-							kill(activeChar, knownChar);
-						}
-						activeChar.sendMessage("Killed all characters within a " + radius + " unit radius around " + player.getName() + ".");
-					}
-					else
-						activeChar.sendMessage("Invalid radius.");
-				}
-				else
-					kill(activeChar, player);
-			}
-			else if (StringUtil.isDigit(firstParam))
-			{
-				int radius = Integer.parseInt(firstParam);
-				for (Creature knownChar : activeChar.getKnownTypeInRadius(Creature.class, radius))
-					kill(activeChar, knownChar);
-				
-				activeChar.sendMessage("Killed all characters within a " + radius + " unit radius.");
-			}
-		}
-		else if (command.startsWith("admin_silence"))
-		{
-			if (activeChar.isInRefusalMode()) // already in message refusal mode
-			{
-				activeChar.setInRefusalMode(false);
-				activeChar.sendPacket(SystemMessageId.MESSAGE_ACCEPTANCE_MODE);
+				player.sendPacket(new CameraMode(1));
 			}
 			else
 			{
-				activeChar.setInRefusalMode(true);
-				activeChar.sendPacket(SystemMessageId.MESSAGE_REFUSAL_MODE);
+				player.setTeleportMode(TeleportMode.NONE);
+				player.getAppearance().setVisible(true);
+				
+				player.sendPacket(new CameraMode(0));
 			}
+			player.teleportTo(player.getPosition(), 0);
 		}
-		else if (command.startsWith("admin_tradeoff"))
+		else if (command.startsWith("admin_gmlist"))
+			player.sendMessage((AdminData.getInstance().showOrHideGm(player)) ? "Removed from GMList." : "Registered into GMList.");
+		else
 		{
-			try
-			{
-				String mode = command.substring(15);
-				if (mode.equalsIgnoreCase("on"))
-				{
-					activeChar.setTradeRefusal(true);
-					activeChar.sendMessage("Trade refusal enabled");
-				}
-				else if (mode.equalsIgnoreCase("off"))
-				{
-					activeChar.setTradeRefusal(false);
-					activeChar.sendMessage("Trade refusal disabled");
-				}
-			}
-			catch (Exception e)
-			{
-				if (activeChar.getTradeRefusal())
-				{
-					activeChar.setTradeRefusal(false);
-					activeChar.sendMessage("Trade refusal disabled");
-				}
-				else
-				{
-					activeChar.setTradeRefusal(true);
-					activeChar.sendMessage("Trade refusal enabled");
-				}
-			}
-		}
-		else if (command.startsWith("admin_reload"))
-		{
-			StringTokenizer st = new StringTokenizer(command);
+			final StringTokenizer st = new StringTokenizer(command, " ");
 			st.nextToken();
-			try
+			
+			if (command.startsWith("admin_buy"))
 			{
-				do
+				if (!st.hasMoreTokens())
 				{
-					String type = st.nextToken();
-					if (type.startsWith("admin"))
+					sendFile(player, "gmshops.htm");
+					return;
+				}
+				
+				try
+				{
+					final NpcBuyList list = BuyListManager.getInstance().getBuyList(Integer.parseInt(st.nextToken()));
+					if (list == null)
 					{
-						AdminData.getInstance().reload();
-						activeChar.sendMessage("Admin data has been reloaded.");
+						player.sendMessage("Invalid buylist id.");
+						return;
 					}
-					else if (type.startsWith("announcement"))
+					
+					player.sendPacket(new BuyList(list, player.getAdena(), 0));
+				}
+				catch (Exception e)
+				{
+					player.sendMessage("Invalid buylist id.");
+				}
+			}
+			else if (command.startsWith("admin_gmoff"))
+			{
+				int duration = 1;
+				if (st.hasMoreTokens())
+				{
+					try
 					{
-						AnnouncementData.getInstance().reload();
-						activeChar.sendMessage("The content of announcements.xml has been reloaded.");
+						duration = Integer.parseInt(st.nextToken());
 					}
-					else if (type.startsWith("config"))
+					catch (Exception e)
 					{
-						Config.loadGameServer();
-						activeChar.sendMessage("Configs files have been reloaded.");
-					}
-					else if (type.startsWith("crest"))
-					{
-						CrestCache.getInstance().reload();
-						activeChar.sendMessage("Crests have been reloaded.");
-					}
-					else if (type.startsWith("cw"))
-					{
-						CursedWeaponManager.getInstance().reload();
-						activeChar.sendMessage("Cursed weapons have been reloaded.");
-					}
-					else if (type.startsWith("door"))
-					{
-						DoorData.getInstance().reload();
-						activeChar.sendMessage("Doors instance has been reloaded.");
-					}
-					else if (type.startsWith("htm"))
-					{
-						HtmCache.getInstance().reload();
-						activeChar.sendMessage("The HTM cache has been reloaded.");
-					}
-					else if (type.startsWith("item"))
-					{
-						ItemTable.getInstance().reload();
-						activeChar.sendMessage("Items' templates have been reloaded.");
-					}
-					else if (type.equals("multisell"))
-					{
-						MultisellData.getInstance().reload();
-						activeChar.sendMessage("The multisell instance has been reloaded.");
-					}
-					else if (type.equals("npc"))
-					{
-						NpcData.getInstance().reload();
-						activeChar.sendMessage("NPCs templates have been reloaded.");
-					}
-					else if (type.startsWith("npcwalker"))
-					{
-						WalkerRouteData.getInstance().reload();
-						activeChar.sendMessage("Walker routes have been reloaded.");
-					}
-					else if (type.startsWith("skill"))
-					{
-						SkillTable.getInstance().reload();
-						activeChar.sendMessage("Skills' XMLs have been reloaded.");
-					}
-					else if (type.startsWith("teleport"))
-					{
-						TeleportLocationData.getInstance().reload();
-						activeChar.sendMessage("Teleport locations have been reloaded.");
-					}
-					else if (type.startsWith("zone"))
-					{
-						ZoneManager.getInstance().reload();
-						activeChar.sendMessage("Zones have been reloaded.");
-					}
-					else
-					{
-						activeChar.sendMessage("Usage : //reload <admin|announcement|config|crest|cw>");
-						activeChar.sendMessage("Usage : //reload <door|htm|item|multisell|npc>");
-						activeChar.sendMessage("Usage : //reload <npcwalker|skill|teleport|zone>");
+						player.sendMessage("Invalid timer set for //gm ; default time is used.");
 					}
 				}
-				while (st.hasMoreTokens());
+				
+				// We keep the previous level to rehabilitate it later.
+				final int previousAccessLevel = player.getAccessLevel().getLevel();
+				
+				player.setAccessLevel(0);
+				player.sendMessage("You no longer have GM status, but will be rehabilitated after " + duration + " minutes.");
+				
+				ThreadPool.schedule(() ->
+				{
+					if (!player.isOnline())
+						return;
+					
+					player.setAccessLevel(previousAccessLevel);
+					player.sendMessage("Your previous access level has been rehabilitated.");
+				}, duration * 60000L);
 			}
-			catch (Exception e)
+			else if (command.startsWith("admin_help"))
 			{
-				activeChar.sendMessage("Usage : //reload <admin|announcement|config|crest|cw>");
-				activeChar.sendMessage("Usage : //reload <door|htm|item|multisell|npc>");
-				activeChar.sendMessage("Usage : //reload <npcwalker|skill|teleport|zone>");
+				try
+				{
+					final int page = (st.hasMoreTokens()) ? Integer.parseInt(st.nextToken()) : 1;
+					
+					sendHelp(player, page);
+				}
+				catch (Exception e)
+				{
+					sendHelp(player, 1);
+				}
+			}
+			else if (command.startsWith("admin_link"))
+			{
+				try
+				{
+					sendFile(player, st.nextToken());
+				}
+				catch (Exception e)
+				{
+					sendFile(player, "main_menu.htm");
+				}
+			}
+			else if (command.startsWith("admin_msg"))
+			{
+				try
+				{
+					player.sendPacket(SystemMessage.getSystemMessage(Integer.parseInt(st.nextToken())));
+				}
+				catch (Exception e)
+				{
+					player.sendMessage("Usage: //msg sysMsgId");
+				}
+			}
+			else if (command.startsWith("admin_show"))
+			{
+				final Creature targetCreature = getTargetCreature(player, true);
+				
+				ExServerPrimitive debug;
+				
+				try
+				{
+					switch (st.nextToken().toLowerCase())
+					{
+						case "clear":
+							if (targetCreature instanceof Player)
+								((Player) targetCreature).clearDebugPackets();
+							break;
+						
+						case "door":
+							debug = player.getDebugPacket("DOOR");
+							debug.reset();
+							
+							for (Door door : player.getKnownType(Door.class))
+								door.getTemplate().visualizeDoor(debug);
+							
+							debug.sendTo(player);
+							break;
+						
+						case "html":
+							NpcHtmlMessage.SHOW_FILE = !NpcHtmlMessage.SHOW_FILE;
+							break;
+						
+						case "move":
+							// Toggle debug move.
+							boolean move = !targetCreature.getMove().isDebugMove();
+							targetCreature.getMove().setDebugMove(move);
+							
+							if (move)
+							{
+								// Send info messages.
+								player.sendMessage("Debug move enabled on " + targetCreature.getName());
+								if (player != targetCreature)
+									targetCreature.sendMessage("Debug move was enabled.");
+							}
+							else
+							{
+								// Send info messages.
+								player.sendMessage("Debug move disabled on " + targetCreature.getName());
+								if (player != targetCreature)
+									targetCreature.sendMessage("Debug move was disabled.");
+								
+								// Clear debug move packet to all GMs.
+								World.getInstance().getPlayers().stream().filter(Player::isGM).forEach(p ->
+								{
+									final ExServerPrimitive debugMove = p.getDebugPacket("MOVE" + targetCreature.getObjectId());
+									debugMove.reset();
+									debugMove.sendTo(p);
+								});
+								
+								// Clear debug move packet to self.
+								if (targetCreature instanceof Player)
+								{
+									final ExServerPrimitive debugMove = ((Player) targetCreature).getDebugPacket("MOVE" + targetCreature.getObjectId());
+									debugMove.reset();
+									debugMove.sendTo((Player) targetCreature);
+								}
+							}
+							break;
+						
+						case "path":
+							// Toggle debug move.
+							boolean path = !targetCreature.getMove().isDebugPath();
+							targetCreature.getMove().setDebugPath(path);
+							
+							if (path)
+							{
+								// Send info messages.
+								player.sendMessage("Debug path enabled on " + targetCreature.getName());
+								if (player != targetCreature)
+									targetCreature.sendMessage("Debug path was enabled.");
+							}
+							else
+							{
+								// Send info messages.
+								player.sendMessage("Debug path disabled on " + targetCreature.getName());
+								if (player != targetCreature)
+									targetCreature.sendMessage("Debug path was disabled.");
+								
+								// Clear debug move packet to all GMs.
+								World.getInstance().getPlayers().stream().filter(Player::isGM).forEach(p ->
+								{
+									final ExServerPrimitive debugPath = p.getDebugPacket("PATH" + targetCreature.getObjectId());
+									debugPath.reset();
+									debugPath.sendTo(p);
+								});
+								
+								// Clear debug move packet to self.
+								if (targetCreature instanceof Player)
+								{
+									final ExServerPrimitive debugPath = ((Player) targetCreature).getDebugPacket("PATH" + targetCreature.getObjectId());
+									debugPath.reset();
+									debugPath.sendTo((Player) targetCreature);
+								}
+							}
+							break;
+						
+						case "walker":
+							if (!st.hasMoreTokens())
+							{
+								sendWalkerInfos(player);
+								return;
+							}
+							
+							final int npcId = Integer.parseInt(st.nextToken());
+							final List<WalkerLocation> route = WalkerRouteData.getInstance().getWalkerRoute(npcId);
+							if (route == null)
+							{
+								player.sendMessage("The npcId " + npcId + " isn't linked to any WalkerRoute.");
+								return;
+							}
+							
+							debug = player.getDebugPacket("WALKER");
+							debug.reset();
+							
+							// Draw the path.
+							for (int i = 0; i < route.size(); i++)
+							{
+								final int nextIndex = i + 1;
+								debug.addLine("Segment #" + nextIndex, Color.YELLOW, true, route.get(i), (nextIndex == route.size()) ? route.get(0) : route.get(nextIndex));
+							}
+							
+							debug.sendTo(player);
+							
+							sendWalkerInfos(player);
+							break;
+						
+						default:
+							player.sendMessage("Usage : //show <clear|door|html|move|path|walker>");
+							break;
+					}
+				}
+				catch (Exception e)
+				{
+					player.sendMessage("Usage : //show <clear|door|html|move|path|walker>");
+				}
 			}
 		}
-		return true;
+	}
+	
+	/**
+	 * Send to the {@link Player} all {@link AdminCommand}s informations.
+	 * @param player : The Player used as reference.
+	 * @param page : The current page we are checking.
+	 */
+	private static void sendHelp(Player player, int page)
+	{
+		final StringBuilder sb = new StringBuilder(2000);
+		sb.append("<html><body>");
+		
+		final Pagination<AdminCommand> list = new Pagination<>(AdminData.getInstance().getAdminCommands().stream(), page, PAGE_LIMIT_8);
+		for (AdminCommand command : list)
+		{
+			sb.append(((list.indexOf(command) % 2) == 0 ? "<table width=280 height=40 bgcolor=000000><tr>" : "<table width=280 height=40><tr>"));
+			
+			// Write the admin command in gold color, with "//".
+			StringUtil.append(sb, "<td width=280 height=34><font color=\"LEVEL\">//", command.getName().substring(6), "</font>");
+			
+			// If params exist, write them in blue in the same line than command.
+			if (!command.getParams().isBlank())
+				StringUtil.append(sb, " <font color=\"33cccc\">", command.getParams(), "</font>");
+			
+			// Pass a line, then write the description.
+			StringUtil.append(sb, "<br1>", command.getDesc(), "</td>");
+			
+			sb.append("</tr></table><img src=\"L2UI.SquareGray\" width=277 height=1>");
+		}
+		list.generateSpace(sb, "<img height=41>");
+		list.generatePages(sb, "bypass admin_help %page%");
+		sb.append("</body></html>");
+		
+		final NpcHtmlMessage html = new NpcHtmlMessage(0);
+		html.setHtml(sb.toString());
+		player.sendPacket(html);
+	}
+	
+	private static void sendWalkerInfos(Player player)
+	{
+		final NpcHtmlMessage html = new NpcHtmlMessage(0);
+		html.setFile("data/html/admin/walker.htm");
+		
+		final StringBuilder sb = new StringBuilder(500);
+		
+		for (Entry<Integer, List<WalkerLocation>> entry : WalkerRouteData.getInstance().getWalkerRoutes().entrySet())
+		{
+			final Location initialLoc = entry.getValue().get(0);
+			final String teleLoc = initialLoc.toString().replaceAll(",", "");
+			
+			StringUtil.append(sb, "<tr><td width=180>NpcId: ", entry.getKey(), " - Path size: ", entry.getValue().size(), "</td><td width=50><a action=\"bypass admin_teleport ", teleLoc, "\">Tele. To</a></td><td width=50 align=right><a action=\"bypass admin_show walker ", entry.getKey(), "\">Show</a></td></tr>");
+		}
+		
+		html.replace("%routes%", sb.toString());
+		player.sendPacket(html);
+	}
+	
+	private void showMainPage(Player player, String command)
+	{
+		String filename = "main";
+		
+		final StringTokenizer st = new StringTokenizer(command);
+		st.nextToken();
+		
+		if (st.hasMoreTokens())
+		{
+			final String param = st.nextToken();
+			if (StringUtil.isDigit(param))
+			{
+				final int mode = Integer.parseInt(param);
+				if (mode == 2)
+					filename = "game";
+				else if (mode == 3)
+					filename = "effects";
+				else if (mode == 4)
+					filename = "server";
+			}
+			else if (HtmCache.getInstance().isLoadable("data/html/admin/" + param + "_menu.htm"))
+				filename = param;
+		}
+		
+		sendFile(player, filename + "_menu.htm");
 	}
 	
 	@Override
 	public String[] getAdminCommandList()
 	{
 		return ADMIN_COMMANDS;
-	}
-	
-	private static void kill(Player activeChar, Creature target)
-	{
-		if (target instanceof Player)
-		{
-			if (!((Player) target).isGM())
-				target.stopAllEffects(); // e.g. invincibility effect
-			target.reduceCurrentHp(target.getMaxHp() + target.getMaxCp() + 1, activeChar, null);
-		}
-		else if (target.isChampion())
-			target.reduceCurrentHp(target.getMaxHp() * Config.CHAMPION_HP + 1, activeChar, null);
-		else
-			target.reduceCurrentHp(target.getMaxHp() + 1, activeChar, null);
-	}
-	
-	private static void showMainPage(Player activeChar, String command)
-	{
-		int mode = 0;
-		String filename = null;
-		try
-		{
-			mode = Integer.parseInt(command.substring(11));
-		}
-		catch (Exception e)
-		{
-		}
-		
-		switch (mode)
-		{
-			case 1:
-				filename = "main";
-				break;
-			case 2:
-				filename = "game";
-				break;
-			case 3:
-				filename = "effects";
-				break;
-			case 4:
-				filename = "server";
-				break;
-			default:
-				filename = "main";
-				break;
-		}
-		AdminHelpPage.showHelpPage(activeChar, filename + "_menu.htm");
 	}
 }

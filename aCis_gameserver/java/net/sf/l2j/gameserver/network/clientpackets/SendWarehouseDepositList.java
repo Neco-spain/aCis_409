@@ -3,6 +3,7 @@ package net.sf.l2j.gameserver.network.clientpackets;
 import static net.sf.l2j.gameserver.model.itemcontainer.PcInventory.ADENA_ID;
 
 import net.sf.l2j.Config;
+import net.sf.l2j.gameserver.enums.StatusType;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Folk;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
@@ -19,7 +20,7 @@ public final class SendWarehouseDepositList extends L2GameClientPacket
 {
 	private static final int BATCH_LENGTH = 8; // length of one item
 	
-	private IntIntHolder _items[] = null;
+	private IntIntHolder[] _items = null;
 	
 	@Override
 	protected void readImpl()
@@ -73,7 +74,7 @@ public final class SendWarehouseDepositList extends L2GameClientPacket
 		final boolean isPrivate = warehouse instanceof PcWarehouse;
 		
 		final Folk folk = player.getCurrentFolk();
-		if (folk == null || !folk.isWarehouse() || !folk.canInteract(player))
+		if (folk == null || !folk.isWarehouse() || !player.getAI().canDoInteract(folk))
 			return;
 		
 		if (!isPrivate && !player.getAccessLevel().allowTransaction())
@@ -134,7 +135,7 @@ public final class SendWarehouseDepositList extends L2GameClientPacket
 			if (oldItem == null)
 				return;
 			
-			if (!oldItem.isDepositable(isPrivate) || !oldItem.isAvailable(player, true, isPrivate))
+			if (!oldItem.isDepositable(isPrivate) || !oldItem.isAvailable(player, true, isPrivate, false))
 				continue;
 			
 			final ItemInstance newItem = player.getInventory().transferItem(warehouse.getName(), i.getId(), i.getValue(), warehouse, player, folk);
@@ -152,7 +153,7 @@ public final class SendWarehouseDepositList extends L2GameClientPacket
 		
 		// Update current load status on player
 		StatusUpdate su = new StatusUpdate(player);
-		su.addAttribute(StatusUpdate.CUR_LOAD, player.getCurrentLoad());
+		su.addAttribute(StatusType.CUR_LOAD, player.getCurrentWeight());
 		player.sendPacket(su);
 	}
 }

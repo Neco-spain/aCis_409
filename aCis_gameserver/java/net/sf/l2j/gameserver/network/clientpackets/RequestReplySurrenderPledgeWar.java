@@ -16,20 +16,20 @@ public final class RequestReplySurrenderPledgeWar extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		final Player requestor = activeChar.getActiveRequester();
+		final Player requestor = player.getActiveRequester();
 		if (requestor == null)
 			return;
 		
 		if (_answer == 1)
 		{
-			requestor.deathPenalty(false, false, false);
-			ClanTable.getInstance().deleteClansWars(requestor.getClanId(), activeChar.getClanId());
+			requestor.applyDeathPenalty(false, false);
+			ClanTable.getInstance().deleteClansWars(requestor.getClanId(), player.getClanId());
 		}
 		
-		activeChar.onTransactionRequest(requestor);
+		player.onTransactionRequest(requestor);
 	}
 }

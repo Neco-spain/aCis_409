@@ -1,9 +1,9 @@
 package net.sf.l2j.gameserver.handler.itemhandlers;
 
-import net.sf.l2j.gameserver.enums.IntentionType;
-import net.sf.l2j.gameserver.enums.items.EtcItemType;
+import net.sf.l2j.commons.util.ArraysUtil;
+
 import net.sf.l2j.gameserver.handler.IItemHandler;
-import net.sf.l2j.gameserver.model.L2Skill;
+import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Pet;
@@ -11,14 +11,20 @@ import net.sf.l2j.gameserver.model.actor.instance.Servitor;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.ExUseSharedGroupItem;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
+import net.sf.l2j.gameserver.skills.L2Skill;
+import net.sf.l2j.gameserver.skills.effects.EffectTemplate;
 
-/**
- * Template for item skills handler.
- */
 public class ItemSkills implements IItemHandler
 {
+	
+	private static final int[] HP_POTION_SKILL_IDS =
+	{
+		2031, // Lesser Healing Potion
+		2032, // Healing potion
+		2037 // Greater Healing Potion
+	};
+	
 	@Override
 	public void useItem(Playable playable, ItemInstance item, boolean forceUse)
 	{
@@ -26,12 +32,13 @@ public class ItemSkills implements IItemHandler
 			return;
 		
 		final boolean isPet = playable instanceof Pet;
-		final Player activeChar = playable.getActingPlayer();
+		final Player player = playable.getActingPlayer();
+		final Creature target = playable.getTarget() instanceof Creature ? (Creature) playable.getTarget() : null;
 		
 		// Pets can only use tradable items.
 		if (isPet && !item.isTradable())
 		{
-			activeChar.sendPacket(SystemMessageId.ITEM_NOT_FOR_PETS);
+			player.sendPacket(SystemMessageId.ITEM_NOT_FOR_PETS);
 			return;
 		}
 		
@@ -42,7 +49,7 @@ public class ItemSkills implements IItemHandler
 			return;
 		}
 		
-		for (IntIntHolder skillInfo : skills)
+		for (final IntIntHolder skillInfo : skills)
 		{
 			if (skillInfo == null)
 				continue;
@@ -51,101 +58,39 @@ public class ItemSkills implements IItemHandler
 			if (itemSkill == null)
 				continue;
 			
-			if (!itemSkill.checkCondition(playable, playable.getTarget(), false))
+			if (!itemSkill.checkCondition(playable, target, false))
 				return;
 			
 			// No message on retail, the use is just forgotten.
 			if (playable.isSkillDisabled(itemSkill))
 				return;
 			
-			if (!itemSkill.isPotion() && playable.isCastingNow())
-				return;
-			
-			// Item consumption is setup here.
+			// Potions and Energy Stones bypass the AI system. The rest does not.
 			if (itemSkill.isPotion() || itemSkill.isSimultaneousCast())
 			{
-				if (!item.isHerb())
-				{
-					// Normal item consumption is 1, if more, it must be given in DP with getItemConsume().
-					if (!playable.destroyItem("Consume", item.getObjectId(), (itemSkill.getItemConsumeId() == 0 && itemSkill.getItemConsume() > 0) ? itemSkill.getItemConsume() : 1, null, false))
-					{
-						activeChar.sendPacket(SystemMessageId.NOT_ENOUGH_ITEMS);
-						return;
-					}
-				}
+				playable.getCast().doInstantCast(itemSkill, item);
 				
-				playable.doSimultaneousCast(itemSkill);
-				// Summons should be affected by herbs too, self time effect is handled at L2Effect constructor.
-				if (!isPet && item.getItemType() == EtcItemType.HERB && activeChar.hasServitor())
-					activeChar.getSummon().doSimultaneousCast(itemSkill);
+				if (!isPet && item.isHerb() && player.hasServitor())
+					player.getSummon().getCast().doInstantCast(itemSkill, item);
 			}
 			else
-			{
-				// Normal item consumption is 1, if more, it must be given in DP with getItemConsume().
-				if (!playable.destroyItem("Consume", item.getObjectId(), (itemSkill.getItemConsumeId() == 0 && itemSkill.getItemConsume() > 0) ? itemSkill.getItemConsume() : 1, null, false))
-				{
-					activeChar.sendPacket(SystemMessageId.NOT_ENOUGH_ITEMS);
-					return;
-				}
-				
-				playable.getAI().setIntention(IntentionType.IDLE);
-				if (!playable.useMagic(itemSkill, forceUse, false))
-					return;
-			}
+				playable.getAI().tryToCast(target, itemSkill, forceUse, false, (item.isEtcItem() ? item.getObjectId() : 0));
 			
 			// Send message to owner.
 			if (isPet)
-				activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.PET_USES_S1).addSkillName(itemSkill));
+				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.PET_USES_S1).addSkillName(itemSkill));
 			else
 			{
-				final int skillId = skillInfo.getId();
-				
 				// Buff icon for healing potions.
-				switch (skillId)
+				final int skillId = skillInfo.getId();
+				if (ArraysUtil.contains(HP_POTION_SKILL_IDS, skillId) && skillId >= player.getShortBuffTaskSkillId())
 				{
-					case 2031:
-					case 2032:
-					case 2037:
-						final int buffId = activeChar.getShortBuffTaskSkillId();
-						
-						// Greater healing potions.
-						if (skillId == 2037)
-							activeChar.shortBuffStatusUpdate(skillId, skillInfo.getValue(), itemSkill.getBuffDuration() / 1000);
-						// Healing potions.
-						else if (skillId == 2032 && buffId != 2037)
-							activeChar.shortBuffStatusUpdate(skillId, skillInfo.getValue(), itemSkill.getBuffDuration() / 1000);
-						// Lesser healing potions.
-						else
-						{
-							if (buffId != 2037 && buffId != 2032)
-								activeChar.shortBuffStatusUpdate(skillId, skillInfo.getValue(), itemSkill.getBuffDuration() / 1000);
-						}
-						break;
+					final EffectTemplate template = itemSkill.getEffectTemplates().get(0);
+					if (template != null)
+					{
+						player.shortBuffStatusUpdate(skillId, skillInfo.getValue(), template.getCounter() * template.getPeriod());
+					}
 				}
-			}
-			
-			// Reuse.
-			int reuseDelay = itemSkill.getReuseDelay();
-			if (item.isEtcItem())
-			{
-				if (item.getEtcItem().getReuseDelay() > reuseDelay)
-					reuseDelay = item.getEtcItem().getReuseDelay();
-				
-				playable.addTimeStamp(itemSkill, reuseDelay);
-				if (reuseDelay != 0)
-					playable.disableSkill(itemSkill, reuseDelay);
-				
-				if (!isPet)
-				{
-					final int group = item.getEtcItem().getSharedReuseGroup();
-					if (group >= 0)
-						activeChar.sendPacket(new ExUseSharedGroupItem(item.getItemId(), group, reuseDelay, reuseDelay));
-				}
-			}
-			else if (reuseDelay > 0)
-			{
-				playable.addTimeStamp(itemSkill, reuseDelay);
-				playable.disableSkill(itemSkill, reuseDelay);
 			}
 		}
 	}

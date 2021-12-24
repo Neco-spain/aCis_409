@@ -14,11 +14,11 @@ public class Loc implements IUserCommandHandler
 	};
 	
 	@Override
-	public boolean useUserCommand(int id, Player activeChar)
+	public void useUserCommand(int id, Player player)
 	{
 		SystemMessageId msg;
 		
-		switch (MapRegionData.getInstance().getMapRegion(activeChar.getX(), activeChar.getY()))
+		switch (MapRegionData.getInstance().getMapRegion(player.getX(), player.getY()))
 		{
 			case 0:
 				msg = SystemMessageId.LOC_TI_S1_S2_S3;
@@ -99,8 +99,7 @@ public class Loc implements IUserCommandHandler
 				msg = SystemMessageId.LOC_ADEN_S1_S2_S3;
 		}
 		
-		activeChar.sendPacket(SystemMessage.getSystemMessage(msg).addNumber(activeChar.getX()).addNumber(activeChar.getY()).addNumber(activeChar.getZ()));
-		return true;
+		player.sendPacket(SystemMessage.getSystemMessage(msg).addNumber(player.getX()).addNumber(player.getY()).addNumber(player.getZ()));
 	}
 	
 	@Override

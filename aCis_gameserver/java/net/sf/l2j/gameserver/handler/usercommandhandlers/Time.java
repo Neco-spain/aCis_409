@@ -14,15 +14,14 @@ public class Time implements IUserCommandHandler
 	};
 	
 	@Override
-	public boolean useUserCommand(int id, Player activeChar)
+	public void useUserCommand(int id, Player player)
 	{
 		final int hour = GameTimeTaskManager.getInstance().getGameHour();
 		final int minute = GameTimeTaskManager.getInstance().getGameMinute();
 		
 		final String min = ((minute < 10) ? "0" : "") + minute;
 		
-		activeChar.sendPacket(SystemMessage.getSystemMessage((GameTimeTaskManager.getInstance().isNight()) ? SystemMessageId.TIME_S1_S2_IN_THE_NIGHT : SystemMessageId.TIME_S1_S2_IN_THE_DAY).addNumber(hour).addString(min));
-		return true;
+		player.sendPacket(SystemMessage.getSystemMessage((GameTimeTaskManager.getInstance().isNight()) ? SystemMessageId.TIME_S1_S2_IN_THE_NIGHT : SystemMessageId.TIME_S1_S2_IN_THE_DAY).addNumber(hour).addString(min));
 	}
 	
 	@Override

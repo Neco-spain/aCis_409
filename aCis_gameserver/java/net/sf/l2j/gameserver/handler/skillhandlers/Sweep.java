@@ -2,20 +2,20 @@ package net.sf.l2j.gameserver.handler.skillhandlers;
 
 import java.util.List;
 
-import net.sf.l2j.gameserver.enums.skills.L2SkillType;
+import net.sf.l2j.gameserver.enums.skills.SkillType;
 import net.sf.l2j.gameserver.handler.ISkillHandler;
-import net.sf.l2j.gameserver.model.L2Skill;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Monster;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class Sweep implements ISkillHandler
 {
-	private static final L2SkillType[] SKILL_IDS =
+	private static final SkillType[] SKILL_IDS =
 	{
-		L2SkillType.SWEEP
+		SkillType.SWEEP
 	};
 	
 	@Override
@@ -32,13 +32,12 @@ public class Sweep implements ISkillHandler
 				continue;
 			
 			final Monster monster = ((Monster) target);
-			if (!monster.isSpoiled())
-				continue;
 			
-			final List<IntIntHolder> items = monster.getSweepItems();
+			final List<IntIntHolder> items = monster.getSpoilState();
 			if (items.isEmpty())
 				continue;
 			
+			// Reward spoiler, based on sweep items retained on List.
 			for (IntIntHolder item : items)
 			{
 				if (player.isInParty())
@@ -46,11 +45,17 @@ public class Sweep implements ISkillHandler
 				else
 					player.addItem("Sweep", item.getId(), item.getValue(), player, true);
 			}
+			
+			// Reset variables.
+			monster.getSpoilState().clear();
 		}
+		
+		if (skill.hasSelfEffects())
+			skill.getEffectsSelf(activeChar);
 	}
 	
 	@Override
-	public L2SkillType[] getSkillIds()
+	public SkillType[] getSkillIds()
 	{
 		return SKILL_IDS;
 	}

@@ -1,10 +1,18 @@
 package net.sf.l2j.gameserver.model.zone.form;
 
+import java.awt.Color;
+
 import net.sf.l2j.gameserver.model.zone.ZoneForm;
+import net.sf.l2j.gameserver.network.serverpackets.ExServerPrimitive;
 
 public class ZoneCuboid extends ZoneForm
 {
-	private int _x1, _x2, _y1, _y2, _z1, _z2;
+	private int _x1;
+	private int _x2;
+	private int _y1;
+	private int _y2;
+	private int _z1;
+	private int _z2;
 	
 	public ZoneCuboid(int x1, int x2, int y1, int y2, int z1, int z2)
 	{
@@ -107,26 +115,6 @@ public class ZoneCuboid extends ZoneForm
 	}
 	
 	@Override
-	public double getDistanceToZone(int x, int y)
-	{
-		double test, shortestDist = Math.pow(_x1 - x, 2) + Math.pow(_y1 - y, 2);
-		
-		test = Math.pow(_x1 - x, 2) + Math.pow(_y2 - y, 2);
-		if (test < shortestDist)
-			shortestDist = test;
-		
-		test = Math.pow(_x2 - x, 2) + Math.pow(_y1 - y, 2);
-		if (test < shortestDist)
-			shortestDist = test;
-		
-		test = Math.pow(_x2 - x, 2) + Math.pow(_y2 - y, 2);
-		if (test < shortestDist)
-			shortestDist = test;
-		
-		return Math.sqrt(shortestDist);
-	}
-	
-	@Override
 	public int getLowZ()
 	{
 		return _z1;
@@ -139,20 +127,25 @@ public class ZoneCuboid extends ZoneForm
 	}
 	
 	@Override
-	public void visualizeZone(int id, int z)
+	public void visualizeZone(String info, ExServerPrimitive debug, int z)
 	{
-		// x1->x2
-		for (int x = _x1; x < _x2; x = x + STEP)
-		{
-			dropDebugItem(id, x, _y1, z);
-			dropDebugItem(id, x, _y2, z);
-		}
+		final int z1 = _z1 - 32;
+		final int z2 = _z2 - 32;
 		
-		// y1->y2
-		for (int y = _y1; y < _y2; y = y + STEP)
-		{
-			dropDebugItem(id, _x1, y, z);
-			dropDebugItem(id, _x2, y, z);
-		}
+		debug.addLine(info + " MinZ", Color.GREEN, true, _x1, _y1, z1, _x1, _y2, z1);
+		debug.addLine(info, Color.YELLOW, true, _x1, _y1, z, _x1, _y2, z);
+		debug.addLine(info + " MaxZ", Color.RED, true, _x1, _y1, z2, _x1, _y2, z2);
+		
+		debug.addLine(info + " MinZ", Color.GREEN, true, _x2, _y2, z1, _x1, _y2, z1);
+		debug.addLine(info, Color.YELLOW, true, _x2, _y2, z, _x1, _y2, z);
+		debug.addLine(info + " MaxZ", Color.RED, true, _x2, _y2, z2, _x1, _y2, z2);
+		
+		debug.addLine(info + " MinZ", Color.GREEN, true, _x2, _y2, z1, _x2, _y1, z1);
+		debug.addLine(info, Color.YELLOW, true, _x2, _y2, z, _x2, _y1, z);
+		debug.addLine(info + " MaxZ", Color.RED, true, _x2, _y2, z2, _x2, _y1, z2);
+		
+		debug.addLine(info + " MinZ", Color.GREEN, true, _x1, _y1, z1, _x2, _y1, z1);
+		debug.addLine(info, Color.YELLOW, true, _x1, _y1, z, _x2, _y1, z);
+		debug.addLine(info + " MaxZ", Color.RED, true, _x1, _y1, z2, _x2, _y1, z2);
 	}
 }

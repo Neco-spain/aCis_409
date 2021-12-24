@@ -1,9 +1,7 @@
 package net.sf.l2j.gameserver.handler.skillhandlers;
 
-import net.sf.l2j.gameserver.enums.AiEventType;
-import net.sf.l2j.gameserver.enums.skills.L2SkillType;
+import net.sf.l2j.gameserver.enums.skills.SkillType;
 import net.sf.l2j.gameserver.handler.ISkillHandler;
-import net.sf.l2j.gameserver.model.L2Skill;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
@@ -11,12 +9,13 @@ import net.sf.l2j.gameserver.model.actor.instance.Monster;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.skills.Formulas;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class Spoil implements ISkillHandler
 {
-	private static final L2SkillType[] SKILL_IDS =
+	private static final SkillType[] SKILL_IDS =
 	{
-		L2SkillType.SPOIL
+		SkillType.SPOIL
 	};
 	
 	@Override
@@ -28,7 +27,7 @@ public class Spoil implements ISkillHandler
 		if (targets == null)
 			return;
 		
-		for (WorldObject tgt : targets)
+		for (final WorldObject tgt : targets)
 		{
 			if (!(tgt instanceof Monster))
 				continue;
@@ -37,7 +36,7 @@ public class Spoil implements ISkillHandler
 			if (target.isDead())
 				continue;
 			
-			if (target.getSpoilerId() != 0)
+			if (target.getSpoilState().isSpoiled())
 			{
 				activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.ALREADY_SPOILED));
 				continue;
@@ -45,18 +44,16 @@ public class Spoil implements ISkillHandler
 			
 			if (Formulas.calcMagicSuccess(activeChar, (Creature) tgt, skill))
 			{
-				target.setSpoilerId(activeChar.getObjectId());
+				target.getSpoilState().setSpoilerId(activeChar.getObjectId());
 				activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.SPOIL_SUCCESS));
 			}
 			else
 				activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(target).addSkillName(skill.getId()));
-			
-			target.getAI().notifyEvent(AiEventType.ATTACKED, activeChar);
 		}
 	}
 	
 	@Override
-	public L2SkillType[] getSkillIds()
+	public SkillType[] getSkillIds()
 	{
 		return SKILL_IDS;
 	}

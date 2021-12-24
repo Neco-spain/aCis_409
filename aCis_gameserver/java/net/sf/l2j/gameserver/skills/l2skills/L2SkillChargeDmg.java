@@ -1,21 +1,21 @@
 package net.sf.l2j.gameserver.skills.l2skills;
 
-import net.sf.l2j.commons.util.StatsSet;
+import net.sf.l2j.commons.data.StatSet;
 
 import net.sf.l2j.gameserver.enums.items.ShotType;
-import net.sf.l2j.gameserver.model.L2Effect;
-import net.sf.l2j.gameserver.model.L2Skill;
+import net.sf.l2j.gameserver.enums.skills.ShieldDefense;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
 import net.sf.l2j.gameserver.skills.Formulas;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class L2SkillChargeDmg extends L2Skill
 {
-	public L2SkillChargeDmg(StatsSet set)
+	public L2SkillChargeDmg(StatSet set)
 	{
 		super(set);
 	}
@@ -29,7 +29,7 @@ public class L2SkillChargeDmg extends L2Skill
 		double modifier = 0;
 		
 		if (caster instanceof Player)
-			modifier = 0.7 + 0.3 * (((Player) caster).getCharges() + getNumCharges());
+			modifier = 0.8 + 0.2 * (((Player) caster).getCharges() + getNumCharges());
 		
 		final boolean ss = caster.isChargedShot(ShotType.SOULSHOT);
 		
@@ -42,7 +42,7 @@ public class L2SkillChargeDmg extends L2Skill
 			if (target.isAlikeDead())
 				continue;
 			
-			// Calculate skill evasion
+			// Calculate skill evasion.
 			boolean skillIsEvaded = Formulas.calcPhysicalSkillEvasion(target, this);
 			if (skillIsEvaded)
 			{
@@ -52,21 +52,13 @@ public class L2SkillChargeDmg extends L2Skill
 				if (target instanceof Player)
 					((Player) target).sendPacket(SystemMessage.getSystemMessage(SystemMessageId.AVOIDED_S1_ATTACK).addCharName(caster));
 				
-				// no futher calculations needed.
 				continue;
 			}
 			
-			byte shld = Formulas.calcShldUse(caster, target, this);
-			boolean crit = false;
+			final boolean isCrit = getBaseCritRate() > 0 && Formulas.calcCrit(getBaseCritRate() * 10 * Formulas.getSTRBonus(caster));
+			final ShieldDefense sDef = Formulas.calcShldUse(caster, target, this, isCrit);
 			
-			if (getBaseCritRate() > 0)
-				crit = Formulas.calcCrit(getBaseCritRate() * 10 * Formulas.getSTRBonus(caster));
-			
-			// damage calculation, crit is static 2x
-			double damage = Formulas.calcPhysDam(caster, target, this, shld, false, ss);
-			if (crit)
-				damage *= 2;
-			
+			final double damage = Formulas.calcPhysicalSkillDamage(caster, target, this, sDef, isCrit, ss);
 			if (damage > 0)
 			{
 				byte reflect = Formulas.calcSkillReflect(target, this);
@@ -76,17 +68,13 @@ public class L2SkillChargeDmg extends L2Skill
 					{
 						caster.stopSkillEffects(getId());
 						getEffects(target, caster);
-						caster.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_FEEL_S1_EFFECT).addSkillName(this));
 					}
 					else
 					{
 						// activate attacked effects, if any
 						target.stopSkillEffects(getId());
-						if (Formulas.calcSkillSuccess(caster, target, this, shld, true))
-						{
-							getEffects(caster, target, new Env(shld, false, false, false));
-							target.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_FEEL_S1_EFFECT).addSkillName(this));
-						}
+						if (Formulas.calcSkillSuccess(caster, target, this, sDef, true))
+							getEffects(caster, target, sDef, false);
 						else
 							caster.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(target).addSkillName(this));
 					}
@@ -99,7 +87,7 @@ public class L2SkillChargeDmg extends L2Skill
 				if ((reflect & Formulas.SKILL_REFLECT_VENGEANCE) != 0)
 					caster.reduceCurrentHp(damage, target, this);
 				
-				caster.sendDamageMessage(target, (int) finalDamage, false, crit, false);
+				caster.sendDamageMessage(target, (int) finalDamage, false, isCrit, false);
 			}
 			else
 				caster.sendDamageMessage(target, 0, false, false, true);
@@ -107,7 +95,7 @@ public class L2SkillChargeDmg extends L2Skill
 		
 		if (hasSelfEffects())
 		{
-			final L2Effect effect = caster.getFirstEffect(getId());
+			final AbstractEffect effect = caster.getFirstEffect(getId());
 			if (effect != null && effect.isSelfEffect())
 				effect.exit();
 			

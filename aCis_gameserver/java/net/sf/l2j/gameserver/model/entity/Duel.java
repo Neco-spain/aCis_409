@@ -5,13 +5,11 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 
 import net.sf.l2j.gameserver.data.manager.DuelManager;
-import net.sf.l2j.gameserver.enums.IntentionType;
 import net.sf.l2j.gameserver.enums.TeamType;
 import net.sf.l2j.gameserver.enums.ZoneId;
-import net.sf.l2j.gameserver.model.L2Effect;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.Summon;
 import net.sf.l2j.gameserver.network.SystemMessageId;
@@ -24,10 +22,11 @@ import net.sf.l2j.gameserver.network.serverpackets.L2GameServerPacket;
 import net.sf.l2j.gameserver.network.serverpackets.PlaySound;
 import net.sf.l2j.gameserver.network.serverpackets.SocialAction;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
 
 public class Duel
 {
-	public static enum DuelState
+	public enum DuelState
 	{
 		NO_DUEL,
 		ON_COUNTDOWN,
@@ -39,7 +38,7 @@ public class Duel
 	
 	private static final PlaySound B04_S01 = new PlaySound(1, "B04_S01");
 	
-	private static enum DuelResult
+	private enum DuelResult
 	{
 		CONTINUE,
 		TEAM_1_WIN,
@@ -119,7 +118,7 @@ public class Duel
 		private int _y;
 		private int _z;
 		
-		private List<L2Effect> _debuffs;
+		private List<AbstractEffect> _debuffs;
 		
 		public PlayerCondition(Player player, boolean partyDuel)
 		{
@@ -127,9 +126,9 @@ public class Duel
 				return;
 			
 			_player = player;
-			_hp = _player.getCurrentHp();
-			_mp = _player.getCurrentMp();
-			_cp = _player.getCurrentCp();
+			_hp = _player.getStatus().getHp();
+			_mp = _player.getStatus().getMp();
+			_cp = _player.getStatus().getCp();
 			
 			if (partyDuel)
 			{
@@ -146,24 +145,22 @@ public class Duel
 			if (abnormalEnd)
 				return;
 			
-			_player.setCurrentHp(_hp);
-			_player.setCurrentMp(_mp);
-			_player.setCurrentCp(_cp);
+			_player.getStatus().setCpHpMp(_cp, _hp, _mp);
 			
 			if (_debuffs != null)
 			{
-				for (L2Effect skill : _debuffs)
-					if (skill != null)
-						skill.exit();
+				for (AbstractEffect effect : _debuffs)
+					if (effect != null)
+						effect.exit();
 			}
 		}
 		
-		public void registerDebuff(L2Effect debuff)
+		public void registerDebuff(AbstractEffect effect)
 		{
 			if (_debuffs == null)
 				_debuffs = new CopyOnWriteArrayList<>();
 			
-			_debuffs.add(debuff);
+			_debuffs.add(effect);
 		}
 		
 		public void teleportBack()
@@ -272,7 +269,19 @@ public class Duel
 					_checkTask = null;
 				}
 				
-				stopFighting();
+				if (_isPartyDuel)
+				{
+					for (Player member : _playerA.getParty().getMembers())
+						stopFighting(member);
+					
+					for (Player member : _playerB.getParty().getMembers())
+						stopFighting(member);
+				}
+				else
+				{
+					stopFighting(_playerA);
+					stopFighting(_playerB);
+				}
 				
 				if (status != DuelResult.CANCELED)
 					playAnimations();
@@ -282,40 +291,12 @@ public class Duel
 		}
 	}
 	
-	/**
-	 * Stops all players from attacking. Used for duel timeout / interrupt.
-	 */
-	protected void stopFighting()
+	private static void stopFighting(Player player)
 	{
-		if (_isPartyDuel)
-		{
-			for (Player partyPlayer : _playerA.getParty().getMembers())
-			{
-				partyPlayer.abortCast();
-				partyPlayer.getAI().setIntention(IntentionType.ACTIVE);
-				partyPlayer.setTarget(null);
-				partyPlayer.sendPacket(ActionFailed.STATIC_PACKET);
-			}
-			
-			for (Player partyPlayer : _playerB.getParty().getMembers())
-			{
-				partyPlayer.abortCast();
-				partyPlayer.getAI().setIntention(IntentionType.ACTIVE);
-				partyPlayer.setTarget(null);
-				partyPlayer.sendPacket(ActionFailed.STATIC_PACKET);
-			}
-		}
-		else
-		{
-			_playerA.abortCast();
-			_playerB.abortCast();
-			_playerA.getAI().setIntention(IntentionType.ACTIVE);
-			_playerA.setTarget(null);
-			_playerB.getAI().setIntention(IntentionType.ACTIVE);
-			_playerB.setTarget(null);
-			_playerA.sendPacket(ActionFailed.STATIC_PACKET);
-			_playerB.sendPacket(ActionFailed.STATIC_PACKET);
-		}
+		player.getCast().stop();
+		player.getAI().tryToActive();
+		player.setTarget(null);
+		player.sendPacket(ActionFailed.STATIC_PACKET);
 	}
 	
 	/**
@@ -725,7 +706,7 @@ public class Duel
 				return DuelResult.CANCELED;
 			
 			// Players are too far apart.
-			if (!_playerA.isInsideRadius(_playerB, 2000, false, false))
+			if (!_playerA.isIn3DRadius(_playerB, 2000))
 				return DuelResult.CANCELED;
 			
 			// One of the players is engaged in PvP.
@@ -747,7 +728,7 @@ public class Duel
 						return DuelResult.CANCELED;
 					
 					// Players are too far apart.
-					if (!partyMember.isInsideRadius(_playerB, 2000, false, false))
+					if (!partyMember.isIn3DRadius(_playerB, 2000))
 						return DuelResult.CANCELED;
 					
 					// One of the players is engaged in PvP.
@@ -755,7 +736,7 @@ public class Duel
 						return DuelResult.CANCELED;
 					
 					// One of the players is in a Siege, Peace or PvP zone.
-					if (partyMember.isInsideZone(ZoneId.PEACE) || partyMember.isInsideZone(ZoneId.PEACE) || partyMember.isInsideZone(ZoneId.SIEGE))
+					if (partyMember.isInsideZone(ZoneId.PEACE) || partyMember.isInsideZone(ZoneId.PVP) || partyMember.isInsideZone(ZoneId.SIEGE))
 						return DuelResult.CANCELED;
 				}
 			}
@@ -769,7 +750,7 @@ public class Duel
 						return DuelResult.CANCELED;
 					
 					// Players are too far apart.
-					if (!partyMember.isInsideRadius(_playerA, 2000, false, false))
+					if (!partyMember.isIn3DRadius(_playerA, 2000))
 						return DuelResult.CANCELED;
 					
 					// One of the players is engaged in PvP.
@@ -777,7 +758,7 @@ public class Duel
 						return DuelResult.CANCELED;
 					
 					// One of the players is in a Siege, Peace or PvP zone.
-					if (partyMember.isInsideZone(ZoneId.PEACE) || partyMember.isInsideZone(ZoneId.PEACE) || partyMember.isInsideZone(ZoneId.SIEGE))
+					if (partyMember.isInsideZone(ZoneId.PEACE) || partyMember.isInsideZone(ZoneId.PVP) || partyMember.isInsideZone(ZoneId.SIEGE))
 						return DuelResult.CANCELED;
 				}
 			}
@@ -903,7 +884,7 @@ public class Duel
 	 * @param player : The player condition to affect.
 	 * @param effect : The effect to register.
 	 */
-	public void onBuff(Player player, L2Effect effect)
+	public void onBuff(Player player, AbstractEffect effect)
 	{
 		for (PlayerCondition cond : _playerConditions)
 		{

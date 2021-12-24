@@ -3,25 +3,22 @@ package net.sf.l2j.gameserver.network.serverpackets;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.item.kind.Item;
 
-/**
- * @author -Wooden-
- */
 public class PackageSendableList extends L2GameServerPacket
 {
 	private final ItemInstance[] _items;
-	private final int _playerObjId;
+	private final int _objectId;
 	
-	public PackageSendableList(ItemInstance[] items, int playerObjId)
+	public PackageSendableList(ItemInstance[] items, int objectId)
 	{
 		_items = items;
-		_playerObjId = playerObjId;
+		_objectId = objectId;
 	}
 	
 	@Override
 	protected void writeImpl()
 	{
 		writeC(0xC3);
-		writeD(_playerObjId);
+		writeD(_objectId);
 		writeD(getClient().getPlayer().getAdena());
 		writeD(_items.length);
 		

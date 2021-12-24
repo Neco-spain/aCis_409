@@ -1,14 +1,12 @@
 package net.sf.l2j.gameserver.enums;
 
-import net.sf.l2j.gameserver.model.actor.player.Experience;
-
 public enum FestivalType
 {
 	MAX_31(60, "Level 31 or lower", 31),
 	MAX_42(70, "Level 42 or lower", 42),
 	MAX_53(100, "Level 53 or lower", 53),
 	MAX_64(120, "Level 64 or lower", 64),
-	MAX_NONE(150, "No Level Limit", Experience.MAX_LEVEL - 1);
+	MAX_NONE(150, "No Level Limit", 80);
 	
 	private final int _maxScore;
 	private final String _name;

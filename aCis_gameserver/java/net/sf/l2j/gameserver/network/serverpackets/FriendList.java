@@ -7,10 +7,6 @@ import net.sf.l2j.gameserver.data.sql.PlayerInfoTable;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
 
-/**
- * Support for "Chat with Friends" dialog.
- * @author Tempy
- */
 public class FriendList extends L2GameServerPacket
 {
 	private final List<FriendInfo> _info;

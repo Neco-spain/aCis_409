@@ -654,7 +654,7 @@ public final class SystemMessageId
 	 * ID: 109<br>
 	 * Message: Invalid target.
 	 */
-	public static final SystemMessageId INCORRECT_TARGET;
+	public static final SystemMessageId INVALID_TARGET;
 	
 	/**
 	 * ID: 110<br>
@@ -1696,7 +1696,7 @@ public final class SystemMessageId
 	
 	/**
 	 * ID: 287<br>
-	 * Message: The opposing clan has stared to engrave to monument!
+	 * Message: The opposing clan has started to engrave the monument!
 	 */
 	public static final SystemMessageId OPPONENT_STARTED_ENGRAVING;
 	
@@ -2092,13 +2092,13 @@ public final class SystemMessageId
 	
 	/**
 	 * ID: 358<br>
-	 * Message: $s1 hour(s) until catle siege conclusion.
+	 * Message: $s1 hour(s) until castle siege conclusion.
 	 */
 	public static final SystemMessageId S1_HOURS_UNTIL_SIEGE_CONCLUSION;
 	
 	/**
 	 * ID: 359<br>
-	 * Message: $s1 minute(s) until catle siege conclusion.
+	 * Message: $s1 minute(s) until castle siege conclusion.
 	 */
 	public static final SystemMessageId S1_MINUTES_UNTIL_SIEGE_CONCLUSION;
 	
@@ -2278,7 +2278,7 @@ public final class SystemMessageId
 	
 	/**
 	 * ID: 389<br>
-	 * Message: our petition application has been accepted. - Receipt No. is $s1.
+	 * Message: Your petition application has been accepted. - Receipt No. is $s1.
 	 */
 	public static final SystemMessageId PETITION_ACCEPTED_RECENT_NO_S1;
 	
@@ -2292,7 +2292,7 @@ public final class SystemMessageId
 	 * ID: 391<br>
 	 * Message: Receipt No. $s1, petition cancelled.
 	 */
-	public static final SystemMessageId RECENT_NO_S1_CANCELED;
+	public static final SystemMessageId RECEIPT_NO_S1_CANCELED;
 	
 	/**
 	 * ID: 392<br>
@@ -4094,7 +4094,7 @@ public final class SystemMessageId
 	 * ID: 730<br>
 	 * Message: - You have submitted your $s1th petition. - You may submit $s2 more petition(s) today.
 	 */
-	public static final SystemMessageId SUBMITTED_YOU_S1_TH_PETITION_S2_LEFT;
+	public static final SystemMessageId SUBMITTED_YOUR_S1_TH_PETITION_S2_LEFT;
 	
 	/**
 	 * ID: 731<br>
@@ -6791,7 +6791,7 @@ public final class SystemMessageId
 	public static final SystemMessageId TEMPORARY_ALLIANCE;
 	
 	/**
-	 * ID: 1189<br>
+	 * ID: 1190<br>
 	 * Message: This temporary alliance of the Castle Attacker team has been dissolved.
 	 */
 	public static final SystemMessageId TEMPORARY_ALLIANCE_DISSOLVED;
@@ -6816,7 +6816,7 @@ public final class SystemMessageId
 	
 	/**
 	 * ID: 1194<br>
-	 * Message: A mercenary can be assigned to a position from the beginning of the Seal Validatio period until the time when a siege starts.
+	 * Message: A mercenary can be assigned to a position from the beginning of the Seal Validation period until the time when a siege starts.
 	 */
 	public static final SystemMessageId MERC_CAN_BE_ASSIGNED;
 	
@@ -11910,7 +11910,7 @@ public final class SystemMessageId
 		YOU_JOINED_S1_PARTY = new SystemMessageId(106);
 		S1_JOINED_PARTY = new SystemMessageId(107);
 		S1_LEFT_PARTY = new SystemMessageId(108);
-		INCORRECT_TARGET = new SystemMessageId(109);
+		INVALID_TARGET = new SystemMessageId(109);
 		YOU_FEEL_S1_EFFECT = new SystemMessageId(110);
 		SHIELD_DEFENCE_SUCCESSFULL = new SystemMessageId(111);
 		NOT_ENOUGH_ARROWS = new SystemMessageId(112);
@@ -12182,7 +12182,7 @@ public final class SystemMessageId
 		NOT_UNDER_PETITION_CONSULTATION = new SystemMessageId(388);
 		PETITION_ACCEPTED_RECENT_NO_S1 = new SystemMessageId(389);
 		ONLY_ONE_ACTIVE_PETITION_AT_TIME = new SystemMessageId(390);
-		RECENT_NO_S1_CANCELED = new SystemMessageId(391);
+		RECEIPT_NO_S1_CANCELED = new SystemMessageId(391);
 		UNDER_PETITION_ADVICE = new SystemMessageId(392);
 		FAILED_CANCEL_PETITION_TRY_LATER = new SystemMessageId(393);
 		PETITION_WITH_S1_UNDER_WAY = new SystemMessageId(394);
@@ -12480,7 +12480,7 @@ public final class SystemMessageId
 		FROZEN_CONDITION_REMOVED = new SystemMessageId(727);
 		CANNOT_APPLY_DISSOLUTION_AGAIN = new SystemMessageId(728);
 		ITEM_NOT_DISCARDED = new SystemMessageId(729);
-		SUBMITTED_YOU_S1_TH_PETITION_S2_LEFT = new SystemMessageId(730);
+		SUBMITTED_YOUR_S1_TH_PETITION_S2_LEFT = new SystemMessageId(730);
 		PETITION_S1_RECEIVED_CODE_IS_S2 = new SystemMessageId(731);
 		S1_RECEIVED_CONSULTATION_REQUEST = new SystemMessageId(732);
 		WE_HAVE_RECEIVED_S1_PETITIONS_TODAY = new SystemMessageId(733);
@@ -13773,11 +13773,12 @@ public final class SystemMessageId
 		final Field[] fields = SystemMessageId.class.getDeclaredFields();
 		final ArrayList<SystemMessageId> smIds = new ArrayList<>(fields.length);
 		
-		int maxId = 0, mod;
+		int maxId = 0;
 		SystemMessageId smId;
+		
 		for (final Field field : fields)
 		{
-			mod = field.getModifiers();
+			final int mod = field.getModifiers();
 			if (Modifier.isStatic(mod) && Modifier.isPublic(mod) && Modifier.isFinal(mod) && field.getType().equals(SystemMessageId.class))
 			{
 				try
@@ -13785,7 +13786,9 @@ public final class SystemMessageId
 					smId = (SystemMessageId) field.get(null);
 					smId.setName(field.getName());
 					smId.setParamCount(parseMessageParameters(field.getName()));
+					
 					maxId = Math.max(maxId, smId.getId());
+					
 					smIds.add(smId);
 				}
 				catch (Exception e)

@@ -19,30 +19,29 @@ import net.sf.l2j.gameserver.taskmanager.WalkerTaskManager;
  */
 public class WalkerAI extends CreatureAI
 {
-	private final List<WalkerLocation> _route;
-	
 	private int _index = 1;
 	
 	public WalkerAI(Creature creature)
 	{
 		super(creature);
-		
-		_route = WalkerRouteData.getInstance().getWalkerRoute(getActor().getNpcId());
-		if (!_route.isEmpty())
-			setIntention(IntentionType.MOVE_TO, _route.get(_index));
 	}
 	
 	@Override
 	public Walker getActor()
 	{
-		return (Walker) super.getActor();
+		return (Walker) _actor;
 	}
 	
 	@Override
 	protected void onEvtArrived()
 	{
+		// Retrieve walker route, if any.
+		final List<WalkerLocation> route = WalkerRouteData.getInstance().getWalkerRoute(getActor().getNpcId());
+		if (route == null || route.isEmpty())
+			return;
+		
 		// Retrieve current node.
-		WalkerLocation node = _route.get(_index);
+		final WalkerLocation node = route.get(_index);
 		
 		if (node.getChat() != null)
 			getActor().broadcastNpcSay(node.getChat());
@@ -59,21 +58,26 @@ public class WalkerAI extends CreatureAI
 	 */
 	public void moveToNextPoint()
 	{
+		// Retrieve walker route, if any.
+		final List<WalkerLocation> route = WalkerRouteData.getInstance().getWalkerRoute(getActor().getNpcId());
+		if (route == null || route.isEmpty())
+			return;
+		
 		// Set the next node value.
-		if (_index < _route.size() - 1)
+		if (_index < route.size() - 1)
 			_index++;
 		else
 			_index = 0;
 		
 		// Retrieve next node.
-		WalkerLocation node = _route.get(_index);
+		final WalkerLocation node = route.get(_index);
 		
 		// Running state.
-		if (node.doesNpcMustRun())
-			getActor().setRunning();
+		if (node.mustRun())
+			getActor().forceRunStance();
 		else
-			getActor().setWalking();
+			getActor().forceWalkStance();
 		
-		setIntention(IntentionType.MOVE_TO, node);
+		doMoveToIntention(node, null);
 	}
 }

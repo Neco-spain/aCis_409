@@ -1,6 +1,5 @@
 package net.sf.l2j.gameserver.handler.usercommandhandlers;
 
-import net.sf.l2j.gameserver.data.SkillTable;
 import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.handler.IUserCommandHandler;
 import net.sf.l2j.gameserver.model.actor.Player;
@@ -15,28 +14,24 @@ public class Escape implements IUserCommandHandler
 	};
 	
 	@Override
-	public boolean useUserCommand(int id, Player activeChar)
+	public void useUserCommand(int id, Player player)
 	{
-		if (activeChar.isCastingNow() || activeChar.isSitting() || activeChar.isMovementDisabled() || activeChar.isOutOfControl() || activeChar.isInOlympiadMode() || activeChar.isInObserverMode() || activeChar.isFestivalParticipant() || activeChar.isInJail() || activeChar.isInsideZone(ZoneId.BOSS))
+		if (player.isInOlympiadMode() || player.isInObserverMode() || player.isFestivalParticipant() || player.isInJail() || player.isInsideZone(ZoneId.BOSS))
 		{
-			activeChar.sendPacket(SystemMessageId.NO_UNSTUCK_PLEASE_SEND_PETITION);
-			return false;
+			player.sendPacket(SystemMessageId.NO_UNSTUCK_PLEASE_SEND_PETITION);
+			return;
 		}
-		
-		activeChar.stopMove(null);
 		
 		// Official timer 5 minutes, for GM 1 second
-		if (activeChar.isGM())
-			activeChar.doCast(SkillTable.getInstance().getInfo(2100, 1));
+		if (player.isGM())
+			player.getAI().tryToCast(player, 2100, 1);
 		else
 		{
-			activeChar.sendPacket(new PlaySound("systemmsg_e.809"));
-			activeChar.sendPacket(SystemMessageId.STUCK_TRANSPORT_IN_FIVE_MINUTES);
+			player.sendPacket(new PlaySound("systemmsg_e.809"));
+			player.sendPacket(SystemMessageId.STUCK_TRANSPORT_IN_FIVE_MINUTES);
 			
-			activeChar.doCast(SkillTable.getInstance().getInfo(2099, 1));
+			player.getAI().tryToCast(player, 2099, 1);
 		}
-		
-		return true;
 	}
 	
 	@Override

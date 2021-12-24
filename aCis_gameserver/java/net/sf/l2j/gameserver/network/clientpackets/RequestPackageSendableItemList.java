@@ -4,18 +4,14 @@ import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.serverpackets.PackageSendableList;
 
-/**
- * Format: (c)d d: char object id (?)
- * @author -Wooden-
- */
 public final class RequestPackageSendableItemList extends L2GameClientPacket
 {
-	private int _objectID;
+	private int _objectId;
 	
 	@Override
 	protected void readImpl()
 	{
-		_objectID = readD();
+		_objectId = readD();
 	}
 	
 	@Override
@@ -25,10 +21,10 @@ public final class RequestPackageSendableItemList extends L2GameClientPacket
 		if (player == null)
 			return;
 		
-		final ItemInstance[] items = player.getInventory().getAvailableItems(true, false);
+		final ItemInstance[] items = player.getInventory().getAvailableItems(true, false, false);
 		if (items == null)
 			return;
 		
-		sendPacket(new PackageSendableList(items, _objectID));
+		sendPacket(new PackageSendableList(items, _objectId));
 	}
 }

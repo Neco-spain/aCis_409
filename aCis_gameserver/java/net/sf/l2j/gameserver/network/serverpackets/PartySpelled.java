@@ -6,52 +6,40 @@ import java.util.List;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.instance.Pet;
 import net.sf.l2j.gameserver.model.actor.instance.Servitor;
+import net.sf.l2j.gameserver.model.holder.EffectHolder;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class PartySpelled extends L2GameServerPacket
 {
-	private final List<Effect> _effects;
-	private final Creature _activeChar;
+	private final int _type;
+	private final int _objectId;
+	private final List<EffectHolder> _effects = new ArrayList<>();
 	
-	private class Effect
+	public PartySpelled(Creature creature)
 	{
-		protected int _skillId;
-		protected int _dat;
-		protected int _duration;
-		
-		public Effect(int pSkillId, int pDat, int pDuration)
-		{
-			_skillId = pSkillId;
-			_dat = pDat;
-			_duration = pDuration;
-		}
-	}
-	
-	public PartySpelled(Creature cha)
-	{
-		_effects = new ArrayList<>();
-		_activeChar = cha;
+		_type = creature instanceof Servitor ? 2 : creature instanceof Pet ? 1 : 0;
+		_objectId = creature.getObjectId();
 	}
 	
 	@Override
 	protected final void writeImpl()
 	{
-		if (_activeChar == null)
-			return;
-		
 		writeC(0xee);
-		writeD(_activeChar instanceof Servitor ? 2 : _activeChar instanceof Pet ? 1 : 0);
-		writeD(_activeChar.getObjectId());
+		
+		writeD(_type);
+		writeD(_objectId);
+		
 		writeD(_effects.size());
-		for (Effect temp : _effects)
+		for (EffectHolder holder : _effects)
 		{
-			writeD(temp._skillId);
-			writeH(temp._dat);
-			writeD(temp._duration / 1000);
+			writeD(holder.getId());
+			writeH(holder.getValue());
+			writeD(holder.getDuration() / 1000);
 		}
 	}
 	
-	public void addPartySpelledEffect(int skillId, int dat, int duration)
+	public void addEffect(L2Skill skill, int duration)
 	{
-		_effects.add(new Effect(skillId, dat, duration));
+		_effects.add(new EffectHolder(skill, duration));
 	}
 }

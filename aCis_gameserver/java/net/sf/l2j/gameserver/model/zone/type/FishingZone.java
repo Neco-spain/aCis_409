@@ -1,7 +1,7 @@
 package net.sf.l2j.gameserver.model.zone.type;
 
 import net.sf.l2j.gameserver.model.actor.Creature;
-import net.sf.l2j.gameserver.model.zone.ZoneType;
+import net.sf.l2j.gameserver.model.zone.type.subtype.ZoneType;
 
 /**
  * A zone extending {@link ZoneType}, used for fish points.

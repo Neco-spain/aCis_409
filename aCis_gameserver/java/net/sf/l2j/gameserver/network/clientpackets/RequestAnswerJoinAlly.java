@@ -17,17 +17,17 @@ public final class RequestAnswerJoinAlly extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		final Player requestor = activeChar.getRequest().getPartner();
+		final Player requestor = player.getRequest().getPartner();
 		if (requestor == null)
 			return;
 		
 		if (_response == 0)
 		{
-			activeChar.sendPacket(SystemMessageId.YOU_DID_NOT_RESPOND_TO_ALLY_INVITATION);
+			player.sendPacket(SystemMessageId.YOU_DID_NOT_RESPOND_TO_ALLY_INVITATION);
 			requestor.sendPacket(SystemMessageId.NO_RESPONSE_TO_ALLY_INVITATION);
 		}
 		else
@@ -35,17 +35,17 @@ public final class RequestAnswerJoinAlly extends L2GameClientPacket
 			if (!(requestor.getRequest().getRequestPacket() instanceof RequestJoinAlly))
 				return;
 			
-			if (!Clan.checkAllyJoinCondition(requestor, activeChar))
+			if (!Clan.checkAllyJoinCondition(requestor, player))
 				return;
 			
-			activeChar.getClan().setAllyId(requestor.getClan().getAllyId());
-			activeChar.getClan().setAllyName(requestor.getClan().getAllyName());
-			activeChar.getClan().setAllyPenaltyExpiryTime(0, 0);
-			activeChar.getClan().changeAllyCrest(requestor.getClan().getAllyCrestId(), true);
-			activeChar.getClan().updateClanInDB();
+			player.getClan().setAllyId(requestor.getClan().getAllyId());
+			player.getClan().setAllyName(requestor.getClan().getAllyName());
+			player.getClan().setAllyPenaltyExpiryTime(0, 0);
+			player.getClan().changeAllyCrest(requestor.getClan().getAllyCrestId(), true);
+			player.getClan().updateClanInDB();
 			
-			activeChar.sendPacket(SystemMessageId.YOU_ACCEPTED_ALLIANCE);
+			player.sendPacket(SystemMessageId.YOU_ACCEPTED_ALLIANCE);
 		}
-		activeChar.getRequest().onRequestResponse();
+		player.getRequest().onRequestResponse();
 	}
 }

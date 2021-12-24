@@ -1,5 +1,6 @@
 package net.sf.l2j.loginserver.network.clientpackets;
 
+import net.sf.l2j.loginserver.model.Account;
 import net.sf.l2j.loginserver.network.serverpackets.LoginFail;
 import net.sf.l2j.loginserver.network.serverpackets.ServerList;
 
@@ -39,9 +40,19 @@ public class RequestServerList extends L2LoginClientPacket
 	@Override
 	public void run()
 	{
-		if (getClient().getSessionKey().checkLoginPair(_skey1, _skey2))
-			getClient().sendPacket(new ServerList(getClient()));
-		else
+		final Account account = getClient().getAccount();
+		if (account == null)
+		{
 			getClient().close(LoginFail.REASON_ACCESS_FAILED);
+			return;
+		}
+		
+		if (!getClient().getSessionKey().checkLoginPair(_skey1, _skey2))
+		{
+			getClient().close(LoginFail.REASON_ACCESS_FAILED);
+			return;
+		}
+		
+		getClient().sendPacket(new ServerList(account));
 	}
 }

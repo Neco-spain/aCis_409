@@ -3,13 +3,13 @@ package net.sf.l2j.gameserver.model.olympiad;
 import java.util.List;
 
 import net.sf.l2j.commons.logging.CLogger;
+import net.sf.l2j.commons.util.ArraysUtil;
 
 import net.sf.l2j.gameserver.data.SkillTable;
 import net.sf.l2j.gameserver.data.xml.MapRegionData;
-import net.sf.l2j.gameserver.enums.IntentionType;
 import net.sf.l2j.gameserver.enums.MessageType;
 import net.sf.l2j.gameserver.enums.OlympiadType;
-import net.sf.l2j.gameserver.model.L2Skill;
+import net.sf.l2j.gameserver.enums.SpawnType;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.Summon;
@@ -18,6 +18,7 @@ import net.sf.l2j.gameserver.model.group.Party;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.location.Location;
+import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.model.zone.type.OlympiadStadiumZone;
 import net.sf.l2j.gameserver.model.zone.type.TownZone;
 import net.sf.l2j.gameserver.network.SystemMessageId;
@@ -25,6 +26,7 @@ import net.sf.l2j.gameserver.network.serverpackets.ExOlympiadMode;
 import net.sf.l2j.gameserver.network.serverpackets.InventoryUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.L2GameServerPacket;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 /**
  * The abstract layer for an Olympiad game (individual, class and non-class based).
@@ -237,7 +239,7 @@ public abstract class AbstractOlympiadGame
 			return SystemMessage.getSystemMessage(SystemMessageId.THE_GAME_HAS_BEEN_CANCELLED_BECAUSE_THE_OTHER_PARTY_DOES_NOT_MEET_THE_REQUIREMENTS_FOR_JOINING_THE_GAME);
 		}
 		
-		if (player.getInventoryLimit() * 0.8 <= player.getInventory().getSize())
+		if (player.getStatus().isOverburden())
 		{
 			player.sendPacket(SystemMessageId.SINCE_80_PERCENT_OR_MORE_OF_YOUR_INVENTORY_SLOTS_ARE_FULL_YOU_CANNOT_PARTICIPATE_IN_THE_OLYMPIAD);
 			return SystemMessage.getSystemMessage(SystemMessageId.THE_GAME_HAS_BEEN_CANCELLED_BECAUSE_THE_OTHER_PARTY_DOES_NOT_MEET_THE_REQUIREMENTS_FOR_JOINING_THE_GAME);
@@ -285,18 +287,18 @@ public abstract class AbstractOlympiadGame
 		player.stopAllEffectsExceptThoseThatLastThroughDeath();
 		
 		// Remove Clan Skills
-		if (player.getClan() != null)
+		final Clan clan = player.getClan();
+		if (clan != null)
 		{
-			for (L2Skill skill : player.getClan().getClanSkills().values())
+			for (L2Skill skill : clan.getClanSkills().values())
 				player.removeSkill(skill.getId(), false);
 		}
 		
-		// Abort casting if player casting
-		player.abortAttack();
-		player.abortCast();
+		// Abort attack, cast and move.
+		player.abortAll(true);
 		
 		// Force the character to be visible
-		player.getAppearance().setVisible();
+		player.getAppearance().setVisible(true);
 		
 		// Remove Hero Skills
 		if (player.isHero())
@@ -306,7 +308,7 @@ public abstract class AbstractOlympiadGame
 		}
 		
 		// Heal Player fully
-		healPlayer(player);
+		player.getStatus().setMaxCpHpMp();
 		
 		// Dismount player, if mounted.
 		if (player.isMounted())
@@ -315,21 +317,22 @@ public abstract class AbstractOlympiadGame
 		else
 		{
 			final Summon summon = player.getSummon();
-			
-			// Unsummon pets directly.
-			if (summon instanceof Pet)
-				summon.unSummon(player);
-			// Remove servitor buffs and cancel animations.
-			else if (summon != null)
+			if (summon != null)
 			{
-				summon.stopAllEffectsExceptThoseThatLastThroughDeath();
-				summon.abortAttack();
-				summon.abortCast();
+				// Unsummon pets directly.
+				if (summon instanceof Pet)
+					summon.unSummon(player);
+				// Remove servitor buffs and cancel animations.
+				else
+				{
+					summon.stopAllEffectsExceptThoseThatLastThroughDeath();
+					summon.abortAll(true);
+				}
 			}
 		}
 		
 		// stop any cubic that has been given by other player.
-		player.stopCubicsByOthers();
+		player.getCubicList().stopCubicsGivenByOthers();
 		
 		// Remove player from his party
 		if (removeParty)
@@ -360,31 +363,14 @@ public abstract class AbstractOlympiadGame
 	{
 		L2Skill skill = SkillTable.getInstance().getInfo(1204, 2); // Windwalk 2
 		if (skill != null)
-		{
 			skill.getEffects(player, player);
-			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_FEEL_S1_EFFECT).addSkillName(1204));
-		}
 		
 		if (!player.isMageClass())
 		{
 			skill = SkillTable.getInstance().getInfo(1086, 1); // Haste 1
 			if (skill != null)
-			{
 				skill.getEffects(player, player);
-				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_FEEL_S1_EFFECT).addSkillName(1086));
-			}
 		}
-	}
-	
-	/**
-	 * Heal the {@link Player}.
-	 * @param player : the happy benefactor.
-	 */
-	protected static final void healPlayer(Player player)
-	{
-		player.setCurrentCp(player.getMaxCp());
-		player.setCurrentHp(player.getMaxHp());
-		player.setCurrentMp(player.getMaxMp());
 	}
 	
 	/**
@@ -394,10 +380,8 @@ public abstract class AbstractOlympiadGame
 	protected static final void cleanEffects(Player player)
 	{
 		player.setOlympiadStart(false);
-		player.setTarget(null);
-		player.abortAttack();
-		player.abortCast();
-		player.getAI().setIntention(IntentionType.IDLE);
+		player.abortAll(true);
+		player.getAI().tryToIdle();
 		
 		if (player.isDead())
 			player.setIsDead(false);
@@ -405,13 +389,11 @@ public abstract class AbstractOlympiadGame
 		final Summon summon = player.getSummon();
 		if (summon != null && !summon.isDead())
 		{
-			summon.setTarget(null);
-			summon.abortAttack();
-			summon.abortCast();
-			summon.getAI().setIntention(IntentionType.IDLE);
+			summon.abortAll(true);
+			summon.getAI().tryToIdle();
 		}
 		
-		healPlayer(player);
+		player.getStatus().setMaxCpHpMp();
 		player.getStatus().startHpMpRegeneration();
 	}
 	
@@ -434,16 +416,16 @@ public abstract class AbstractOlympiadGame
 		if (summon != null && !summon.isDead())
 			summon.stopAllEffectsExceptThoseThatLastThroughDeath();
 		
-		// Add Clan Skills
+		// Add Clan skills.
 		if (player.getClan() != null)
 		{
-			player.getClan().addSkillEffects(player);
+			player.getClan().checkAndAddClanSkills(player);
 			
 			// heal again after adding clan skills
-			healPlayer(player);
+			player.getStatus().setMaxCpHpMp();
 		}
 		
-		// Add Hero Skills
+		// Add Hero skills.
 		if (player.isHero())
 		{
 			for (L2Skill skill : SkillTable.getHeroSkills())
@@ -468,7 +450,7 @@ public abstract class AbstractOlympiadGame
 		
 		final TownZone town = MapRegionData.getTown(loc.getX(), loc.getY(), loc.getZ());
 		if (town != null)
-			loc = town.getRandomLoc();
+			loc = town.getRndSpawn(SpawnType.NORMAL);
 		
 		player.teleportTo(loc, 0);
 		player.getSavedLocation().clean();
@@ -481,7 +463,7 @@ public abstract class AbstractOlympiadGame
 	 */
 	public static final void rewardParticipant(Player player, IntIntHolder[] reward)
 	{
-		if (player == null || !player.isOnline() || reward == null)
+		if (player == null || !player.isOnline() || ArraysUtil.isEmpty(reward))
 			return;
 		
 		final InventoryUpdate iu = new InventoryUpdate();

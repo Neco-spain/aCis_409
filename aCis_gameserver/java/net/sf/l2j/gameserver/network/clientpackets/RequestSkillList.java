@@ -12,10 +12,10 @@ public final class RequestSkillList extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player cha = getClient().getPlayer();
-		if (cha == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		cha.sendSkillList();
+		player.sendSkillList();
 	}
 }

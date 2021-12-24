@@ -2,11 +2,8 @@ package net.sf.l2j.gameserver.model.actor.instance;
 
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
-import net.sf.l2j.gameserver.network.serverpackets.ExQuestInfo;
+import net.sf.l2j.gameserver.network.serverpackets.ExShowQuestInfo;
 
-/**
- * @author LBaldi
- */
 public class Adventurer extends Folk
 {
 	public Adventurer(int objectId, NpcTemplate template)
@@ -27,7 +24,7 @@ public class Adventurer extends Folk
 			showChatWindow(player, filename);
 		}
 		else if (command.equalsIgnoreCase("questlist"))
-			player.sendPacket(ExQuestInfo.STATIC_PACKET);
+			player.sendPacket(ExShowQuestInfo.STATIC_PACKET);
 		else
 			super.onBypassFeedback(player, command);
 	}

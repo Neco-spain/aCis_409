@@ -6,35 +6,29 @@ import java.util.List;
 
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.craft.ManufactureItem;
+import net.sf.l2j.gameserver.model.craft.ManufactureList;
 import net.sf.l2j.gameserver.model.item.Recipe;
 
 public class RecipeShopManageList extends L2GameServerPacket
 {
-	private final Player _seller;
-	private final boolean _isDwarven;
+	private final Player _player;
+	private final Collection<Recipe> _recipes;
 	
-	private Collection<Recipe> _recipes;
-	
-	public RecipeShopManageList(Player seller, boolean isDwarven)
+	public RecipeShopManageList(Player player, boolean isDwarven)
 	{
-		_seller = seller;
-		_isDwarven = isDwarven;
+		_player = player;
+		_recipes = player.getRecipeBook().get(isDwarven && player.hasDwarvenCraft());
 		
-		if (_isDwarven && seller.hasDwarvenCraft())
-			_recipes = seller.getDwarvenRecipeBook();
-		else
-			_recipes = seller.getCommonRecipeBook();
+		final ManufactureList manufactureList = player.getManufactureList();
+		manufactureList.setState(isDwarven);
 		
-		// clean previous recipes
-		if (seller.getCreateList() != null)
+		// Integrity check.
+		final Iterator<ManufactureItem> it = manufactureList.iterator();
+		while (it.hasNext())
 		{
-			final Iterator<ManufactureItem> it = seller.getCreateList().getList().iterator();
-			while (it.hasNext())
-			{
-				ManufactureItem item = it.next();
-				if (item.isDwarven() != _isDwarven || !seller.hasRecipeList(item.getId()))
-					it.remove();
-			}
+			ManufactureItem item = it.next();
+			if (item.isDwarven() != isDwarven || !player.getRecipeBook().hasRecipe(item.getId()))
+				it.remove();
 		}
 	}
 	
@@ -42,15 +36,15 @@ public class RecipeShopManageList extends L2GameServerPacket
 	protected final void writeImpl()
 	{
 		writeC(0xd8);
-		writeD(_seller.getObjectId());
-		writeD(_seller.getAdena());
-		writeD(_isDwarven ? 0x00 : 0x01);
+		writeD(_player.getObjectId());
+		writeD(_player.getAdena());
+		writeD(_player.getManufactureList().isDwarven() ? 0x00 : 0x01);
 		
 		if (_recipes == null)
 			writeD(0);
 		else
 		{
-			writeD(_recipes.size());// number of items in recipe book
+			writeD(_recipes.size());
 			
 			int i = 0;
 			for (Recipe recipe : _recipes)
@@ -60,19 +54,14 @@ public class RecipeShopManageList extends L2GameServerPacket
 			}
 		}
 		
-		if (_seller.getCreateList() == null)
-			writeD(0);
-		else
+		final List<ManufactureItem> list = _player.getManufactureList();
+		writeD(list.size());
+		
+		for (ManufactureItem item : list)
 		{
-			final List<ManufactureItem> list = _seller.getCreateList().getList();
-			writeD(list.size());
-			
-			for (ManufactureItem item : list)
-			{
-				writeD(item.getId());
-				writeD(0x00);
-				writeD(item.getValue());
-			}
+			writeD(item.getId());
+			writeD(0x00);
+			writeD(item.getValue());
 		}
 	}
 }

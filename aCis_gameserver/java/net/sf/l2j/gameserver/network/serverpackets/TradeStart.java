@@ -3,37 +3,32 @@ package net.sf.l2j.gameserver.network.serverpackets;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.item.kind.Item;
+import net.sf.l2j.gameserver.model.trade.TradeList;
 
-/**
- * d h (h dddhh dhhh)
- */
 public class TradeStart extends L2GameServerPacket
 {
-	private final Player _activeChar;
-	private final ItemInstance[] _itemList;
+	private final ItemInstance[] _items;
+	private final TradeList _tradeList;
 	
 	public TradeStart(Player player)
 	{
-		_activeChar = player;
-		_itemList = player.getInventory().getAvailableItems(true, false);
+		_items = player.getInventory().getAvailableItems(true, false, false);
+		_tradeList = player.getActiveTradeList();
 	}
 	
 	@Override
 	protected final void writeImpl()
 	{
-		if (_activeChar.getActiveTradeList() == null || _activeChar.getActiveTradeList().getPartner() == null)
+		if (_tradeList == null || _tradeList.getPartner() == null)
 			return;
 		
 		writeC(0x1E);
-		writeD(_activeChar.getActiveTradeList().getPartner().getObjectId());
-		writeH(_itemList.length);
+		writeD(_tradeList.getPartner().getObjectId());
+		writeH(_items.length);
 		
-		for (ItemInstance temp : _itemList)
+		for (ItemInstance temp : _items)
 		{
-			if (temp == null || temp.getItem() == null)
-				continue;
-			
-			Item item = temp.getItem();
+			final Item item = temp.getItem();
 			
 			writeH(item.getType1());
 			writeD(temp.getObjectId());

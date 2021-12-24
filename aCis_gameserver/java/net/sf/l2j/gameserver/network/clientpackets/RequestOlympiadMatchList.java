@@ -18,8 +18,8 @@ public final class RequestOlympiadMatchList extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null || !activeChar.isInObserverMode())
+		final Player player = getClient().getPlayer();
+		if (player == null || !player.isInObserverMode())
 			return;
 		
 		int i = 0;
@@ -49,6 +49,6 @@ public final class RequestOlympiadMatchList extends L2GameClientPacket
 		final NpcHtmlMessage html = new NpcHtmlMessage(0);
 		html.setFile(Olympiad.OLYMPIAD_HTML_PATH + "olympiad_arena_observe_list.htm");
 		html.replace("%list%", sb.toString());
-		activeChar.sendPacket(html);
+		player.sendPacket(html);
 	}
 }

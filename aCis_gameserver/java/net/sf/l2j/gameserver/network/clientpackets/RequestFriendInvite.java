@@ -2,72 +2,70 @@ package net.sf.l2j.gameserver.network.clientpackets;
 
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.actor.player.BlockList;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.FriendAddRequest;
+import net.sf.l2j.gameserver.network.serverpackets.FriendAddRequestResult;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public final class RequestFriendInvite extends L2GameClientPacket
 {
-	private String _name;
+	private String _targetName;
 	
 	@Override
 	protected void readImpl()
 	{
-		_name = readS();
+		_targetName = readS();
 	}
 	
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		final Player friend = World.getInstance().getPlayer(_name);
-		
-		// can't use friend invite for locating invisible characters
-		if (friend == null || !friend.isOnline() || friend.getAppearance().getInvisible())
+		final Player target = World.getInstance().getPlayer(_targetName);
+		if (target == null || !target.isOnline())
 		{
-			// Target is not found in the game.
-			activeChar.sendPacket(SystemMessageId.THE_USER_YOU_REQUESTED_IS_NOT_IN_GAME);
+			player.sendPacket(SystemMessageId.TARGET_IS_NOT_FOUND_IN_THE_GAME);
+			player.sendPacket(FriendAddRequestResult.STATIC_FAIL);
 			return;
 		}
 		
-		if (friend == activeChar)
+		if (target == player)
 		{
-			// You cannot add yourself to your own friend list.
-			activeChar.sendPacket(SystemMessageId.YOU_CANNOT_ADD_YOURSELF_TO_OWN_FRIEND_LIST);
+			player.sendPacket(SystemMessageId.YOU_CANNOT_ADD_YOURSELF_TO_YOUR_OWN_FRIENDS_LIST);
+			player.sendPacket(FriendAddRequestResult.STATIC_FAIL);
 			return;
 		}
 		
-		if (BlockList.isBlocked(activeChar, friend))
+		if (target.getBlockList().isBlockingAll())
 		{
-			activeChar.sendMessage("You have blocked " + _name + ".");
+			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_BLOCKED_EVERYTHING).addString(target.getName()));
 			return;
 		}
 		
-		if (BlockList.isBlocked(friend, activeChar))
+		if (target.getBlockList().isInBlockList(player))
 		{
-			activeChar.sendMessage("You are in " + _name + "'s block list.");
+			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_HAS_ADDED_YOU_TO_IGNORE_LIST2).addString(target.getName()));
 			return;
 		}
 		
-		if (activeChar.getFriendList().contains(friend.getObjectId()))
+		if (player.getFriendList().contains(target.getObjectId()))
 		{
-			// Player already is in your friendlist
-			activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_ALREADY_IN_FRIENDS_LIST).addString(_name));
+			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_ALREADY_IN_FRIENDS_LIST).addString(_targetName));
+			player.sendPacket(FriendAddRequestResult.STATIC_FAIL);
 			return;
 		}
 		
-		if (!friend.isProcessingRequest())
+		if (target.isProcessingRequest())
 		{
-			// request to become friend
-			activeChar.onTransactionRequest(friend);
-			friend.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_REQUESTED_TO_BECOME_FRIENDS).addCharName(activeChar));
-			friend.sendPacket(new FriendAddRequest(activeChar.getName()));
+			player.sendPacket(SystemMessageId.WAITING_FOR_ANOTHER_REPLY);
+			player.sendPacket(FriendAddRequestResult.STATIC_FAIL);
+			return;
 		}
-		else
-			activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_IS_BUSY_TRY_LATER).addString(_name));
+		
+		player.onTransactionRequest(target);
+		target.sendPacket(new FriendAddRequest(player.getName()));
 	}
 }

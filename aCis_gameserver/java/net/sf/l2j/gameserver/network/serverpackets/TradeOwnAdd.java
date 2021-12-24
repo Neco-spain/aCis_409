@@ -1,6 +1,6 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
-import net.sf.l2j.gameserver.model.tradelist.TradeItem;
+import net.sf.l2j.gameserver.model.trade.TradeItem;
 
 public class TradeOwnAdd extends L2GameServerPacket
 {

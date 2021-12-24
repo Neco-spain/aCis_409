@@ -7,35 +7,35 @@ import net.sf.l2j.gameserver.model.item.Recipe;
 public class RecipeItemMakeInfo extends L2GameServerPacket
 {
 	private final int _id;
-	private final Player _activeChar;
+	private final int _mp;
+	private final int _maxMp;
 	private final int _status;
 	
 	public RecipeItemMakeInfo(int id, Player player, int status)
 	{
 		_id = id;
-		_activeChar = player;
+		_mp = (int) player.getStatus().getMp();
+		_maxMp = player.getStatus().getMaxMp();
 		_status = status;
 	}
 	
 	public RecipeItemMakeInfo(int id, Player player)
 	{
-		_id = id;
-		_activeChar = player;
-		_status = -1;
+		this(id, player, -1);
 	}
 	
 	@Override
 	protected final void writeImpl()
 	{
-		Recipe recipe = RecipeData.getInstance().getRecipeList(_id);
+		final Recipe recipe = RecipeData.getInstance().getRecipeList(_id);
 		if (recipe != null)
 		{
 			writeC(0xD7);
 			
 			writeD(_id);
 			writeD((recipe.isDwarven()) ? 0 : 1);
-			writeD((int) _activeChar.getCurrentMp());
-			writeD(_activeChar.getMaxMp());
+			writeD(_mp);
+			writeD(_maxMp);
 			writeD(_status);
 		}
 	}

@@ -2,10 +2,8 @@ package net.sf.l2j.loginserver;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.LineNumberReader;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.logging.LogManager;
@@ -14,9 +12,12 @@ import net.sf.l2j.commons.lang.StringUtil;
 import net.sf.l2j.commons.logging.CLogger;
 import net.sf.l2j.commons.mmocore.SelectorConfig;
 import net.sf.l2j.commons.mmocore.SelectorThread;
+import net.sf.l2j.commons.pool.ConnectionPool;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.L2DatabaseFactory;
+import net.sf.l2j.loginserver.data.manager.GameServerManager;
+import net.sf.l2j.loginserver.data.manager.IpBanManager;
+import net.sf.l2j.loginserver.data.sql.AccountTable;
 import net.sf.l2j.loginserver.network.LoginClient;
 import net.sf.l2j.loginserver.network.LoginPacketHandler;
 
@@ -49,13 +50,13 @@ public class LoginServer
 			LogManager.getLogManager().readConfiguration(is);
 		}
 		
-		StringUtil.printSection("aCis");
-		
-		// Initialize config
+		StringUtil.printSection("Config");
 		Config.loadLoginServer();
 		
-		// Factories
-		L2DatabaseFactory.getInstance();
+		StringUtil.printSection("Poolers");
+		ConnectionPool.init();
+		
+		AccountTable.getInstance();
 		
 		StringUtil.printSection("LoginController");
 		LoginController.getInstance();
@@ -64,15 +65,15 @@ public class LoginServer
 		GameServerManager.getInstance();
 		
 		StringUtil.printSection("Ban List");
-		loadBanFile();
+		IpBanManager.getInstance();
 		
 		StringUtil.printSection("IP, Ports & Socket infos");
 		InetAddress bindAddress = null;
-		if (!Config.LOGIN_BIND_ADDRESS.equals("*"))
+		if (!Config.LOGINSERVER_HOSTNAME.equals("*"))
 		{
 			try
 			{
-				bindAddress = InetAddress.getByName(Config.LOGIN_BIND_ADDRESS);
+				bindAddress = InetAddress.getByName(Config.LOGINSERVER_HOSTNAME);
 			}
 			catch (UnknownHostException uhe)
 			{
@@ -104,7 +105,7 @@ public class LoginServer
 			_gameServerListener = new GameServerListener();
 			_gameServerListener.start();
 			
-			LOGGER.info("Listening for gameservers on {}:{}.", Config.GAME_SERVER_LOGIN_HOST, Config.GAME_SERVER_LOGIN_PORT);
+			LOGGER.info("Listening for gameservers on {}:{}.", Config.GAMESERVER_LOGIN_HOSTNAME, Config.GAMESERVER_LOGIN_PORT);
 		}
 		catch (IOException ioe)
 		{
@@ -115,7 +116,7 @@ public class LoginServer
 		
 		try
 		{
-			_selectorThread.openServerSocket(bindAddress, Config.PORT_LOGIN);
+			_selectorThread.openServerSocket(bindAddress, Config.LOGINSERVER_PORT);
 		}
 		catch (IOException ioe)
 		{
@@ -124,7 +125,7 @@ public class LoginServer
 			System.exit(1);
 		}
 		_selectorThread.start();
-		LOGGER.info("Loginserver ready on {}:{}.", (bindAddress == null) ? "*" : bindAddress.getHostAddress(), Config.PORT_LOGIN);
+		LOGGER.info("Loginserver ready on {}:{}.", (bindAddress == null) ? "*" : bindAddress.getHostAddress(), Config.LOGINSERVER_PORT);
 		
 		StringUtil.printSection("Waiting for gameserver answer");
 	}
@@ -137,66 +138,6 @@ public class LoginServer
 	public GameServerListener getGameServerListener()
 	{
 		return _gameServerListener;
-	}
-	
-	private static void loadBanFile()
-	{
-		File banFile = new File("config/banned_ips.properties");
-		if (banFile.exists() && banFile.isFile())
-		{
-			try (LineNumberReader reader = new LineNumberReader(new FileReader(banFile)))
-			{
-				String line;
-				String[] parts;
-				
-				while ((line = reader.readLine()) != null)
-				{
-					line = line.trim();
-					// check if this line isnt a comment line
-					if (line.length() > 0 && line.charAt(0) != '#')
-					{
-						// split comments if any
-						parts = line.split("#");
-						
-						// discard comments in the line, if any
-						line = parts[0];
-						parts = line.split(" ");
-						
-						String address = parts[0];
-						long duration = 0;
-						
-						if (parts.length > 1)
-						{
-							try
-							{
-								duration = Long.parseLong(parts[1]);
-							}
-							catch (NumberFormatException e)
-							{
-								LOGGER.error("Incorrect ban duration ({}). Line: {}.", parts[1], reader.getLineNumber());
-								continue;
-							}
-						}
-						
-						try
-						{
-							LoginController.getInstance().addBanForAddress(address, duration);
-						}
-						catch (UnknownHostException e)
-						{
-							LOGGER.error("Invalid address ({}). Line: {}.", parts[0], reader.getLineNumber());
-						}
-					}
-				}
-			}
-			catch (IOException e)
-			{
-				LOGGER.error("Error while reading banned_ips.properties.", e);
-			}
-			LOGGER.info("Loaded {} banned IP(s).", LoginController.getInstance().getBannedIps().size());
-		}
-		else
-			LOGGER.warn("banned_ips.properties is missing. Ban listing is skipped.");
 	}
 	
 	public void shutdown(boolean restart)

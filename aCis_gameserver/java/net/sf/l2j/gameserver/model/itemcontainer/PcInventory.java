@@ -4,17 +4,26 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import net.sf.l2j.gameserver.data.manager.HeroManager;
+import net.sf.l2j.gameserver.data.xml.ItemData;
+import net.sf.l2j.gameserver.enums.Paperdoll;
 import net.sf.l2j.gameserver.enums.ShortcutType;
+import net.sf.l2j.gameserver.enums.StatusType;
 import net.sf.l2j.gameserver.enums.items.EtcItemType;
+import net.sf.l2j.gameserver.enums.items.ItemLocation;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.holder.IntIntHolder;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
-import net.sf.l2j.gameserver.model.item.instance.ItemInstance.ItemLocation;
+import net.sf.l2j.gameserver.model.item.kind.Item;
 import net.sf.l2j.gameserver.model.itemcontainer.listeners.ArmorSetListener;
 import net.sf.l2j.gameserver.model.itemcontainer.listeners.BowRodListener;
 import net.sf.l2j.gameserver.model.itemcontainer.listeners.ItemPassiveSkillsListener;
-import net.sf.l2j.gameserver.model.tradelist.TradeItem;
-import net.sf.l2j.gameserver.model.tradelist.TradeList;
+import net.sf.l2j.gameserver.model.itemcontainer.listeners.OnEquipListener;
+import net.sf.l2j.gameserver.model.trade.BuyProcessItem;
+import net.sf.l2j.gameserver.model.trade.SellProcessItem;
+import net.sf.l2j.gameserver.model.trade.TradeItem;
+import net.sf.l2j.gameserver.model.trade.TradeList;
 import net.sf.l2j.gameserver.network.serverpackets.InventoryUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.StatusUpdate;
 import net.sf.l2j.gameserver.taskmanager.ShadowItemTaskManager;
@@ -57,6 +66,45 @@ public class PcInventory extends Inventory
 		return ItemLocation.PAPERDOLL;
 	}
 	
+	@Override
+	public void equipItem(ItemInstance item)
+	{
+		// Can't equip item if you are in shop mod or hero item and you're not hero.
+		if (getOwner().isOperating() || (item.isHeroItem() && !HeroManager.getInstance().isActiveHero(getOwnerId())))
+			return;
+		
+		// Check if player wears formal wear.
+		if (getOwner().isWearingFormalWear())
+		{
+			switch (item.getItem().getBodyPart())
+			{
+				case Item.SLOT_LR_HAND:
+				case Item.SLOT_L_HAND:
+				case Item.SLOT_R_HAND:
+					unequipItemInBodySlotAndRecord(Item.SLOT_ALLDRESS);
+					break;
+				
+				case Item.SLOT_LEGS:
+				case Item.SLOT_FEET:
+				case Item.SLOT_GLOVES:
+				case Item.SLOT_HEAD:
+					return;
+			}
+		}
+		
+		super.equipItem(item);
+	}
+	
+	@Override
+	public void equipPetItem(ItemInstance item)
+	{
+		// Can't equip item if you are in shop mod.
+		if (getOwner().isOperating())
+			return;
+		
+		super.equipPetItem(item);
+	}
+	
 	public ItemInstance getAdenaInstance()
 	{
 		return _adena;
@@ -78,9 +126,9 @@ public class PcInventory extends Inventory
 		return (_ancientAdena != null) ? _ancientAdena.getCount() : 0;
 	}
 	
-	public ItemInstance[] getUniqueItems(boolean allowAdena, boolean allowAncientAdena)
+	public ItemInstance[] getUniqueItems(boolean allowAdena, boolean allowAncientAdena, boolean allowStoreBuy)
 	{
-		return getUniqueItems(allowAdena, allowAncientAdena, true);
+		return getUniqueItems(allowAdena, allowAncientAdena, true, allowStoreBuy);
 	}
 	
 	/**
@@ -88,9 +136,10 @@ public class PcInventory extends Inventory
 	 * @param allowAdena
 	 * @param allowAncientAdena
 	 * @param onlyAvailable
+	 * @param allowStoreBuy
 	 * @return ItemInstance : items in inventory
 	 */
-	public ItemInstance[] getUniqueItems(boolean allowAdena, boolean allowAncientAdena, boolean onlyAvailable)
+	public ItemInstance[] getUniqueItems(boolean allowAdena, boolean allowAncientAdena, boolean onlyAvailable, boolean allowStoreBuy)
 	{
 		List<ItemInstance> list = new ArrayList<>();
 		for (ItemInstance item : _items)
@@ -113,7 +162,7 @@ public class PcInventory extends Inventory
 					break;
 				}
 			}
-			if (!isDuplicate && (!onlyAvailable || (item.isSellable() && item.isAvailable(getOwner(), false, false))))
+			if (!isDuplicate && (!onlyAvailable || (item.isSellable() && item.isAvailable(getOwner(), false, false, allowStoreBuy))))
 				list.add(item);
 		}
 		return list.toArray(new ItemInstance[list.size()]);
@@ -123,14 +172,15 @@ public class PcInventory extends Inventory
 	 * Returns the list of items in inventory available for transaction Allows an item to appear twice if and only if there is a difference in enchantment level.
 	 * @param allowAdena
 	 * @param allowAncientAdena
+	 * @param allowStoreBuy
 	 * @return ItemInstance : items in inventory
 	 */
-	public ItemInstance[] getUniqueItemsByEnchantLevel(boolean allowAdena, boolean allowAncientAdena)
+	public ItemInstance[] getUniqueItemsByEnchantLevel(boolean allowAdena, boolean allowAncientAdena, boolean allowStoreBuy)
 	{
-		return getUniqueItemsByEnchantLevel(allowAdena, allowAncientAdena, true);
+		return getUniqueItemsByEnchantLevel(allowAdena, allowAncientAdena, true, allowStoreBuy);
 	}
 	
-	public ItemInstance[] getUniqueItemsByEnchantLevel(boolean allowAdena, boolean allowAncientAdena, boolean onlyAvailable)
+	public ItemInstance[] getUniqueItemsByEnchantLevel(boolean allowAdena, boolean allowAncientAdena, boolean onlyAvailable, boolean allowStoreBuy)
 	{
 		List<ItemInstance> list = new ArrayList<>();
 		for (ItemInstance item : _items)
@@ -153,7 +203,7 @@ public class PcInventory extends Inventory
 					break;
 				}
 			}
-			if (!isDuplicate && (!onlyAvailable || (item.isSellable() && item.isAvailable(getOwner(), false, false))))
+			if (!isDuplicate && (!onlyAvailable || (item.isSellable() && item.isAvailable(getOwner(), false, false, allowStoreBuy))))
 				list.add(item);
 		}
 		return list.toArray(new ItemInstance[list.size()]);
@@ -225,14 +275,15 @@ public class PcInventory extends Inventory
 	 * Returns the list of items in inventory available for transaction
 	 * @param allowAdena
 	 * @param allowNonTradeable
+	 * @param allowStoreBuy
 	 * @return ItemInstance : items in inventory
 	 */
-	public ItemInstance[] getAvailableItems(boolean allowAdena, boolean allowNonTradeable)
+	public ItemInstance[] getAvailableItems(boolean allowAdena, boolean allowNonTradeable, boolean allowStoreBuy)
 	{
 		List<ItemInstance> list = new ArrayList<>();
 		for (ItemInstance item : _items)
 		{
-			if (item != null && item.isAvailable(getOwner(), allowAdena, allowNonTradeable))
+			if (item != null && item.isAvailable(getOwner(), allowAdena, allowNonTradeable, allowStoreBuy))
 				list.add(item);
 		}
 		return list.toArray(new ItemInstance[list.size()]);
@@ -264,14 +315,15 @@ public class PcInventory extends Inventory
 	/**
 	 * Returns the list of items in inventory available for transaction adjusetd by tradeList
 	 * @param tradeList
+	 * @param allowStoreBuy
 	 * @return ItemInstance : items in inventory
 	 */
-	public TradeItem[] getAvailableItems(TradeList tradeList)
+	public TradeItem[] getAvailableItems(TradeList tradeList, boolean allowStoreBuy)
 	{
 		List<TradeItem> list = new ArrayList<>();
 		for (ItemInstance item : _items)
 		{
-			if (item != null && item.isAvailable(getOwner(), false, false))
+			if (item != null && item.isAvailable(getOwner(), false, false, allowStoreBuy))
 			{
 				TradeItem adjItem = tradeList.adjustAvailableItem(item);
 				if (adjItem != null)
@@ -287,32 +339,23 @@ public class PcInventory extends Inventory
 	 */
 	public void adjustAvailableItem(TradeItem item)
 	{
-		boolean notAllEquipped = false;
+		// For all ItemInstance with same item id.
 		for (ItemInstance adjItem : getItemsByItemId(item.getItem().getItemId()))
 		{
-			if (adjItem.isEquipable())
+			// If enchant level is different, bypass.
+			if (adjItem.getEnchantLevel() != item.getEnchant())
+				continue;
+			
+			// If item isn't equipable, or equipable but not equiped it is a success.
+			if (!adjItem.isEquipable() || (adjItem.isEquipable() && !adjItem.isEquipped()))
 			{
-				if (!adjItem.isEquipped())
-					notAllEquipped |= true;
-			}
-			else
-			{
-				notAllEquipped |= true;
-				break;
+				item.setObjectId(adjItem.getObjectId());
+				item.setEnchant(adjItem.getEnchantLevel());
+				item.setCount(Math.min(adjItem.getCount(), item.getQuantity()));
+				return;
 			}
 		}
-		if (notAllEquipped)
-		{
-			ItemInstance adjItem = getItemByItemId(item.getItem().getItemId());
-			item.setObjectId(adjItem.getObjectId());
-			item.setEnchant(adjItem.getEnchantLevel());
-			
-			if (adjItem.getCount() < item.getCount())
-				item.setCount(adjItem.getCount());
-			
-			return;
-		}
-		
+		// None item matched conditions ; return as invalid count.
 		item.setCount(0);
 	}
 	
@@ -427,7 +470,7 @@ public class PcInventory extends Inventory
 			
 			// Update current load as well
 			StatusUpdate su = new StatusUpdate(actor);
-			su.addAttribute(StatusUpdate.CUR_LOAD, actor.getCurrentLoad());
+			su.addAttribute(StatusType.CUR_LOAD, actor.getCurrentWeight());
 			actor.sendPacket(su);
 		}
 		
@@ -577,8 +620,7 @@ public class PcInventory extends Inventory
 	}
 	
 	/**
-	 * <b>Overloaded</b>, when removes item from inventory, remove also owner shortcuts.
-	 * @param item : ItemInstance to be removed from inventory
+	 * Delete all existing shortcuts refering to this {@link ItemInstance}, aswell as active enchants.
 	 */
 	@Override
 	protected boolean removeItem(ItemInstance item)
@@ -598,20 +640,14 @@ public class PcInventory extends Inventory
 		return super.removeItem(item);
 	}
 	
-	/**
-	 * Refresh the weight of equipment loaded
-	 */
 	@Override
 	public void refreshWeight()
 	{
 		super.refreshWeight();
 		
-		getOwner().refreshOverloaded();
+		getOwner().refreshWeightPenalty();
 	}
 	
-	/**
-	 * Get back items in inventory from database
-	 */
 	@Override
 	public void restore()
 	{
@@ -621,42 +657,170 @@ public class PcInventory extends Inventory
 		_ancientAdena = getItemByItemId(ANCIENT_ADENA_ID);
 	}
 	
+	@Override
+	public ItemInstance unequipItemInBodySlot(int slot)
+	{
+		final ItemInstance old = super.unequipItemInBodySlot(slot);
+		if (old != null)
+			getOwner().refreshExpertisePenalty();
+		
+		return old;
+	}
+	
 	public boolean validateCapacity(ItemInstance item)
 	{
 		int slots = 0;
-		
 		if (!(item.isStackable() && getItemByItemId(item.getItemId()) != null) && item.getItemType() != EtcItemType.HERB)
 			slots++;
 		
 		return validateCapacity(slots);
 	}
 	
-	public boolean validateCapacityByItemId(int ItemId)
+	public boolean validateCapacityByItemId(IntIntHolder holder)
+	{
+		return validateCapacityByItemId(holder.getId(), holder.getValue());
+	}
+	
+	public boolean validateCapacityByItemId(int itemId, int itemCount)
+	{
+		return validateCapacity(calculateUsedSlots(itemId, itemCount));
+	}
+	
+	public boolean validateCapacityByItemIds(List<IntIntHolder> holders)
 	{
 		int slots = 0;
-		
-		ItemInstance invItem = getItemByItemId(ItemId);
-		if (!(invItem != null && invItem.isStackable()))
-			slots++;
+		for (IntIntHolder holder : holders)
+			slots += calculateUsedSlots(holder.getId(), holder.getValue());
 		
 		return validateCapacity(slots);
 	}
 	
-	@Override
-	public boolean validateCapacity(int slots)
+	/**
+	 * @param tradeList : The {@link TradeList} to test.
+	 * @return True if the {@link TradeList} set as parameter can pass a {@link #validateCapacity(int)} check.
+	 */
+	public boolean validateTradeListCapacity(TradeList tradeList)
 	{
-		return (_items.size() + slots <= _owner.getInventoryLimit());
+		int slots = 0;
+		for (TradeItem tradeItem : tradeList)
+			slots += calculateUsedSlots(tradeItem.getItem(), tradeItem.getCount());
+		
+		return validateCapacity(slots);
+	}
+	
+	/**
+	 * @param template : The {@link Item} to test.
+	 * @param itemCount : The {@link Item} count to add.
+	 * @return The number of used slots for a given {@link Item}.
+	 */
+	private int calculateUsedSlots(Item template, int itemCount)
+	{
+		final ItemInstance item = getItemByItemId(template.getItemId());
+		if (item != null)
+			return (item.isStackable()) ? 0 : itemCount;
+		
+		return (template.isStackable()) ? 1 : itemCount;
+	}
+	
+	/**
+	 * @param itemId : The {@link Item} id to test.
+	 * @param itemCount : The {@link Item} count to add.
+	 * @return The number of used slots for a given {@link Item} id.
+	 */
+	private int calculateUsedSlots(int itemId, int itemCount)
+	{
+		final ItemInstance item = getItemByItemId(itemId);
+		if (item != null)
+			return (item.isStackable()) ? 0 : itemCount;
+		
+		final Item template = ItemData.getInstance().getTemplate(itemId);
+		return (template.isStackable()) ? 1 : itemCount;
+	}
+	
+	@Override
+	public boolean validateCapacity(int slotCount)
+	{
+		if (slotCount == 0)
+			return true;
+		
+		return (_items.size() + slotCount <= _owner.getStatus().getInventoryLimit());
 	}
 	
 	@Override
 	public boolean validateWeight(int weight)
 	{
-		return (_totalWeight + weight <= _owner.getMaxLoad());
+		return _totalWeight + weight <= _owner.getWeightLimit();
+	}
+	
+	/**
+	 * @param tradeList : The {@link TradeList} to test.
+	 * @return True if the {@link TradeList} set as parameter can pass a {@link #validateWeight(int)} check.
+	 */
+	public boolean validateTradeListWeight(TradeList tradeList)
+	{
+		int weight = 0;
+		for (TradeItem tradeItem : tradeList)
+			weight += tradeItem.getItem().getWeight() * tradeItem.getCount();
+		
+		return validateWeight(weight);
 	}
 	
 	@Override
 	public String toString()
 	{
 		return getClass().getSimpleName() + "[" + _owner + "]";
+	}
+	
+	/**
+	 * @param itemsToCheck : The {@link BuyProcessItem} array to test.
+	 * @return True if the {@link BuyProcessItem} array set as parameter successfully pass inventory checks, false otherwise.
+	 */
+	public boolean canPassBuyProcess(BuyProcessItem[] itemsToCheck)
+	{
+		for (BuyProcessItem itemToCheck : itemsToCheck)
+		{
+			if (itemToCheck.getCount() < 1 || itemToCheck.getPrice() < 0)
+				return false;
+			
+			final ItemInstance item = getItemByItemId(itemToCheck.getItemId());
+			if (item == null || item.getEnchantLevel() != itemToCheck.getEnchant())
+				return false;
+		}
+		return true;
+	}
+	
+	/**
+	 * @param itemsToCheck : The {@link SellProcessItem} array to test.
+	 * @return True if the {@link SellProcessItem} array set as parameter successfully pass inventory checks, false otherwise.
+	 */
+	public boolean canPassSellProcess(SellProcessItem[] itemsToCheck)
+	{
+		for (SellProcessItem itemToCheck : itemsToCheck)
+		{
+			if (itemToCheck.getCount() < 1 || itemToCheck.getPrice() < 0)
+				return false;
+			
+			final ItemInstance item = getItemByObjectId(itemToCheck.getObjectId());
+			if (item == null || item.getCount() < itemToCheck.getCount())
+				return false;
+		}
+		return true;
+	}
+	
+	/**
+	 * Re-notify to paperdoll listeners every equipped item
+	 */
+	public void reloadEquippedItems()
+	{
+		for (ItemInstance item : getPaperdollItems())
+		{
+			final Paperdoll slot = Paperdoll.getEnumById(item.getLocationSlot());
+			
+			for (OnEquipListener listener : _paperdollListeners)
+			{
+				listener.onUnequip(slot, item, getOwner());
+				listener.onEquip(slot, item, getOwner());
+			}
+		}
 	}
 }

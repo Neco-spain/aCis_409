@@ -1,6 +1,6 @@
 package net.sf.l2j.loginserver.network.clientpackets;
 
-import net.sf.l2j.loginserver.network.LoginClient.LoginClientState;
+import net.sf.l2j.loginserver.enums.LoginClientState;
 import net.sf.l2j.loginserver.network.serverpackets.GGAuth;
 import net.sf.l2j.loginserver.network.serverpackets.LoginFail;
 

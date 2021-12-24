@@ -1,6 +1,6 @@
 package net.sf.l2j.gameserver.model.holder;
 
-import net.sf.l2j.gameserver.model.L2Skill;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 /**
  * A class extending {@link IntIntHolder} containing all neccessary information to maintain valid timestamps and reuse for skills upon relog.

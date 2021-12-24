@@ -1,12 +1,12 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.gameserver.enums.actors.StoreType;
-import net.sf.l2j.gameserver.model.ItemRequest;
+import net.sf.l2j.gameserver.enums.actors.OperateType;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.tradelist.TradeList;
+import net.sf.l2j.gameserver.model.trade.ItemRequest;
+import net.sf.l2j.gameserver.model.trade.TradeList;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 
 public final class RequestPrivateStoreSell extends L2GameClientPacket
@@ -30,17 +30,17 @@ public final class RequestPrivateStoreSell extends L2GameClientPacket
 		{
 			int objectId = readD();
 			int itemId = readD();
+			int ench = readH();
 			readH(); // TODO analyse this
-			readH(); // TODO analyse this
-			long cnt = readD();
+			int cnt = readD();
 			int price = readD();
 			
-			if (objectId < 1 || itemId < 1 || cnt < 1 || price < 0)
+			if (objectId < 1 || itemId < 1 || cnt < 1 || price < 0 || ench < 0 || ench > 65535)
 			{
 				_items = null;
 				return;
 			}
-			_items[i] = new ItemRequest(objectId, itemId, (int) cnt, price);
+			_items[i] = new ItemRequest(objectId, itemId, cnt, price, ench);
 		}
 	}
 	
@@ -51,20 +51,20 @@ public final class RequestPrivateStoreSell extends L2GameClientPacket
 			return;
 		
 		final Player player = getClient().getPlayer();
-		if (player == null)
+		if (player == null || player.isDead())
 			return;
 		
 		if (player.isCursedWeaponEquipped())
 			return;
 		
 		final Player storePlayer = World.getInstance().getPlayer(_storePlayerId);
-		if (storePlayer == null)
+		if (storePlayer == null || storePlayer.isDead())
 			return;
 		
-		if (!player.isInsideRadius(storePlayer, Npc.INTERACTION_DISTANCE, true, false))
+		if (!player.isIn3DRadius(storePlayer, Npc.INTERACTION_DISTANCE))
 			return;
 		
-		if (storePlayer.getStoreType() != StoreType.BUY)
+		if (storePlayer.getOperateType() != OperateType.BUY)
 			return;
 		
 		final TradeList storeList = storePlayer.getBuyList();
@@ -80,9 +80,9 @@ public final class RequestPrivateStoreSell extends L2GameClientPacket
 		if (!storeList.privateStoreSell(player, _items))
 			return;
 		
-		if (storeList.getItems().isEmpty())
+		if (storeList.isEmpty())
 		{
-			storePlayer.setStoreType(StoreType.NONE);
+			storePlayer.setOperateType(OperateType.NONE);
 			storePlayer.broadcastUserInfo();
 		}
 	}

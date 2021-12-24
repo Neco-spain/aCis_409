@@ -5,6 +5,7 @@ import java.util.StringTokenizer;
 import net.sf.l2j.gameserver.data.manager.CastleManager;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
+import net.sf.l2j.gameserver.model.olympiad.OlympiadManager;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ItemList;
 
@@ -28,22 +29,50 @@ public final class BroadcastingTower extends Folk
 			StringTokenizer st = new StringTokenizer(command);
 			st.nextToken();
 			
-			final int cost = Integer.parseInt(st.nextToken());
 			final int x = Integer.parseInt(st.nextToken());
 			final int y = Integer.parseInt(st.nextToken());
 			final int z = Integer.parseInt(st.nextToken());
+			final int cost = Integer.parseInt(st.nextToken());
 			
-			if (command.startsWith("observeSiege") && CastleManager.getInstance().getActiveSiege(x, y, z) == null)
+			final boolean hasSummon = player.getSummon() != null;
+			
+			if (command.startsWith("observeSiege"))
 			{
-				player.sendPacket(SystemMessageId.ONLY_VIEW_SIEGE);
+				// Summon check. Siege observe type got an appropriate message.
+				if (hasSummon)
+				{
+					player.sendPacket(SystemMessageId.NO_OBSERVE_WITH_PET);
+					return;
+				}
+				
+				// Active siege must exist.
+				if (CastleManager.getInstance().getActiveSiege(x, y, z) == null)
+				{
+					player.sendPacket(SystemMessageId.ONLY_VIEW_SIEGE);
+					return;
+				}
+			}
+			// Summon check for regular observe. No message on retail.
+			else if (hasSummon)
+				return;
+			
+			// Can't observe if under attack stance.
+			if (player.isInCombat())
+			{
+				player.sendPacket(SystemMessageId.CANNOT_OBSERVE_IN_COMBAT);
 				return;
 			}
 			
-			if (player.reduceAdena("Broadcast", cost, this, true))
-			{
-				player.enterObserverMode(x, y, z);
-				player.sendPacket(new ItemList(player, false));
-			}
+			// Olympiad registration check. No message on retail.
+			if (OlympiadManager.getInstance().isRegisteredInComp(player))
+				return;
+			
+			// Adena check.
+			if (!player.reduceAdena("Broadcast", cost, this, true))
+				return;
+			
+			player.enterObserverMode(x, y, z);
+			player.sendPacket(new ItemList(player, false));
 		}
 		else
 			super.onBypassFeedback(player, command);

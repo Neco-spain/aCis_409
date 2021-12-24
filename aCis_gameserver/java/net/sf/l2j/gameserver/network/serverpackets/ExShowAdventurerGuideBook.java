@@ -1,9 +1,5 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
-/**
- * Format: ch (trigger)
- * @author KenM
- */
 public class ExShowAdventurerGuideBook extends L2GameServerPacket
 {
 	public static final ExShowAdventurerGuideBook STATIC_PACKET = new ExShowAdventurerGuideBook();

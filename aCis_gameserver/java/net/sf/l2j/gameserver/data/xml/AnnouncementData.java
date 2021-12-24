@@ -10,10 +10,10 @@ import net.sf.l2j.commons.data.xml.IXmlReader;
 import net.sf.l2j.commons.lang.StringUtil;
 
 import net.sf.l2j.gameserver.data.cache.HtmCache;
+import net.sf.l2j.gameserver.enums.SayType;
 import net.sf.l2j.gameserver.model.Announcement;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.network.clientpackets.Say2;
 import net.sf.l2j.gameserver.network.serverpackets.CreatureSay;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
 
@@ -75,6 +75,9 @@ public class AnnouncementData implements IXmlReader
 		for (Announcement announce : _announcements.values())
 			announce.stopTask();
 		
+		// Clean previous entries.
+		_announcements.clear();
+		
 		load();
 	}
 	
@@ -94,7 +97,7 @@ public class AnnouncementData implements IXmlReader
 				if (announce.isAuto())
 					continue;
 				
-				player.sendPacket(new CreatureSay(0, announce.isCritical() ? Say2.CRITICAL_ANNOUNCE : Say2.ANNOUNCEMENT, player.getName(), announce.getMessage()));
+				player.sendPacket(new CreatureSay(announce.isCritical() ? SayType.CRITICAL_ANNOUNCE : SayType.ANNOUNCEMENT, player.getName(), announce.getMessage()));
 			}
 		}
 	}
@@ -147,8 +150,8 @@ public class AnnouncementData implements IXmlReader
 	 * @param message : The String to announce.
 	 * @param critical : Is it a critical announcement or not.
 	 * @param auto : Is it using a specific task or not.
-	 * @param initialDelay : Initial delay of the task, used only if auto is setted to True.
-	 * @param delay : Delay of the task, used only if auto is setted to True.
+	 * @param initialDelay : Initial delay of the task, used only if auto is set to True.
+	 * @param delay : Delay of the task, used only if auto is set to True.
 	 * @param limit : Maximum amount of loops the task will do before ending.
 	 * @return true if the announcement has been successfully added, false otherwise.
 	 */

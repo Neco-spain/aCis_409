@@ -1,34 +1,55 @@
 package net.sf.l2j.gameserver.scripting;
 
+import java.util.Objects;
 import java.util.concurrent.ScheduledFuture;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
 
 public class QuestTimer
 {
-	protected final Quest _quest;
-	protected final String _name;
-	protected final Npc _npc;
-	protected final Player _player;
-	protected final boolean _isRepeating;
+	private final Quest _quest;
+	private final String _name;
+	private final Npc _npc;
+	private final Player _player;
 	
-	protected ScheduledFuture<?> _schedular;
+	private ScheduledFuture<?> _schedular;
 	
-	public QuestTimer(Quest quest, String name, Npc npc, Player player, long time, boolean repeating)
+	QuestTimer(Quest quest, String name, Npc npc, Player player, long initial, long period)
 	{
 		_quest = quest;
 		_name = name;
 		_npc = npc;
 		_player = player;
-		_isRepeating = repeating;
 		
-		if (repeating)
-			_schedular = ThreadPool.scheduleAtFixedRate(new ScheduleTimerTask(), time, time);
+		if (period > 0)
+			_schedular = ThreadPool.scheduleAtFixedRate(this::runTick, initial, period);
 		else
-			_schedular = ThreadPool.schedule(new ScheduleTimerTask(), time);
+			_schedular = ThreadPool.schedule(this::runOnce, initial);
+	}
+	
+	@Override
+	public int hashCode()
+	{
+		return Objects.hash(_name, _npc, _player, _quest);
+	}
+	
+	@Override
+	public boolean equals(Object obj)
+	{
+		if (this == obj)
+			return true;
+		
+		if (obj == null)
+			return false;
+		
+		if (!(obj instanceof QuestTimer))
+			return false;
+		
+		final QuestTimer other = (QuestTimer) obj;
+		return Objects.equals(_name, other._name) && Objects.equals(_npc, other._npc) && Objects.equals(_player, other._player) && Objects.equals(_quest, other._quest);
 	}
 	
 	@Override
@@ -37,21 +58,48 @@ public class QuestTimer
 		return _name;
 	}
 	
-	protected final class ScheduleTimerTask implements Runnable
+	/**
+	 * @return The name of the {@link QuestTimer}.
+	 */
+	public final String getName()
 	{
-		@Override
-		public void run()
-		{
-			if (_schedular == null)
-				return;
-			
-			if (!_isRepeating)
-				cancel();
-			
-			_quest.notifyEvent(_name, _npc, _player);
-		}
+		return _name;
 	}
 	
+	/**
+	 * @return The {@link Npc} of the {@link QuestTimer}.
+	 */
+	public final Npc getNpc()
+	{
+		return _npc;
+	}
+	
+	/**
+	 * @return The {@link Player} of the {@link QuestTimer}.
+	 */
+	public final Player getPlayer()
+	{
+		return _player;
+	}
+	
+	private void runTick()
+	{
+		// Notify.
+		_quest.notifyTimer(_name, _npc, _player);
+	}
+	
+	private void runOnce()
+	{
+		// Remove it from the Quest first (the timer event may create new timer with same name -> it would be duplicate and skipped).
+		_quest.removeQuestTimer(this);
+		
+		// Notify.
+		_quest.notifyTimer(_name, _npc, _player);
+	}
+	
+	/**
+	 * Cancel the {@link QuestTimer}.
+	 */
 	public final void cancel()
 	{
 		if (_schedular != null)
@@ -61,24 +109,5 @@ public class QuestTimer
 		}
 		
 		_quest.removeQuestTimer(this);
-	}
-	
-	/**
-	 * public method to compare if this timer matches with the key attributes passed.
-	 * @param quest : Quest instance to which the timer is attached
-	 * @param name : Name of the timer
-	 * @param npc : Npc instance attached to the desired timer (null if no npc attached)
-	 * @param player : Player instance attached to the desired timer (null if no player attached)
-	 * @return boolean
-	 */
-	public final boolean equals(Quest quest, String name, Npc npc, Player player)
-	{
-		if (quest == null || quest != _quest)
-			return false;
-		
-		if (name == null || !name.equals(_name))
-			return false;
-		
-		return ((npc == _npc) && (player == _player));
 	}
 }

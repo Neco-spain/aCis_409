@@ -2,55 +2,55 @@ package net.sf.l2j.gameserver.model.actor;
 
 import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.StringTokenizer;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
 import net.sf.l2j.commons.lang.StringUtil;
+import net.sf.l2j.commons.pool.ThreadPool;
 import net.sf.l2j.commons.random.Rnd;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.gameserver.data.ItemTable;
-import net.sf.l2j.gameserver.data.SkillTable;
 import net.sf.l2j.gameserver.data.SkillTable.FrequentSkill;
 import net.sf.l2j.gameserver.data.cache.HtmCache;
+import net.sf.l2j.gameserver.data.manager.CastleManager;
 import net.sf.l2j.gameserver.data.manager.DimensionalRiftManager;
 import net.sf.l2j.gameserver.data.manager.LotteryManager;
 import net.sf.l2j.gameserver.data.sql.ClanTable;
+import net.sf.l2j.gameserver.data.xml.InstantTeleportData;
+import net.sf.l2j.gameserver.data.xml.ItemData;
 import net.sf.l2j.gameserver.data.xml.MultisellData;
-import net.sf.l2j.gameserver.data.xml.NewbieBuffData;
 import net.sf.l2j.gameserver.data.xml.ScriptData;
-import net.sf.l2j.gameserver.enums.IntentionType;
+import net.sf.l2j.gameserver.data.xml.TeleportData;
+import net.sf.l2j.gameserver.enums.SayType;
 import net.sf.l2j.gameserver.enums.ScriptEventType;
+import net.sf.l2j.gameserver.enums.TeleportType;
+import net.sf.l2j.gameserver.enums.actors.NpcAiType;
+import net.sf.l2j.gameserver.enums.actors.NpcRace;
+import net.sf.l2j.gameserver.enums.actors.NpcSkillType;
+import net.sf.l2j.gameserver.enums.actors.NpcTalkCond;
 import net.sf.l2j.gameserver.enums.items.ShotType;
-import net.sf.l2j.gameserver.enums.skills.L2SkillType;
-import net.sf.l2j.gameserver.geoengine.GeoEngine;
 import net.sf.l2j.gameserver.idfactory.IdFactory;
-import net.sf.l2j.gameserver.model.L2Skill;
-import net.sf.l2j.gameserver.model.NewbieBuff;
 import net.sf.l2j.gameserver.model.WorldObject;
-import net.sf.l2j.gameserver.model.actor.instance.Merchant;
-import net.sf.l2j.gameserver.model.actor.instance.Monster;
-import net.sf.l2j.gameserver.model.actor.stat.NpcStat;
 import net.sf.l2j.gameserver.model.actor.status.NpcStatus;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
-import net.sf.l2j.gameserver.model.actor.template.NpcTemplate.AIType;
-import net.sf.l2j.gameserver.model.actor.template.NpcTemplate.Race;
-import net.sf.l2j.gameserver.model.actor.template.NpcTemplate.SkillType;
+import net.sf.l2j.gameserver.model.clanhall.ClanHall;
+import net.sf.l2j.gameserver.model.clanhall.SiegableHall;
 import net.sf.l2j.gameserver.model.entity.Castle;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.item.kind.Item;
 import net.sf.l2j.gameserver.model.item.kind.Weapon;
+import net.sf.l2j.gameserver.model.location.Location;
+import net.sf.l2j.gameserver.model.location.Teleport;
 import net.sf.l2j.gameserver.model.pledge.Clan;
-import net.sf.l2j.gameserver.model.spawn.L2Spawn;
+import net.sf.l2j.gameserver.model.spawn.Spawn;
+import net.sf.l2j.gameserver.network.NpcStringId;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.clientpackets.Say2;
 import net.sf.l2j.gameserver.network.serverpackets.AbstractNpcInfo.NpcInfo;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
+import net.sf.l2j.gameserver.network.serverpackets.ExShowScreenMessage;
 import net.sf.l2j.gameserver.network.serverpackets.ExShowVariationCancelWindow;
 import net.sf.l2j.gameserver.network.serverpackets.ExShowVariationMakeWindow;
 import net.sf.l2j.gameserver.network.serverpackets.MagicSkillUse;
-import net.sf.l2j.gameserver.network.serverpackets.MoveToPawn;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
 import net.sf.l2j.gameserver.network.serverpackets.NpcSay;
 import net.sf.l2j.gameserver.network.serverpackets.ServerObjectInfo;
@@ -58,6 +58,7 @@ import net.sf.l2j.gameserver.network.serverpackets.SocialAction;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.scripting.Quest;
 import net.sf.l2j.gameserver.scripting.QuestState;
+import net.sf.l2j.gameserver.skills.L2Skill;
 import net.sf.l2j.gameserver.taskmanager.DecayTaskManager;
 import net.sf.l2j.gameserver.taskmanager.RandomAnimationTaskManager;
 
@@ -69,9 +70,9 @@ public class Npc extends Creature
 	public static final int INTERACTION_DISTANCE = 150;
 	private static final int SOCIAL_INTERVAL = 12000;
 	
-	private L2Spawn _spawn;
+	private Spawn _spawn;
 	
-	volatile boolean _isDecayed = false;
+	private volatile boolean _isDecayed;
 	
 	private long _lastSocialBroadcast = 0;
 	
@@ -89,15 +90,19 @@ public class Npc extends Creature
 	private int _scriptValue = 0;
 	
 	private Castle _castle;
+	private final ClanHall _clanHall;
+	private final SiegableHall _siegableHall;
+	
+	private boolean _isCoreAiDisabled;
 	
 	public Npc(int objectId, NpcTemplate template)
 	{
 		super(objectId, template);
 		
-		for (L2Skill skill : template.getSkills(SkillType.PASSIVE))
+		for (final L2Skill skill : template.getSkills(NpcSkillType.PASSIVE))
 			addStatFuncs(skill.getStatFuncs(this));
 		
-		initCharStatusUpdateValues();
+		getStatus().initializeValues();
 		
 		// initialize the "current" equipment
 		_leftHandItemId = template.getLeftHand();
@@ -114,30 +119,20 @@ public class Npc extends Creature
 		setTitle(template.getTitle());
 		
 		_castle = template.getCastle();
+		_clanHall = template.getClanHall();
+		_siegableHall = template.getSiegableHall();
 	}
 	
 	@Override
-	public void initCharStat()
+	public NpcStatus<? extends Npc> getStatus()
 	{
-		setStat(new NpcStat(this));
+		return (NpcStatus<?>) _status;
 	}
 	
 	@Override
-	public NpcStat getStat()
+	public void setStatus()
 	{
-		return (NpcStat) super.getStat();
-	}
-	
-	@Override
-	public void initCharStatus()
-	{
-		setStatus(new NpcStatus(this));
-	}
-	
-	@Override
-	public NpcStatus getStatus()
-	{
-		return (NpcStatus) super.getStatus();
+		_status = new NpcStatus<>(this);
 	}
 	
 	@Override
@@ -147,33 +142,25 @@ public class Npc extends Creature
 	}
 	
 	@Override
-	public boolean isAttackable()
+	public void setWalkOrRun(boolean value)
 	{
-		return true;
-	}
-	
-	@Override
-	public final int getLevel()
-	{
-		return getTemplate().getLevel();
+		super.setWalkOrRun(value);
+		
+		for (final Player player : getKnownType(Player.class))
+			sendInfo(player);
 	}
 	
 	@Override
 	public boolean isUndead()
 	{
-		return getTemplate().getRace() == Race.UNDEAD;
+		return getTemplate().getRace() == NpcRace.UNDEAD;
 	}
 	
 	@Override
 	public void updateAbnormalEffect()
 	{
-		for (Player player : getKnownType(Player.class))
-		{
-			if (getMoveSpeed() == 0)
-				player.sendPacket(new ServerObjectInfo(this, player));
-			else
-				player.sendPacket(new NpcInfo(this, player));
-		}
+		for (final Player player : getKnownType(Player.class))
+			sendInfo(player);
 	}
 	
 	@Override
@@ -183,132 +170,39 @@ public class Npc extends Creature
 	}
 	
 	@Override
-	public boolean isAutoAttackable(Creature attacker)
+	public void onInteract(Player player)
 	{
-		return false;
-	}
-	
-	@Override
-	public void onAction(Player player)
-	{
-		// Set the target of the player
-		if (player.getTarget() != this)
-			player.setTarget(this);
-		else
-		{
-			// Check if the player is attackable (without a forced attack).
-			if (isAutoAttackable(player))
-				player.getAI().setIntention(IntentionType.ATTACK, this);
-			else
-			{
-				// Calculate the distance between the Player and this instance.
-				if (!canInteract(player))
-					player.getAI().setIntention(IntentionType.INTERACT, this);
-				else
-				{
-					// Stop moving if we're already in interact range.
-					if (player.isMoving() || player.isInCombat())
-						player.getAI().setIntention(IntentionType.IDLE);
-					
-					// Rotate the player to face the instance
-					player.sendPacket(new MoveToPawn(player, this, Npc.INTERACTION_DISTANCE));
-					
-					// Send ActionFailed to the player in order to avoid he stucks
-					player.sendPacket(ActionFailed.STATIC_PACKET);
-					
-					if (hasRandomAnimation())
-						onRandomAnimation(Rnd.get(8));
-					
-					List<Quest> scripts = getTemplate().getEventQuests(ScriptEventType.QUEST_START);
-					if (scripts != null && !scripts.isEmpty())
-						player.setLastQuestNpcObject(getObjectId());
-					
-					scripts = getTemplate().getEventQuests(ScriptEventType.ON_FIRST_TALK);
-					if (scripts != null && scripts.size() == 1)
-						scripts.get(0).notifyFirstTalk(this, player);
-					else
-						showChatWindow(player);
-				}
-			}
-		}
-	}
-	
-	@Override
-	public void onActionShift(Player player)
-	{
-		// Check if the Player is a GM ; send him NPC infos if true.
-		if (player.isGM())
-			sendNpcInfos(player);
+		if (hasRandomAnimation())
+			onRandomAnimation(Rnd.get(8));
 		
-		if (player.getTarget() != this)
-			player.setTarget(this);
+		player.getQuestList().setLastQuestNpcObjectId(getObjectId());
+		
+		List<Quest> scripts = getTemplate().getEventQuests(ScriptEventType.ON_FIRST_TALK);
+		if (scripts.size() == 1)
+			scripts.get(0).notifyFirstTalk(this, player);
 		else
-		{
-			if (isAutoAttackable(player))
-			{
-				if (player.isInsideRadius(this, player.getPhysicalAttackRange(), false, false) && GeoEngine.getInstance().canSeeTarget(player, this))
-					player.getAI().setIntention(IntentionType.ATTACK, this);
-				else
-					player.sendPacket(ActionFailed.STATIC_PACKET);
-			}
-			else if (canInteract(player))
-			{
-				// Rotate the player to face the instance
-				player.sendPacket(new MoveToPawn(player, this, Npc.INTERACTION_DISTANCE));
-				
-				// Send ActionFailed to the player in order to avoid he stucks
-				player.sendPacket(ActionFailed.STATIC_PACKET);
-				
-				if (hasRandomAnimation())
-					onRandomAnimation(Rnd.get(8));
-				
-				List<Quest> scripts = getTemplate().getEventQuests(ScriptEventType.QUEST_START);
-				if (scripts != null && !scripts.isEmpty())
-					player.setLastQuestNpcObject(getObjectId());
-				
-				scripts = getTemplate().getEventQuests(ScriptEventType.ON_FIRST_TALK);
-				if (scripts != null && scripts.size() == 1)
-					scripts.get(0).notifyFirstTalk(this, player);
-				else
-					showChatWindow(player);
-			}
-			else
-				player.sendPacket(ActionFailed.STATIC_PACKET);
-		}
+			showChatWindow(player);
 	}
 	
 	@Override
-	protected final void notifyQuestEventSkillFinished(L2Skill skill, WorldObject target)
+	public final void notifyQuestEventSkillFinished(L2Skill skill, WorldObject target)
 	{
-		final List<Quest> scripts = getTemplate().getEventQuests(ScriptEventType.ON_SPELL_FINISHED);
-		if (scripts != null)
-		{
-			final Player player = (target == null) ? null : target.getActingPlayer();
-			
-			for (Quest quest : scripts)
-				quest.notifySpellFinished(this, player, skill);
-		}
+		final Player player = (target == null) ? null : target.getActingPlayer();
+		
+		for (Quest quest : getTemplate().getEventQuests(ScriptEventType.ON_SPELL_FINISHED))
+			quest.notifySpellFinished(this, player, skill);
 	}
 	
 	@Override
 	public boolean isMovementDisabled()
 	{
-		return super.isMovementDisabled() || !getTemplate().canMove() || getTemplate().getAiType().equals(AIType.CORPSE);
+		return super.isMovementDisabled() || !getTemplate().canMove() || getTemplate().getAiType() == NpcAiType.CORPSE;
 	}
 	
 	@Override
-	public boolean isCoreAIDisabled()
+	public void sendInfo(Player player)
 	{
-		return super.isCoreAIDisabled() || getTemplate().getAiType().equals(AIType.CORPSE);
-	}
-	
-	@Override
-	public void sendInfo(Player activeChar)
-	{
-		if (getMoveSpeed() == 0)
-			activeChar.sendPacket(new ServerObjectInfo(this, activeChar));
-		else
-			activeChar.sendPacket(new NpcInfo(this, activeChar));
+		player.sendPacket((getStatus().getMoveSpeed() == 0) ? new ServerObjectInfo(this, player) : new NpcInfo(this, player));
 	}
 	
 	@Override
@@ -331,26 +225,26 @@ public class Npc extends Creature
 	{
 		if (physical)
 		{
-			if (_currentSsCount <= 0)
+			// No more ss for this instance, already charged or the activation chance didn't trigger.
+			if (_currentSsCount <= 0 || isChargedShot(ShotType.SOULSHOT) || Rnd.get(100) > getTemplate().getSsRate())
 				return;
 			
-			if (Rnd.get(100) > getTemplate().getSsRate())
-				return;
-			
+			// Reduce the amount of ss for this instance.
 			_currentSsCount--;
+			
 			broadcastPacketInRadius(new MagicSkillUse(this, this, 2154, 1, 0, 0), 600);
 			setChargedShot(ShotType.SOULSHOT, true);
 		}
 		
 		if (magic)
 		{
-			if (_currentSpsCount <= 0)
+			// No more sps for this instance, already charged or the activation chance didn't trigger.
+			if (_currentSpsCount <= 0 || isChargedShot(ShotType.SPIRITSHOT) || Rnd.get(100) > getTemplate().getSpsRate())
 				return;
 			
-			if (Rnd.get(100) > getTemplate().getSpsRate())
-				return;
-			
+			// Reduce the amount of sps for this instance.
 			_currentSpsCount--;
+			
 			broadcastPacketInRadius(new MagicSkillUse(this, this, 2061, 1, 0, 0), 600);
 			setChargedShot(ShotType.SPIRITSHOT, true);
 		}
@@ -359,9 +253,9 @@ public class Npc extends Creature
 	@Override
 	public int getSkillLevel(int skillId)
 	{
-		for (List<L2Skill> list : getTemplate().getSkills().values())
+		for (final List<L2Skill> list : getTemplate().getSkills().values())
 		{
-			for (L2Skill skill : list)
+			for (final L2Skill skill : list)
 				if (skill.getId() == skillId)
 					return skill.getLevel();
 		}
@@ -371,9 +265,9 @@ public class Npc extends Creature
 	@Override
 	public L2Skill getSkill(int skillId)
 	{
-		for (List<L2Skill> list : getTemplate().getSkills().values())
+		for (final List<L2Skill> list : getTemplate().getSkills().values())
 		{
-			for (L2Skill skill : list)
+			for (final L2Skill skill : list)
 				if (skill.getId() == skillId)
 					return skill;
 		}
@@ -393,7 +287,7 @@ public class Npc extends Creature
 		if (weaponId <= 0)
 			return null;
 		
-		final Item item = ItemTable.getInstance().getTemplate(weaponId);
+		final Item item = ItemData.getInstance().getTemplate(weaponId);
 		if (!(item instanceof Weapon))
 			return null;
 		
@@ -413,7 +307,21 @@ public class Npc extends Creature
 		if (itemId <= 0)
 			return null;
 		
-		return ItemTable.getInstance().getTemplate(itemId);
+		return ItemData.getInstance().getTemplate(itemId);
+	}
+	
+	@Override
+	public void reduceCurrentHp(double damage, Creature attacker, boolean awake, boolean isDOT, L2Skill skill)
+	{
+		// Test the ON_ATTACK ScriptEventType.
+		if (attacker != null && !isDead())
+		{
+			for (Quest quest : getTemplate().getEventQuests(ScriptEventType.ON_ATTACK))
+				quest.notifyAttack(this, attacker, (int) damage, skill);
+		}
+		
+		// Reduce the current HP of the Attackable and launch the doDie Task if necessary
+		super.reduceCurrentHp(damage, attacker, awake, isDOT, skill);
 	}
 	
 	@Override
@@ -443,10 +351,8 @@ public class Npc extends Creature
 		_currentSsCount = getTemplate().getSsCount();
 		_currentSpsCount = getTemplate().getSpsCount();
 		
-		final List<Quest> scripts = getTemplate().getEventQuests(ScriptEventType.ON_SPAWN);
-		if (scripts != null)
-			for (Quest quest : scripts)
-				quest.notifySpawn(this);
+		for (Quest quest : getTemplate().getEventQuests(ScriptEventType.ON_SPAWN))
+			quest.notifySpawn(this);
 	}
 	
 	@Override
@@ -457,11 +363,9 @@ public class Npc extends Creature
 		
 		setDecayed(true);
 		
-		final List<Quest> scripts = getTemplate().getEventQuests(ScriptEventType.ON_DECAY);
-		if (scripts != null)
-			for (Quest quest : scripts)
-				quest.notifyDecay(this);
-			
+		for (Quest quest : getTemplate().getEventQuests(ScriptEventType.ON_DECAY))
+			quest.notifyDecay(this);
+		
 		// Remove the Npc from the world when the decay task is launched.
 		super.onDecay();
 		
@@ -475,6 +379,9 @@ public class Npc extends Creature
 	{
 		// Decay
 		onDecay();
+		
+		DecayTaskManager.getInstance().cancel(this);
+		stopAllEffects();
 		
 		super.deleteMe();
 	}
@@ -494,22 +401,38 @@ public class Npc extends Creature
 	@Override
 	public String toString()
 	{
-		return getName() + " - " + getNpcId() + " (" + getObjectId() + ")";
+		return getName() + " [npcId=" + getNpcId() + " objId=" + getObjectId() + "]";
+	}
+	
+	@Override
+	public boolean isAttackingDisabled()
+	{
+		return super.isAttackingDisabled() || isCoreAiDisabled();
+	}
+	
+	public int getCurrentSsCount()
+	{
+		return _currentSsCount;
+	}
+	
+	public int getCurrentSpsCount()
+	{
+		return _currentSpsCount;
 	}
 	
 	/**
-	 * @return the {@link L2Spawn} associated to this {@link Npc}.
+	 * @return the {@link Spawn} associated to this {@link Npc}.
 	 */
-	public L2Spawn getSpawn()
+	public Spawn getSpawn()
 	{
 		return _spawn;
 	}
 	
 	/**
-	 * Set the {@link L2Spawn} of this {@link Npc}.
-	 * @param spawn : The L2Spawn to set.
+	 * Set the {@link Spawn} of this {@link Npc}.
+	 * @param spawn : The Spawn to set.
 	 */
-	public void setSpawn(L2Spawn spawn)
+	public void setSpawn(Spawn spawn)
 	{
 		_spawn = spawn;
 	}
@@ -575,15 +498,15 @@ public class Npc extends Creature
 	}
 	
 	/**
-	 * @return true if {@link Config} allows Random Animation, false if not or if the {@link AIType} is a corpse.
+	 * @return True if this {@link Npc} allows Random Animation, false if not or if the {@link NpcAiType} is a corpse.
 	 */
 	public boolean hasRandomAnimation()
 	{
-		return (Config.MAX_NPC_ANIMATION > 0 && !getTemplate().getAiType().equals(AIType.CORPSE));
+		return Config.MAX_NPC_ANIMATION > 0 && getTemplate().getAiType() != NpcAiType.CORPSE;
 	}
 	
 	/**
-	 * @return the id of this {@link Npc} contained in the {@link NpcTemplate}.
+	 * @return The id of this {@link Npc} contained in its {@link NpcTemplate}.
 	 */
 	public int getNpcId()
 	{
@@ -591,7 +514,7 @@ public class Npc extends Creature
 	}
 	
 	/**
-	 * @return true if this {@link Npc} is agressive.
+	 * @return True if this {@link Npc} is agressive.
 	 */
 	public boolean isAggressive()
 	{
@@ -599,29 +522,37 @@ public class Npc extends Creature
 	}
 	
 	/**
-	 * @return the id of the item in the left hand of this {@link Npc}.
+	 * @return The id of the item in the left hand of this {@link Npc}.
 	 */
 	public int getLeftHandItemId()
 	{
 		return _leftHandItemId;
 	}
 	
+	/**
+	 * Set the id of the item in the left hand of this {@link Npc}.
+	 * @param itemId : The itemId to set.
+	 */
 	public void setLeftHandItemId(int itemId)
 	{
 		_leftHandItemId = itemId;
 	}
 	
 	/**
-	 * @return the id of the item in the right hand of this {@link Npc}.
+	 * @return The id of the item in the right hand of this {@link Npc}.
 	 */
 	public int getRightHandItemId()
 	{
 		return _rightHandItemId;
 	}
 	
-	public void setRightHandItemId(int id)
+	/**
+	 * Set the id of the item in the right hand of this {@link Npc}.
+	 * @param itemId : The itemId to set.
+	 */
+	public void setRightHandItemId(int itemId)
 	{
-		_rightHandItemId = id;
+		_rightHandItemId = itemId;
 	}
 	
 	public int getEnchantEffect()
@@ -660,7 +591,7 @@ public class Npc extends Creature
 	}
 	
 	/**
-	 * @return true if this {@link Npc} can be a warehouse manager.
+	 * @return True if this {@link Npc} can be a warehouse manager, false otherwise.
 	 */
 	public boolean isWarehouse()
 	{
@@ -668,7 +599,7 @@ public class Npc extends Creature
 	}
 	
 	/**
-	 * @return the {@link Castle} this {@link Npc} belongs to.
+	 * @return The {@link Castle} this {@link Npc} belongs to.
 	 */
 	public final Castle getCastle()
 	{
@@ -681,7 +612,61 @@ public class Npc extends Creature
 	}
 	
 	/**
-	 * @return the Exp reward of this {@link Npc} based on its {@link NpcTemplate} and modified by {@link Config#RATE_XP}.
+	 * @return The {@link ClanHall} this {@link Npc} belongs to.
+	 */
+	public final ClanHall getClanHall()
+	{
+		return _clanHall;
+	}
+	
+	/**
+	 * @return The {@link SiegableHall} this {@link Npc} belongs to.
+	 */
+	public final SiegableHall getSiegableHall()
+	{
+		return _siegableHall;
+	}
+	
+	/**
+	 * @param player : The {@link Player} used as reference.
+	 * @return True if the {@link Player} set as parameter is the clan leader owning this {@link Npc} (being a {@link Castle}, {@link ClanHall} or {@link SiegableHall}).
+	 */
+	public boolean isLordOwner(Player player)
+	{
+		// The player isn't a Clan leader, return.
+		if (!player.isClanLeader())
+			return false;
+		
+		// Test Castle ownership.
+		if (_castle != null && _castle.getOwnerId() == player.getClanId())
+			return true;
+		
+		// Test ClanHall / SiegableHall ownership.
+		if (_clanHall != null && _clanHall.getOwnerId() == player.getClanId())
+			return true;
+		
+		return false;
+	}
+	
+	/**
+	 * @return True if this {@link Npc} got its regular AI behavior disabled.
+	 */
+	public boolean isCoreAiDisabled()
+	{
+		return _isCoreAiDisabled || getTemplate().getAiType() == NpcAiType.CORPSE;
+	}
+	
+	/**
+	 * Toggle on/off the regular AI behavior of this {@link Npc}.
+	 * @param value : The value to set.
+	 */
+	public void disableCoreAi(boolean value)
+	{
+		_isCoreAiDisabled = value;
+	}
+	
+	/**
+	 * @return The Exp reward of this {@link Npc} based on its {@link NpcTemplate} and modified by {@link Config#RATE_XP}.
 	 */
 	public int getExpReward()
 	{
@@ -689,100 +674,17 @@ public class Npc extends Creature
 	}
 	
 	/**
-	 * @return the SP reward of this {@link Npc} based on its {@link NpcTemplate} and modified by {@link Config#RATE_SP}.
+	 * @return The SP reward of this {@link Npc} based on its {@link NpcTemplate} and modified by {@link Config#RATE_SP}.
 	 */
 	public int getSpReward()
 	{
 		return (int) (getTemplate().getRewardSp() * Config.RATE_SP);
 	}
 	
-	protected void sendNpcInfos(Player player)
-	{
-		final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
-		html.setFile("data/html/admin/npcinfo.htm");
-		html.replace("%class%", getClass().getSimpleName());
-		html.replace("%id%", getTemplate().getNpcId());
-		html.replace("%lvl%", getTemplate().getLevel());
-		html.replace("%name%", getName());
-		html.replace("%race%", getTemplate().getRace().toString());
-		html.replace("%tmplid%", getTemplate().getIdTemplate());
-		html.replace("%script%", getScriptValue());
-		html.replace("%castle%", (getCastle() != null) ? getCastle().getName() : "none");
-		html.replace("%aggro%", getTemplate().getAggroRange());
-		html.replace("%corpse%", StringUtil.getTimeStamp(getTemplate().getCorpseTime()));
-		html.replace("%enchant%", getTemplate().getEnchantEffect());
-		html.replace("%hp%", (int) getCurrentHp());
-		html.replace("%hpmax%", getMaxHp());
-		html.replace("%mp%", (int) getCurrentMp());
-		html.replace("%mpmax%", getMaxMp());
-		html.replace("%patk%", getPAtk(null));
-		html.replace("%matk%", getMAtk(null, null));
-		html.replace("%pdef%", getPDef(null));
-		html.replace("%mdef%", getMDef(null, null));
-		html.replace("%accu%", getAccuracy());
-		html.replace("%evas%", getEvasionRate(null));
-		html.replace("%crit%", getCriticalHit(null, null));
-		html.replace("%rspd%", getMoveSpeed());
-		html.replace("%aspd%", getPAtkSpd());
-		html.replace("%cspd%", getMAtkSpd());
-		html.replace("%str%", getSTR());
-		html.replace("%dex%", getDEX());
-		html.replace("%con%", getCON());
-		html.replace("%int%", getINT());
-		html.replace("%wit%", getWIT());
-		html.replace("%men%", getMEN());
-		html.replace("%loc%", getX() + " " + getY() + " " + getZ());
-		html.replace("%dist%", (int) Math.sqrt(player.getDistanceSq(this)));
-		html.replace("%ele_fire%", getDefenseElementValue((byte) 2));
-		html.replace("%ele_water%", getDefenseElementValue((byte) 3));
-		html.replace("%ele_wind%", getDefenseElementValue((byte) 1));
-		html.replace("%ele_earth%", getDefenseElementValue((byte) 4));
-		html.replace("%ele_holy%", getDefenseElementValue((byte) 5));
-		html.replace("%ele_dark%", getDefenseElementValue((byte) 6));
-		
-		if (getSpawn() != null)
-		{
-			html.replace("%spawn%", getSpawn().getLoc().toString());
-			html.replace("%loc2d%", (int) Math.sqrt(getPlanDistanceSq(getSpawn().getLocX(), getSpawn().getLocY())));
-			html.replace("%loc3d%", (int) Math.sqrt(getDistanceSq(getSpawn().getLocX(), getSpawn().getLocY(), getSpawn().getLocZ())));
-			html.replace("%resp%", StringUtil.getTimeStamp(getSpawn().getRespawnDelay()));
-			html.replace("%rand_resp%", StringUtil.getTimeStamp(getSpawn().getRespawnRandom()));
-		}
-		else
-		{
-			html.replace("%spawn%", "<font color=FF0000>null</font>");
-			html.replace("%loc2d%", "<font color=FF0000>--</font>");
-			html.replace("%loc3d%", "<font color=FF0000>--</font>");
-			html.replace("%resp%", "<font color=FF0000>--</font>");
-			html.replace("%rand_resp%", "<font color=FF0000>--</font>");
-		}
-		
-		if (hasAI())
-		{
-			html.replace("%ai_intention%", "<font color=\"LEVEL\">Intention</font><table width=\"100%\"><tr><td><font color=\"LEVEL\">Intention:</font></td><td>" + getAI().getDesire().getIntention().name() + "</td></tr>");
-			html.replace("%ai%", "<tr><td><font color=\"LEVEL\">AI:</font></td><td>" + getAI().getClass().getSimpleName() + "</td></tr></table><br>");
-		}
-		else
-		{
-			html.replace("%ai_intention%", "");
-			html.replace("%ai%", "");
-		}
-		
-		html.replace("%ai_type%", getTemplate().getAiType().name());
-		html.replace("%ai_clan%", (getTemplate().getClans() != null) ? "<tr><td width=100><font color=\"LEVEL\">Clan:</font></td><td align=right width=170>" + Arrays.toString(getTemplate().getClans()) + " " + getTemplate().getClanRange() + "</td></tr>" + ((getTemplate().getIgnoredIds() != null) ? "<tr><td width=100><font color=\"LEVEL\">Ignored ids:</font></td><td align=right width=170>" + Arrays.toString(getTemplate().getIgnoredIds()) + "</td></tr>" : "") : "");
-		html.replace("%ai_move%", String.valueOf(getTemplate().canMove()));
-		html.replace("%ai_seed%", String.valueOf(getTemplate().isSeedable()));
-		html.replace("%ai_ssinfo%", _currentSsCount + "[" + getTemplate().getSsCount() + "] - " + getTemplate().getSsRate() + "%");
-		html.replace("%ai_spsinfo%", _currentSpsCount + "[" + getTemplate().getSpsCount() + "] - " + getTemplate().getSpsRate() + "%");
-		html.replace("%shop%", ((this instanceof Merchant) ? "<button value=\"Shop\" action=\"bypass -h admin_show_shop " + getNpcId() + "\" width=65 height=19 back=\"L2UI_ch3.smallbutton2_over\" fore=\"L2UI_ch3.smallbutton2\">" : ""));
-		html.replace("%minion%", ((this instanceof Monster && (((Monster) this).getMaster() != null || ((Monster) this).hasMinions())) ? "<button value=\"Minions\" action=\"bypass -h admin_show_minion\" width=65 height=19 back=\"L2UI_ch3.smallbutton2_over\" fore=\"L2UI_ch3.smallbutton2\">" : ""));
-		player.sendPacket(html);
-	}
-	
 	/**
-	 * Open a quest or chat window on client with the text of this {@link Npc} in function of the command.
-	 * @param player :The player to test.
-	 * @param command : The String received from client, used as command bypass.
+	 * Open a quest or chat window for a {@link Player} with the text of this {@link Npc} based of the {@link String} set as parameter.
+	 * @param player : The {@link Player} to test.
+	 * @param command : The {@link String} used as command bypass received from client.
 	 */
 	public void onBypassFeedback(Player player, String command)
 	{
@@ -793,7 +695,7 @@ public class Npc extends Creature
 			if (getCastle().getOwnerId() > 0)
 			{
 				html.setFile("data/html/territorystatus.htm");
-				Clan clan = ClanTable.getInstance().getClan(getCastle().getOwnerId());
+				final Clan clan = ClanTable.getInstance().getClan(getCastle().getOwnerId());
 				html.replace("%clanname%", clan.getName());
 				html.replace("%clanleadername%", clan.getLeaderName());
 			}
@@ -818,7 +720,7 @@ public class Npc extends Creature
 			{
 				quest = command.substring(5).trim();
 			}
-			catch (IndexOutOfBoundsException ioobe)
+			catch (final IndexOutOfBoundsException ioobe)
 			{
 			}
 			
@@ -834,10 +736,10 @@ public class Npc extends Creature
 			{
 				val = Integer.parseInt(command.substring(5));
 			}
-			catch (IndexOutOfBoundsException ioobe)
+			catch (final IndexOutOfBoundsException ioobe)
 			{
 			}
-			catch (NumberFormatException nfe)
+			catch (final NumberFormatException nfe)
 			{
 			}
 			
@@ -845,7 +747,7 @@ public class Npc extends Creature
 		}
 		else if (command.startsWith("Link"))
 		{
-			String path = command.substring(5).trim();
+			final String path = command.substring(5).trim();
 			if (path.indexOf("..") != -1)
 				return;
 			
@@ -861,10 +763,10 @@ public class Npc extends Creature
 			{
 				val = Integer.parseInt(command.substring(5));
 			}
-			catch (IndexOutOfBoundsException ioobe)
+			catch (final IndexOutOfBoundsException ioobe)
 			{
 			}
-			catch (NumberFormatException nfe)
+			catch (final NumberFormatException nfe)
 			{
 			}
 			
@@ -891,66 +793,8 @@ public class Npc extends Creature
 			if (player.reduceAdena("RestoreCP", 100, player.getCurrentFolk(), true))
 			{
 				setTarget(player);
-				doCast(FrequentSkill.ARENA_CP_RECOVERY.getSkill());
+				getAI().tryToCast(player, FrequentSkill.ARENA_CP_RECOVERY.getSkill());
 				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_CP_WILL_BE_RESTORED).addCharName(player));
-			}
-		}
-		else if (command.startsWith("SupportMagic"))
-		{
-			// Prevent a cursed weapon wielder of being buffed.
-			if (player.isCursedWeaponEquipped())
-				return;
-			
-			int playerLevel = player.getLevel();
-			int lowestLevel = 0;
-			int higestLevel = 0;
-			
-			// Select the player.
-			setTarget(player);
-			
-			// Calculate the min and max level between which the player must be to obtain buff.
-			if (player.isMageClass())
-			{
-				lowestLevel = NewbieBuffData.getInstance().getMagicLowestLevel();
-				higestLevel = NewbieBuffData.getInstance().getMagicHighestLevel();
-			}
-			else
-			{
-				lowestLevel = NewbieBuffData.getInstance().getPhysicLowestLevel();
-				higestLevel = NewbieBuffData.getInstance().getPhysicHighestLevel();
-			}
-			
-			// If the player is too high level, display a message and return.
-			if (playerLevel > higestLevel || !player.isNewbie())
-			{
-				final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
-				html.setHtml("<html><body>Newbie Guide:<br>Only a <font color=\"LEVEL\">novice character of level " + higestLevel + " or less</font> can receive my support magic.<br>Your novice character is the first one that you created and raised in this world.</body></html>");
-				html.replace("%objectId%", getObjectId());
-				player.sendPacket(html);
-				return;
-			}
-			
-			// If the player is too low level, display a message and return.
-			if (playerLevel < lowestLevel)
-			{
-				final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
-				html.setHtml("<html><body>Come back here when you have reached level " + lowestLevel + ". I will give you support magic then.</body></html>");
-				html.replace("%objectId%", getObjectId());
-				player.sendPacket(html);
-				return;
-			}
-			
-			// Go through the NewbieBuff List and cast skills.
-			for (NewbieBuff buff : NewbieBuffData.getInstance().getBuffs())
-			{
-				if (buff.isMagicClassBuff() == player.isMageClass() && playerLevel >= buff.getLowerLevel() && playerLevel <= buff.getUpperLevel())
-				{
-					final L2Skill skill = SkillTable.getInstance().getInfo(buff.getSkillId(), buff.getSkillLevel());
-					if (skill.getSkillType() == L2SkillType.SUMMON)
-						player.doCast(skill);
-					else
-						doCast(skill);
-				}
 			}
 		}
 		else if (command.startsWith("multisell"))
@@ -963,7 +807,7 @@ public class Npc extends Creature
 		}
 		else if (command.startsWith("Augment"))
 		{
-			int cmdChoice = Integer.parseInt(command.substring(8, 9).trim());
+			final int cmdChoice = Integer.parseInt(command.substring(8, 9).trim());
 			switch (cmdChoice)
 			{
 				case 1:
@@ -980,13 +824,118 @@ public class Npc extends Creature
 		{
 			try
 			{
-				Byte b1 = Byte.parseByte(command.substring(10)); // Selected Area: Recruit, Soldier etc
+				final Byte b1 = Byte.parseByte(command.substring(10)); // Selected Area: Recruit, Soldier etc
 				DimensionalRiftManager.getInstance().start(player, b1, this);
 			}
-			catch (Exception e)
+			catch (final Exception e)
 			{
 			}
 		}
+		else if (command.equals("teleport_request"))
+		{
+			TeleportData.getInstance().showTeleportList(player, this, TeleportType.STANDARD);
+		}
+		else if (command.startsWith("teleport"))
+		{
+			try
+			{
+				final StringTokenizer st = new StringTokenizer(command, " ");
+				st.nextToken();
+				
+				teleport(player, Integer.parseInt(st.nextToken()));
+			}
+			catch (final Exception e)
+			{
+				player.sendPacket(ActionFailed.STATIC_PACKET);
+			}
+		}
+		else if (command.startsWith("instant_teleport"))
+		{
+			try
+			{
+				final StringTokenizer st = new StringTokenizer(command, " ");
+				st.nextToken();
+				
+				instantTeleport(player, Integer.parseInt(st.nextToken()));
+			}
+			catch (final Exception e)
+			{
+				player.sendPacket(ActionFailed.STATIC_PACKET);
+			}
+		}
+	}
+	
+	/**
+	 * @param player : The {@link Player} to test.
+	 * @return True if the teleport is possible, false otherwise.
+	 */
+	protected boolean isTeleportAllowed(Player player)
+	{
+		return true;
+	}
+	
+	/**
+	 * Teleport the {@link Player} into the {@link Npc}'s instant teleports {@link List} index.<br>
+	 * <br>
+	 * The only check is {@link #isTeleportAllowed(Player)}.
+	 * @param player : The {@link Player} to test.
+	 * @param index : The {@link Location} index information to retrieve from this {@link Npc}'s instant teleports {@link List}.
+	 */
+	protected void instantTeleport(Player player, int index)
+	{
+		if (!isTeleportAllowed(player))
+			return;
+		
+		final List<Location> teleports = InstantTeleportData.getInstance().getTeleports(getNpcId());
+		if (teleports == null || index > teleports.size())
+			return;
+		
+		final Location teleport = teleports.get(index);
+		if (teleport == null)
+			return;
+		
+		player.teleportTo(teleport, 20);
+	}
+	
+	/**
+	 * Teleport the {@link Player} into the {@link Npc}'s {@link Teleport}s {@link List} index.<br>
+	 * <br>
+	 * Following checks are done : {@link #isTeleportAllowed(Player)}, castle siege, price.
+	 * @param player : The {@link Player} to test.
+	 * @param index : The {@link Teleport} index information to retrieve from this {@link Npc}'s instant teleports {@link List}.
+	 */
+	protected void teleport(Player player, int index)
+	{
+		if (!isTeleportAllowed(player))
+			return;
+		
+		final List<Teleport> teleports = TeleportData.getInstance().getTeleports(getNpcId());
+		if (teleports == null || index > teleports.size())
+			return;
+		
+		final Teleport teleport = teleports.get(index);
+		if (teleport == null)
+			return;
+		
+		if (teleport.getCastleId() > 0)
+		{
+			final Castle castle = CastleManager.getInstance().getCastleById(teleport.getCastleId());
+			if (castle != null && castle.getSiege().isInProgress())
+			{
+				player.sendPacket(SystemMessageId.CANNOT_PORT_VILLAGE_IN_SIEGE);
+				return;
+			}
+		}
+		
+		if (Config.FREE_TELEPORT || teleport.getPriceCount() == 0 || player.destroyItemByItemId("InstantTeleport", teleport.getPriceId(), teleport.getPriceCount(), this, true))
+			player.teleportTo(teleport, 20);
+		
+		player.sendPacket(ActionFailed.STATIC_PACKET);
+	}
+	
+	protected NpcTalkCond getNpcTalkCond(Player player)
+	{
+		return NpcTalkCond.OWNER;
 	}
 	
 	/**
@@ -998,32 +947,24 @@ public class Npc extends Creature
 	{
 		final List<Quest> quests = new ArrayList<>();
 		
-		List<Quest> scripts = npc.getTemplate().getEventQuests(ScriptEventType.ON_TALK);
-		if (scripts != null)
+		for (Quest quest : npc.getTemplate().getEventQuests(ScriptEventType.ON_TALK))
 		{
-			for (Quest quest : scripts)
-			{
-				if (quest == null || !quest.isRealQuest() || quests.contains(quest))
-					continue;
-				
-				QuestState qs = player.getQuestState(quest.getName());
-				if (qs == null || qs.isCreated())
-					continue;
-				
-				quests.add(quest);
-			}
+			if (quest == null || !quest.isRealQuest() || quests.contains(quest))
+				continue;
+			
+			final QuestState qs = player.getQuestList().getQuestState(quest.getName());
+			if (qs == null || qs.isCreated())
+				continue;
+			
+			quests.add(quest);
 		}
 		
-		scripts = npc.getTemplate().getEventQuests(ScriptEventType.QUEST_START);
-		if (scripts != null)
+		for (Quest quest : npc.getTemplate().getEventQuests(ScriptEventType.QUEST_START))
 		{
-			for (Quest quest : scripts)
-			{
-				if (quest == null || !quest.isRealQuest() || quests.contains(quest))
-					continue;
-				
-				quests.add(quest);
-			}
+			if (quest == null || !quest.isRealQuest() || quests.contains(quest))
+				continue;
+			
+			quests.add(quest);
 		}
 		
 		if (quests.isEmpty())
@@ -1040,7 +981,7 @@ public class Npc extends Creature
 	 * @param npc : The Npc instance.
 	 * @param quest : The Quest to check.
 	 */
-	public static void showQuestWindowSingle(Player player, Npc npc, Quest quest)
+	private static void showQuestWindowSingle(Player player, Npc npc, Quest quest)
 	{
 		if (quest == null)
 		{
@@ -1052,32 +993,37 @@ public class Npc extends Creature
 			return;
 		}
 		
-		if (quest.isRealQuest() && (player.getWeightPenalty() > 2 || player.getInventoryLimit() * 0.8 <= player.getInventory().getSize()))
+		if (quest.isRealQuest())
 		{
-			player.sendPacket(SystemMessageId.INVENTORY_LESS_THAN_80_PERCENT);
-			return;
-		}
-		
-		QuestState qs = player.getQuestState(quest.getName());
-		if (qs == null)
-		{
-			if (quest.isRealQuest() && player.getAllQuests(false).size() >= 25)
+			// Check player being overweight.
+			if (player.getWeightPenalty().ordinal() > 2 || player.getStatus().isOverburden())
 			{
-				final NpcHtmlMessage html = new NpcHtmlMessage(npc.getObjectId());
-				html.setHtml(Quest.getTooMuchQuestsMsg());
-				player.sendPacket(html);
-				
-				player.sendPacket(ActionFailed.STATIC_PACKET);
+				player.sendPacket(SystemMessageId.INVENTORY_LESS_THAN_80_PERCENT);
 				return;
 			}
 			
-			final List<Quest> scripts = npc.getTemplate().getEventQuests(ScriptEventType.QUEST_START);
-			if (scripts != null && scripts.contains(quest))
-				qs = quest.newQuestState(player);
+			// Check player has the quest started.
+			if (player.getQuestList().getQuestState(quest.getName()) == null)
+			{
+				// Check available quest slot.
+				if (player.getQuestList().getAllQuests(false).size() >= 25)
+				{
+					final NpcHtmlMessage html = new NpcHtmlMessage(npc.getObjectId());
+					html.setHtml(Quest.getTooMuchQuestsMsg());
+					player.sendPacket(html);
+					
+					player.sendPacket(ActionFailed.STATIC_PACKET);
+					return;
+				}
+				
+				// Create new state.
+				if (npc.getTemplate().getEventQuests(ScriptEventType.QUEST_START).contains(quest))
+					quest.newQuestState(player);
+			}
 		}
 		
-		if (qs != null)
-			quest.notifyTalk(npc, qs.getPlayer());
+		player.getQuestList().setLastQuestNpcObjectId(npc.getObjectId());
+		quest.notifyTalk(npc, player);
 	}
 	
 	/**
@@ -1086,15 +1032,15 @@ public class Npc extends Creature
 	 * @param npc : The Npc instance.
 	 * @param quests : The list containing quests of the Npc.
 	 */
-	public static void showQuestWindowChoose(Player player, Npc npc, List<Quest> quests)
+	private static void showQuestWindowChoose(Player player, Npc npc, List<Quest> quests)
 	{
 		final StringBuilder sb = new StringBuilder("<html><body>");
 		
-		for (Quest q : quests)
+		for (final Quest q : quests)
 		{
 			StringUtil.append(sb, "<a action=\"bypass -h npc_%objectId%_Quest ", q.getName(), "\">[", q.getDescr());
 			
-			final QuestState qs = player.getQuestState(q.getName());
+			final QuestState qs = player.getQuestList().getQuestState(q.getName());
 			if (qs != null && qs.isStarted())
 				sb.append(" (In Progress)]</a><br>");
 			else if (qs != null && qs.isCompleted())
@@ -1141,11 +1087,89 @@ public class Npc extends Creature
 	
 	/**
 	 * Broadcast a {@link String} to the knownlist of this {@link Npc}.
-	 * @param message : The String message to send.
+	 * @param message : The {@link String} message to send.
 	 */
 	public void broadcastNpcSay(String message)
 	{
-		broadcastPacket(new NpcSay(getObjectId(), Say2.ALL, getNpcId(), message));
+		broadcastPacket(new NpcSay(this, SayType.ALL, message));
+	}
+	
+	/**
+	 * Broadcast a {@link NpcStringId} to the knownlist of this {@link Npc}.
+	 * @param npcStringId : The {@link NpcStringId} to send.
+	 */
+	public void broadcastNpcSay(NpcStringId npcStringId)
+	{
+		broadcastNpcSay(npcStringId.getMessage());
+	}
+	
+	/**
+	 * Broadcast a {@link NpcStringId} to the knownlist of this {@link Npc}.
+	 * @param npcStringId : The {@link NpcStringId} to send.
+	 * @param params : Additional parameters for {@link NpcStringId} construction.
+	 */
+	public void broadcastNpcSay(NpcStringId npcStringId, Object... params)
+	{
+		broadcastNpcSay(npcStringId.getMessage(params));
+	}
+	
+	/**
+	 * Broadcast a {@link String} to the knownlist of this {@link Npc}.
+	 * @param message : The {@link String} message to send.
+	 */
+	public void broadcastNpcShout(String message)
+	{
+		broadcastPacket(new NpcSay(this, SayType.SHOUT, message));
+	}
+	
+	/**
+	 * Broadcast a {@link NpcStringId} to the knownlist of this {@link Npc}.
+	 * @param npcStringId : The {@link NpcStringId} to send.
+	 */
+	public void broadcastNpcShout(NpcStringId npcStringId)
+	{
+		broadcastNpcShout(npcStringId.getMessage());
+	}
+	
+	/**
+	 * Broadcast a {@link NpcStringId} to the knownlist of this {@link Npc}.
+	 * @param npcStringId : The {@link NpcStringId} to send.
+	 * @param params : Additional parameters for {@link NpcStringId} construction.
+	 */
+	public void broadcastNpcShout(NpcStringId npcStringId, Object... params)
+	{
+		broadcastNpcShout(npcStringId.getMessage(params));
+	}
+	
+	/**
+	 * Broadcast a {@link String} on screen to the knownlist of this {@link Npc}.
+	 * @param time : The time to show the message on screen.
+	 * @param message : The {@link String} to send.
+	 */
+	public void broadcastOnScreen(int time, String message)
+	{
+		broadcastPacket(new ExShowScreenMessage(message, time));
+	}
+	
+	/**
+	 * Broadcast a {@link NpcStringId} on screen to the knownlist of this {@link Npc}.
+	 * @param time : The time to show the message on screen.
+	 * @param npcStringId : The {@link NpcStringId} to send.
+	 */
+	public void broadcastOnScreen(int time, NpcStringId npcStringId)
+	{
+		broadcastOnScreen(time, npcStringId.getMessage());
+	}
+	
+	/**
+	 * Broadcast a {@link NpcStringId} on screen to the knownlist of this {@link Npc}.
+	 * @param time : The time to show the message on screen.
+	 * @param npcStringId : The {@link NpcStringId} to send.
+	 * @param params : Additional parameters for {@link NpcStringId} construction.
+	 */
+	public void broadcastOnScreen(int time, NpcStringId npcStringId, Object... params)
+	{
+		broadcastOnScreen(time, npcStringId.getMessage(params));
 	}
 	
 	/**
@@ -1164,7 +1188,7 @@ public class Npc extends Creature
 	 */
 	public void showLotoWindow(Player player, int val)
 	{
-		int npcId = getTemplate().getNpcId();
+		final int npcId = getTemplate().getNpcId();
 		
 		final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
 		
@@ -1224,15 +1248,16 @@ public class Npc extends Creature
 					String button = String.valueOf(player.getLoto(i));
 					if (player.getLoto(i) < 10)
 						button = "0" + button;
-					String search = "fore=\"L2UI.lottoNum" + button + "\" back=\"L2UI.lottoNum" + button + "a_check\"";
-					String replace = "fore=\"L2UI.lottoNum" + button + "a_check\" back=\"L2UI.lottoNum" + button + "\"";
+					
+					final String search = "fore=\"L2UI.lottoNum" + button + "\" back=\"L2UI.lottoNum" + button + "a_check\"";
+					final String replace = "fore=\"L2UI.lottoNum" + button + "a_check\" back=\"L2UI.lottoNum" + button + "\"";
 					html.replace(search, replace);
 				}
 			
 			if (count == 5)
 			{
-				String search = "0\">Return";
-				String replace = "22\">The winner selected the numbers above.";
+				final String search = "0\">Return";
+				final String replace = "22\">The winner selected the numbers above.";
 				html.replace(search, replace);
 			}
 		}
@@ -1251,8 +1276,8 @@ public class Npc extends Creature
 				return;
 			}
 			
-			int price = Config.ALT_LOTTERY_TICKET_PRICE;
-			int lotonumber = LotteryManager.getInstance().getId();
+			final int lotonumber = LotteryManager.getInstance().getId();
+			
 			int enchant = 0;
 			int type2 = 0;
 			
@@ -1267,12 +1292,12 @@ public class Npc extends Creature
 					type2 += Math.pow(2, player.getLoto(i) - 17);
 			}
 			
-			if (!player.reduceAdena("Loto", price, this, true))
+			if (!player.reduceAdena("Loto", Config.LOTTERY_TICKET_PRICE, this, true))
 				return;
 			
-			LotteryManager.getInstance().increasePrize(price);
+			LotteryManager.getInstance().increasePrize(Config.LOTTERY_TICKET_PRICE);
 			
-			ItemInstance item = new ItemInstance(IdFactory.getInstance().getNextId(), 4442);
+			final ItemInstance item = new ItemInstance(IdFactory.getInstance().getNextId(), 4442);
 			item.setCount(1);
 			item.setCustomType1(lotonumber);
 			item.setEnchantLevel(enchant);
@@ -1292,7 +1317,7 @@ public class Npc extends Creature
 			final int lotoNumber = LotteryManager.getInstance().getId();
 			
 			final StringBuilder sb = new StringBuilder();
-			for (ItemInstance item : player.getInventory().getItems())
+			for (final ItemInstance item : player.getInventory().getItems())
 			{
 				if (item == null)
 					continue;
@@ -1301,11 +1326,11 @@ public class Npc extends Creature
 				{
 					StringUtil.append(sb, "<a action=\"bypass -h npc_%objectId%_Loto ", item.getObjectId(), "\">", item.getCustomType1(), " Event Number ");
 					
-					int[] numbers = LotteryManager.decodeNumbers(item.getEnchantLevel(), item.getCustomType2());
+					final int[] numbers = LotteryManager.decodeNumbers(item.getEnchantLevel(), item.getCustomType2());
 					for (int i = 0; i < 5; i++)
 						StringUtil.append(sb, numbers[i], " ");
 					
-					int[] check = LotteryManager.checkTicket(item);
+					final int[] check = LotteryManager.checkTicket(item);
 					if (check[0] > 0)
 					{
 						switch (check[0])
@@ -1338,10 +1363,10 @@ public class Npc extends Creature
 		else if (val == 25) // 25 - lottery instructions
 		{
 			html.setFile(getHtmlPath(npcId, 2));
-			html.replace("%prize5%", Config.ALT_LOTTERY_5_NUMBER_RATE * 100);
-			html.replace("%prize4%", Config.ALT_LOTTERY_4_NUMBER_RATE * 100);
-			html.replace("%prize3%", Config.ALT_LOTTERY_3_NUMBER_RATE * 100);
-			html.replace("%prize2%", Config.ALT_LOTTERY_2_AND_1_NUMBER_PRIZE);
+			html.replace("%prize5%", Config.LOTTERY_5_NUMBER_RATE * 100);
+			html.replace("%prize4%", Config.LOTTERY_4_NUMBER_RATE * 100);
+			html.replace("%prize3%", Config.LOTTERY_3_NUMBER_RATE * 100);
+			html.replace("%prize2%", Config.LOTTERY_2_AND_1_NUMBER_PRIZE);
 		}
 		else if (val > 25) // >25 - check lottery ticket by item object id
 		{
@@ -1360,21 +1385,12 @@ public class Npc extends Creature
 		html.replace("%objectId%", getObjectId());
 		html.replace("%race%", LotteryManager.getInstance().getId());
 		html.replace("%adena%", LotteryManager.getInstance().getPrize());
-		html.replace("%ticket_price%", Config.ALT_LOTTERY_TICKET_PRICE);
+		html.replace("%ticket_price%", Config.LOTTERY_TICKET_PRICE);
 		html.replace("%enddate%", DateFormat.getDateInstance().format(LotteryManager.getInstance().getEndDate()));
 		player.sendPacket(html);
 		
 		// Send a Server->Client ActionFailed to the Player in order to avoid that the client wait another packet
 		player.sendPacket(ActionFailed.STATIC_PACKET);
-	}
-	
-	/**
-	 * Cast a random {@link L2Skill} based on stored {@link NpcTemplate} skills of this {@link Npc}.
-	 * @param type : The related {@link SkillType} to get skills from.
-	 */
-	public void doCast(SkillType type)
-	{
-		super.doCast(Rnd.get(getTemplate().getSkills(type)));
 	}
 	
 	/**
@@ -1434,5 +1450,40 @@ public class Npc extends Creature
 		player.sendPacket(html);
 		
 		player.sendPacket(ActionFailed.STATIC_PACKET);
+	}
+	
+	/**
+	 * Move this {@link Npc} from its initial {@link Spawn} location using a defined random offset. The {@link Npc} will circle around the initial location.
+	 * @param offset : The random offset used.
+	 */
+	public void moveFromSpawnPointUsingRandomOffset(int offset)
+	{
+		// No spawn point or offset isn't noticeable ; return instantly.
+		if (_spawn == null || offset < 10)
+			return;
+		
+		// Generate a new Location and calculate the destination.
+		final Location loc = _spawn.getLoc().clone();
+		loc.addRandomOffset(offset);
+		
+		// Try to move to the position.
+		getAI().tryToMoveTo(loc, null);
+	}
+	
+	/**
+	 * Force this {@link Attackable} to attack a given {@link Creature}.
+	 * @param creature : The {@link Creature} to attack.
+	 * @param hate : The amount of hate to set.
+	 */
+	public void forceAttack(Creature creature, int hate)
+	{
+		forceRunStance();
+		getAI().tryToAttack(creature);
+	}
+	
+	@Override
+	public void onActiveRegion()
+	{
+		startRandomAnimationTimer();
 	}
 }

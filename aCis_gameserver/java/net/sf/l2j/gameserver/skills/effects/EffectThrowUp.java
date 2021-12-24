@@ -1,28 +1,33 @@
 package net.sf.l2j.gameserver.skills.effects;
 
+import net.sf.l2j.gameserver.enums.AiEventType;
+import net.sf.l2j.gameserver.enums.skills.EffectFlag;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
 import net.sf.l2j.gameserver.enums.skills.FlyType;
-import net.sf.l2j.gameserver.enums.skills.L2EffectFlag;
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
 import net.sf.l2j.gameserver.geoengine.GeoEngine;
-import net.sf.l2j.gameserver.model.L2Effect;
+import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.location.Location;
 import net.sf.l2j.gameserver.network.serverpackets.FlyToLocation;
 import net.sf.l2j.gameserver.network.serverpackets.ValidateLocation;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
-public class EffectThrowUp extends L2Effect
+public class EffectThrowUp extends AbstractEffect
 {
-	private int _x, _y, _z;
+	private int _x;
+	private int _y;
+	private int _z;
 	
-	public EffectThrowUp(Env env, EffectTemplate template)
+	public EffectThrowUp(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
 	{
-		super(env, template);
+		super(template, skill, effected, effector);
 	}
 	
 	@Override
-	public L2EffectType getEffectType()
+	public EffectType getEffectType()
 	{
-		return L2EffectType.THROW_UP;
+		return EffectType.THROW_UP;
 	}
 	
 	@Override
@@ -34,17 +39,16 @@ public class EffectThrowUp extends L2Effect
 		final int curZ = getEffected().getZ();
 		
 		// Get the difference between effector and effected positions
-		double dx = getEffector().getX() - curX;
-		double dy = getEffector().getY() - curY;
-		double dz = getEffector().getZ() - curZ;
+		final double dx = getEffector().getX() - curX;
+		final double dy = getEffector().getY() - curY;
+		final double dz = getEffector().getZ() - curZ;
 		
 		// Calculate distance between effector and effected current position
-		double distance = Math.sqrt(dx * dx + dy * dy);
+		final double distance = Math.sqrt(dx * dx + dy * dy);
 		if (distance < 1 || distance > 2000)
 			return false;
 		
 		int offset = Math.min((int) distance + getSkill().getFlyRadius(), 1400);
-		double cos, sin;
 		
 		// approximation for moving futher when z coordinates are different
 		// TODO: handle Z axis movement better
@@ -53,19 +57,26 @@ public class EffectThrowUp extends L2Effect
 			offset = 5;
 		
 		// Calculate movement angles needed
-		sin = dy / distance;
-		cos = dx / distance;
+		double sin = dy / distance;
+		double cos = dx / distance;
 		
 		// Calculate the new destination with offset included
 		_x = getEffector().getX() - (int) (offset * cos);
 		_y = getEffector().getY() - (int) (offset * sin);
 		_z = getEffected().getZ();
 		
-		Location destiny = GeoEngine.getInstance().canMoveToTargetLoc(getEffected().getX(), getEffected().getY(), getEffected().getZ(), _x, _y, _z);
-		_x = destiny.getX();
-		_y = destiny.getY();
+		final Location loc = GeoEngine.getInstance().getValidLocation(getEffected(), _x, _y, _z);
+		_x = loc.getX();
+		_y = loc.getY();
 		
-		getEffected().startStunning();
+		// Abort attack, cast and move.
+		getEffected().abortAll(false);
+		
+		getEffected().getAI().tryToIdle();
+		
+		// Refresh abnormal effects.
+		getEffected().updateAbnormalEffect();
+		
 		getEffected().broadcastPacket(new FlyToLocation(getEffected(), _x, _y, _z, FlyType.THROW_UP));
 		return true;
 	}
@@ -79,7 +90,12 @@ public class EffectThrowUp extends L2Effect
 	@Override
 	public void onExit()
 	{
-		getEffected().stopStunning(false);
+		if (!(getEffected() instanceof Player))
+			getEffected().getAI().notifyEvent(AiEventType.THINK, null, null);
+		
+		// Refresh abnormal effects.
+		getEffected().updateAbnormalEffect();
+		
 		getEffected().setXYZ(_x, _y, _z);
 		getEffected().broadcastPacket(new ValidateLocation(getEffected()));
 	}
@@ -87,6 +103,6 @@ public class EffectThrowUp extends L2Effect
 	@Override
 	public int getEffectFlags()
 	{
-		return L2EffectFlag.STUNNED.getMask();
+		return EffectFlag.STUNNED.getMask();
 	}
 }

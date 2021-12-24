@@ -1,27 +1,30 @@
 package net.sf.l2j.gameserver.handler.chathandlers;
 
+import net.sf.l2j.gameserver.enums.SayType;
 import net.sf.l2j.gameserver.handler.IChatHandler;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.network.serverpackets.CreatureSay;
 
 public class ChatClan implements IChatHandler
 {
-	private static final int[] COMMAND_IDS =
+	private static final SayType[] COMMAND_IDS =
 	{
-		4
+		SayType.CLAN
 	};
 	
 	@Override
-	public void handleChat(int type, Player activeChar, String target, String text)
+	public void handleChat(SayType type, Player player, String target, String text)
 	{
-		if (activeChar.getClan() == null)
+		final Clan clan = player.getClan();
+		if (clan == null)
 			return;
 		
-		activeChar.getClan().broadcastToOnlineMembers(new CreatureSay(activeChar.getObjectId(), type, activeChar.getName(), text));
+		clan.broadcastToMembers(new CreatureSay(player, type, text));
 	}
 	
 	@Override
-	public int[] getChatTypeList()
+	public SayType[] getChatTypeList()
 	{
 		return COMMAND_IDS;
 	}

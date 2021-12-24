@@ -1,13 +1,9 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.util.Map.Entry;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.L2DatabaseFactory;
-import net.sf.l2j.gameserver.communitybbs.Manager.MailBBSManager;
+import net.sf.l2j.gameserver.communitybbs.manager.MailBBSManager;
 import net.sf.l2j.gameserver.data.SkillTable.FrequentSkill;
 import net.sf.l2j.gameserver.data.manager.CastleManager;
 import net.sf.l2j.gameserver.data.manager.ClanHallManager;
@@ -18,16 +14,15 @@ import net.sf.l2j.gameserver.data.manager.SevenSignsManager;
 import net.sf.l2j.gameserver.data.xml.AdminData;
 import net.sf.l2j.gameserver.data.xml.AnnouncementData;
 import net.sf.l2j.gameserver.data.xml.MapRegionData.TeleportType;
-import net.sf.l2j.gameserver.data.xml.ScriptData;
 import net.sf.l2j.gameserver.enums.CabalType;
 import net.sf.l2j.gameserver.enums.SealType;
 import net.sf.l2j.gameserver.enums.SiegeSide;
 import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.enums.actors.ClassRace;
-import net.sf.l2j.gameserver.model.L2Skill;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.clanhall.ClanHall;
+import net.sf.l2j.gameserver.model.clanhall.SiegableHall;
 import net.sf.l2j.gameserver.model.entity.Castle;
 import net.sf.l2j.gameserver.model.entity.Siege;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
@@ -49,7 +44,6 @@ import net.sf.l2j.gameserver.network.serverpackets.PlaySound;
 import net.sf.l2j.gameserver.network.serverpackets.PledgeShowMemberListAll;
 import net.sf.l2j.gameserver.network.serverpackets.PledgeShowMemberListUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.PledgeSkillList;
-import net.sf.l2j.gameserver.network.serverpackets.PledgeStatusChanged;
 import net.sf.l2j.gameserver.network.serverpackets.QuestList;
 import net.sf.l2j.gameserver.network.serverpackets.ShortCutInit;
 import net.sf.l2j.gameserver.network.serverpackets.SkillCoolTime;
@@ -57,12 +51,11 @@ import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.network.serverpackets.UserInfo;
 import net.sf.l2j.gameserver.scripting.Quest;
 import net.sf.l2j.gameserver.scripting.QuestState;
+import net.sf.l2j.gameserver.skills.L2Skill;
 import net.sf.l2j.gameserver.taskmanager.GameTimeTaskManager;
 
 public class EnterWorld extends L2GameClientPacket
 {
-	private static final String LOAD_PLAYER_QUESTS = "SELECT name,var,value FROM character_quests WHERE charId=?";
-	
 	@Override
 	protected void readImpl()
 	{
@@ -85,13 +78,13 @@ public class EnterWorld extends L2GameClientPacket
 		if (player.isGM())
 		{
 			if (Config.GM_STARTUP_INVULNERABLE && AdminData.getInstance().hasAccess("admin_invul", player.getAccessLevel()))
-				player.setIsInvul(true);
+				player.setInvul(true);
 			
 			if (Config.GM_STARTUP_INVISIBLE && AdminData.getInstance().hasAccess("admin_hide", player.getAccessLevel()))
-				player.getAppearance().setInvisible();
+				player.getAppearance().setVisible(false);
 			
-			if (Config.GM_STARTUP_SILENCE && AdminData.getInstance().hasAccess("admin_silence", player.getAccessLevel()))
-				player.setInRefusalMode(true);
+			if (Config.GM_STARTUP_BLOCK_ALL)
+				player.getBlockList().setInBlockingAll(true);
 			
 			if (Config.GM_STARTUP_AUTO_LIST && AdminData.getInstance().hasAccess("admin_gmlist", player.getAccessLevel()))
 				AdminData.getInstance().addGm(player, false);
@@ -100,8 +93,14 @@ public class EnterWorld extends L2GameClientPacket
 		}
 		
 		// Set dead status if applies
-		if (player.getCurrentHp() < 0.5 && player.isMortal())
+		if (player.getStatus().getHp() < 0.5 && player.isMortal())
 			player.setIsDead(true);
+		
+		player.getMacroList().sendUpdate();
+		player.sendPacket(new ExStorageMaxCount(player));
+		player.sendPacket(new HennaInfo(player));
+		player.updateEffectIcons();
+		player.sendPacket(new EtcStatusUpdate(player));
 		
 		// Clan checks.
 		final Clan clan = player.getClan();
@@ -112,8 +111,8 @@ public class EnterWorld extends L2GameClientPacket
 			// Refresh player instance.
 			clan.getClanMember(objectId).setPlayerInstance(player);
 			
-			final SystemMessage msg = SystemMessage.getSystemMessage(SystemMessageId.CLAN_MEMBER_S1_LOGGED_IN).addCharName(player);
-			final PledgeShowMemberListUpdate update = new PledgeShowMemberListUpdate(player);
+			final SystemMessage sm = SystemMessage.getSystemMessage(SystemMessageId.CLAN_MEMBER_S1_LOGGED_IN).addCharName(player);
+			final PledgeShowMemberListUpdate psmlu = new PledgeShowMemberListUpdate(player);
 			
 			// Send packets to others members.
 			for (Player member : clan.getOnlineMembers())
@@ -121,8 +120,8 @@ public class EnterWorld extends L2GameClientPacket
 				if (member == player)
 					continue;
 				
-				member.sendPacket(msg);
-				member.sendPacket(update);
+				member.sendPacket(sm);
+				member.sendPacket(psmlu);
 			}
 			
 			// Send a login notification to sponsor or apprentice, if logged.
@@ -140,8 +139,8 @@ public class EnterWorld extends L2GameClientPacket
 			}
 			
 			// Add message at connexion if clanHall not paid.
-			final ClanHall clanHall = ClanHallManager.getInstance().getClanHallByOwner(clan);
-			if (clanHall != null && !clanHall.getPaid())
+			final ClanHall ch = ClanHallManager.getInstance().getClanHallByOwner(clan);
+			if (ch != null && !ch.getPaid())
 				player.sendPacket(SystemMessageId.PAYMENT_FOR_YOUR_CLAN_HALL_HAS_NOT_BEEN_MADE_PLEASE_MAKE_PAYMENT_TO_YOUR_CLAN_WAREHOUSE_BY_S1_TOMORROW);
 			
 			for (Castle castle : CastleManager.getInstance().getCastles())
@@ -157,13 +156,19 @@ public class EnterWorld extends L2GameClientPacket
 					player.setSiegeState((byte) 2);
 			}
 			
+			for (SiegableHall hall : ClanHallManager.getInstance().getSiegableHalls())
+			{
+				if (hall.isInSiege() && hall.isRegistered(clan))
+					player.setSiegeState((byte) 1);
+			}
+			
+			player.sendPacket(new PledgeShowMemberListUpdate(player));
 			player.sendPacket(new PledgeShowMemberListAll(clan, 0));
 			
 			for (SubPledge sp : clan.getAllSubPledges())
 				player.sendPacket(new PledgeShowMemberListAll(clan, sp.getId()));
 			
 			player.sendPacket(new UserInfo(player));
-			player.sendPacket(new PledgeStatusChanged(clan));
 		}
 		
 		// Updating Seal of Strife Buff/Debuff
@@ -189,6 +194,9 @@ public class EnterWorld extends L2GameClientPacket
 		
 		player.spawnMe();
 		
+		// Set the location of debug packets.
+		player.setEnterWorldLoc(player.getX(), player.getY(), -16000);
+		
 		// Engage and notify partner.
 		if (Config.ALLOW_WEDDING)
 		{
@@ -203,86 +211,31 @@ public class EnterWorld extends L2GameClientPacket
 			}
 		}
 		
-		// Announcements, welcome & Seven signs period messages
+		// Announcements, welcome & Seven signs period messages.
 		player.sendPacket(SystemMessageId.WELCOME_TO_LINEAGE);
 		player.sendPacket(SevenSignsManager.getInstance().getCurrentPeriod().getMessageId());
 		AnnouncementData.getInstance().showAnnouncements(player, false);
 		
-		// if player is DE, check for shadow sense skill at night
+		// If the Player is a Dark Elf, check for Shadow Sense at night.
 		if (player.getRace() == ClassRace.DARK_ELF && player.hasSkill(L2Skill.SKILL_SHADOW_SENSE))
 			player.sendPacket(SystemMessage.getSystemMessage((GameTimeTaskManager.getInstance().isNight()) ? SystemMessageId.NIGHT_S1_EFFECT_APPLIES : SystemMessageId.DAY_S1_EFFECT_DISAPPEARS).addSkillName(L2Skill.SKILL_SHADOW_SENSE));
 		
-		player.getMacroList().sendUpdate();
-		player.sendPacket(new UserInfo(player));
-		player.sendPacket(new HennaInfo(player));
+		// Notify quest for enterworld event, if quest allows it.
+		player.getQuestList().getQuests(Quest::isTriggeredOnEnterWorld).forEach(q -> q.notifyEnterWorld(player));
+		
+		player.sendPacket(new QuestList(player));
+		player.sendSkillList();
 		player.sendPacket(new FriendList(player));
-		// activeChar.queryGameGuard();
+		player.sendPacket(new UserInfo(player));
 		player.sendPacket(new ItemList(player, false));
 		player.sendPacket(new ShortCutInit(player));
-		player.sendPacket(new ExStorageMaxCount(player));
 		
-		// no broadcast needed since the player will already spawn dead to others
+		// No broadcast needed since the player will already spawn dead to others.
 		if (player.isAlikeDead())
 			player.sendPacket(new Die(player));
 		
-		player.updateEffectIcons();
-		player.sendPacket(new EtcStatusUpdate(player));
-		player.sendSkillList();
-		
-		// Load quests.
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
-			PreparedStatement ps = con.prepareStatement(LOAD_PLAYER_QUESTS))
-		{
-			ps.setInt(1, objectId);
-			
-			try (ResultSet rs = ps.executeQuery())
-			{
-				while (rs.next())
-				{
-					final String questName = rs.getString("name");
-					
-					// Test quest existence.
-					final Quest quest = ScriptData.getInstance().getQuest(questName);
-					if (quest == null)
-					{
-						LOGGER.warn("Unknown quest {} for player {}.", questName, player.getName());
-						continue;
-					}
-					
-					// Each quest get a single state ; create one QuestState per found <state> variable.
-					final String var = rs.getString("var");
-					if (var.equals("<state>"))
-					{
-						new QuestState(player, quest, rs.getByte("value"));
-						
-						// Notify quest for enterworld event, if quest allows it.
-						if (quest.getOnEnterWorld())
-							quest.notifyEnterWorld(player);
-					}
-					// Feed an existing quest state.
-					else
-					{
-						final QuestState qs = player.getQuestState(questName);
-						if (qs == null)
-						{
-							LOGGER.warn("Unknown quest state {} for player {}.", questName, player.getName());
-							continue;
-						}
-						
-						qs.setInternal(var, rs.getString("value"));
-					}
-				}
-			}
-		}
-		catch (Exception e)
-		{
-			LOGGER.error("Couldn't load quests for player {}.", e, player.getName());
-		}
-		
-		player.sendPacket(new QuestList(player));
-		
 		// Unread mails make a popup appears.
-		if (Config.ENABLE_COMMUNITY_BOARD && MailBBSManager.getInstance().checkUnreadMail(player) > 0)
+		if (Config.ENABLE_COMMUNITY_BOARD && MailBBSManager.getInstance().checkIfUnreadMail(player))
 		{
 			player.sendPacket(SystemMessageId.NEW_MAIL);
 			player.sendPacket(new PlaySound("systemmsg_e.1233"));
@@ -305,7 +258,7 @@ public class EnterWorld extends L2GameClientPacket
 			sendPacket(html);
 		}
 		
-		PetitionManager.getInstance().checkPetitionMessages(player);
+		PetitionManager.getInstance().checkActivePetition(player);
 		
 		player.onPlayerEnter();
 		
@@ -322,8 +275,13 @@ public class EnterWorld extends L2GameClientPacket
 			player.sendPacket(SystemMessageId.CLAN_MEMBERSHIP_TERMINATED);
 		
 		// Attacker or spectator logging into a siege zone will be ported at town.
-		if (!player.isGM() && (!player.isInSiege() || player.getSiegeState() < 2) && player.isInsideZone(ZoneId.SIEGE))
+		if (player.isInsideZone(ZoneId.SIEGE) && player.getSiegeState() < 2)
 			player.teleportTo(TeleportType.TOWN);
+		
+		// Tutorial
+		final QuestState qs = player.getQuestList().getQuestState("Tutorial");
+		if (qs != null)
+			qs.getQuest().notifyEvent("UC", null, player);
 		
 		player.sendPacket(ActionFailed.STATIC_PACKET);
 	}

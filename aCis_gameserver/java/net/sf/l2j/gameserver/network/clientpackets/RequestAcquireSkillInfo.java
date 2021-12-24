@@ -4,13 +4,13 @@ import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.SkillTable;
 import net.sf.l2j.gameserver.data.xml.SkillTreeData;
 import net.sf.l2j.gameserver.data.xml.SpellbookData;
-import net.sf.l2j.gameserver.model.L2Skill;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Folk;
 import net.sf.l2j.gameserver.model.holder.skillnode.ClanSkillNode;
 import net.sf.l2j.gameserver.model.holder.skillnode.FishingSkillNode;
 import net.sf.l2j.gameserver.model.holder.skillnode.GeneralSkillNode;
 import net.sf.l2j.gameserver.network.serverpackets.AcquireSkillInfo;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class RequestAcquireSkillInfo extends L2GameClientPacket
 {
@@ -40,7 +40,7 @@ public class RequestAcquireSkillInfo extends L2GameClientPacket
 		
 		// Incorrect npc, return.
 		final Folk folk = player.getCurrentFolk();
-		if (folk == null || !folk.canInteract(player))
+		if (folk == null || !player.getAI().canDoInteract(folk))
 			return;
 		
 		// Skill doesn't exist, return.

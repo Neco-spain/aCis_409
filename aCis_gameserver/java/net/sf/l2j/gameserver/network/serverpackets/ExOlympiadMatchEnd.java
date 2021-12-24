@@ -1,8 +1,5 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
-/**
- * @author GodKratos
- */
 public class ExOlympiadMatchEnd extends L2GameServerPacket
 {
 	public static final ExOlympiadMatchEnd STATIC_PACKET = new ExOlympiadMatchEnd();

@@ -3,46 +3,31 @@ package net.sf.l2j.gameserver.network.serverpackets;
 import java.util.List;
 
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.scripting.Quest;
 import net.sf.l2j.gameserver.scripting.QuestState;
 
-/**
- * Sh (dd) h (dddd)
- * @author Tempy
- */
 public class GMViewQuestList extends L2GameServerPacket
 {
-	private final Player _activeChar;
+	private final List<QuestState> _questStates;
+	private final Player _player;
 	
-	public GMViewQuestList(Player cha)
+	public GMViewQuestList(Player player)
 	{
-		_activeChar = cha;
+		_questStates = player.getQuestList().getAllQuests(true);
+		_player = player;
 	}
 	
 	@Override
 	protected final void writeImpl()
 	{
 		writeC(0x93);
-		writeS(_activeChar.getName());
 		
-		List<Quest> quests = _activeChar.getAllQuests(true);
+		writeS(_player.getName());
+		writeH(_questStates.size());
 		
-		writeH(quests.size());
-		for (Quest q : quests)
+		for (QuestState qs : _questStates)
 		{
-			writeD(q.getQuestId());
-			QuestState qs = _activeChar.getQuestState(q.getName());
-			if (qs == null)
-			{
-				writeD(0);
-				continue;
-			}
-			
-			int states = qs.getInt("__compltdStateFlags");
-			if (states != 0)
-				writeD(states);
-			else
-				writeD(qs.getInt("cond"));
+			writeD(qs.getQuest().getQuestId());
+			writeD(qs.getFlags());
 		}
 	}
 }

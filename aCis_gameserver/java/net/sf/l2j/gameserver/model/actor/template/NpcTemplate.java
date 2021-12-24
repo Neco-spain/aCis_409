@@ -6,71 +6,27 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.sf.l2j.commons.util.StatsSet;
+import net.sf.l2j.commons.data.StatSet;
+import net.sf.l2j.commons.util.ArraysUtil;
 
 import net.sf.l2j.gameserver.data.manager.CastleManager;
+import net.sf.l2j.gameserver.data.manager.ClanHallManager;
 import net.sf.l2j.gameserver.enums.ScriptEventType;
 import net.sf.l2j.gameserver.enums.actors.ClassId;
-import net.sf.l2j.gameserver.model.L2Skill;
+import net.sf.l2j.gameserver.enums.actors.NpcAiType;
+import net.sf.l2j.gameserver.enums.actors.NpcRace;
+import net.sf.l2j.gameserver.enums.actors.NpcSkillType;
 import net.sf.l2j.gameserver.model.MinionData;
+import net.sf.l2j.gameserver.model.clanhall.ClanHall;
+import net.sf.l2j.gameserver.model.clanhall.SiegableHall;
 import net.sf.l2j.gameserver.model.entity.Castle;
 import net.sf.l2j.gameserver.model.item.DropCategory;
 import net.sf.l2j.gameserver.model.item.DropData;
 import net.sf.l2j.gameserver.scripting.Quest;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class NpcTemplate extends CreatureTemplate
 {
-	public static enum SkillType
-	{
-		BUFF,
-		DEBUFF,
-		HEAL,
-		PASSIVE,
-		LONG_RANGE,
-		SHORT_RANGE,
-		SUICIDE,
-		TELEPORT
-	}
-	
-	public static enum AIType
-	{
-		DEFAULT,
-		ARCHER,
-		MAGE,
-		HEALER,
-		CORPSE
-	}
-	
-	public static enum Race
-	{
-		UNKNOWN,
-		UNDEAD,
-		MAGICCREATURE,
-		BEAST,
-		ANIMAL,
-		PLANT,
-		HUMANOID,
-		SPIRIT,
-		ANGEL,
-		DEMON,
-		DRAGON,
-		GIANT,
-		BUG,
-		FAIRIE,
-		HUMAN,
-		ELVE,
-		DARKELVE,
-		ORC,
-		DWARVE,
-		OTHER,
-		NONLIVING,
-		SIEGEWEAPON,
-		DEFENDINGARMY,
-		MERCENARIE;
-		
-		public static final Race[] VALUES = values();
-	}
-	
 	private final int _npcId;
 	private final int _idTemplate;
 	private final String _type;
@@ -78,7 +34,6 @@ public class NpcTemplate extends CreatureTemplate
 	private boolean _usingServerSideName;
 	private final String _title;
 	private boolean _usingServerSideTitle;
-	private final boolean _cantBeChampionMonster;
 	private final byte _level;
 	private final int _exp;
 	private final int _sp;
@@ -88,8 +43,8 @@ public class NpcTemplate extends CreatureTemplate
 	private final int _corpseTime;
 	
 	private int _dropHerbGroup;
-	private Race _race = Race.UNKNOWN;
-	private AIType _aiType;
+	private NpcRace _race = NpcRace.UNKNOWN;
+	private NpcAiType _aiType;
 	
 	private final int _ssCount;
 	private final int _ssRate;
@@ -108,12 +63,14 @@ public class NpcTemplate extends CreatureTemplate
 	private List<MinionData> _minions;
 	private List<ClassId> _teachInfo;
 	
-	private final Map<SkillType, List<L2Skill>> _skills = new HashMap<>();
+	private final Map<NpcSkillType, List<L2Skill>> _skills = new HashMap<>();
 	private final Map<ScriptEventType, List<Quest>> _questEvents = new HashMap<>();
 	
 	private Castle _castle;
+	private ClanHall _clanHall;
+	private SiegableHall _siegableHall;
 	
-	public NpcTemplate(StatsSet set)
+	public NpcTemplate(StatSet set)
 	{
 		super(set);
 		
@@ -124,7 +81,6 @@ public class NpcTemplate extends CreatureTemplate
 		_usingServerSideName = set.getBool("usingServerSideName", false);
 		_title = set.getString("title", "");
 		_usingServerSideTitle = set.getBool("usingServerSideTitle", false);
-		_cantBeChampionMonster = _title.equalsIgnoreCase("Quest Monster") || isType("Chest");
 		_level = set.getByte("level", (byte) 1);
 		_exp = set.getInteger("exp", 0);
 		_sp = set.getInteger("sp", 0);
@@ -137,7 +93,7 @@ public class NpcTemplate extends CreatureTemplate
 		if (set.containsKey("raceId"))
 			setRace(set.getInteger("raceId"));
 		
-		_aiType = set.getEnum("aiType", AIType.class, AIType.DEFAULT);
+		_aiType = set.getEnum("aiType", NpcAiType.class, NpcAiType.DEFAULT);
 		
 		_ssCount = set.getInteger("ssCount", 0);
 		_ssRate = set.getInteger("ssRate", 0);
@@ -171,12 +127,25 @@ public class NpcTemplate extends CreatureTemplate
 		
 		addSkills(set.getList("skills"));
 		
-		// Set the Castle.
+		// Set the Castle if existing.
 		for (Castle castle : CastleManager.getInstance().getCastles())
 		{
 			if (castle.getRelatedNpcIds().contains(_npcId))
 			{
 				_castle = castle;
+				break;
+			}
+		}
+		
+		// Set the ClanHall if existing.
+		for (ClanHall ch : ClanHallManager.getInstance().getClanHalls().values())
+		{
+			if (ArraysUtil.contains(ch.getRelatedNpcIds(), _npcId))
+			{
+				if (ch instanceof SiegableHall)
+					_siegableHall = (SiegableHall) ch;
+				
+				_clanHall = ch;
 				break;
 			}
 		}
@@ -226,11 +195,6 @@ public class NpcTemplate extends CreatureTemplate
 		return _usingServerSideTitle;
 	}
 	
-	public boolean cantBeChampion()
-	{
-		return _cantBeChampionMonster;
-	}
-	
 	public byte getLevel()
 	{
 		return _level;
@@ -271,7 +235,7 @@ public class NpcTemplate extends CreatureTemplate
 		return _dropHerbGroup;
 	}
 	
-	public Race getRace()
+	public NpcRace getRace()
 	{
 		return _race;
 	}
@@ -282,10 +246,10 @@ public class NpcTemplate extends CreatureTemplate
 		if (raceId < 1 || raceId > 23)
 			return;
 		
-		_race = Race.VALUES[raceId];
+		_race = NpcRace.VALUES[raceId];
 	}
 	
-	public AIType getAiType()
+	public NpcAiType getAiType()
 	{
 		return _aiType;
 	}
@@ -345,6 +309,16 @@ public class NpcTemplate extends CreatureTemplate
 		return _castle;
 	}
 	
+	public ClanHall getClanHall()
+	{
+		return _clanHall;
+	}
+	
+	public SiegableHall getSiegableHall()
+	{
+		return _siegableHall;
+	}
+	
 	/**
 	 * @return the {@link List} of all possible UNCATEGORIZED {@link DropData}s of this {@link NpcTemplate}.
 	 */
@@ -354,14 +328,30 @@ public class NpcTemplate extends CreatureTemplate
 	}
 	
 	/**
-	 * @return the {@link List} of all possible {@link DropData}s of this {@link NpcTemplate} (ie full drops and part drops, mats, miscellaneous & UNCATEGORIZED).
+	 * @return the {@link List} of all possible {@link DropData}s of this {@link NpcTemplate} linked to DROP behavior.
 	 */
 	public List<DropData> getAllDropData()
 	{
 		final List<DropData> list = new ArrayList<>();
-		for (DropCategory tmp : _categories)
-			list.addAll(tmp.getAllDrops());
-		
+		for (DropCategory category : _categories)
+		{
+			if (!category.isSweep())
+				list.addAll(category.getAllDrops());
+		}
+		return list;
+	}
+	
+	/**
+	 * @return the {@link List} of all possible {@link DropData}s of this {@link NpcTemplate} linked to SPOIL behavior.
+	 */
+	public List<DropData> getAllSpoilData()
+	{
+		final List<DropData> list = new ArrayList<>();
+		for (DropCategory category : _categories)
+		{
+			if (category.isSweep())
+				list.addAll(category.getAllDrops());
+		}
 		return list;
 	}
 	
@@ -408,28 +398,28 @@ public class NpcTemplate extends CreatureTemplate
 	 */
 	public boolean canTeach(ClassId classId)
 	{
-		return _teachInfo != null && _teachInfo.contains((classId.level() == 3) ? classId.getParent() : classId);
+		return _teachInfo != null && _teachInfo.contains((classId.getLevel() == 3) ? classId.getParent() : classId);
 	}
 	
 	/**
 	 * @return the {@link Map} holding the {@link List} of {@link L2Skill}s.
 	 */
-	public Map<SkillType, List<L2Skill>> getSkills()
+	public Map<NpcSkillType, List<L2Skill>> getSkills()
 	{
 		return _skills;
 	}
 	
 	/**
 	 * @param type : The SkillType to test.
-	 * @return the {@link List} of {@link L2Skill}s based on a given {@link SkillType}.
+	 * @return the {@link List} of {@link L2Skill}s based on a given {@link NpcSkillType}.
 	 */
-	public List<L2Skill> getSkills(SkillType type)
+	public List<L2Skill> getSkills(NpcSkillType type)
 	{
 		return _skills.getOrDefault(type, Collections.emptyList());
 	}
 	
 	/**
-	 * Distribute {@link L2Skill}s amongst the different {@link SkillType}s. Categories are used for easier management of AI.
+	 * Distribute {@link L2Skill}s amongst the different {@link NpcSkillType}s. Categories are used for easier management of AI.
 	 * @param skills : The initial List of L2Skill to distribute.
 	 */
 	public void addSkills(List<L2Skill> skills)
@@ -438,13 +428,13 @@ public class NpcTemplate extends CreatureTemplate
 		{
 			if (skill.isPassive())
 			{
-				addSkill(SkillType.PASSIVE, skill);
+				addSkill(NpcSkillType.PASSIVE, skill);
 				continue;
 			}
 			
 			if (skill.isSuicideAttack())
 			{
-				addSkill(SkillType.SUICIDE, skill);
+				addSkill(NpcSkillType.SUICIDE, skill);
 				continue;
 			}
 			
@@ -452,13 +442,13 @@ public class NpcTemplate extends CreatureTemplate
 			{
 				case GET_PLAYER:
 				case INSTANT_JUMP:
-					addSkill(SkillType.TELEPORT, skill);
+					addSkill(NpcSkillType.TELEPORT, skill);
 					continue;
 				
 				case BUFF:
 				case CONT:
 				case REFLECT:
-					addSkill(SkillType.BUFF, skill);
+					addSkill(NpcSkillType.BUFF, skill);
 					continue;
 				
 				case HEAL:
@@ -468,7 +458,7 @@ public class NpcTemplate extends CreatureTemplate
 				case BALANCE_LIFE:
 				case MANARECHARGE:
 				case MANAHEAL_PERCENT:
-					addSkill(SkillType.HEAL, skill);
+					addSkill(NpcSkillType.HEAL, skill);
 					continue;
 				
 				case DEBUFF:
@@ -486,7 +476,7 @@ public class NpcTemplate extends CreatureTemplate
 				case NEGATE:
 				case WEAKNESS:
 				case AGGDEBUFF:
-					addSkill(SkillType.DEBUFF, skill);
+					addSkill(NpcSkillType.DEBUFF, skill);
 					continue;
 				
 				case PDAM:
@@ -499,7 +489,7 @@ public class NpcTemplate extends CreatureTemplate
 				case MANADAM:
 				case CPDAMPERCENT:
 				case AGGDAMAGE:
-					addSkill((skill.getCastRange() > 150) ? SkillType.LONG_RANGE : SkillType.SHORT_RANGE, skill);
+					addSkill((skill.getCastRange() > 150) ? NpcSkillType.LONG_RANGE : NpcSkillType.SHORT_RANGE, skill);
 					continue;
 			}
 			// _log.warning(skill.getName() + " skill wasn't added due to specific logic."); TODO
@@ -507,13 +497,13 @@ public class NpcTemplate extends CreatureTemplate
 	}
 	
 	/**
-	 * Submethod of {@link #addSkills(List)}. Add a {@link L2Skill} to the given {@link SkillType} {@link List}.<br>
+	 * Submethod of {@link #addSkills(List)}. Add a {@link L2Skill} to the given {@link NpcSkillType} {@link List}.<br>
 	 * <br>
 	 * Create the category if it's not existing.
 	 * @param type : The SkillType to test.
 	 * @param skill : The L2Skill to add.
 	 */
-	private void addSkill(SkillType type, L2Skill skill)
+	private void addSkill(NpcSkillType type, L2Skill skill)
 	{
 		List<L2Skill> list = _skills.get(type);
 		if (list == null)
@@ -541,7 +531,7 @@ public class NpcTemplate extends CreatureTemplate
 	 */
 	public List<Quest> getEventQuests(ScriptEventType type)
 	{
-		return _questEvents.get(type);
+		return _questEvents.getOrDefault(type, Collections.emptyList());
 	}
 	
 	/**

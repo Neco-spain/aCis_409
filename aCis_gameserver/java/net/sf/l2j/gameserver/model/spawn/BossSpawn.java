@@ -5,16 +5,16 @@ import java.sql.PreparedStatement;
 import java.text.SimpleDateFormat;
 import java.util.concurrent.ScheduledFuture;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
 import net.sf.l2j.commons.logging.CLogger;
+import net.sf.l2j.commons.pool.ConnectionPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 import net.sf.l2j.commons.random.Rnd;
 
-import net.sf.l2j.L2DatabaseFactory;
 import net.sf.l2j.gameserver.enums.BossStatus;
 import net.sf.l2j.gameserver.model.actor.Npc;
 
 /**
- * A data holder keeping informations related to the {@link L2Spawn} of a RaidBoss.
+ * A data holder keeping informations related to the {@link Spawn} of a RaidBoss.
  */
 public class BossSpawn
 {
@@ -23,7 +23,7 @@ public class BossSpawn
 	private static final String DELETE_RAIDBOSS = "DELETE FROM raidboss_spawnlist WHERE boss_id=?";
 	private static final String UPDATE_RAIDBOSS = "UPDATE raidboss_spawnlist SET respawn_time = ?, currentHP = ?, currentMP = ? WHERE boss_id = ?";
 	
-	private L2Spawn _spawn;
+	private Spawn _spawn;
 	private BossStatus _status = BossStatus.UNDEFINED;
 	
 	private ScheduledFuture<?> _task;
@@ -33,12 +33,18 @@ public class BossSpawn
 	
 	private long _respawnTime;
 	
-	public L2Spawn getSpawn()
+	@Override
+	public String toString()
+	{
+		return "BossSpawn{" + "npcId=" + _spawn.getNpcId() + ", status=" + _status + ", hp=" + _currentHp + ", mp=" + _currentMp + ", respawnTime=" + _respawnTime + "}";
+	}
+	
+	public Spawn getSpawn()
 	{
 		return _spawn;
 	}
 	
-	public void setSpawn(L2Spawn spawn)
+	public void setSpawn(Spawn spawn)
 	{
 		_spawn = spawn;
 	}
@@ -113,7 +119,7 @@ public class BossSpawn
 	/**
 	 * A method called upon {@link Npc} death.
 	 * <ul>
-	 * <li>Calculate the new respawn time, based on {@link L2Spawn} respawn delays.</li>
+	 * <li>Calculate the new respawn time, based on {@link Spawn} respawn delays.</li>
 	 * <li>Refresh this {@link BossSpawn} holder.</li>
 	 * <li>Cancel any running {@link ScheduledFuture}, and reschedule it with new respawn time.</li>
 	 * <li>Save informations on database.</li>
@@ -135,7 +141,7 @@ public class BossSpawn
 		cancelTask();
 		
 		// Register the task.
-		_task = ThreadPool.schedule(() -> onSpawn(), respawnDelay * 3600000);
+		_task = ThreadPool.schedule(this::onSpawn, respawnDelay * 3600000L);
 		
 		// Refresh the database for this particular boss entry.
 		updateOnDb();
@@ -146,7 +152,7 @@ public class BossSpawn
 	/**
 	 * A method called upon {@link Npc} spawn.
 	 * <ul>
-	 * <li>Spawn the Npc instance based on its {@link L2Spawn}.</li>
+	 * <li>Spawn the Npc instance based on its {@link Spawn}.</li>
 	 * <li>Refresh this {@link BossSpawn} holder.</li>
 	 * <li>Cancel any running {@link ScheduledFuture}.</li>
 	 * <li>Save informations on database.</li>
@@ -158,8 +164,8 @@ public class BossSpawn
 		
 		// Refresh data.
 		_status = BossStatus.ALIVE;
-		_currentHp = npc.getMaxHp();
-		_currentMp = npc.getMaxMp();
+		_currentHp = npc.getStatus().getMaxHp();
+		_currentMp = npc.getStatus().getMaxMp();
 		_respawnTime = 0L;
 		
 		// Cancel task, if running.
@@ -175,9 +181,9 @@ public class BossSpawn
 	 * A method called upon {@link Npc} despawn.
 	 * <ul>
 	 * <li>Cancel any running {@link ScheduledFuture}.</li>
-	 * <li>Delete the Npc instance based on its {@link L2Spawn}.</li>
+	 * <li>Delete the Npc instance based on its {@link Spawn}.</li>
 	 * <li>Save informations on database.</li>
-	 * <li>Delete the reference of L2Spawn from this {@link BossSpawn} holder.</li>
+	 * <li>Delete the reference of Spawn from this {@link BossSpawn} holder.</li>
 	 * </ul>
 	 */
 	public void onDespawn()
@@ -191,7 +197,7 @@ public class BossSpawn
 			npc.deleteMe();
 		
 		// Refresh database.
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(DELETE_RAIDBOSS))
 		{
 			ps.setInt(1, _spawn.getNpcId());
@@ -202,7 +208,7 @@ public class BossSpawn
 			LOGGER.error("Couldn't remove raid boss #{}.", e, _spawn.getNpcId());
 		}
 		
-		// Drop the L2Spawn reference.
+		// Drop the Spawn reference.
 		_spawn = null;
 	}
 	
@@ -211,7 +217,7 @@ public class BossSpawn
 	 */
 	private void updateOnDb()
 	{
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(UPDATE_RAIDBOSS))
 		{
 			ps.setLong(1, _respawnTime);

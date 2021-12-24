@@ -4,10 +4,6 @@ import net.sf.l2j.gameserver.data.xml.NpcData;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
 
-/**
- * This class manages all chest.
- * @author Julian
- */
 public final class Chest extends Monster
 {
 	private volatile boolean _isInteracted;
@@ -16,7 +12,7 @@ public final class Chest extends Monster
 	public Chest(int objectId, NpcTemplate template)
 	{
 		super(objectId, template);
-		setIsNoRndWalk(true);
+		setNoRndWalk(true);
 		
 		_isInteracted = false;
 		_specialDrop = false;

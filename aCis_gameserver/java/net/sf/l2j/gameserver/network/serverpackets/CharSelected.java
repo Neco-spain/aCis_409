@@ -5,12 +5,12 @@ import net.sf.l2j.gameserver.taskmanager.GameTimeTaskManager;
 
 public class CharSelected extends L2GameServerPacket
 {
-	private final Player _activeChar;
+	private final Player _player;
 	private final int _sessionId;
 	
-	public CharSelected(Player cha, int sessionId)
+	public CharSelected(Player player, int sessionId)
 	{
-		_activeChar = cha;
+		_player = player;
 		_sessionId = sessionId;
 	}
 	
@@ -19,36 +19,36 @@ public class CharSelected extends L2GameServerPacket
 	{
 		writeC(0x15);
 		
-		writeS(_activeChar.getName());
-		writeD(_activeChar.getObjectId());
-		writeS(_activeChar.getTitle());
+		writeS(_player.getName());
+		writeD(_player.getObjectId());
+		writeS(_player.getTitle());
 		writeD(_sessionId);
-		writeD(_activeChar.getClanId());
+		writeD(_player.getClanId());
 		
 		writeD(0x00); // unknown
 		
-		writeD(_activeChar.getAppearance().getSex().ordinal());
-		writeD(_activeChar.getRace().ordinal());
-		writeD(_activeChar.getClassId().getId());
+		writeD(_player.getAppearance().getSex().ordinal());
+		writeD(_player.getRace().ordinal());
+		writeD(_player.getClassId().getId());
 		
 		writeD(0x01);
 		
-		writeD(_activeChar.getX());
-		writeD(_activeChar.getY());
-		writeD(_activeChar.getZ());
-		writeF(_activeChar.getCurrentHp());
-		writeF(_activeChar.getCurrentMp());
-		writeD(_activeChar.getSp());
-		writeQ(_activeChar.getExp());
-		writeD(_activeChar.getLevel());
-		writeD(_activeChar.getKarma());
-		writeD(_activeChar.getPkKills());
-		writeD(_activeChar.getINT());
-		writeD(_activeChar.getSTR());
-		writeD(_activeChar.getCON());
-		writeD(_activeChar.getMEN());
-		writeD(_activeChar.getDEX());
-		writeD(_activeChar.getWIT());
+		writeD(_player.getX());
+		writeD(_player.getY());
+		writeD(_player.getZ());
+		writeF(_player.getStatus().getHp());
+		writeF(_player.getStatus().getMp());
+		writeD(_player.getStatus().getSp());
+		writeQ(_player.getStatus().getExp());
+		writeD(_player.getStatus().getLevel());
+		writeD(_player.getKarma());
+		writeD(_player.getPkKills());
+		writeD(_player.getStatus().getINT());
+		writeD(_player.getStatus().getSTR());
+		writeD(_player.getStatus().getCON());
+		writeD(_player.getStatus().getMEN());
+		writeD(_player.getStatus().getDEX());
+		writeD(_player.getStatus().getWIT());
 		
 		for (int i = 0; i < 30; i++)
 		{
@@ -62,7 +62,7 @@ public class CharSelected extends L2GameServerPacket
 		
 		writeD(0x00); // c3
 		
-		writeD(_activeChar.getClassId().getId());
+		writeD(_player.getClassId().getId());
 		
 		writeD(0x00); // c3 InspectorBin
 		writeD(0x00); // c3

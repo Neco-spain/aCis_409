@@ -6,9 +6,10 @@ import java.util.List;
 import java.util.Map;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.gameserver.data.ItemTable;
 import net.sf.l2j.gameserver.data.manager.CastleManager;
 import net.sf.l2j.gameserver.data.manager.CastleManorManager;
+import net.sf.l2j.gameserver.data.xml.ItemData;
+import net.sf.l2j.gameserver.enums.FloodProtector;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Folk;
 import net.sf.l2j.gameserver.model.actor.instance.ManorManagerNpc;
@@ -16,8 +17,6 @@ import net.sf.l2j.gameserver.model.entity.Castle;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
 import net.sf.l2j.gameserver.model.item.kind.Item;
 import net.sf.l2j.gameserver.model.manor.SeedProduction;
-import net.sf.l2j.gameserver.network.FloodProtectors;
-import net.sf.l2j.gameserver.network.FloodProtectors.Action;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
@@ -57,7 +56,7 @@ public class RequestBuySeed extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		if (!FloodProtectors.performAction(getClient(), Action.MANOR))
+		if (!getClient().performAction(FloodProtector.MANOR))
 			return;
 		
 		final Player player = getClient().getPlayer();
@@ -85,13 +84,13 @@ public class RequestBuySeed extends L2GameClientPacket
 		}
 		
 		final Folk folk = player.getCurrentFolk();
-		if (!(folk instanceof ManorManagerNpc) || !folk.canInteract(player) || folk.getCastle() != castle)
+		if (!(folk instanceof ManorManagerNpc) || !player.getAI().canDoInteract(folk) || folk.getCastle() != castle)
 		{
 			sendPacket(ActionFailed.STATIC_PACKET);
 			return;
 		}
 		
-		int totalPrice = 0;
+		long totalPrice = 0;
 		int slots = 0;
 		int totalWeight = 0;
 		
@@ -114,7 +113,7 @@ public class RequestBuySeed extends L2GameClientPacket
 				return;
 			}
 			
-			final Item template = ItemTable.getInstance().getTemplate(ih.getId());
+			final Item template = ItemData.getInstance().getTemplate(ih.getId());
 			totalWeight += ih.getValue() * template.getWeight();
 			
 			// Calculate slots
@@ -166,7 +165,7 @@ public class RequestBuySeed extends L2GameClientPacket
 		if (totalPrice > 0)
 		{
 			castle.addToTreasuryNoTax(totalPrice);
-			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_DISAPPEARED_ADENA).addItemNumber(totalPrice));
+			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_DISAPPEARED_ADENA).addItemNumber((int) totalPrice));
 		}
 	}
 }

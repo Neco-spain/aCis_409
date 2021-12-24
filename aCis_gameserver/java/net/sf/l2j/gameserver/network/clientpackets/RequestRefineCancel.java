@@ -1,5 +1,6 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
+import net.sf.l2j.gameserver.enums.ShortcutType;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
@@ -9,63 +10,63 @@ import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public final class RequestRefineCancel extends L2GameClientPacket
 {
-	private int _targetItemObjId;
+	private int _objectId;
 	
 	@Override
 	protected void readImpl()
 	{
-		_targetItemObjId = readD();
+		_objectId = readD();
 	}
 	
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		final ItemInstance targetItem = activeChar.getInventory().getItemByObjectId(_targetItemObjId);
-		if (targetItem == null)
+		final ItemInstance item = player.getInventory().getItemByObjectId(_objectId);
+		if (item == null)
 		{
-			activeChar.sendPacket(new ExVariationCancelResult(0));
+			player.sendPacket(new ExVariationCancelResult(0));
 			return;
 		}
 		
-		if (targetItem.getOwnerId() != activeChar.getObjectId())
+		if (item.getOwnerId() != player.getObjectId())
 			return;
 		
 		// cannot remove augmentation from a not augmented item
-		if (!targetItem.isAugmented())
+		if (!item.isAugmented())
 		{
-			activeChar.sendPacket(SystemMessageId.AUGMENTATION_REMOVAL_CAN_ONLY_BE_DONE_ON_AN_AUGMENTED_ITEM);
-			activeChar.sendPacket(new ExVariationCancelResult(0));
+			player.sendPacket(SystemMessageId.AUGMENTATION_REMOVAL_CAN_ONLY_BE_DONE_ON_AN_AUGMENTED_ITEM);
+			player.sendPacket(new ExVariationCancelResult(0));
 			return;
 		}
 		
 		// get the price
 		int price = 0;
-		switch (targetItem.getItem().getCrystalType())
+		switch (item.getItem().getCrystalType())
 		{
 			case C:
-				if (targetItem.getCrystalCount() < 1720)
+				if (item.getCrystalCount() < 1720)
 					price = 95000;
-				else if (targetItem.getCrystalCount() < 2452)
+				else if (item.getCrystalCount() < 2452)
 					price = 150000;
 				else
 					price = 210000;
 				break;
 			
 			case B:
-				if (targetItem.getCrystalCount() < 1746)
+				if (item.getCrystalCount() < 1746)
 					price = 240000;
 				else
 					price = 270000;
 				break;
 			
 			case A:
-				if (targetItem.getCrystalCount() < 2160)
+				if (item.getCrystalCount() < 2160)
 					price = 330000;
-				else if (targetItem.getCrystalCount() < 2824)
+				else if (item.getCrystalCount() < 2824)
 					price = 390000;
 				else
 					price = 420000;
@@ -77,35 +78,36 @@ public final class RequestRefineCancel extends L2GameClientPacket
 			
 			// any other item type is not augmentable
 			default:
-				activeChar.sendPacket(new ExVariationCancelResult(0));
+				player.sendPacket(new ExVariationCancelResult(0));
 				return;
 		}
 		
 		// try to reduce the players adena
-		if (!activeChar.reduceAdena("RequestRefineCancel", price, null, true))
+		if (!player.reduceAdena("RequestRefineCancel", price, null, true))
 		{
-			activeChar.sendPacket(new ExVariationCancelResult(0));
+			player.sendPacket(new ExVariationCancelResult(0));
 			return;
 		}
 		
 		// unequip item
-		if (targetItem.isEquipped())
-			activeChar.disarmWeapons();
+		if (item.isEquipped())
+			player.disarmWeapon(false);
 		
 		// remove the augmentation
-		targetItem.removeAugmentation();
+		item.removeAugmentation();
 		
 		// send ExVariationCancelResult
-		activeChar.sendPacket(new ExVariationCancelResult(1));
+		player.sendPacket(new ExVariationCancelResult(1));
 		
 		// send inventory update
 		InventoryUpdate iu = new InventoryUpdate();
-		iu.addModifiedItem(targetItem);
-		activeChar.sendPacket(iu);
+		iu.addModifiedItem(item);
+		player.sendPacket(iu);
+		
+		// Refresh shortcuts.
+		player.getShortcutList().refreshShortcuts(s -> item.getObjectId() == s.getId() && s.getType() == ShortcutType.ITEM);
 		
 		// send system message
-		SystemMessage sm = SystemMessage.getSystemMessage(SystemMessageId.AUGMENTATION_HAS_BEEN_SUCCESSFULLY_REMOVED_FROM_YOUR_S1);
-		sm.addItemName(targetItem);
-		activeChar.sendPacket(sm);
+		player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.AUGMENTATION_HAS_BEEN_SUCCESSFULLY_REMOVED_FROM_YOUR_S1).addItemName(item));
 	}
 }

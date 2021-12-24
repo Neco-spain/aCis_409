@@ -1,8 +1,5 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
-/**
- * @author chris_00 Asks the player to join a CC
- */
 public class ExAskJoinMPCC extends L2GameServerPacket
 {
 	private final String _requestorName;

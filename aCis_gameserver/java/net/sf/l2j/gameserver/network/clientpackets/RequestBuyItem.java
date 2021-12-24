@@ -3,10 +3,12 @@ package net.sf.l2j.gameserver.network.clientpackets;
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.cache.HtmCache;
 import net.sf.l2j.gameserver.data.manager.BuyListManager;
+import net.sf.l2j.gameserver.enums.StatusType;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Fisherman;
+import net.sf.l2j.gameserver.model.actor.instance.MercenaryManagerNpc;
 import net.sf.l2j.gameserver.model.actor.instance.Merchant;
 import net.sf.l2j.gameserver.model.buylist.NpcBuyList;
 import net.sf.l2j.gameserver.model.buylist.Product;
@@ -70,25 +72,25 @@ public final class RequestBuyItem extends L2GameClientPacket
 		if (buyList.getNpcId() > 0)
 		{
 			final WorldObject target = player.getTarget();
-			if (target instanceof Merchant)
+			if (target instanceof Merchant || target instanceof MercenaryManagerNpc)
 				merchant = (Npc) target;
 			
-			if (merchant == null || !buyList.isNpcAllowed(merchant.getNpcId()) || !merchant.canInteract(player))
+			if (merchant == null || !buyList.isNpcAllowed(merchant.getNpcId()) || !player.getAI().canDoInteract(merchant))
 				return;
 			
 			if (merchant.getCastle() != null)
 				castleTaxRate = merchant.getCastle().getTaxRate();
 		}
 		
-		int subTotal = 0;
-		int slots = 0;
-		int weight = 0;
+		long subTotal = 0;
+		long slots = 0;
+		long weight = 0;
 		
 		for (IntIntHolder i : _items)
 		{
 			int price = -1;
 			
-			final Product product = buyList.getProductByItemId(i.getId());
+			final Product product = buyList.get(i.getId());
 			if (product == null)
 				return;
 			
@@ -132,20 +134,20 @@ public final class RequestBuyItem extends L2GameClientPacket
 				slots++;
 		}
 		
-		if (weight > Integer.MAX_VALUE || weight < 0 || !player.getInventory().validateWeight(weight))
+		if (weight > Integer.MAX_VALUE || weight < 0 || !player.getInventory().validateWeight((int) weight))
 		{
 			sendPacket(SystemMessage.getSystemMessage(SystemMessageId.WEIGHT_LIMIT_EXCEEDED));
 			return;
 		}
 		
-		if (slots > Integer.MAX_VALUE || slots < 0 || !player.getInventory().validateCapacity(slots))
+		if (slots > Integer.MAX_VALUE || slots < 0 || !player.getInventory().validateCapacity((int) slots))
 		{
 			sendPacket(SystemMessage.getSystemMessage(SystemMessageId.SLOTS_FULL));
 			return;
 		}
 		
 		// Charge buyer and add tax to castle treasury if not owned by npc clan
-		if (subTotal < 0 || !player.reduceAdena("Buy", subTotal, player.getCurrentFolk(), false))
+		if (subTotal < 0 || !player.reduceAdena("Buy", (int) subTotal, player.getCurrentFolk(), false))
 		{
 			sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_NOT_ENOUGH_ADENA));
 			return;
@@ -154,7 +156,7 @@ public final class RequestBuyItem extends L2GameClientPacket
 		// Proceed the purchase
 		for (IntIntHolder i : _items)
 		{
-			final Product product = buyList.getProductByItemId(i.getId());
+			final Product product = buyList.get(i.getId());
 			if (product == null)
 				continue;
 			
@@ -193,7 +195,7 @@ public final class RequestBuyItem extends L2GameClientPacket
 		}
 		
 		StatusUpdate su = new StatusUpdate(player);
-		su.addAttribute(StatusUpdate.CUR_LOAD, player.getCurrentLoad());
+		su.addAttribute(StatusType.CUR_LOAD, player.getCurrentWeight());
 		player.sendPacket(su);
 		player.sendPacket(new ItemList(player, true));
 	}

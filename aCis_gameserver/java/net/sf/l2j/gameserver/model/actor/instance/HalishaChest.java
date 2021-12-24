@@ -8,9 +8,9 @@ public final class HalishaChest extends Monster
 	{
 		super(objectId, template);
 		
-		setIsNoRndWalk(true);
+		setNoRndWalk(true);
 		setShowSummonAnimation(true);
-		disableCoreAI(true);
+		disableCoreAi(true);
 	}
 	
 	@Override

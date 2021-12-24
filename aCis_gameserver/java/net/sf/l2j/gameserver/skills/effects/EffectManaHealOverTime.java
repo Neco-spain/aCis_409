@@ -1,40 +1,30 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
-import net.sf.l2j.gameserver.model.L2Effect;
-import net.sf.l2j.gameserver.network.serverpackets.StatusUpdate;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
-class EffectManaHealOverTime extends L2Effect
+public class EffectManaHealOverTime extends AbstractEffect
 {
-	public EffectManaHealOverTime(Env env, EffectTemplate template)
+	public EffectManaHealOverTime(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
 	{
-		super(env, template);
+		super(template, skill, effected, effector);
 	}
 	
 	@Override
-	public L2EffectType getEffectType()
+	public EffectType getEffectType()
 	{
-		return L2EffectType.MANA_HEAL_OVER_TIME;
+		return EffectType.MANA_HEAL_OVER_TIME;
 	}
 	
 	@Override
 	public boolean onActionTime()
 	{
-		if (getEffected().isDead())
+		if (!getEffected().canBeHealed())
 			return false;
 		
-		double mp = getEffected().getCurrentMp();
-		double maxmp = getEffected().getMaxMp();
-		mp += calc();
-		
-		if (mp > maxmp)
-			mp = maxmp;
-		
-		getEffected().setCurrentMp(mp);
-		StatusUpdate sump = new StatusUpdate(getEffected());
-		sump.addAttribute(StatusUpdate.CUR_MP, (int) mp);
-		getEffected().sendPacket(sump);
+		getEffected().getStatus().addMp(getTemplate().getValue());
 		return true;
 	}
 }

@@ -1,56 +1,60 @@
 package net.sf.l2j.gameserver.handler.chathandlers;
 
+import net.sf.l2j.gameserver.enums.SayType;
 import net.sf.l2j.gameserver.handler.IChatHandler;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.actor.player.BlockList;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.CreatureSay;
+import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public class ChatTell implements IChatHandler
 {
-	private static final int[] COMMAND_IDS =
+	private static final SayType[] COMMAND_IDS =
 	{
-		2
+		SayType.TELL
 	};
 	
 	@Override
-	public void handleChat(int type, Player activeChar, String target, String text)
+	public void handleChat(SayType type, Player player, String target, String text)
 	{
 		if (target == null)
 			return;
 		
-		final Player receiver = World.getInstance().getPlayer(target);
-		if (receiver == null || receiver.getClient().isDetached())
+		final Player targetPlayer = World.getInstance().getPlayer(target);
+		if (targetPlayer == null || targetPlayer.getClient().isDetached())
 		{
-			activeChar.sendPacket(SystemMessageId.TARGET_IS_NOT_FOUND_IN_THE_GAME);
+			player.sendPacket(SystemMessageId.TARGET_IS_NOT_FOUND_IN_THE_GAME);
 			return;
 		}
 		
-		if (activeChar.equals(receiver))
+		if (targetPlayer.isInJail() || targetPlayer.isChatBanned())
 		{
-			activeChar.sendPacket(SystemMessageId.INCORRECT_TARGET);
+			player.sendPacket(SystemMessageId.TARGET_IS_CHAT_BANNED);
 			return;
 		}
 		
-		if (receiver.isInJail() || receiver.isChatBanned())
+		if (!player.isGM())
 		{
-			activeChar.sendPacket(SystemMessageId.TARGET_IS_CHAT_BANNED);
-			return;
+			if (targetPlayer.getBlockList().isBlockingAll())
+			{
+				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_BLOCKED_EVERYTHING).addCharName(targetPlayer));
+				return;
+			}
+			
+			if (targetPlayer.getBlockList().isInBlockList(player))
+			{
+				player.sendPacket(SystemMessageId.THE_PERSON_IS_IN_MESSAGE_REFUSAL_MODE);
+				return;
+			}
 		}
 		
-		if (!activeChar.isGM() && (receiver.isInRefusalMode() || BlockList.isBlocked(receiver, activeChar)))
-		{
-			activeChar.sendPacket(SystemMessageId.THE_PERSON_IS_IN_MESSAGE_REFUSAL_MODE);
-			return;
-		}
-		
-		receiver.sendPacket(new CreatureSay(activeChar.getObjectId(), type, activeChar.getName(), text));
-		activeChar.sendPacket(new CreatureSay(activeChar.getObjectId(), type, "->" + receiver.getName(), text));
+		targetPlayer.sendPacket(new CreatureSay(player, type, text));
+		player.sendPacket(new CreatureSay(player.getObjectId(), type, "->" + targetPlayer.getName(), text));
 	}
 	
 	@Override
-	public int[] getChatTypeList()
+	public SayType[] getChatTypeList()
 	{
 		return COMMAND_IDS;
 	}

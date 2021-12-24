@@ -3,6 +3,7 @@ package net.sf.l2j.commons.geometry;
 import net.sf.l2j.commons.random.Rnd;
 
 import net.sf.l2j.gameserver.model.location.Location;
+import net.sf.l2j.gameserver.model.location.Point2D;
 
 /**
  * @author Hasha
@@ -30,16 +31,16 @@ public class Triangle extends AShape
 	 * @param B : Point B of the triangle.
 	 * @param C : Point C of the triangle.
 	 */
-	public Triangle(int[] A, int[] B, int[] C)
+	public Triangle(Point2D A, Point2D B, Point2D C)
 	{
-		_Ax = A[0];
-		_Ay = A[1];
+		_Ax = A.getX();
+		_Ay = A.getY();
 		
-		_BAx = B[0] - A[0];
-		_BAy = B[1] - A[1];
+		_BAx = B.getX() - A.getX();
+		_BAy = B.getY() - A.getY();
 		
-		_CAx = C[0] - A[0];
-		_CAy = C[1] - A[1];
+		_CAx = C.getX() - A.getX();
+		_CAy = C.getY() - A.getY();
 		
 		_size = Math.abs(_BAx * _CAy - _CAx * _BAy) / 2;
 	}

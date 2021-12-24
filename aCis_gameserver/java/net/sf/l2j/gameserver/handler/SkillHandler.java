@@ -3,7 +3,7 @@ package net.sf.l2j.gameserver.handler;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.sf.l2j.gameserver.enums.skills.L2SkillType;
+import net.sf.l2j.gameserver.enums.skills.SkillType;
 import net.sf.l2j.gameserver.handler.skillhandlers.BalanceLife;
 import net.sf.l2j.gameserver.handler.skillhandlers.Blow;
 import net.sf.l2j.gameserver.handler.skillhandlers.Cancel;
@@ -30,7 +30,8 @@ import net.sf.l2j.gameserver.handler.skillhandlers.Pdam;
 import net.sf.l2j.gameserver.handler.skillhandlers.Resurrect;
 import net.sf.l2j.gameserver.handler.skillhandlers.Sow;
 import net.sf.l2j.gameserver.handler.skillhandlers.Spoil;
-import net.sf.l2j.gameserver.handler.skillhandlers.StrSiegeAssault;
+import net.sf.l2j.gameserver.handler.skillhandlers.StriderSiegeAssault;
+import net.sf.l2j.gameserver.handler.skillhandlers.SummonCreature;
 import net.sf.l2j.gameserver.handler.skillhandlers.SummonFriend;
 import net.sf.l2j.gameserver.handler.skillhandlers.Sweep;
 import net.sf.l2j.gameserver.handler.skillhandlers.TakeCastle;
@@ -68,8 +69,9 @@ public class SkillHandler
 		registerHandler(new Resurrect());
 		registerHandler(new Sow());
 		registerHandler(new Spoil());
-		registerHandler(new StrSiegeAssault());
+		registerHandler(new StriderSiegeAssault());
 		registerHandler(new SummonFriend());
+		registerHandler(new SummonCreature());
 		registerHandler(new Sweep());
 		registerHandler(new TakeCastle());
 		registerHandler(new Unlock());
@@ -77,11 +79,11 @@ public class SkillHandler
 	
 	private void registerHandler(ISkillHandler handler)
 	{
-		for (L2SkillType t : handler.getSkillIds())
+		for (SkillType t : handler.getSkillIds())
 			_entries.put(t.ordinal(), handler);
 	}
 	
-	public ISkillHandler getHandler(L2SkillType skillType)
+	public ISkillHandler getHandler(SkillType skillType)
 	{
 		return _entries.get(skillType.ordinal());
 	}

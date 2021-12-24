@@ -3,35 +3,15 @@ package net.sf.l2j.gameserver.network.serverpackets;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * The old "MagicEffectIcons" packet format h (dhd)
- */
+import net.sf.l2j.gameserver.model.holder.EffectHolder;
+import net.sf.l2j.gameserver.skills.L2Skill;
+
 public class AbnormalStatusUpdate extends L2GameServerPacket
 {
-	private final List<Effect> _effects;
-	
-	private static class Effect
-	{
-		protected int _skillId;
-		protected int _level;
-		protected int _duration;
-		
-		public Effect(int pSkillId, int pLevel, int pDuration)
-		{
-			_skillId = pSkillId;
-			_level = pLevel;
-			_duration = pDuration;
-		}
-	}
+	private final List<EffectHolder> _effects = new ArrayList<>();
 	
 	public AbnormalStatusUpdate()
 	{
-		_effects = new ArrayList<>();
-	}
-	
-	public void addEffect(int skillId, int level, int duration)
-	{
-		_effects.add(new Effect(skillId, level, duration));
 	}
 	
 	@Override
@@ -40,16 +20,16 @@ public class AbnormalStatusUpdate extends L2GameServerPacket
 		writeC(0x7f);
 		
 		writeH(_effects.size());
-		
-		for (Effect temp : _effects)
+		for (EffectHolder holder : _effects)
 		{
-			writeD(temp._skillId);
-			writeH(temp._level);
-			
-			if (temp._duration == -1)
-				writeD(-1);
-			else
-				writeD(temp._duration / 1000);
+			writeD(holder.getId());
+			writeH(holder.getValue());
+			writeD((holder.getDuration() == -1) ? -1 : holder.getDuration() / 1000);
 		}
+	}
+	
+	public void addEffect(L2Skill skill, int duration)
+	{
+		_effects.add(new EffectHolder(skill, duration));
 	}
 }

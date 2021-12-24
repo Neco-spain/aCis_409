@@ -1,9 +1,10 @@
 package net.sf.l2j.gameserver.model.olympiad;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
 import net.sf.l2j.commons.logging.CLogger;
+import net.sf.l2j.commons.pool.ThreadPool;
 
 import net.sf.l2j.Config;
+import net.sf.l2j.gameserver.enums.SpawnType;
 import net.sf.l2j.gameserver.model.zone.type.OlympiadStadiumZone;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
@@ -12,7 +13,7 @@ public final class OlympiadGameTask implements Runnable
 {
 	protected static final CLogger LOGGER = new CLogger(OlympiadGameTask.class.getName());
 	
-	protected static final long BATTLE_PERIOD = Config.ALT_OLY_BATTLE; // 6 mins
+	protected static final long BATTLE_PERIOD = Config.OLY_BATTLE; // 6 mins
 	
 	public static final int[] TELEPORT_TO_ARENA =
 	{
@@ -63,7 +64,7 @@ public final class OlympiadGameTask implements Runnable
 	private boolean _needAnnounce = false;
 	private int _countDown = 0;
 	
-	private static enum GameState
+	private enum GameState
 	{
 		BEGIN,
 		TELE_TO_ARENA,
@@ -150,26 +151,21 @@ public final class OlympiadGameTask implements Runnable
 			{
 				// Game created
 				case BEGIN:
-				{
 					_state = GameState.TELE_TO_ARENA;
-					_countDown = Config.ALT_OLY_WAIT_TIME;
+					_countDown = Config.OLY_WAIT_TIME;
 					break;
-				}
 				
 				// Teleport to arena countdown
 				case TELE_TO_ARENA:
-				{
 					_game.broadcastPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_WILL_ENTER_THE_OLYMPIAD_STADIUM_IN_S1_SECOND_S).addNumber(_countDown));
 					
 					delay = getDelay(TELEPORT_TO_ARENA);
 					if (_countDown <= 0)
 						_state = GameState.GAME_STARTED;
 					break;
-				}
 				
 				// Game start, port players to arena
 				case GAME_STARTED:
-				{
 					if (!startGame())
 					{
 						_state = GameState.GAME_STOPPED;
@@ -177,14 +173,12 @@ public final class OlympiadGameTask implements Runnable
 					}
 					
 					_state = GameState.BATTLE_COUNTDOWN;
-					_countDown = Config.ALT_OLY_WAIT_BATTLE;
+					_countDown = Config.OLY_WAIT_BATTLE;
 					delay = getDelay(BATTLE_START_TIME);
 					break;
-				}
 				
 				// Battle start countdown, first part (60-10)
 				case BATTLE_COUNTDOWN:
-				{
 					_zone.broadcastPacket(SystemMessage.getSystemMessage(SystemMessageId.THE_GAME_WILL_START_IN_S1_SECOND_S).addNumber(_countDown));
 					
 					if (_countDown == 20)
@@ -198,11 +192,9 @@ public final class OlympiadGameTask implements Runnable
 						_state = GameState.BATTLE_STARTED;
 					
 					break;
-				}
 				
 				// Beginning of the battle
 				case BATTLE_STARTED:
-				{
 					_countDown = 0;
 					
 					_game.healPlayers();
@@ -213,31 +205,25 @@ public final class OlympiadGameTask implements Runnable
 						_state = GameState.GAME_STOPPED;
 					
 					break;
-				}
 				
 				// Checks during battle
 				case BATTLE_IN_PROGRESS:
-				{
 					_countDown += 1000;
-					if (checkBattle() || _countDown > Config.ALT_OLY_BATTLE)
+					if (checkBattle() || _countDown > Config.OLY_BATTLE)
 						_state = GameState.GAME_STOPPED;
 					
 					break;
-				}
 				
 				// End of the battle
 				case GAME_STOPPED:
-				{
 					_state = GameState.TELE_TO_TOWN;
-					_countDown = Config.ALT_OLY_WAIT_END;
+					_countDown = Config.OLY_WAIT_END;
 					stopGame();
 					delay = getDelay(TELEPORT_TO_TOWN);
 					break;
-				}
 				
 				// Teleport to town countdown
 				case TELE_TO_TOWN:
-				{
 					_game.broadcastPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_WILL_BE_MOVED_TO_TOWN_IN_S1_SECONDS).addNumber(_countDown));
 					
 					delay = getDelay(TELEPORT_TO_TOWN);
@@ -245,18 +231,15 @@ public final class OlympiadGameTask implements Runnable
 						_state = GameState.CLEANUP;
 					
 					break;
-				}
 				
 				// Removals
 				case CLEANUP:
-				{
 					cleanupGame();
 					_state = GameState.IDLE;
 					_game = null;
 					return;
-				}
 			}
-			ThreadPool.schedule(this, delay * 1000);
+			ThreadPool.schedule(this, delay * 1000L);
 		}
 		catch (Exception e)
 		{
@@ -266,12 +249,10 @@ public final class OlympiadGameTask implements Runnable
 				case TELE_TO_TOWN:
 				case CLEANUP:
 				case IDLE:
-				{
 					LOGGER.error("Couldn't return players back in town.", e);
 					_state = GameState.IDLE;
 					_game = null;
 					return;
-				}
 			}
 			
 			LOGGER.error("Couldn't return players back in town.", e);
@@ -309,7 +290,7 @@ public final class OlympiadGameTask implements Runnable
 		if (_game.checkDefection())
 			return false;
 		
-		if (!_game.portPlayersToArena(_zone.getLocs()))
+		if (!_game.portPlayersToArena(_zone.getSpawns(SpawnType.NORMAL)))
 			return false;
 		
 		_game.removals();

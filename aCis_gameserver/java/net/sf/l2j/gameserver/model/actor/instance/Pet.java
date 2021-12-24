@@ -8,33 +8,30 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
+import net.sf.l2j.commons.math.MathUtil;
+import net.sf.l2j.commons.pool.ConnectionPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 import net.sf.l2j.commons.random.Rnd;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.L2DatabaseFactory;
 import net.sf.l2j.gameserver.data.SkillTable;
-import net.sf.l2j.gameserver.data.manager.CursedWeaponManager;
-import net.sf.l2j.gameserver.enums.IntentionType;
-import net.sf.l2j.gameserver.enums.LootRule;
+import net.sf.l2j.gameserver.enums.Paperdoll;
+import net.sf.l2j.gameserver.enums.StatusType;
 import net.sf.l2j.gameserver.enums.ZoneId;
-import net.sf.l2j.gameserver.enums.items.ArmorType;
-import net.sf.l2j.gameserver.enums.items.EtcItemType;
-import net.sf.l2j.gameserver.enums.items.WeaponType;
+import net.sf.l2j.gameserver.enums.actors.WeightPenalty;
+import net.sf.l2j.gameserver.enums.skills.Stats;
 import net.sf.l2j.gameserver.handler.IItemHandler;
 import net.sf.l2j.gameserver.handler.ItemHandler;
 import net.sf.l2j.gameserver.idfactory.IdFactory;
-import net.sf.l2j.gameserver.model.L2Skill;
 import net.sf.l2j.gameserver.model.PetDataEntry;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.Summon;
-import net.sf.l2j.gameserver.model.actor.stat.PetStat;
+import net.sf.l2j.gameserver.model.actor.status.PetStatus;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
 import net.sf.l2j.gameserver.model.actor.template.PetTemplate;
-import net.sf.l2j.gameserver.model.group.Party;
 import net.sf.l2j.gameserver.model.holder.Timestamp;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.item.kind.Item;
@@ -44,12 +41,11 @@ import net.sf.l2j.gameserver.model.itemcontainer.PetInventory;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.InventoryUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.PetInventoryUpdate;
-import net.sf.l2j.gameserver.network.serverpackets.PetItemList;
 import net.sf.l2j.gameserver.network.serverpackets.StatusUpdate;
-import net.sf.l2j.gameserver.network.serverpackets.StopMove;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
+import net.sf.l2j.gameserver.skills.Formulas;
+import net.sf.l2j.gameserver.skills.L2Skill;
 import net.sf.l2j.gameserver.taskmanager.DecayTaskManager;
-import net.sf.l2j.gameserver.taskmanager.ItemsOnGroundTaskManager;
 
 /**
  * A pet is a instance extending {@link Summon}, linked to a {@link Player}. A pet is different than a Servitor in multiple ways:
@@ -73,7 +69,7 @@ public class Pet extends Summon
 	private final boolean _isMountable;
 	
 	private int _curFed;
-	private int _curWeightPenalty = 0;
+	private WeightPenalty _weightPenalty = WeightPenalty.NONE;
 	
 	private long _expBeforeDeath = 0;
 	
@@ -85,23 +81,21 @@ public class Pet extends Summon
 	{
 		super(objectId, template, owner);
 		
-		getPosition().set(owner.getX() + 50, owner.getY() + 100, owner.getZ());
-		
 		_inventory = new PetInventory(this);
 		_controlItemId = control.getObjectId();
 		_isMountable = template.getNpcId() == 12526 || template.getNpcId() == 12527 || template.getNpcId() == 12528 || template.getNpcId() == 12621;
 	}
 	
 	@Override
-	public void initCharStat()
+	public PetStatus getStatus()
 	{
-		setStat(new PetStat(this));
+		return (PetStatus) _status;
 	}
 	
 	@Override
-	public PetStat getStat()
+	public void setStatus()
 	{
-		return (PetStat) super.getStat();
+		_status = new PetStatus(this);
 	}
 	
 	@Override
@@ -135,29 +129,26 @@ public class Pet extends Summon
 	}
 	
 	@Override
-	public void onAction(Player player)
+	public void onAction(Player player, boolean isCtrlPressed, boolean isShiftPressed)
 	{
 		// Refresh the Player owner reference if objectId is matching, but object isn't.
 		if (player.getObjectId() == getOwner().getObjectId() && player != getOwner())
 			setOwner(player);
 		
-		super.onAction(player);
+		super.onAction(player, isCtrlPressed, isShiftPressed);
 	}
 	
 	@Override
 	public ItemInstance getActiveWeaponInstance()
 	{
-		return _inventory.getPaperdollItem(Inventory.PAPERDOLL_RHAND);
+		return _inventory.getItemFrom(Paperdoll.RHAND);
 	}
 	
 	@Override
 	public Weapon getActiveWeaponItem()
 	{
 		final ItemInstance weapon = getActiveWeaponInstance();
-		if (weapon == null)
-			return null;
-		
-		return (Weapon) weapon.getItem();
+		return (weapon == null) ? null : (Weapon) weapon.getItem();
 	}
 	
 	@Override
@@ -215,122 +206,6 @@ public class Pet extends Summon
 	}
 	
 	@Override
-	public void doPickupItem(WorldObject object)
-	{
-		if (isDead())
-			return;
-		
-		getAI().setIntention(IntentionType.IDLE);
-		
-		// The object must be an item.
-		if (!(object instanceof ItemInstance))
-			return;
-		
-		broadcastPacket(new StopMove(getObjectId(), getX(), getY(), getZ(), getHeading()));
-		
-		final ItemInstance target = (ItemInstance) object;
-		
-		// Can't pickup cursed weapons.
-		if (CursedWeaponManager.getInstance().isCursed(target.getItemId()))
-		{
-			getOwner().sendPacket(SystemMessage.getSystemMessage(SystemMessageId.FAILED_TO_PICKUP_S1).addItemName(target.getItemId()));
-			return;
-		}
-		
-		// Can't pickup shots and arrows.
-		if (target.getItem().getItemType() == EtcItemType.ARROW || target.getItem().getItemType() == EtcItemType.SHOT)
-		{
-			getOwner().sendPacket(SystemMessageId.ITEM_NOT_FOR_PETS);
-			return;
-		}
-		
-		synchronized (target)
-		{
-			if (!target.isVisible())
-				return;
-			
-			if (!_inventory.validateCapacity(target))
-			{
-				getOwner().sendPacket(SystemMessageId.YOUR_PET_CANNOT_CARRY_ANY_MORE_ITEMS);
-				return;
-			}
-			
-			if (!_inventory.validateWeight(target, target.getCount()))
-			{
-				getOwner().sendPacket(SystemMessageId.UNABLE_TO_PLACE_ITEM_YOUR_PET_IS_TOO_ENCUMBERED);
-				return;
-			}
-			
-			if (target.getOwnerId() != 0 && !getOwner().isLooterOrInLooterParty(target.getOwnerId()))
-			{
-				if (target.getItemId() == 57)
-					getOwner().sendPacket(SystemMessage.getSystemMessage(SystemMessageId.FAILED_TO_PICKUP_S1_ADENA).addNumber(target.getCount()));
-				else if (target.getCount() > 1)
-					getOwner().sendPacket(SystemMessage.getSystemMessage(SystemMessageId.FAILED_TO_PICKUP_S2_S1_S).addItemName(target.getItemId()).addNumber(target.getCount()));
-				else
-					getOwner().sendPacket(SystemMessage.getSystemMessage(SystemMessageId.FAILED_TO_PICKUP_S1).addItemName(target.getItemId()));
-				
-				return;
-			}
-			
-			if (target.hasDropProtection())
-				target.removeDropProtection();
-			
-			// If owner is in party and it isnt finders keepers, distribute the item instead of stealing it -.-
-			final Party party = getOwner().getParty();
-			if (party != null && party.getLootRule() != LootRule.ITEM_LOOTER)
-				party.distributeItem(getOwner(), target);
-			else
-				target.pickupMe(this);
-			
-			// Item must be removed from ItemsOnGroundManager if it is active.
-			ItemsOnGroundTaskManager.getInstance().remove(target);
-		}
-		
-		// Auto use herbs - pick up
-		if (target.getItemType() == EtcItemType.HERB)
-		{
-			final IItemHandler handler = ItemHandler.getInstance().getHandler(target.getEtcItem());
-			if (handler != null)
-				handler.useItem(this, target, false);
-			
-			target.destroyMe("Consume", getOwner(), null);
-			broadcastStatusUpdate();
-		}
-		else
-		{
-			// if item is instance of L2ArmorType or WeaponType broadcast an "Attention" system message
-			if (target.getItemType() instanceof ArmorType || target.getItemType() instanceof WeaponType)
-			{
-				SystemMessage msg;
-				if (target.getEnchantLevel() > 0)
-					msg = SystemMessage.getSystemMessage(SystemMessageId.ATTENTION_S1_PET_PICKED_UP_S2_S3).addCharName(getOwner()).addNumber(target.getEnchantLevel()).addItemName(target.getItemId());
-				else
-					msg = SystemMessage.getSystemMessage(SystemMessageId.ATTENTION_S1_PET_PICKED_UP_S2).addCharName(getOwner()).addItemName(target.getItemId());
-				
-				getOwner().broadcastPacketInRadius(msg, 1400);
-			}
-			
-			SystemMessage sm2;
-			if (target.getItemId() == 57)
-				sm2 = SystemMessage.getSystemMessage(SystemMessageId.PET_PICKED_S1_ADENA).addItemNumber(target.getCount());
-			else if (target.getEnchantLevel() > 0)
-				sm2 = SystemMessage.getSystemMessage(SystemMessageId.PET_PICKED_S1_S2).addNumber(target.getEnchantLevel()).addItemName(target.getItemId());
-			else if (target.getCount() > 1)
-				sm2 = SystemMessage.getSystemMessage(SystemMessageId.PET_PICKED_S2_S1_S).addItemName(target.getItemId()).addItemNumber(target.getCount());
-			else
-				sm2 = SystemMessage.getSystemMessage(SystemMessageId.PET_PICKED_S1).addItemName(target.getItemId());
-			
-			getOwner().sendPacket(sm2);
-			getInventory().addItem("Pickup", target, getOwner(), this);
-			getOwner().sendPacket(new PetItemList(this));
-		}
-		
-		if (getFollowStatus())
-			followOwner();
-	}
-	
-	@Override
 	public void deleteMe(Player owner)
 	{
 		getInventory().deleteMe();
@@ -368,9 +243,9 @@ public class Pet extends Summon
 		startFeed();
 		
 		if (!checkHungryState())
-			setRunning();
+			forceRunStance();
 		
-		getAI().setIntention(IntentionType.ACTIVE, null);
+		getAI().tryToActive();
 	}
 	
 	@Override
@@ -384,21 +259,15 @@ public class Pet extends Summon
 	@Override
 	public final int getWeapon()
 	{
-		final ItemInstance weapon = getInventory().getPaperdollItem(Inventory.PAPERDOLL_RHAND);
-		if (weapon != null)
-			return weapon.getItemId();
-		
-		return 0;
+		final ItemInstance item = getActiveWeaponInstance();
+		return (item == null) ? 0 : item.getItemId();
 	}
 	
 	@Override
 	public final int getArmor()
 	{
-		final ItemInstance weapon = getInventory().getPaperdollItem(Inventory.PAPERDOLL_CHEST);
-		if (weapon != null)
-			return weapon.getItemId();
-		
-		return 0;
+		final ItemInstance item = getInventory().getItemFrom(Paperdoll.CHEST);
+		return (item == null) ? 0 : item.getItemId();
 	}
 	
 	@Override
@@ -407,7 +276,7 @@ public class Pet extends Summon
 		final ItemInstance controlItem = getControlItem();
 		if (controlItem.getCustomType2() == (name == null ? 1 : 0))
 		{
-			// Name isn't setted yet.
+			// Name isn't set yet.
 			controlItem.setCustomType2(name != null ? 1 : 0);
 			controlItem.updateDatabase();
 			
@@ -424,15 +293,15 @@ public class Pet extends Summon
 		if (_controlItemId == 0)
 			return;
 		
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(STORE_PET))
 		{
 			ps.setString(1, getName());
-			ps.setInt(2, getStat().getLevel());
-			ps.setDouble(3, getStatus().getCurrentHp());
-			ps.setDouble(4, getStatus().getCurrentMp());
-			ps.setLong(5, getStat().getExp());
-			ps.setInt(6, getStat().getSp());
+			ps.setInt(2, getStatus().getLevel());
+			ps.setDouble(3, getStatus().getHp());
+			ps.setDouble(4, getStatus().getMp());
+			ps.setLong(5, getStatus().getExp());
+			ps.setInt(6, getStatus().getSp());
 			ps.setInt(7, getCurrentFed());
 			ps.setInt(8, _controlItemId);
 			ps.executeUpdate();
@@ -443,9 +312,9 @@ public class Pet extends Summon
 		}
 		
 		final ItemInstance itemInst = getControlItem();
-		if (itemInst != null && itemInst.getEnchantLevel() != getStat().getLevel())
+		if (itemInst != null && itemInst.getEnchantLevel() != getStatus().getLevel())
 		{
-			itemInst.setEnchantLevel(getStat().getLevel());
+			itemInst.setEnchantLevel(getStatus().getLevel());
 			itemInst.updateDatabase();
 		}
 	}
@@ -471,42 +340,39 @@ public class Pet extends Summon
 	@Override
 	public void addExpAndSp(long addToExp, int addToSp)
 	{
-		getStat().addExpAndSp(Math.round(addToExp * ((getNpcId() == 12564) ? Config.SINEATER_XP_RATE : Config.PET_XP_RATE)), addToSp);
+		getStatus().addExpAndSp(Math.round(addToExp * ((getNpcId() == 12564) ? Config.SINEATER_XP_RATE : Config.PET_XP_RATE)), addToSp);
 	}
 	
 	@Override
-	public long getExpForThisLevel()
-	{
-		return getStat().getExpForLevel(getLevel());
-	}
-	
-	@Override
-	public long getExpForNextLevel()
-	{
-		return getStat().getExpForLevel(getLevel() + 1);
-	}
-	
-	@Override
-	public final int getLevel()
-	{
-		return getStat().getLevel();
-	}
-	
-	@Override
-	public final int getSkillLevel(int skillId)
+	public int getSkillLevel(int skillId)
 	{
 		// Unknown skill. Return 0.
 		if (getSkill(skillId) == null)
 			return 0;
 		
-		// Max level for pet is 80, max level for pet skills is 12 => ((80 - 8) / 6) = 12.
-		return Math.max(1, Math.min((getLevel() - 8) / 6, SkillTable.getInstance().getMaxLevel(skillId)));
+		// Pet levels 1-69 increase the skill level by 1 per 10 levels. From 70+ level increase the skill level by 1 per 5 levels.
+		int level = getStatus().getLevel();
+		if (level < 70)
+			level = 1 + level / 10;
+		else
+			level = 8 + (level - 70) / 5;
+		
+		// Validate skill level.
+		return MathUtil.limit(level, 1, SkillTable.getInstance().getMaxLevel(skillId));
 	}
 	
+	/**
+	 * Note: Base weight limit value is 34500 (half of player's value).
+	 */
 	@Override
-	public final int getMaxLoad()
+	public final int getWeightLimit()
 	{
-		return PetTemplate.MAX_LOAD;
+		return (int) getStatus().calcStat(Stats.WEIGHT_LIMIT, 34500 * Formulas.CON_BONUS[getStatus().getCON()] * Config.WEIGHT_LIMIT, this, null);
+	}
+	
+	public final WeightPenalty getWeightPenalty()
+	{
+		return _weightPenalty;
 	}
 	
 	@Override
@@ -524,7 +390,7 @@ public class Pet extends Summon
 	@Override
 	public void updateAndBroadcastStatus(int val)
 	{
-		refreshOverloaded();
+		refreshWeightPenalty();
 		super.updateAndBroadcastStatus(val);
 	}
 	
@@ -609,7 +475,7 @@ public class Pet extends Summon
 		
 		// Update player current load aswell
 		StatusUpdate playerSU = new StatusUpdate(getOwner());
-		playerSU.addAttribute(StatusUpdate.CUR_LOAD, getOwner().getCurrentLoad());
+		playerSU.addAttribute(StatusType.CUR_LOAD, getOwner().getCurrentWeight());
 		sendPacket(playerSU);
 		
 		if (wasWorn)
@@ -646,7 +512,7 @@ public class Pet extends Summon
 		owner.destroyItem("PetDestroy", _controlItemId, 1, getOwner(), false);
 		
 		// Delete the pet from the database.
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(DELETE_PET))
 		{
 			ps.setInt(1, _controlItemId);
@@ -666,7 +532,7 @@ public class Pet extends Summon
 		else
 			pet = new Pet(IdFactory.getInstance().getNextId(), template, owner, control);
 		
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection())
+		try (Connection con = ConnectionPool.getConnection())
 		{
 			try (PreparedStatement ps = con.prepareStatement(LOAD_PET))
 			{
@@ -678,27 +544,25 @@ public class Pet extends Summon
 					{
 						pet.setName(rs.getString("name"));
 						
-						pet.getStat().setLevel(rs.getByte("level"));
-						pet.getStat().setExp(rs.getLong("exp"));
-						pet.getStat().setSp(rs.getInt("sp"));
+						pet.getStatus().setLevel(rs.getByte("level"));
+						pet.getStatus().setExp(rs.getLong("exp"));
+						pet.getStatus().setSp(rs.getInt("sp"));
 						
-						pet.getStatus().setCurrentHp(rs.getDouble("curHp"));
-						pet.getStatus().setCurrentMp(rs.getDouble("curMp"));
+						pet.getStatus().setHpMp(rs.getDouble("curHp"), rs.getDouble("curMp"));
 						
 						if (rs.getDouble("curHp") < 0.5)
 						{
 							pet.setIsDead(true);
-							pet.stopHpMpRegeneration();
+							pet.getStatus().stopHpMpRegeneration();
 						}
 						
 						pet.setCurrentFed(rs.getInt("fed"));
 					}
 					else
 					{
-						pet.getStat().setLevel((template.getNpcId() == 12564) ? (byte) pet.getOwner().getLevel() : template.getLevel());
-						pet.getStat().setExp(pet.getExpForThisLevel());
-						pet.getStatus().setCurrentHp(pet.getMaxHp());
-						pet.getStatus().setCurrentMp(pet.getMaxMp());
+						pet.getStatus().setLevel((template.getNpcId() == 12564) ? (byte) pet.getOwner().getStatus().getLevel() : template.getLevel());
+						pet.getStatus().setExp(pet.getStatus().getExpForThisLevel());
+						pet.getStatus().setMaxHpMp();
 						pet.setCurrentFed(pet.getPetData().getMaxMeal());
 						pet.store();
 					}
@@ -739,7 +603,7 @@ public class Pet extends Summon
 	{
 		if (_expBeforeDeath > 0)
 		{
-			getStat().addExp(Math.round((_expBeforeDeath - getStat().getExp()) * restorePercent / 100));
+			getStatus().addExp(Math.round((_expBeforeDeath - getStatus().getExp()) * restorePercent / 100));
 			
 			_expBeforeDeath = 0;
 		}
@@ -747,20 +611,20 @@ public class Pet extends Summon
 	
 	private void deathPenalty()
 	{
-		int lvl = getStat().getLevel();
+		int lvl = getStatus().getLevel();
 		double percentLost = -0.07 * lvl + 6.5;
 		
 		// Calculate the Experience loss
-		long lostExp = Math.round((getStat().getExpForLevel(lvl + 1) - getStat().getExpForLevel(lvl)) * percentLost / 100);
+		long lostExp = Math.round((getStatus().getExpForLevel(lvl + 1) - getStatus().getExpForLevel(lvl)) * percentLost / 100);
 		
 		// Get the Experience before applying penalty
-		_expBeforeDeath = getStat().getExp();
+		_expBeforeDeath = getStatus().getExp();
 		
 		// Set the new Experience value of the L2PetInstance
-		getStat().addExp(-lostExp);
+		getStatus().addExp(-lostExp);
 	}
 	
-	public int getCurrentLoad()
+	public int getCurrentWeight()
 	{
 		return _inventory.getTotalWeight();
 	}
@@ -770,39 +634,31 @@ public class Pet extends Summon
 		return Config.INVENTORY_MAXIMUM_PET;
 	}
 	
-	public void refreshOverloaded() // TODO find a way to apply effect without adding skill. For now it's desactivated.
+	public void refreshWeightPenalty()
 	{
-		int maxLoad = getMaxLoad();
-		if (maxLoad > 0)
+		final int weightLimit = getWeightLimit();
+		if (weightLimit <= 0)
+			return;
+		
+		final double ratio = (getCurrentWeight() - getStatus().calcStat(Stats.WEIGHT_PENALTY, 0, this, null)) / weightLimit;
+		
+		final WeightPenalty newWeightPenalty;
+		if (ratio < 0.5)
+			newWeightPenalty = WeightPenalty.NONE;
+		else if (ratio < 0.666)
+			newWeightPenalty = WeightPenalty.LEVEL_1;
+		else if (ratio < 0.8)
+			newWeightPenalty = WeightPenalty.LEVEL_2;
+		else if (ratio < 1)
+			newWeightPenalty = WeightPenalty.LEVEL_3;
+		else
+			newWeightPenalty = WeightPenalty.LEVEL_4;
+		
+		if (_weightPenalty != newWeightPenalty)
 		{
-			int weightproc = getCurrentLoad() * 1000 / maxLoad;
-			int newWeightPenalty;
+			_weightPenalty = newWeightPenalty;
 			
-			if (weightproc < 500)
-				newWeightPenalty = 0;
-			else if (weightproc < 666)
-				newWeightPenalty = 1;
-			else if (weightproc < 800)
-				newWeightPenalty = 2;
-			else if (weightproc < 1000)
-				newWeightPenalty = 3;
-			else
-				newWeightPenalty = 4;
-			
-			if (_curWeightPenalty != newWeightPenalty)
-			{
-				_curWeightPenalty = newWeightPenalty;
-				if (newWeightPenalty > 0)
-				{
-					// addSkill(SkillTable.getInstance().getInfo(4270, newWeightPenalty), false);
-					setIsOverloaded(getCurrentLoad() >= maxLoad);
-				}
-				else
-				{
-					// removeSkill(4270, false);
-					setIsOverloaded(false);
-				}
-			}
+			getStatus().broadcastStatusUpdate();
 		}
 	}
 	
@@ -907,16 +763,16 @@ public class Pet extends Summon
 			}
 			
 			if (checkHungryState())
-				setWalking();
+				forceWalkStance();
 			else
-				setRunning();
+				forceRunStance();
 			
-			broadcastStatusUpdate();
+			getStatus().broadcastStatusUpdate();
 		}
 		
 		private int getFeedConsume()
 		{
-			return (isAttackingNow()) ? getPetData().getMealInBattle() : getPetData().getMealInNormal();
+			return (isInCombat()) ? getPetData().getMealInBattle() : getPetData().getMealInNormal();
 		}
 	}
 }

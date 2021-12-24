@@ -1,10 +1,11 @@
 package net.sf.l2j.gameserver.model.zone.type;
 
 import net.sf.l2j.gameserver.enums.ZoneId;
+import net.sf.l2j.gameserver.enums.actors.MoveType;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.zone.ZoneType;
+import net.sf.l2j.gameserver.model.zone.type.subtype.ZoneType;
 import net.sf.l2j.gameserver.network.serverpackets.AbstractNpcInfo.NpcInfo;
 import net.sf.l2j.gameserver.network.serverpackets.ServerObjectInfo;
 
@@ -22,6 +23,7 @@ public class WaterZone extends ZoneType
 	protected void onEnter(Creature character)
 	{
 		character.setInsideZone(ZoneId.WATER, true);
+		character.getMove().addMoveType(MoveType.SWIM);
 		
 		if (character instanceof Player)
 			((Player) character).broadcastUserInfo();
@@ -29,7 +31,7 @@ public class WaterZone extends ZoneType
 		{
 			for (Player player : character.getKnownType(Player.class))
 			{
-				if (character.getMoveSpeed() == 0)
+				if (character.getStatus().getMoveSpeed() == 0)
 					player.sendPacket(new ServerObjectInfo((Npc) character, player));
 				else
 					player.sendPacket(new NpcInfo((Npc) character, player));
@@ -41,6 +43,7 @@ public class WaterZone extends ZoneType
 	protected void onExit(Creature character)
 	{
 		character.setInsideZone(ZoneId.WATER, false);
+		character.getMove().removeMoveType(MoveType.SWIM);
 		
 		if (character instanceof Player)
 			((Player) character).broadcastUserInfo();
@@ -48,7 +51,7 @@ public class WaterZone extends ZoneType
 		{
 			for (Player player : character.getKnownType(Player.class))
 			{
-				if (character.getMoveSpeed() == 0)
+				if (character.getStatus().getMoveSpeed() == 0)
 					player.sendPacket(new ServerObjectInfo((Npc) character, player));
 				else
 					player.sendPacket(new NpcInfo((Npc) character, player));

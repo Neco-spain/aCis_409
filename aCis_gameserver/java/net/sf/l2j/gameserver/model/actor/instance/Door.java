@@ -1,39 +1,35 @@
 package net.sf.l2j.gameserver.model.actor.instance;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 import net.sf.l2j.commons.random.Rnd;
 
 import net.sf.l2j.gameserver.data.manager.CastleManager;
 import net.sf.l2j.gameserver.data.manager.ClanHallManager;
 import net.sf.l2j.gameserver.data.xml.DoorData;
 import net.sf.l2j.gameserver.enums.DoorType;
-import net.sf.l2j.gameserver.enums.IntentionType;
 import net.sf.l2j.gameserver.enums.OpenType;
+import net.sf.l2j.gameserver.enums.SiegeSide;
 import net.sf.l2j.gameserver.geoengine.GeoEngine;
 import net.sf.l2j.gameserver.geoengine.geodata.IGeoObject;
-import net.sf.l2j.gameserver.model.L2Skill;
 import net.sf.l2j.gameserver.model.actor.Creature;
-import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.actor.Summon;
 import net.sf.l2j.gameserver.model.actor.ai.type.CreatureAI;
 import net.sf.l2j.gameserver.model.actor.ai.type.DoorAI;
-import net.sf.l2j.gameserver.model.actor.stat.DoorStat;
 import net.sf.l2j.gameserver.model.actor.status.DoorStatus;
 import net.sf.l2j.gameserver.model.actor.template.DoorTemplate;
 import net.sf.l2j.gameserver.model.clanhall.ClanHall;
+import net.sf.l2j.gameserver.model.clanhall.SiegableHall;
 import net.sf.l2j.gameserver.model.entity.Castle;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.item.kind.Weapon;
-import net.sf.l2j.gameserver.model.location.SpawnLocation;
 import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 import net.sf.l2j.gameserver.network.serverpackets.ConfirmDlg;
 import net.sf.l2j.gameserver.network.serverpackets.DoorInfo;
 import net.sf.l2j.gameserver.network.serverpackets.DoorStatusUpdate;
-import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
-import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class Door extends Creature implements IGeoObject
 {
@@ -46,20 +42,20 @@ public class Door extends Creature implements IGeoObject
 	{
 		super(objectId, template);
 		
-		// assign door to a castle
-		_castle = CastleManager.getInstance().getCastleById(template.getCastle());
+		// Assign the Door to a Castle, if the Castle owns the door id.
+		_castle = CastleManager.getInstance().getCastleById(template.getCastleId());
 		if (_castle != null)
 			_castle.getDoors().add(this);
 		
-		// assign door to a clan hall
-		_clanHall = ClanHallManager.getInstance().getNearestClanHall(template.getPosX(), template.getPosY(), 500);
+		// Assign the Door to a ClanHall, if the ClanHall owns the door id.
+		_clanHall = ClanHallManager.getInstance().getClanHall(template.getClanHallId());
 		if (_clanHall != null)
 			_clanHall.getDoors().add(this);
 		
-		// temporarily set opposite state to initial state (will be set correctly by onSpawn)
+		// Temporarily set opposite state to initial state (will be set correctly by onSpawn).
 		_open = !getTemplate().isOpened();
 		
-		// set name
+		// Set the name.
 		setName(template.getName());
 	}
 	
@@ -71,37 +67,24 @@ public class Door extends Creature implements IGeoObject
 		{
 			synchronized (this)
 			{
-				if (_ai == null)
-					_ai = new DoorAI(this);
-				
-				return _ai;
+				ai = _ai;
+				if (ai == null)
+					_ai = ai = new DoorAI(this);
 			}
 		}
 		return ai;
 	}
 	
 	@Override
-	public void initCharStat()
-	{
-		setStat(new DoorStat(this));
-	}
-	
-	@Override
-	public final DoorStat getStat()
-	{
-		return (DoorStat) super.getStat();
-	}
-	
-	@Override
-	public void initCharStatus()
-	{
-		setStatus(new DoorStatus(this));
-	}
-	
-	@Override
 	public final DoorStatus getStatus()
 	{
-		return (DoorStatus) super.getStatus();
+		return (DoorStatus) _status;
+	}
+	
+	@Override
+	public void setStatus()
+	{
+		_status = new DoorStatus(this);
 	}
 	
 	@Override
@@ -113,12 +96,6 @@ public class Door extends Creature implements IGeoObject
 	@Override
 	public void addFuncsToNewCharacter()
 	{
-	}
-	
-	@Override
-	public final int getLevel()
-	{
-		return getTemplate().getLevel();
 	}
 	
 	@Override
@@ -151,120 +128,65 @@ public class Door extends Creature implements IGeoObject
 	}
 	
 	@Override
-	public boolean isAttackable()
+	public boolean isAttackableBy(Creature attacker)
 	{
-		return _castle != null && _castle.getSiege().isInProgress();
-	}
-	
-	@Override
-	public boolean isAutoAttackable(Creature attacker)
-	{
-		// Doors can't be attacked by NPCs
+		if (!super.isAttackableBy(attacker))
+			return false;
+		
 		if (!(attacker instanceof Playable))
 			return false;
 		
-		if (isUnlockable())
-			return true;
-		
-		// Attackable during siege by attacker only
-		final boolean isCastle = (_castle != null && _castle.getSiege().isInProgress());
-		if (isCastle)
+		if (_castle != null && _castle.getSiege().isInProgress())
 		{
-			final Clan clan = attacker.getActingPlayer().getClan();
-			if (clan != null && clan.getClanId() == _castle.getOwnerId())
+			if (!_castle.getSiege().checkSides(attacker.getActingPlayer().getClan(), SiegeSide.ATTACKER))
 				return false;
-		}
-		return isCastle;
-	}
-	
-	@Override
-	public void onForcedAttack(Player player)
-	{
-		onAction(player);
-	}
-	
-	@Override
-	public void onAction(Player player)
-	{
-		// Set the target of the player
-		if (player.getTarget() != this)
-		{
-			player.setTarget(this);
-			player.sendPacket(new DoorStatusUpdate(this));
-		}
-		else
-		{
-			if (isAutoAttackable(player))
-			{
-				if (Math.abs(player.getZ() - getZ()) < 400) // this max heigth difference might need some tweaking
-					player.getAI().setIntention(IntentionType.ATTACK, this);
-			}
-			else if (!isInsideRadius(player, Npc.INTERACTION_DISTANCE, false, false))
-				player.getAI().setIntention(IntentionType.INTERACT, this);
-			else if (player.getClan() != null && _clanHall != null && player.getClanId() == _clanHall.getOwnerId())
-			{
-				player.setRequestedGate(this);
-				player.sendPacket(new ConfirmDlg((!isOpened()) ? 1140 : 1141));
-				player.sendPacket(ActionFailed.STATIC_PACKET);
-			}
-			else
-				// Send a Server->Client ActionFailed to the Player in order to avoid that the client wait another packet
-				player.sendPacket(ActionFailed.STATIC_PACKET);
-		}
-	}
-	
-	@Override
-	public void onActionShift(Player player)
-	{
-		if (player.isGM())
-		{
-			final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
-			html.setFile("data/html/admin/doorinfo.htm");
-			html.replace("%name%", getName());
-			html.replace("%objid%", getObjectId());
-			html.replace("%doorid%", getTemplate().getId());
-			html.replace("%doortype%", getTemplate().getType().toString());
-			html.replace("%doorlvl%", getTemplate().getLevel());
-			html.replace("%castle%", _castle != null ? _castle.getName() : "none");
-			html.replace("%opentype%", getTemplate().getOpenType().toString());
-			html.replace("%initial%", getTemplate().isOpened() ? "Opened" : "Closed");
-			html.replace("%ot%", getTemplate().getOpenTime());
-			html.replace("%ct%", getTemplate().getCloseTime());
-			html.replace("%rt%", getTemplate().getRandomTime());
-			html.replace("%controlid%", getTemplate().getTriggerId());
-			html.replace("%hp%", (int) getCurrentHp());
-			html.replace("%hpmax%", getMaxHp());
-			html.replace("%hpratio%", getStat().getUpgradeHpRatio());
-			html.replace("%pdef%", getPDef(null));
-			html.replace("%mdef%", getMDef(null, null));
-			html.replace("%spawn%", getX() + " " + getY() + " " + getZ());
-			html.replace("%height%", getTemplate().getCollisionHeight());
-			player.sendPacket(html);
+			
+			if (isWall())
+				return attacker instanceof SiegeSummon && ((Summon) attacker).getNpcId() != SiegeSummon.SWOOP_CANNON_ID;
+			
+			return true;
 		}
 		
-		if (player.getTarget() != this)
+		if (_clanHall instanceof SiegableHall)
 		{
-			player.setTarget(this);
-			
-			if (isAutoAttackable(player))
-				player.sendPacket(new DoorStatusUpdate(this));
+			final SiegableHall hall = (SiegableHall) _clanHall;
+			return hall.isInSiege() && hall.getSiege().doorIsAutoAttackable() && hall.getSiege().checkSides(attacker.getActingPlayer().getClan(), SiegeSide.ATTACKER);
 		}
-		else
-			player.sendPacket(ActionFailed.STATIC_PACKET);
+		
+		return false;
+	}
+	
+	@Override
+	public boolean isAttackableWithoutForceBy(Playable attacker)
+	{
+		return isAttackableBy(attacker);
+	}
+	
+	@Override
+	public void onInteract(Player player)
+	{
+		// Clan members (with privs) of door associated with a clan hall get a pop-up window to open/close the said door
+		if (player.getClan() != null && _clanHall != null && player.getClanId() == _clanHall.getOwnerId() && player.hasClanPrivileges(Clan.CP_CH_OPEN_DOOR))
+		{
+			player.setRequestedGate(this);
+			player.sendPacket(new ConfirmDlg((!isOpened()) ? 1140 : 1141));
+		}
 	}
 	
 	@Override
 	public void reduceCurrentHp(double damage, Creature attacker, boolean awake, boolean isDOT, L2Skill skill)
 	{
-		// HPs can only be reduced during castle sieges.
-		if (!(_castle != null && _castle.getSiege().isInProgress()))
-			return;
-		
-		// Only siege summons can damage walls and use skills on walls/doors.
-		if (!(attacker instanceof SiegeSummon) && (getTemplate().getType() == DoorType.WALL || skill != null))
-			return;
-		
-		super.reduceCurrentHp(damage, attacker, awake, isDOT, skill);
+		// HPs can only be reduced during sieges.
+		if (_castle != null && _castle.getSiege().isInProgress())
+		{
+			// SiegeSummon can attack both Walls and Doors (excepted Swoop Cannon - anti-infantery summon).
+			if (attacker instanceof SiegeSummon && ((SiegeSummon) attacker).getNpcId() == SiegeSummon.SWOOP_CANNON_ID)
+				return;
+			
+			super.reduceCurrentHp(damage, attacker, awake, isDOT, skill);
+		}
+		else if (_clanHall instanceof SiegableHall && ((SiegableHall) _clanHall).getSiegeZone().isActive())
+			super.reduceCurrentHp(damage, attacker, awake, isDOT, skill);
 	}
 	
 	@Override
@@ -291,7 +213,7 @@ public class Door extends Creature implements IGeoObject
 			GeoEngine.getInstance().removeGeoObject(this);
 		
 		if (_castle != null && _castle.getSiege().isInProgress())
-			_castle.getSiege().announceToPlayers(SystemMessage.getSystemMessage((getTemplate().getType() == DoorType.WALL) ? SystemMessageId.CASTLE_WALL_DAMAGED : SystemMessageId.CASTLE_GATE_BROKEN_DOWN), false);
+			_castle.getSiege().announce((isWall()) ? SystemMessageId.CASTLE_WALL_DAMAGED : SystemMessageId.CASTLE_GATE_BROKEN_DOWN, SiegeSide.DEFENDER);
 		
 		return true;
 	}
@@ -308,36 +230,10 @@ public class Door extends Creature implements IGeoObject
 	}
 	
 	@Override
-	public void broadcastStatusUpdate()
+	public void sendInfo(Player player)
 	{
-		broadcastPacket(new DoorStatusUpdate(this));
-	}
-	
-	@Override
-	public void moveToLocation(int x, int y, int z, int offset)
-	{
-	}
-	
-	@Override
-	public void stopMove(SpawnLocation loc)
-	{
-	}
-	
-	@Override
-	public synchronized void doAttack(Creature target)
-	{
-	}
-	
-	@Override
-	public void doCast(L2Skill skill)
-	{
-	}
-	
-	@Override
-	public void sendInfo(Player activeChar)
-	{
-		activeChar.sendPacket(new DoorInfo(this));
-		activeChar.sendPacket(new DoorStatusUpdate(this));
+		player.sendPacket(new DoorInfo(player, this));
+		player.sendPacket(new DoorStatusUpdate(this));
 	}
 	
 	@Override
@@ -376,9 +272,14 @@ public class Door extends Creature implements IGeoObject
 		return getTemplate().getCollisionHeight() / 2;
 	}
 	
+	@Override
+	public boolean canBeHealed()
+	{
+		return false;
+	}
+	
 	/**
-	 * Returns the {@link Door} ID.
-	 * @return int : Returns the ID.
+	 * @return The {@link Door} id.
 	 */
 	public final int getDoorId()
 	{
@@ -386,8 +287,7 @@ public class Door extends Creature implements IGeoObject
 	}
 	
 	/**
-	 * Returns true, when {@link Door} is opened.
-	 * @return boolean : True, when opened.
+	 * @return True if this {@link Door} is opened, false otherwise.
 	 */
 	public final boolean isOpened()
 	{
@@ -395,8 +295,7 @@ public class Door extends Creature implements IGeoObject
 	}
 	
 	/**
-	 * Returns true, when {@link Door} can be unlocked and opened.
-	 * @return boolean : True, when can be unlocked and opened.
+	 * @return True if this {@link Door} can be unlocked.
 	 */
 	public final boolean isUnlockable()
 	{
@@ -404,16 +303,23 @@ public class Door extends Creature implements IGeoObject
 	}
 	
 	/**
-	 * Returns the actual damage of the door.
-	 * @return int : Door damage.
+	 * @return True if this {@link Door} is a wall.
 	 */
-	public final int getDamage()
+	public final boolean isWall()
 	{
-		return Math.max(0, Math.min(6, 6 - (int) Math.ceil(getCurrentHp() / getMaxHp() * 6)));
+		return getTemplate().getType() == DoorType.WALL;
 	}
 	
 	/**
-	 * Opens the {@link Door}.
+	 * @return The actual damage of this {@link Door}.
+	 */
+	public final int getDamage()
+	{
+		return Math.max(0, Math.min(6, 6 - (int) Math.ceil(getStatus().getHpRatio() * 6)));
+	}
+	
+	/**
+	 * Open the {@link Door}.
 	 */
 	public final void openMe()
 	{
@@ -422,7 +328,7 @@ public class Door extends Creature implements IGeoObject
 	}
 	
 	/**
-	 * Closes the {@link Door}.
+	 * Close the {@link Door}.
 	 */
 	public final void closeMe()
 	{
@@ -431,9 +337,9 @@ public class Door extends Creature implements IGeoObject
 	}
 	
 	/**
-	 * Open/closes the {@link Door}, triggers other {@link Door} and schedules automatic open/close task.
+	 * Open/close the {@link Door}, triggers other {@link Door}s and schedule automatic open/close task.
 	 * @param open : Requested status change.
-	 * @param triggered : The status change was triggered by other.
+	 * @param triggered : If true, it means the status change was triggered by another {@link Door}.
 	 */
 	public final void changeState(boolean open, boolean triggered)
 	{
@@ -448,7 +354,7 @@ public class Door extends Creature implements IGeoObject
 		else
 			GeoEngine.getInstance().addGeoObject(this);
 		
-		broadcastStatusUpdate();
+		getStatus().broadcastStatusUpdate();
 		
 		// door controls another door
 		int triggerId = getTemplate().getTriggerId();
@@ -477,5 +383,10 @@ public class Door extends Creature implements IGeoObject
 	public final Castle getCastle()
 	{
 		return _castle;
+	}
+	
+	public final ClanHall getClanHall()
+	{
+		return _clanHall;
 	}
 }

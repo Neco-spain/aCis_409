@@ -3,19 +3,23 @@ package net.sf.l2j.gameserver.model.clanhall;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
+import net.sf.l2j.commons.data.StatSet;
 import net.sf.l2j.commons.logging.CLogger;
-import net.sf.l2j.commons.util.StatsSet;
+import net.sf.l2j.commons.pool.ConnectionPool;
+import net.sf.l2j.commons.pool.ThreadPool;
+import net.sf.l2j.commons.random.Rnd;
 
-import net.sf.l2j.L2DatabaseFactory;
 import net.sf.l2j.gameserver.data.sql.ClanTable;
+import net.sf.l2j.gameserver.enums.SpawnType;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Door;
+import net.sf.l2j.gameserver.model.location.Location;
 import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.model.zone.type.ClanHallZone;
 import net.sf.l2j.gameserver.network.SystemMessageId;
@@ -33,7 +37,7 @@ import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
  */
 public class ClanHall
 {
-	private static final CLogger LOGGER = new CLogger(ClanHall.class.getName());
+	protected static final CLogger LOGGER = new CLogger(ClanHall.class.getName());
 	
 	private static final String DELETE_FUNCTIONS = "DELETE FROM clanhall_functions WHERE hall_id=?";
 	private static final String UPDATE_CH = "UPDATE clanhall SET ownerId=?, paidUntil=?, paid=?, sellerBid=?, sellerName=?, sellerClanName=?, endDate=? WHERE id=?";
@@ -50,7 +54,10 @@ public class ClanHall
 	public static final int FUNC_DECO_CURTAINS = 8;
 	
 	private final Map<Integer, ClanHallFunction> _functions = new ConcurrentHashMap<>();
+	private final Map<SpawnType, List<Location>> _spawns = new HashMap<>();
+	
 	private final List<Door> _doors = new ArrayList<>();
+	private final int[] _relatedNpcIds;
 	
 	private final int _id;
 	private final String _name;
@@ -67,15 +74,16 @@ public class ClanHall
 	private long _paidUntil;
 	private boolean _isPaid;
 	
-	public ClanHall(StatsSet set)
+	public ClanHall(StatSet set)
 	{
 		_id = set.getInteger("id");
 		_name = set.getString("name");
 		_desc = set.getString("desc");
 		_location = set.getString("loc");
-		_grade = set.getInteger("grade");
-		_lease = set.getInteger("lease");
-		_defaultBid = set.getInteger("defaultBid");
+		_grade = set.getInteger("grade", 0);
+		_lease = set.getInteger("lease", 0);
+		_defaultBid = set.getInteger("defaultBid", 0);
+		_relatedNpcIds = set.getIntegerArray("relatedNpcIds");
 	}
 	
 	public final int getId()
@@ -111,6 +119,11 @@ public class ClanHall
 	public final int getDefaultBid()
 	{
 		return _defaultBid;
+	}
+	
+	public int[] getRelatedNpcIds()
+	{
+		return _relatedNpcIds;
 	}
 	
 	public final Auction getAuction()
@@ -180,6 +193,36 @@ public class ClanHall
 	}
 	
 	/**
+	 * Add a {@link Location} into the dedicated {@link SpawnType} {@link List}.<br>
+	 * <br>
+	 * If the key doesn't exist, generate a new {@link ArrayList}.
+	 * @param type : The {@link SpawnType} to test.
+	 * @param loc : The {@link Location} to add.
+	 */
+	public final void addSpawn(SpawnType type, Location loc)
+	{
+		_spawns.computeIfAbsent(type, k -> new ArrayList<>()).add(loc);
+	}
+	
+	/**
+	 * @param type : The {@link SpawnType} to test.
+	 * @return the {@link List} of {@link Location}s based on {@link SpawnType} parameter. If that {@link SpawnType} doesn't exist, return the OWNER {@link List} of {@link Location}.
+	 */
+	public final List<Location> getSpawns(SpawnType type)
+	{
+		return _spawns.getOrDefault(type, _spawns.get(SpawnType.OWNER));
+	}
+	
+	/**
+	 * @param type : The {@link SpawnType} to test.
+	 * @return a random {@link Location} based on {@link SpawnType} parameter. If that {@link SpawnType} doesn't exist, return a NORMAL random {@link Location}.
+	 */
+	public final Location getRndSpawn(SpawnType type)
+	{
+		return Rnd.get(getSpawns(type));
+	}
+	
+	/**
 	 * @return the {@link List} of all {@link Door}s this {@link ClanHall} owns.
 	 */
 	public final List<Door> getDoors()
@@ -188,7 +231,7 @@ public class ClanHall
 	}
 	
 	/**
-	 * @param doorId : The id to make checks on.
+	 * @param doorId : The id to test.
 	 * @return the {@link Door} based on a doorId.
 	 */
 	public final Door getDoor(int doorId)
@@ -197,7 +240,7 @@ public class ClanHall
 	}
 	
 	/**
-	 * @param type : The type of ClanHallFunction we search.
+	 * @param type : The type of {@link ClanHallFunction} we search.
 	 * @return the {@link ClanHallFunction} associated to the type.
 	 */
 	public ClanHallFunction getFunction(int type)
@@ -208,9 +251,9 @@ public class ClanHall
 	/**
 	 * Free this {@link ClanHall}.
 	 * <ul>
-	 * <li>Remove the ClanHall from the Clan.</li>
+	 * <li>Remove the {@link ClanHall} from the {@link Clan}.</li>
 	 * <li>Reset all variables to default.</li>
-	 * <li>Delete functions, and update the database.</li>
+	 * <li>Delete {@link ClanHallFunction}s, and update the database.</li>
 	 * </ul>
 	 */
 	public void free()
@@ -227,10 +270,10 @@ public class ClanHall
 		if (clan != null)
 		{
 			// Set the clan hall id back to 0.
-			clan.setClanHall(0);
+			clan.setClanHallId(0);
 			
 			// Refresh Clan Action panel.
-			clan.broadcastToOnlineMembers(new PledgeShowInfoUpdate(clan));
+			clan.broadcastToMembers(new PledgeShowInfoUpdate(clan));
 		}
 		
 		_ownerId = 0;
@@ -261,7 +304,7 @@ public class ClanHall
 	
 	/**
 	 * Set {@link ClanHall} {@link Clan} owner. If previous owner was existing, do some actions on it.
-	 * @param clan : The new ClanHall owner.
+	 * @param clan : The new {@link ClanHall} owner.
 	 */
 	public void setOwner(Clan clan)
 	{
@@ -288,10 +331,10 @@ public class ClanHall
 		if (owner != null)
 		{
 			// Set the clan hall id back to 0.
-			owner.setClanHall(0);
+			owner.setClanHallId(0);
 			
 			// Refresh Clan Action panel.
-			owner.broadcastToOnlineMembers(new PledgeShowInfoUpdate(owner));
+			owner.broadcastToMembers(new PledgeShowInfoUpdate(owner));
 		}
 		
 		// Remove all related functions.
@@ -300,7 +343,7 @@ public class ClanHall
 		// Close all doors.
 		openCloseDoors(false);
 		
-		clan.setClanHall(_id);
+		clan.setClanHallId(_id);
 		
 		_ownerId = clan.getClanId();
 		_paidUntil = System.currentTimeMillis() + ONE_WEEK;
@@ -310,7 +353,7 @@ public class ClanHall
 		initializeFeeTask();
 		
 		// Refresh Clan Action panel.
-		clan.broadcastToOnlineMembers(new PledgeShowInfoUpdate(clan));
+		clan.broadcastToMembers(new PledgeShowInfoUpdate(clan));
 		
 		// Teleport out all outsiders (potential previous owners).
 		banishForeigners();
@@ -320,10 +363,10 @@ public class ClanHall
 	}
 	
 	/**
-	 * Open or close a {@link ClanHall} {@link Door} by a {@link Player}. The Player must be owner of this ClanHall.
-	 * @param player : The player who requested to open/close the door.
+	 * Open or close a {@link ClanHall} {@link Door} by a {@link Player}. The {@link Player} must be the owner of this {@link ClanHall}.
+	 * @param player : The {@link Player} who requested to open/close the door.
 	 * @param doorId : The affected doorId.
-	 * @param open : If set to true the door will open, false will close it.
+	 * @param open : If set to true the {@link Door} will open, false will close it.
 	 */
 	public void openCloseDoor(Player player, int doorId, boolean open)
 	{
@@ -334,7 +377,7 @@ public class ClanHall
 	/**
 	 * Open or close a {@link ClanHall} {@link Door} based on its doorId.
 	 * @param doorId : The affected doorId.
-	 * @param open : If set to true the door will open, false will close it.
+	 * @param open : If set to true the {@link Door} will open, false will close it.
 	 */
 	public void openCloseDoor(int doorId, boolean open)
 	{
@@ -343,8 +386,8 @@ public class ClanHall
 	
 	/**
 	 * Open or close a {@link ClanHall} {@link Door}.
-	 * @param door : The affected Door.
-	 * @param open : If set to true the door will open, false will close it.
+	 * @param door : The affected {@link Door}.
+	 * @param open : If set to true the {@link Door} will open, false will close it.
 	 */
 	public static void openCloseDoor(Door door, boolean open)
 	{
@@ -358,9 +401,9 @@ public class ClanHall
 	}
 	
 	/**
-	 * Open or close all {@link ClanHall} related {@link Door}s by a {@link Player}. The Player must be owner of this ClanHall.
-	 * @param player : The player who requested to open/close doors.
-	 * @param open : If set to true the door will open, false will close it.
+	 * Open or close all {@link ClanHall} related {@link Door}s by a {@link Player}. The {@link Player} must be the owner of this {@link ClanHall}.
+	 * @param player : The {@link Player} who requested to open/close doors.
+	 * @param open : If set to true the {@link Door} will open, false will close it.
 	 */
 	public void openCloseDoors(Player player, boolean open)
 	{
@@ -370,7 +413,7 @@ public class ClanHall
 	
 	/**
 	 * Open or close all {@link ClanHall} related {@link Door}s.
-	 * @param open : If set to true the door will open, false will close it.
+	 * @param open : If set to true the {@link Door} will open, false will close it.
 	 */
 	public void openCloseDoors(boolean open)
 	{
@@ -384,7 +427,7 @@ public class ClanHall
 	}
 	
 	/**
-	 * Banish all {@link Player}s stranger to that {@link ClanHall} zone.
+	 * Banish all {@link Player}s from that {@link ClanHall} zone.
 	 */
 	public void banishForeigners()
 	{
@@ -397,9 +440,11 @@ public class ClanHall
 	 */
 	public void removeAllFunctions()
 	{
+		// Remove all ClanHallFunctions from memory.
 		_functions.clear();
 		
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		// Update db.
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(DELETE_FUNCTIONS))
 		{
 			ps.setInt(1, getId());
@@ -412,15 +457,15 @@ public class ClanHall
 	}
 	
 	/**
-	 * Update a {@link ClanHallFunction}s linked to this {@link ClanHall}.
-	 * @param player : The player who requested the change.
-	 * @param type : The type of ClanHallFunction to update.
+	 * Update a {@link ClanHallFunction} linked to this {@link ClanHall}. If it doesn't exist, generate it and save it on database.
+	 * @param player : The {@link Player} who requested the change.
+	 * @param type : The type of {@link ClanHallFunction} to update.
 	 * @param lvl : The new level to set.
-	 * @param lease : The associated lease taken from Player inventory.
+	 * @param lease : The associated lease taken from {@link Player} inventory.
 	 * @param rate : The new rate to set.
-	 * @return true if the ClanHallFunction has been successfully updated.
+	 * @return True if the {@link ClanHallFunction} has been successfully updated.
 	 */
-	public boolean updateFunctions(Player player, int type, int lvl, int lease, long rate)
+	public boolean updateFunction(Player player, int type, int lvl, int lease, long rate)
 	{
 		// Player doesn't exist.
 		if (player == null)
@@ -430,11 +475,16 @@ public class ClanHall
 		if (lease > 0 && !player.destroyItemByItemId("Consume", 57, lease, null, true))
 			return false;
 		
-		// The function doesn't exist, we create it.
-		final ClanHallFunction chf = _functions.get(type);
+		ClanHallFunction chf = _functions.get(type);
 		if (chf == null)
 		{
-			_functions.put(type, new ClanHallFunction(this, type, lvl, lease, rate, System.currentTimeMillis() + rate));
+			// Generate a ClanHallFunction and save it on the database.
+			chf = new ClanHallFunction(this, type, lvl, lease, rate, System.currentTimeMillis() + rate);
+			chf.dbSave();
+			
+			// Add the ClanHallFunction on memory.
+			_functions.put(type, chf);
+			
 			return true;
 		}
 		
@@ -453,7 +503,7 @@ public class ClanHall
 	 */
 	public void updateDb()
 	{
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(UPDATE_CH))
 		{
 			ps.setInt(1, _ownerId);
@@ -558,7 +608,7 @@ public class ClanHall
 					free();
 					
 					// Send message to all Clan members.
-					clan.broadcastToOnlineMembers(SystemMessage.getSystemMessage(SystemMessageId.THE_CLAN_HALL_FEE_IS_ONE_WEEK_OVERDUE_THEREFORE_THE_CLAN_HALL_OWNERSHIP_HAS_BEEN_REVOKED));
+					clan.broadcastToMembers(SystemMessage.getSystemMessage(SystemMessageId.THE_CLAN_HALL_FEE_IS_ONE_WEEK_OVERDUE_THEREFORE_THE_CLAN_HALL_OWNERSHIP_HAS_BEEN_REVOKED));
 				}
 				// Grace period, we will retest it one day later.
 				else
@@ -574,7 +624,7 @@ public class ClanHall
 					updateDb();
 					
 					// Send message to all Clan members.
-					clan.broadcastToOnlineMembers(SystemMessage.getSystemMessage(SystemMessageId.PAYMENT_FOR_YOUR_CLAN_HALL_HAS_NOT_BEEN_MADE_PLEASE_MAKE_PAYMENT_TO_YOUR_CLAN_WAREHOUSE_BY_S1_TOMORROW).addNumber(getLease()));
+					clan.broadcastToMembers(SystemMessage.getSystemMessage(SystemMessageId.PAYMENT_FOR_YOUR_CLAN_HALL_HAS_NOT_BEEN_MADE_PLEASE_MAKE_PAYMENT_TO_YOUR_CLAN_WAREHOUSE_BY_S1_TOMORROW).addNumber(getLease()));
 				}
 			}
 		}

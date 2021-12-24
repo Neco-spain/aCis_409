@@ -1,41 +1,36 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
-import net.sf.l2j.gameserver.enums.skills.L2SkillType;
-import net.sf.l2j.gameserver.model.L2Effect;
-import net.sf.l2j.gameserver.model.L2Skill;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.enums.skills.SkillType;
+import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
-/**
- * @author Gnat
- */
-public class EffectNegate extends L2Effect
+public class EffectNegate extends AbstractEffect
 {
-	public EffectNegate(Env env, EffectTemplate template)
+	public EffectNegate(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
 	{
-		super(env, template);
+		super(template, skill, effected, effector);
 	}
 	
 	@Override
-	public L2EffectType getEffectType()
+	public EffectType getEffectType()
 	{
-		return L2EffectType.NEGATE;
+		return EffectType.NEGATE;
 	}
 	
 	@Override
 	public boolean onStart()
 	{
-		L2Skill skill = getSkill();
-		
-		for (int negateSkillId : skill.getNegateId())
+		for (int negateSkillId : getSkill().getNegateId())
 		{
 			if (negateSkillId != 0)
 				getEffected().stopSkillEffects(negateSkillId);
 		}
-		for (L2SkillType negateSkillType : skill.getNegateStats())
-		{
-			getEffected().stopSkillEffects(negateSkillType, skill.getNegateLvl());
-		}
+		
+		for (SkillType negateSkillType : getSkill().getNegateStats())
+			getEffected().stopSkillEffects(negateSkillType, getSkill().getNegateLvl());
+		
 		return true;
 	}
 	

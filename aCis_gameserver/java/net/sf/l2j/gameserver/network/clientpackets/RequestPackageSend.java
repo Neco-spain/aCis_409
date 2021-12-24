@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.sf.l2j.Config;
+import net.sf.l2j.gameserver.enums.StatusType;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Folk;
@@ -18,13 +19,13 @@ import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public final class RequestPackageSend extends L2GameClientPacket
 {
+	private int _objectId;
 	private List<IntIntHolder> _items;
-	private int _objectID;
 	
 	@Override
 	protected void readImpl()
 	{
-		_objectID = readD();
+		_objectId = readD();
 		
 		int count = readD();
 		if (count < 0 || count > Config.MAX_ITEM_IN_PACKET)
@@ -52,10 +53,10 @@ public final class RequestPackageSend extends L2GameClientPacket
 			return;
 		
 		// player attempts to send freight to the different account
-		if (!player.getAccountChars().containsKey(_objectID))
+		if (!player.getAccountChars().containsKey(_objectId))
 			return;
 		
-		final PcFreight freight = player.getDepositedFreight(_objectID);
+		final PcFreight freight = player.getDepositedFreight(_objectId);
 		player.setActiveWarehouse(freight);
 		
 		final ItemContainer warehouse = player.getActiveWarehouse();
@@ -63,7 +64,7 @@ public final class RequestPackageSend extends L2GameClientPacket
 			return;
 		
 		final Folk folk = player.getCurrentFolk();
-		if ((folk == null || !player.isInsideRadius(folk, Npc.INTERACTION_DISTANCE, false, false)) && !player.isGM())
+		if ((folk == null || !player.isIn3DRadius(folk, Npc.INTERACTION_DISTANCE)) && !player.isGM())
 			return;
 		
 		if (warehouse instanceof PcFreight && !player.getAccessLevel().allowTransaction())
@@ -77,7 +78,7 @@ public final class RequestPackageSend extends L2GameClientPacket
 			return;
 		
 		// Freight price from config or normal price per item slot (30)
-		int fee = _items.size() * Config.ALT_GAME_FREIGHT_PRICE;
+		int fee = _items.size() * Config.FREIGHT_PRICE;
 		int currentAdena = player.getAdena();
 		int slots = 0;
 		
@@ -151,7 +152,7 @@ public final class RequestPackageSend extends L2GameClientPacket
 		
 		// Update current load status on player
 		StatusUpdate su = new StatusUpdate(player);
-		su.addAttribute(StatusUpdate.CUR_LOAD, player.getCurrentLoad());
+		su.addAttribute(StatusType.CUR_LOAD, player.getCurrentWeight());
 		player.sendPacket(su);
 	}
 }

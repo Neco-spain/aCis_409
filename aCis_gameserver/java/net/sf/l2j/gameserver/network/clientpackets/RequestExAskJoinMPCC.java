@@ -4,19 +4,18 @@ import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.group.CommandChannel;
 import net.sf.l2j.gameserver.model.group.Party;
-import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ExAskJoinMPCC;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public final class RequestExAskJoinMPCC extends L2GameClientPacket
 {
-	private String _name;
+	private String _targetName;
 	
 	@Override
 	protected void readImpl()
 	{
-		_name = readS();
+		_targetName = readS();
 	}
 	
 	@Override
@@ -26,7 +25,7 @@ public final class RequestExAskJoinMPCC extends L2GameClientPacket
 		if (requestor == null)
 			return;
 		
-		final Player target = World.getInstance().getPlayer(_name);
+		final Player target = World.getInstance().getPlayer(_targetName);
 		if (target == null)
 			return;
 		
@@ -58,13 +57,9 @@ public final class RequestExAskJoinMPCC extends L2GameClientPacket
 			return;
 		}
 		
-		// Requestor isn't a level 5 clan leader, or clan hasn't Clan Imperium skill.
-		final Clan requestorClan = requestor.getClan();
-		if (requestorClan == null || requestorClan.getLeaderId() != requestor.getObjectId() || requestorClan.getLevel() < 5 || requestor.getSkill(391) == null)
-		{
-			requestor.sendPacket(SystemMessageId.COMMAND_CHANNEL_ONLY_BY_LEVEL_5_CLAN_LEADER_PARTY_LEADER);
+		// Check the possibility to setup the CommandChannel.
+		if (!CommandChannel.checkAuthority(requestor, false))
 			return;
-		}
 		
 		// Get the target's party leader, and do whole actions on him.
 		final Player targetLeader = targetParty.getLeader();

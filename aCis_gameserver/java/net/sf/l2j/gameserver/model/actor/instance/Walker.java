@@ -1,8 +1,12 @@
 package net.sf.l2j.gameserver.model.actor.instance;
 
+import java.util.List;
+
+import net.sf.l2j.gameserver.data.xml.WalkerRouteData;
 import net.sf.l2j.gameserver.model.actor.ai.type.CreatureAI;
 import net.sf.l2j.gameserver.model.actor.ai.type.WalkerAI;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
+import net.sf.l2j.gameserver.model.location.WalkerLocation;
 
 /**
  * A Walker is a {@link Folk} which continuously walks, following a defined route. It got no other Intention than MOVE_TO, so it never stops walking/running - except for programmed timers - and can speak.<br>
@@ -36,5 +40,13 @@ public class Walker extends Folk
 	public void detachAI()
 	{
 		// AI can't be detached.
+	}
+	
+	@Override
+	public void onSpawn()
+	{
+		final List<WalkerLocation> route = WalkerRouteData.getInstance().getWalkerRoute(getNpcId());
+		if (route != null && !route.isEmpty())
+			getAI().tryToMoveTo(route.get(1), null);
 	}
 }

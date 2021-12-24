@@ -13,14 +13,14 @@ public final class Appearing extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		if (activeChar.isTeleporting())
-			activeChar.onTeleported();
+		if (player.isTeleporting())
+			player.onTeleported();
 		
-		sendPacket(new UserInfo(activeChar));
+		sendPacket(new UserInfo(player));
 	}
 	
 	@Override

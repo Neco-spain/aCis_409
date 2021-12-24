@@ -1,9 +1,5 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
-/**
- * Format: ch d
- * @author KenM
- */
 public class ExSetCompassZoneCode extends L2GameServerPacket
 {
 	public static final int SIEGEWARZONE1 = 0x0A;

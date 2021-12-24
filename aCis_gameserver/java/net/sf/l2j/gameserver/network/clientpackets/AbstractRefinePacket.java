@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import net.sf.l2j.gameserver.enums.items.CrystalType;
+import net.sf.l2j.gameserver.enums.items.ItemLocation;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.item.kind.Weapon;
@@ -128,7 +129,7 @@ public abstract class AbstractRefinePacket extends L2GameClientPacket
 		if (gemStones.getOwnerId() != player.getObjectId())
 			return false;
 		// .. and located in inventory
-		if (gemStones.getLocation() != ItemInstance.ItemLocation.INVENTORY)
+		if (gemStones.getLocation() != ItemLocation.INVENTORY)
 			return false;
 		
 		final CrystalType grade = item.getItem().getCrystalType();
@@ -136,6 +137,7 @@ public abstract class AbstractRefinePacket extends L2GameClientPacket
 		// Check for item id
 		if (getGemStoneId(grade) != gemStones.getItemId())
 			return false;
+		
 		// Count must be greater or equal of required number
 		if (getGemStoneCount(grade) > gemStones.getCount())
 			return false;
@@ -160,7 +162,7 @@ public abstract class AbstractRefinePacket extends L2GameClientPacket
 			return false;
 		
 		// Lifestone must be located in inventory
-		if (refinerItem.getLocation() != ItemInstance.ItemLocation.INVENTORY)
+		if (refinerItem.getLocation() != ItemLocation.INVENTORY)
 			return false;
 		
 		final LifeStone ls = _lifeStones.get(refinerItem.getItemId());
@@ -168,7 +170,7 @@ public abstract class AbstractRefinePacket extends L2GameClientPacket
 			return false;
 		
 		// check for level of the lifestone
-		if (player.getLevel() < ls.getPlayerLevel())
+		if (player.getStatus().getLevel() < ls.getPlayerLevel())
 			return false;
 		
 		return true;
@@ -228,7 +230,7 @@ public abstract class AbstractRefinePacket extends L2GameClientPacket
 	 */
 	protected static final boolean isValid(Player player)
 	{
-		if (player.isInStoreMode())
+		if (player.isOperating())
 		{
 			player.sendPacket(SystemMessageId.YOU_CANNOT_AUGMENT_ITEMS_WHILE_A_PRIVATE_STORE_OR_PRIVATE_WORKSHOP_IS_IN_OPERATION);
 			return false;
@@ -258,8 +260,10 @@ public abstract class AbstractRefinePacket extends L2GameClientPacket
 			player.sendPacket(SystemMessageId.YOU_CANNOT_AUGMENT_ITEMS_WHILE_SITTING_DOWN);
 			return false;
 		}
+		
 		if (player.isCursedWeaponEquipped())
 			return false;
+		
 		if (player.isProcessingTransaction())
 			return false;
 		

@@ -2,41 +2,60 @@ package net.sf.l2j.gameserver.network.serverpackets;
 
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.sql.ClanTable;
-import net.sf.l2j.gameserver.enums.PolyType;
-import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.Summon;
 import net.sf.l2j.gameserver.model.actor.instance.Monster;
-import net.sf.l2j.gameserver.model.actor.instance.Pet;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
 import net.sf.l2j.gameserver.model.pledge.Clan;
 
 public abstract class AbstractNpcInfo extends L2GameServerPacket
 {
-	protected int _x, _y, _z, _heading;
+	protected int _x;
+	protected int _y;
+	protected int _z;
+	protected int _heading;
+	
 	protected int _idTemplate;
-	protected boolean _isAttackable, _isSummoned;
-	protected int _mAtkSpd, _pAtkSpd;
-	protected int _runSpd, _walkSpd;
-	protected int _rhand, _lhand, _chest, _enchantEffect;
-	protected double _collisionHeight, _collisionRadius;
-	protected int _clanCrest, _allyCrest, _allyId, _clanId;
 	
-	protected String _name = "", _title = "";
+	protected boolean _isAttackable;
+	protected boolean _isSummoned;
 	
-	public AbstractNpcInfo(Creature cha)
+	protected int _mAtkSpd;
+	protected int _pAtkSpd;
+	protected int _runSpd;
+	protected int _walkSpd;
+	
+	protected int _rhand;
+	protected int _lhand;
+	protected int _chest;
+	protected int _enchantEffect;
+	
+	protected double _collisionHeight;
+	protected double _collisionRadius;
+	
+	protected int _clanCrest;
+	protected int _allyCrest;
+	protected int _allyId;
+	protected int _clanId;
+	
+	protected String _name = "";
+	protected String _title = "";
+	
+	protected AbstractNpcInfo(Creature creature)
 	{
-		_isSummoned = cha.isShowSummonAnimation();
-		_x = cha.getX();
-		_y = cha.getY();
-		_z = cha.getZ();
-		_heading = cha.getHeading();
-		_mAtkSpd = cha.getMAtkSpd();
-		_pAtkSpd = cha.getPAtkSpd();
-		_runSpd = cha.getStat().getBaseRunSpeed();
-		_walkSpd = cha.getStat().getBaseWalkSpeed();
+		_x = creature.getX();
+		_y = creature.getY();
+		_z = creature.getZ();
+		_heading = creature.getHeading();
+		
+		_isSummoned = creature.isShowSummonAnimation();
+		
+		_mAtkSpd = creature.getStatus().getMAtkSpd();
+		_pAtkSpd = creature.getStatus().getPAtkSpd();
+		_runSpd = creature.getStatus().getBaseRunSpeed();
+		_walkSpd = creature.getStatus().getBaseWalkSpeed();
 	}
 	
 	/**
@@ -46,28 +65,33 @@ public abstract class AbstractNpcInfo extends L2GameServerPacket
 	{
 		private final Npc _npc;
 		
-		public NpcInfo(Npc cha, Creature attacker)
+		public NpcInfo(Npc npc, Player attacker)
 		{
-			super(cha);
-			_npc = cha;
+			super(npc);
+			
+			_npc = npc;
 			
 			_enchantEffect = _npc.getEnchantEffect();
-			_isAttackable = _npc.isAutoAttackable(attacker);
+			_isAttackable = _npc.isAttackableWithoutForceBy(attacker);
 			
 			// Support for polymorph.
-			if (_npc.getPolyType() == PolyType.NPC)
+			if (_npc.getPolymorphTemplate() != null)
 			{
-				_idTemplate = _npc.getPolyTemplate().getIdTemplate();
-				_rhand = _npc.getPolyTemplate().getRightHand();
-				_lhand = _npc.getPolyTemplate().getLeftHand();
-				_collisionHeight = _npc.getPolyTemplate().getCollisionHeight();
-				_collisionRadius = _npc.getPolyTemplate().getCollisionRadius();
+				_idTemplate = _npc.getPolymorphTemplate().getIdTemplate();
+				
+				_rhand = _npc.getPolymorphTemplate().getRightHand();
+				_lhand = _npc.getPolymorphTemplate().getLeftHand();
+				
+				_collisionHeight = _npc.getPolymorphTemplate().getCollisionHeight();
+				_collisionRadius = _npc.getPolymorphTemplate().getCollisionRadius();
 			}
 			else
 			{
 				_idTemplate = _npc.getTemplate().getIdTemplate();
+				
 				_rhand = _npc.getRightHandItemId();
 				_lhand = _npc.getLeftHandItemId();
+				
 				_collisionHeight = _npc.getCollisionHeight();
 				_collisionRadius = _npc.getCollisionRadius();
 			}
@@ -75,13 +99,11 @@ public abstract class AbstractNpcInfo extends L2GameServerPacket
 			if (_npc.getTemplate().isUsingServerSideName())
 				_name = _npc.getName();
 			
-			if (_npc.isChampion())
-				_title = "Champion";
-			else if (_npc.getTemplate().isUsingServerSideTitle())
+			if (_npc.getTemplate().isUsingServerSideTitle())
 				_title = _npc.getTitle();
 			
 			if (Config.SHOW_NPC_LVL && _npc instanceof Monster)
-				_title = "Lv " + _npc.getLevel() + (_npc.getTemplate().getAggroRange() > 0 ? "* " : " ") + _title;
+				_title = "Lv " + _npc.getStatus().getLevel() + (_npc.getTemplate().getAggroRange() > 0 ? "* " : " ") + _title;
 			
 			// NPC crest system
 			if (Config.SHOW_NPC_CREST && _npc.getCastle() != null && _npc.getCastle().getOwnerId() != 0)
@@ -121,8 +143,8 @@ public abstract class AbstractNpcInfo extends L2GameServerPacket
 			writeD(_runSpd);
 			writeD(_walkSpd);
 			
-			writeF(_npc.getStat().getMovementSpeedMultiplier());
-			writeF(_npc.getStat().getAttackSpeedMultiplier());
+			writeF(_npc.getStatus().getMovementSpeedMultiplier());
+			writeF(_npc.getStatus().getAttackSpeedMultiplier());
 			
 			writeF(_collisionRadius);
 			writeF(_collisionHeight);
@@ -151,7 +173,7 @@ public abstract class AbstractNpcInfo extends L2GameServerPacket
 			writeD(_allyId);
 			writeD(_allyCrest);
 			
-			writeC((_npc.isInsideZone(ZoneId.WATER)) ? 1 : (_npc.isFlying()) ? 2 : 0);
+			writeC(_npc.getMove().getMoveType().getId());
 			writeC(0x00);
 			
 			writeF(_collisionRadius);
@@ -169,19 +191,18 @@ public abstract class AbstractNpcInfo extends L2GameServerPacket
 	{
 		private final Summon _summon;
 		private final Player _owner;
-		private int _summonAnimation = 0;
+		private final int _summonAnimation;
 		
-		public SummonInfo(Summon cha, Player attacker, int val)
+		public SummonInfo(Summon summon, Player attacker, int val)
 		{
-			super(cha);
-			_summon = cha;
+			super(summon);
+			
+			_summon = summon;
 			_owner = _summon.getOwner();
 			
-			_summonAnimation = val;
-			if (_summon.isShowSummonAnimation())
-				_summonAnimation = 2; // override for spawn
-				
-			_isAttackable = _summon.isAutoAttackable(attacker);
+			_summonAnimation = (_summon.isShowSummonAnimation()) ? 2 : val;
+			
+			_isAttackable = _summon.isAttackableWithoutForceBy(attacker);
 			_rhand = _summon.getWeapon();
 			_lhand = 0;
 			_chest = _summon.getArmor();
@@ -206,7 +227,7 @@ public abstract class AbstractNpcInfo extends L2GameServerPacket
 		@Override
 		protected void writeImpl()
 		{
-			if (_owner != null && _owner.getAppearance().getInvisible())
+			if (_owner != null && !_owner.getAppearance().isVisible() && _owner != getClient().getPlayer())
 				return;
 			
 			writeC(0x16);
@@ -233,8 +254,8 @@ public abstract class AbstractNpcInfo extends L2GameServerPacket
 			writeD(_runSpd);
 			writeD(_walkSpd);
 			
-			writeF(_summon.getStat().getMovementSpeedMultiplier());
-			writeF(_summon.getStat().getAttackSpeedMultiplier());
+			writeF(_summon.getStatus().getMovementSpeedMultiplier());
+			writeF(_summon.getStatus().getAttackSpeedMultiplier());
 			
 			writeF(_collisionRadius);
 			writeF(_collisionHeight);
@@ -252,7 +273,7 @@ public abstract class AbstractNpcInfo extends L2GameServerPacket
 			writeS(_name);
 			writeS(_title);
 			
-			writeD(_summon instanceof Pet ? 0x00 : 0x01);
+			writeD(0x01);
 			writeD(_summon.getPvpFlag());
 			writeD(_summon.getKarma());
 			
@@ -263,7 +284,7 @@ public abstract class AbstractNpcInfo extends L2GameServerPacket
 			writeD(_allyId);
 			writeD(_allyCrest);
 			
-			writeC((_summon.isInsideZone(ZoneId.WATER)) ? 1 : (_summon.isFlying()) ? 2 : 0);
+			writeC(_summon.getMove().getMoveType().getId());
 			writeC(_summon.getTeam().getId());
 			
 			writeF(_collisionRadius);
@@ -283,13 +304,14 @@ public abstract class AbstractNpcInfo extends L2GameServerPacket
 		private final NpcTemplate _template;
 		private final int _swimSpd;
 		
-		public PcMorphInfo(Player cha, NpcTemplate template)
+		public PcMorphInfo(Player player, NpcTemplate template)
 		{
-			super(cha);
-			_pc = cha;
+			super(player);
+			
+			_pc = player;
 			_template = template;
 			
-			_swimSpd = cha.getStat().getBaseSwimSpeed();
+			_swimSpd = player.getStatus().getBaseSwimSpeed();
 			
 			_rhand = _template.getRightHand();
 			_lhand = _template.getLeftHand();
@@ -306,7 +328,7 @@ public abstract class AbstractNpcInfo extends L2GameServerPacket
 			writeC(0x16);
 			
 			writeD(_pc.getObjectId());
-			writeD(_pc.getPolyId() + 1000000);
+			writeD(_template.getNpcId() + 1000000);
 			writeD(1);
 			
 			writeD(_x);
@@ -327,8 +349,8 @@ public abstract class AbstractNpcInfo extends L2GameServerPacket
 			writeD(_runSpd);
 			writeD(_walkSpd);
 			
-			writeF(_pc.getStat().getMovementSpeedMultiplier());
-			writeF(_pc.getStat().getAttackSpeedMultiplier());
+			writeF(_pc.getStatus().getMovementSpeedMultiplier());
+			writeF(_pc.getStatus().getAttackSpeedMultiplier());
 			
 			writeF(_collisionRadius);
 			writeF(_collisionHeight);
@@ -357,7 +379,7 @@ public abstract class AbstractNpcInfo extends L2GameServerPacket
 			writeD(0x00);
 			writeD(0x00);
 			
-			writeC((_pc.isInsideZone(ZoneId.WATER)) ? 1 : (_pc.isFlying()) ? 2 : 0);
+			writeC(_pc.getMove().getMoveType().getId());
 			writeC(0x00);
 			
 			writeF(_collisionRadius);

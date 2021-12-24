@@ -1,20 +1,20 @@
 package net.sf.l2j.gameserver.skills.l2skills;
 
-import net.sf.l2j.commons.util.StatsSet;
+import net.sf.l2j.commons.data.StatSet;
 
-import net.sf.l2j.gameserver.model.L2Skill;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public final class L2SkillSignetCasttime extends L2Skill
 {
-	public int _effectNpcId;
-	public int effectId;
+	public final int effectNpcId;
+	public final int effectId;
 	
-	public L2SkillSignetCasttime(StatsSet set)
+	public L2SkillSignetCasttime(StatSet set)
 	{
 		super(set);
-		_effectNpcId = set.getInteger("effectNpcId", -1);
+		effectNpcId = set.getInteger("effectNpcId", -1);
 		effectId = set.getInteger("effectId", -1);
 	}
 	

@@ -1,11 +1,13 @@
 package net.sf.l2j.gameserver.model.zone.type;
 
 import net.sf.l2j.Config;
+import net.sf.l2j.gameserver.data.xml.MapRegionData.TeleportType;
 import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.SiegeSummon;
-import net.sf.l2j.gameserver.model.zone.SpawnZoneType;
+import net.sf.l2j.gameserver.model.zone.type.subtype.SpawnZoneType;
+import net.sf.l2j.gameserver.model.zone.type.subtype.ZoneType;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.taskmanager.PvpFlagTaskManager;
 
@@ -16,7 +18,7 @@ import net.sf.l2j.gameserver.taskmanager.PvpFlagTaskManager;
  * <li>Chaotic spawn locs : chao_restart_point_list (spawns used on siege, to respawn PKs on second closest town.</li>
  * </ul>
  */
-public class SiegeZone extends SpawnZoneType
+public class SiegeZone extends ZoneType
 {
 	private int _siegableId = -1;
 	private boolean _isActiveSiege = false;
@@ -46,12 +48,10 @@ public class SiegeZone extends SpawnZoneType
 			
 			if (character instanceof Player)
 			{
-				Player activeChar = (Player) character;
+				final Player player = (Player) character;
 				
-				activeChar.setIsInSiege(true); // in siege
-				
-				activeChar.sendPacket(SystemMessageId.ENTERED_COMBAT_ZONE);
-				activeChar.enterOnNoLandingZone();
+				player.sendPacket(SystemMessageId.ENTERED_COMBAT_ZONE);
+				player.enterOnNoLandingZone();
 			}
 		}
 	}
@@ -65,28 +65,38 @@ public class SiegeZone extends SpawnZoneType
 		
 		if (character instanceof Player)
 		{
-			final Player activeChar = (Player) character;
+			final Player player = (Player) character;
 			
 			if (_isActiveSiege)
 			{
-				activeChar.sendPacket(SystemMessageId.LEFT_COMBAT_ZONE);
-				activeChar.exitOnNoLandingZone();
+				player.sendPacket(SystemMessageId.LEFT_COMBAT_ZONE);
+				player.exitOnNoLandingZone();
 				
-				PvpFlagTaskManager.getInstance().add(activeChar, Config.PVP_NORMAL_TIME);
+				PvpFlagTaskManager.getInstance().add(player, Config.PVP_NORMAL_TIME);
 				
 				// Set pvp flag
-				if (activeChar.getPvpFlag() == 0)
-					activeChar.updatePvPFlag(1);
+				if (player.getPvpFlag() == 0)
+					player.updatePvPFlag(1);
 			}
-			
-			activeChar.setIsInSiege(false);
 		}
 		else if (character instanceof SiegeSummon)
 			((SiegeSummon) character).unSummon(((SiegeSummon) character).getOwner());
 	}
 	
-	public void updateZoneStatusForCharactersInside()
+	public int getSiegableId()
 	{
+		return _siegableId;
+	}
+	
+	public boolean isActive()
+	{
+		return _isActiveSiege;
+	}
+	
+	public void setActive(boolean val)
+	{
+		_isActiveSiege = val;
+		
 		if (_isActiveSiege)
 		{
 			for (Creature character : _characters.values())
@@ -113,31 +123,6 @@ public class SiegeZone extends SpawnZoneType
 		}
 	}
 	
-	public int getSiegeObjectId()
-	{
-		return _siegableId;
-	}
-	
-	public boolean isActive()
-	{
-		return _isActiveSiege;
-	}
-	
-	public void setIsActive(boolean val)
-	{
-		_isActiveSiege = val;
-	}
-	
-	/**
-	 * Sends a message to all players in this zone
-	 * @param message
-	 */
-	public void announceToPlayers(String message)
-	{
-		for (Player player : getKnownTypeInside(Player.class))
-			player.sendMessage(message);
-	}
-	
 	/**
 	 * Kick {@link Player}s who don't belong to the clan set as parameter from this zone. They are ported to chaotic or regular spawn locations depending of their karma.
 	 * @param clanId : The castle owner id. Related players aren't teleported out.
@@ -149,7 +134,7 @@ public class SiegeZone extends SpawnZoneType
 			if (player.getClanId() == clanId)
 				continue;
 			
-			player.teleportTo((player.getKarma() > 0) ? getRandomChaoticLoc() : getRandomLoc(), 20);
+			player.teleportTo(TeleportType.TOWN);
 		}
 	}
 }

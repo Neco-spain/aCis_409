@@ -2,21 +2,20 @@ package net.sf.l2j.gameserver.network.serverpackets;
 
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.manager.CursedWeaponManager;
+import net.sf.l2j.gameserver.enums.Paperdoll;
 import net.sf.l2j.gameserver.enums.TeamType;
 import net.sf.l2j.gameserver.enums.skills.AbnormalEffect;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.Summon;
-import net.sf.l2j.gameserver.model.itemcontainer.Inventory;
+import net.sf.l2j.gameserver.model.actor.instance.Cubic;
 
 public class CharInfo extends L2GameServerPacket
 {
 	private final Player _player;
-	private final Inventory _inv;
 	
 	public CharInfo(Player player)
 	{
 		_player = player;
-		_inv = _player.getInventory();
 	}
 	
 	@Override
@@ -24,7 +23,7 @@ public class CharInfo extends L2GameServerPacket
 	{
 		boolean canSeeInvis = false;
 		
-		if (_player.getAppearance().getInvisible())
+		if (!_player.getAppearance().isVisible())
 		{
 			final Player tmp = getClient().getPlayer();
 			if (tmp != null && tmp.isGM())
@@ -42,24 +41,24 @@ public class CharInfo extends L2GameServerPacket
 		writeD(_player.getAppearance().getSex().ordinal());
 		writeD((_player.getClassIndex() == 0) ? _player.getClassId().getId() : _player.getBaseClass());
 		
-		writeD(_inv.getPaperdollItemId(Inventory.PAPERDOLL_HAIRALL));
-		writeD(_inv.getPaperdollItemId(Inventory.PAPERDOLL_HEAD));
-		writeD(_inv.getPaperdollItemId(Inventory.PAPERDOLL_RHAND));
-		writeD(_inv.getPaperdollItemId(Inventory.PAPERDOLL_LHAND));
-		writeD(_inv.getPaperdollItemId(Inventory.PAPERDOLL_GLOVES));
-		writeD(_inv.getPaperdollItemId(Inventory.PAPERDOLL_CHEST));
-		writeD(_inv.getPaperdollItemId(Inventory.PAPERDOLL_LEGS));
-		writeD(_inv.getPaperdollItemId(Inventory.PAPERDOLL_FEET));
-		writeD(_inv.getPaperdollItemId(Inventory.PAPERDOLL_BACK));
-		writeD(_inv.getPaperdollItemId(Inventory.PAPERDOLL_RHAND));
-		writeD(_inv.getPaperdollItemId(Inventory.PAPERDOLL_HAIR));
-		writeD(_inv.getPaperdollItemId(Inventory.PAPERDOLL_FACE));
+		writeD(_player.getInventory().getItemIdFrom(Paperdoll.HAIRALL));
+		writeD(_player.getInventory().getItemIdFrom(Paperdoll.HEAD));
+		writeD(_player.getInventory().getItemIdFrom(Paperdoll.RHAND));
+		writeD(_player.getInventory().getItemIdFrom(Paperdoll.LHAND));
+		writeD(_player.getInventory().getItemIdFrom(Paperdoll.GLOVES));
+		writeD(_player.getInventory().getItemIdFrom(Paperdoll.CHEST));
+		writeD(_player.getInventory().getItemIdFrom(Paperdoll.LEGS));
+		writeD(_player.getInventory().getItemIdFrom(Paperdoll.FEET));
+		writeD(_player.getInventory().getItemIdFrom(Paperdoll.CLOAK));
+		writeD(_player.getInventory().getItemIdFrom(Paperdoll.RHAND));
+		writeD(_player.getInventory().getItemIdFrom(Paperdoll.HAIR));
+		writeD(_player.getInventory().getItemIdFrom(Paperdoll.FACE));
 		
 		writeH(0x00);
 		writeH(0x00);
 		writeH(0x00);
 		writeH(0x00);
-		writeD(_inv.getPaperdollAugmentationId(Inventory.PAPERDOLL_RHAND));
+		writeD(_player.getInventory().getAugmentationIdFrom(Paperdoll.RHAND));
 		writeH(0x00);
 		writeH(0x00);
 		writeH(0x00);
@@ -72,7 +71,7 @@ public class CharInfo extends L2GameServerPacket
 		writeH(0x00);
 		writeH(0x00);
 		writeH(0x00);
-		writeD(_inv.getPaperdollAugmentationId(Inventory.PAPERDOLL_LHAND));
+		writeD(_player.getInventory().getAugmentationIdFrom(Paperdoll.LHAND));
 		writeH(0x00);
 		writeH(0x00);
 		writeH(0x00);
@@ -80,14 +79,14 @@ public class CharInfo extends L2GameServerPacket
 		
 		writeD(_player.getPvpFlag());
 		writeD(_player.getKarma());
-		writeD(_player.getMAtkSpd());
-		writeD(_player.getPAtkSpd());
+		writeD(_player.getStatus().getMAtkSpd());
+		writeD(_player.getStatus().getPAtkSpd());
 		writeD(_player.getPvpFlag());
 		writeD(_player.getKarma());
 		
-		final int runSpd = _player.getStat().getBaseRunSpeed();
-		final int walkSpd = _player.getStat().getBaseWalkSpeed();
-		final int swimSpd = _player.getStat().getBaseSwimSpeed();
+		final int runSpd = _player.getStatus().getBaseRunSpeed();
+		final int walkSpd = _player.getStatus().getBaseWalkSpeed();
+		final int swimSpd = _player.getStatus().getBaseSwimSpeed();
 		
 		writeD(runSpd);
 		writeD(walkSpd);
@@ -98,11 +97,11 @@ public class CharInfo extends L2GameServerPacket
 		writeD((_player.isFlying()) ? runSpd : 0);
 		writeD((_player.isFlying()) ? walkSpd : 0);
 		
-		writeF(_player.getStat().getMovementSpeedMultiplier());
-		writeF(_player.getStat().getAttackSpeedMultiplier());
+		writeF(_player.getStatus().getMovementSpeedMultiplier());
+		writeF(_player.getStatus().getAttackSpeedMultiplier());
 		
 		final Summon summon = _player.getSummon();
-		if (_player.getMountType() != 0 && summon != null)
+		if (_player.isMounted() && summon != null)
 		{
 			writeF(summon.getCollisionRadius());
 			writeF(summon.getCollisionHeight());
@@ -130,22 +129,22 @@ public class CharInfo extends L2GameServerPacket
 		writeC((_player.isRunning()) ? 1 : 0);
 		writeC((_player.isInCombat()) ? 1 : 0);
 		writeC((_player.isAlikeDead()) ? 1 : 0);
-		writeC((!canSeeInvis && _player.getAppearance().getInvisible()) ? 1 : 0);
+		writeC((!canSeeInvis && !_player.getAppearance().isVisible()) ? 1 : 0);
 		
 		writeC(_player.getMountType());
-		writeC(_player.getStoreType().getId());
+		writeC(_player.getOperateType().getId());
 		
-		writeH(_player.getCubics().size());
-		for (int id : _player.getCubics().keySet())
-			writeH(id);
+		writeH(_player.getCubicList().size());
+		for (final Cubic cubic : _player.getCubicList())
+			writeH(cubic.getId());
 		
 		writeC((_player.isInPartyMatchRoom()) ? 1 : 0);
 		writeD((canSeeInvis) ? (_player.getAbnormalEffect() | AbnormalEffect.STEALTH.getMask()) : _player.getAbnormalEffect());
 		writeC(_player.getRecomLeft());
 		writeH(_player.getRecomHave());
 		writeD(_player.getClassId().getId());
-		writeD(_player.getMaxCp());
-		writeD((int) _player.getCurrentCp());
+		writeD(_player.getStatus().getMaxCp());
+		writeD((int) _player.getStatus().getCp());
 		writeC((_player.isMounted()) ? 0 : _player.getEnchantEffect());
 		writeC((Config.PLAYER_SPAWN_PROTECTION > 0 && _player.isSpawnProtected()) ? TeamType.BLUE.getId() : _player.getTeam().getId());
 		writeD(_player.getClanCrestLargeId());

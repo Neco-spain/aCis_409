@@ -5,16 +5,12 @@ import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.model.pledge.ClanMember;
 import net.sf.l2j.gameserver.network.serverpackets.PledgeReceiveMemberInfo;
 
-/**
- * Format: (ch) dSdS
- * @author -Wooden-
- */
 public final class RequestPledgeReorganizeMember extends L2GameClientPacket
 {
 	private int _isMemberSelected;
 	private String _memberName;
 	private int _newPledgeType;
-	private String _selectedMember;
+	private String _selectedMemberName;
 	
 	@Override
 	protected void readImpl()
@@ -22,21 +18,21 @@ public final class RequestPledgeReorganizeMember extends L2GameClientPacket
 		_isMemberSelected = readD();
 		_memberName = readS();
 		_newPledgeType = readD();
-		_selectedMember = readS();
+		_selectedMemberName = readS();
 	}
 	
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		final Clan clan = activeChar.getClan();
+		final Clan clan = player.getClan();
 		if (clan == null)
 			return;
 		
-		if ((activeChar.getClanPrivileges() & Clan.CP_CL_MANAGE_RANKS) != Clan.CP_CL_MANAGE_RANKS)
+		if (!player.hasClanPrivileges(Clan.CP_CL_MANAGE_RANKS))
 			return;
 		
 		final ClanMember member1 = clan.getClanMember(_memberName);
@@ -44,11 +40,11 @@ public final class RequestPledgeReorganizeMember extends L2GameClientPacket
 		if (_isMemberSelected == 0)
 		{
 			if (member1 != null)
-				activeChar.sendPacket(new PledgeReceiveMemberInfo(member1)); // client changes affiliation info even if it fails, so we have to fix it manually
+				player.sendPacket(new PledgeReceiveMemberInfo(member1)); // client changes affiliation info even if it fails, so we have to fix it manually
 			return;
 		}
 		
-		final ClanMember member2 = clan.getClanMember(_selectedMember);
+		final ClanMember member2 = clan.getClanMember(_selectedMemberName);
 		
 		if (member1 == null || member1.getObjectId() == clan.getLeaderId() || member2 == null || member2.getObjectId() == clan.getLeaderId())
 			return;
@@ -56,7 +52,7 @@ public final class RequestPledgeReorganizeMember extends L2GameClientPacket
 		// Do not send sub pledge leaders to other pledges than main
 		if (clan.isSubPledgeLeader(member1.getObjectId()))
 		{
-			activeChar.sendPacket(new PledgeReceiveMemberInfo(member1));
+			player.sendPacket(new PledgeReceiveMemberInfo(member1));
 			return;
 		}
 		

@@ -7,22 +7,23 @@ import net.sf.l2j.gameserver.network.serverpackets.SiegeDefenderList;
 
 public final class RequestSiegeDefenderList extends L2GameClientPacket
 {
-	private int _castleId;
+	private int _id;
 	
 	@Override
 	protected void readImpl()
 	{
-		_castleId = readD();
+		_id = readD();
 	}
 	
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		final Castle castle = CastleManager.getInstance().getCastleById(_castleId);
+		// Check Castle entity associated to the id.
+		final Castle castle = CastleManager.getInstance().getCastleById(_id);
 		if (castle == null)
 			return;
 		

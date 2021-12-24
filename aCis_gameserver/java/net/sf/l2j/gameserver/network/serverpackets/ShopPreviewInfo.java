@@ -2,50 +2,38 @@ package net.sf.l2j.gameserver.network.serverpackets;
 
 import java.util.Map;
 
-import net.sf.l2j.gameserver.model.itemcontainer.Inventory;
+import net.sf.l2j.gameserver.enums.Paperdoll;
 
-/**
- * <font color="red">This packet still need more work. Main items have all been identified.</font><br>
- * <br>
- * Calls the wearlist ("try on" option), and sends items in good paperdoll slot.
- * @author Gnacik, Tk
- */
 public class ShopPreviewInfo extends L2GameServerPacket
 {
-	private final Map<Integer, Integer> _itemlist;
+	private final Map<Paperdoll, Integer> _items;
 	
-	public ShopPreviewInfo(Map<Integer, Integer> itemlist)
+	public ShopPreviewInfo(Map<Paperdoll, Integer> items)
 	{
-		_itemlist = itemlist;
+		_items = items;
 	}
 	
 	@Override
 	protected final void writeImpl()
 	{
 		writeC(0xf0);
-		writeD(Inventory.PAPERDOLL_TOTALSLOTS);
-		// Slots
-		writeD(getFromList(Inventory.PAPERDOLL_REAR)); // unverified
-		writeD(getFromList(Inventory.PAPERDOLL_LEAR)); // unverified
-		writeD(getFromList(Inventory.PAPERDOLL_NECK)); // unverified
-		writeD(getFromList(Inventory.PAPERDOLL_RFINGER)); // unverified
-		writeD(getFromList(Inventory.PAPERDOLL_LFINGER)); // unverified
-		writeD(getFromList(Inventory.PAPERDOLL_HEAD)); // unverified
-		writeD(getFromList(Inventory.PAPERDOLL_RHAND)); // good
-		writeD(getFromList(Inventory.PAPERDOLL_LHAND)); // good
-		writeD(getFromList(Inventory.PAPERDOLL_GLOVES)); // good
-		writeD(getFromList(Inventory.PAPERDOLL_CHEST)); // good
-		writeD(getFromList(Inventory.PAPERDOLL_LEGS)); // good
-		writeD(getFromList(Inventory.PAPERDOLL_FEET)); // good
-		writeD(getFromList(Inventory.PAPERDOLL_BACK)); // unverified
-		writeD(getFromList(Inventory.PAPERDOLL_FACE)); // unverified
-		writeD(getFromList(Inventory.PAPERDOLL_HAIR)); // unverified
-		writeD(getFromList(Inventory.PAPERDOLL_HAIRALL)); // unverified
-		writeD(getFromList(Inventory.PAPERDOLL_UNDER)); // unverified
-	}
-	
-	private int getFromList(int key)
-	{
-		return ((_itemlist.get(key) != null) ? _itemlist.get(key) : 0);
+		writeD(Paperdoll.TOTAL_SLOTS);
+		writeD(_items.getOrDefault(Paperdoll.REAR, 0)); // unverified
+		writeD(_items.getOrDefault(Paperdoll.LEAR, 0)); // unverified
+		writeD(_items.getOrDefault(Paperdoll.NECK, 0)); // unverified
+		writeD(_items.getOrDefault(Paperdoll.RFINGER, 0)); // unverified
+		writeD(_items.getOrDefault(Paperdoll.LFINGER, 0)); // unverified
+		writeD(_items.getOrDefault(Paperdoll.HEAD, 0)); // unverified
+		writeD(_items.getOrDefault(Paperdoll.RHAND, 0)); // good
+		writeD(_items.getOrDefault(Paperdoll.LHAND, 0)); // good
+		writeD(_items.getOrDefault(Paperdoll.GLOVES, 0)); // good
+		writeD(_items.getOrDefault(Paperdoll.CHEST, 0)); // good
+		writeD(_items.getOrDefault(Paperdoll.LEGS, 0)); // good
+		writeD(_items.getOrDefault(Paperdoll.FEET, 0)); // good
+		writeD(_items.getOrDefault(Paperdoll.CLOAK, 0)); // unverified
+		writeD(_items.getOrDefault(Paperdoll.FACE, 0)); // unverified
+		writeD(_items.getOrDefault(Paperdoll.HAIR, 0)); // unverified
+		writeD(_items.getOrDefault(Paperdoll.HAIRALL, 0)); // unverified
+		writeD(_items.getOrDefault(Paperdoll.UNDER, 0)); // unverified
 	}
 }

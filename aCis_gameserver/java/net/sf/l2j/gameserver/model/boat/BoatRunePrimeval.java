@@ -1,13 +1,13 @@
 package net.sf.l2j.gameserver.model.boat;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 
 import net.sf.l2j.gameserver.data.manager.BoatManager;
+import net.sf.l2j.gameserver.enums.SayType;
 import net.sf.l2j.gameserver.model.actor.Boat;
 import net.sf.l2j.gameserver.model.location.BoatLocation;
 import net.sf.l2j.gameserver.model.location.Location;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.clientpackets.Say2;
 import net.sf.l2j.gameserver.network.serverpackets.CreatureSay;
 import net.sf.l2j.gameserver.network.serverpackets.PlaySound;
 
@@ -72,13 +72,13 @@ public class BoatRunePrimeval implements Runnable
 	{
 		_boat = boat;
 		
-		ARRIVED_AT_RUNE = new CreatureSay(0, Say2.BOAT, 801, SystemMessageId.ARRIVED_AT_RUNE);
-		ARRIVED_AT_RUNE_2 = new CreatureSay(0, Say2.BOAT, 801, SystemMessageId.FERRY_LEAVING_FOR_PRIMEVAL_3_MINUTES);
-		LEAVING_RUNE = new CreatureSay(0, Say2.BOAT, 801, SystemMessageId.FERRY_LEAVING_RUNE_FOR_PRIMEVAL_NOW);
-		ARRIVED_AT_PRIMEVAL = new CreatureSay(0, Say2.BOAT, 801, SystemMessageId.FERRY_ARRIVED_AT_PRIMEVAL);
-		ARRIVED_AT_PRIMEVAL_2 = new CreatureSay(0, Say2.BOAT, 801, SystemMessageId.FERRY_LEAVING_FOR_RUNE_3_MINUTES);
-		LEAVING_PRIMEVAL = new CreatureSay(0, Say2.BOAT, 801, SystemMessageId.FERRY_LEAVING_PRIMEVAL_FOR_RUNE_NOW);
-		BUSY_RUNE = new CreatureSay(0, Say2.BOAT, 801, SystemMessageId.FERRY_FROM_PRIMEVAL_TO_RUNE_DELAYED);
+		ARRIVED_AT_RUNE = new CreatureSay(SayType.BOAT, 801, SystemMessageId.ARRIVED_AT_RUNE);
+		ARRIVED_AT_RUNE_2 = new CreatureSay(SayType.BOAT, 801, SystemMessageId.FERRY_LEAVING_FOR_PRIMEVAL_3_MINUTES);
+		LEAVING_RUNE = new CreatureSay(SayType.BOAT, 801, SystemMessageId.FERRY_LEAVING_RUNE_FOR_PRIMEVAL_NOW);
+		ARRIVED_AT_PRIMEVAL = new CreatureSay(SayType.BOAT, 801, SystemMessageId.FERRY_ARRIVED_AT_PRIMEVAL);
+		ARRIVED_AT_PRIMEVAL_2 = new CreatureSay(SayType.BOAT, 801, SystemMessageId.FERRY_LEAVING_FOR_RUNE_3_MINUTES);
+		LEAVING_PRIMEVAL = new CreatureSay(SayType.BOAT, 801, SystemMessageId.FERRY_LEAVING_PRIMEVAL_FOR_RUNE_NOW);
+		BUSY_RUNE = new CreatureSay(SayType.BOAT, 801, SystemMessageId.FERRY_FROM_PRIMEVAL_TO_RUNE_DELAYED);
 		
 		RUNE_SOUND = new PlaySound(0, "itemsound.ship_arrival_departure", _boat);
 		PRIMEVAL_SOUND = new PlaySound(0, "itemsound.ship_arrival_departure", _boat);
@@ -93,7 +93,7 @@ public class BoatRunePrimeval implements Runnable
 				BoatManager.getInstance().dockBoat(BoatManager.RUNE_HARBOR, false);
 				BoatManager.getInstance().broadcastPackets(RUNE_DOCK[0], PRIMEVAL_DOCK, LEAVING_RUNE, RUNE_SOUND);
 				_boat.payForRide(8925, 1, OUST_LOC_1);
-				_boat.executePath(RUNE_TO_PRIMEVAL);
+				_boat.getMove().executePath(RUNE_TO_PRIMEVAL);
 				break;
 			case 1:
 				BoatManager.getInstance().broadcastPackets(PRIMEVAL_DOCK, RUNE_DOCK[0], ARRIVED_AT_PRIMEVAL, ARRIVED_AT_PRIMEVAL_2, PRIMEVAL_SOUND);
@@ -102,7 +102,7 @@ public class BoatRunePrimeval implements Runnable
 			case 2:
 				BoatManager.getInstance().broadcastPackets(PRIMEVAL_DOCK, RUNE_DOCK[0], LEAVING_PRIMEVAL, PRIMEVAL_SOUND);
 				_boat.payForRide(8924, 1, OUST_LOC_2);
-				_boat.executePath(PRIMEVAL_TO_RUNE);
+				_boat.getMove().executePath(PRIMEVAL_TO_RUNE);
 				break;
 			case 3:
 				if (BoatManager.getInstance().isBusyDock(BoatManager.RUNE_HARBOR))
@@ -118,7 +118,7 @@ public class BoatRunePrimeval implements Runnable
 					return;
 				}
 				BoatManager.getInstance().dockBoat(BoatManager.RUNE_HARBOR, true);
-				_boat.executePath(RUNE_DOCK);
+				_boat.getMove().executePath(RUNE_DOCK);
 				break;
 			case 4:
 				BoatManager.getInstance().broadcastPackets(RUNE_DOCK[0], PRIMEVAL_DOCK, ARRIVED_AT_RUNE, ARRIVED_AT_RUNE_2, RUNE_SOUND);

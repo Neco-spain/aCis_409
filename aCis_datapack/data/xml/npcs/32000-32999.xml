@@ -6,7 +6,7 @@
 		<set name="height" val="35"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
-		<set name="type" val="CabalBuffer"/>
+		<set name="type" val="Folk"/>
 		<set name="exp" val="0"/>
 		<set name="sp" val="0"/>
 		<set name="hp" val="2444.46819"/>
@@ -24,7 +24,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="100"/>
 		<set name="runSpd" val="120"/>
@@ -41,7 +41,7 @@
 		<set name="height" val="35"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
-		<set name="type" val="CabalBuffer"/>
+		<set name="type" val="Folk"/>
 		<set name="exp" val="0"/>
 		<set name="sp" val="0"/>
 		<set name="hp" val="2444.46819"/>
@@ -59,7 +59,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="100"/>
 		<set name="runSpd" val="120"/>
@@ -76,7 +76,7 @@
 		<set name="height" val="35"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
-		<set name="type" val="CabalBuffer"/>
+		<set name="type" val="Folk"/>
 		<set name="exp" val="0"/>
 		<set name="sp" val="0"/>
 		<set name="hp" val="2444.46819"/>
@@ -94,7 +94,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="100"/>
 		<set name="runSpd" val="120"/>
@@ -111,7 +111,7 @@
 		<set name="height" val="28"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
-		<set name="type" val="CabalBuffer"/>
+		<set name="type" val="Folk"/>
 		<set name="exp" val="0"/>
 		<set name="sp" val="0"/>
 		<set name="hp" val="2444.46819"/>
@@ -129,7 +129,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="80"/>
 		<set name="runSpd" val="120"/>
@@ -146,7 +146,7 @@
 		<set name="height" val="28"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
-		<set name="type" val="CabalBuffer"/>
+		<set name="type" val="Folk"/>
 		<set name="exp" val="0"/>
 		<set name="sp" val="0"/>
 		<set name="hp" val="2444.46819"/>
@@ -164,7 +164,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="80"/>
 		<set name="runSpd" val="120"/>
@@ -181,7 +181,7 @@
 		<set name="height" val="28"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
-		<set name="type" val="CabalBuffer"/>
+		<set name="type" val="Folk"/>
 		<set name="exp" val="0"/>
 		<set name="sp" val="0"/>
 		<set name="hp" val="2444.46819"/>
@@ -199,7 +199,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="80"/>
 		<set name="runSpd" val="120"/>
@@ -216,7 +216,7 @@
 		<set name="height" val="28"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
-		<set name="type" val="CabalBuffer"/>
+		<set name="type" val="Folk"/>
 		<set name="exp" val="0"/>
 		<set name="sp" val="0"/>
 		<set name="hp" val="2444.46819"/>
@@ -234,7 +234,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="80"/>
 		<set name="runSpd" val="120"/>
@@ -251,7 +251,7 @@
 		<set name="height" val="23"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
-		<set name="type" val="Folk"/>
+		<set name="type" val="Fisherman"/>
 		<set name="exp" val="0"/>
 		<set name="sp" val="0"/>
 		<set name="hp" val="2444.46819"/>
@@ -283,7 +283,7 @@
 	<npc id="32008" name="Gremory" title="Priest">
 		<set name="level" val="70"/>
 		<set name="radius" val="8"/>
-		<set name="height" val="22.5"/>
+		<set name="height" val="24.5"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
 		<set name="type" val="Folk"/>
@@ -304,7 +304,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -339,7 +339,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -353,7 +353,7 @@
 	<npc id="32010" name="Flauron" title="Priest">
 		<set name="level" val="70"/>
 		<set name="radius" val="8"/>
-		<set name="height" val="22.5"/>
+		<set name="height" val="24.5"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
 		<set name="type" val="Folk"/>
@@ -374,7 +374,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -387,7 +387,7 @@
 	</npc>
 	<npc id="32011" name="Imperial Tomb Guide" title="">
 		<set name="level" val="70"/>
-		<set name="radius" val="8"/>
+		<set name="radius" val="7"/>
 		<set name="height" val="23"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
@@ -409,7 +409,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -492,7 +492,7 @@
 	</npc>
 	<npc id="32014" name="Ivan" title="Runaway Youth">
 		<set name="level" val="70"/>
-		<set name="radius" val="8"/>
+		<set name="radius" val="7"/>
 		<set name="height" val="21.5"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
@@ -514,7 +514,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -549,7 +549,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -584,7 +584,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -619,7 +619,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -633,7 +633,7 @@
 	<npc id="32018" name="Misa" title="">
 		<set name="level" val="70"/>
 		<set name="radius" val="8"/>
-		<set name="height" val="22"/>
+		<set name="height" val="22.5"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
 		<set name="type" val="Folk"/>
@@ -654,7 +654,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -689,7 +689,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -724,7 +724,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -759,7 +759,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -794,7 +794,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -829,7 +829,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -843,7 +843,7 @@
 	<npc id="32024" name="Mulia" title="Clan Trader">
 		<set name="level" val="70"/>
 		<set name="radius" val="8"/>
-		<set name="height" val="16.5"/>
+		<set name="height" val="17"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
 		<set name="type" val="Folk"/>
@@ -864,7 +864,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -899,7 +899,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -934,7 +934,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -969,7 +969,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -1004,7 +1004,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -1039,7 +1039,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -1074,7 +1074,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -1109,7 +1109,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -1144,7 +1144,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -1179,7 +1179,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="60"/>
 		<set name="runSpd" val="120"/>
@@ -1214,7 +1214,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -1249,7 +1249,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -1389,7 +1389,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -1424,7 +1424,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -1459,7 +1459,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -1494,7 +1494,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="1"/>
@@ -1529,7 +1529,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="1"/>
@@ -1564,7 +1564,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="10"/>
 		<set name="runSpd" val="1"/>
@@ -1599,7 +1599,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="10"/>
 		<set name="runSpd" val="1"/>
@@ -1634,7 +1634,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="27"/>
 		<set name="runSpd" val="1"/>
@@ -1669,7 +1669,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -1704,7 +1704,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="48"/>
 		<set name="runSpd" val="120"/>
@@ -1739,7 +1739,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -1774,7 +1774,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -1844,7 +1844,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -1879,7 +1879,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -1892,8 +1892,8 @@
 	</npc>
 	<npc id="32054" name="Ghost of a Railroad Engineer" title="">
 		<set name="level" val="70"/>
-		<set name="radius" val="9"/>
-		<set name="height" val="16.5"/>
+		<set name="radius" val="10"/>
+		<set name="height" val="18.7"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
 		<set name="type" val="Folk"/>
@@ -1914,7 +1914,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="80"/>
 		<set name="runSpd" val="120"/>
@@ -1927,8 +1927,8 @@
 	</npc>
 	<npc id="32055" name="Ghost of an Ancient Railroad Engineer" title="">
 		<set name="level" val="70"/>
-		<set name="radius" val="9"/>
-		<set name="height" val="16.5"/>
+		<set name="radius" val="10"/>
+		<set name="height" val="18.7"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
 		<set name="type" val="Folk"/>
@@ -1949,7 +1949,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="80"/>
 		<set name="runSpd" val="120"/>
@@ -1984,7 +1984,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -2019,7 +2019,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="30"/>
 		<set name="runSpd" val="120"/>
@@ -2439,7 +2439,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -2474,7 +2474,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="26"/>
 		<set name="runSpd" val="45"/>
@@ -2509,7 +2509,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="24"/>
 		<set name="runSpd" val="50"/>
@@ -2544,7 +2544,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="6"/>
 		<set name="runSpd" val="32"/>
@@ -2579,7 +2579,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="9"/>
 		<set name="runSpd" val="34"/>
@@ -2614,7 +2614,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -2649,7 +2649,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="26"/>
 		<set name="runSpd" val="120"/>
@@ -2684,7 +2684,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -2719,7 +2719,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -2754,7 +2754,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -2789,7 +2789,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -2824,7 +2824,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -2859,7 +2859,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -2894,7 +2894,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -2929,7 +2929,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -2964,7 +2964,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -2999,7 +2999,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -3034,7 +3034,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -3069,7 +3069,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -3104,7 +3104,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="30"/>
 		<set name="runSpd" val="120"/>
@@ -3139,7 +3139,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="48"/>
 		<set name="runSpd" val="120"/>
@@ -3174,7 +3174,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -3209,7 +3209,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -3244,7 +3244,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -3279,7 +3279,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -3314,7 +3314,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -3349,7 +3349,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -3384,7 +3384,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -3420,7 +3420,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="48"/>
 		<set name="runSpd" val="120"/>
@@ -3455,7 +3455,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="48"/>
 		<set name="runSpd" val="120"/>
@@ -3490,7 +3490,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="48"/>
 		<set name="runSpd" val="120"/>
@@ -3525,7 +3525,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="48"/>
 		<set name="runSpd" val="120"/>
@@ -3555,12 +3555,12 @@
 		<set name="mDef" val="216.53847"/>
 		<set name="crit" val="4"/>
 		<set name="atkSpd" val="253"/>
-		<set name="str" val="40"/>
-		<set name="int" val="21"/>
-		<set name="dex" val="30"/>
-		<set name="wit" val="20"/>
-		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="str" val="60"/>
+		<set name="int" val="76"/>
+		<set name="dex" val="73"/>
+		<set name="wit" val="70"/>
+		<set name="con" val="57"/>
+		<set name="men" val="80"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="48"/>
 		<set name="runSpd" val="120"/>
@@ -3595,7 +3595,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="60"/>
 		<set name="runSpd" val="100"/>
@@ -3630,7 +3630,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="100"/>
@@ -3665,7 +3665,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="100"/>
@@ -3700,7 +3700,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -3763,7 +3763,7 @@
 		<set name="mDef" val="216.53847"/>
 		<set name="crit" val="4"/>
 		<set name="atkSpd" val="253"/>
-		<set name="str" val="43"/>
+		<set name="str" val="40"/>
 		<set name="int" val="21"/>
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
@@ -3802,7 +3802,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="60"/>
 		<set name="runSpd" val="100"/>
@@ -3837,7 +3837,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="60"/>
 		<set name="runSpd" val="100"/>
@@ -3872,7 +3872,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="100"/>
@@ -3977,7 +3977,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="60"/>
 		<set name="runSpd" val="100"/>
@@ -4025,8 +4025,8 @@
 	</npc>
 	<npc id="32118" name="Mantarasa Egg" title="">
 		<set name="level" val="70"/>
-		<set name="radius" val="43"/>
-		<set name="height" val="33.5"/>
+		<set name="radius" val="53"/>
+		<set name="height" val="11.5"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
 		<set name="type" val="Folk"/>
@@ -4222,7 +4222,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="120"/>
 		<set name="runSpd" val="290"/>
@@ -4256,7 +4256,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="100"/>
@@ -4290,7 +4290,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="100"/>
@@ -4324,7 +4324,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="140"/>
@@ -4358,7 +4358,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="140"/>
@@ -4371,7 +4371,7 @@
 	<npc id="32128" name="Guardian Wizard of the Cloth" title="">
 		<set name="level" val="70"/>
 		<set name="radius" val="8"/>
-		<set name="height" val="24.5"/>
+		<set name="height" val="25"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
 		<set name="type" val="Folk"/>
@@ -4392,7 +4392,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="140"/>
@@ -4405,7 +4405,7 @@
 	<npc id="32130" name="Strategist Lucien" title="Event Manager">
 		<set name="level" val="70"/>
 		<set name="radius" val="6"/>
-		<set name="height" val="16.0055"/>
+		<set name="height" val="16.01"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
 		<set name="type" val="Folk"/>
@@ -4426,7 +4426,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="160"/>
 		<set name="runSpd" val="120"/>
@@ -4461,7 +4461,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="120"/>
@@ -4496,7 +4496,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="1"/>

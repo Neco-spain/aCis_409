@@ -13,11 +13,13 @@ public final class RequestItemList extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		if (!activeChar.isInventoryDisabled())
-			sendPacket(new ItemList(activeChar, true));
+		if (player.isInventoryDisabled())
+			return;
+		
+		sendPacket(new ItemList(player, true));
 	}
 }

@@ -9,25 +9,24 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import net.sf.l2j.commons.data.xml.IXmlReader;
 import net.sf.l2j.commons.lang.StringUtil;
+import net.sf.l2j.commons.pool.ConnectionPool;
 
-import net.sf.l2j.L2DatabaseFactory;
+import net.sf.l2j.gameserver.enums.SpawnType;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.WorldRegion;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
-import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
-import net.sf.l2j.gameserver.model.zone.SpawnZoneType;
-import net.sf.l2j.gameserver.model.zone.ZoneType;
 import net.sf.l2j.gameserver.model.zone.form.ZoneCuboid;
 import net.sf.l2j.gameserver.model.zone.form.ZoneCylinder;
 import net.sf.l2j.gameserver.model.zone.form.ZoneNPoly;
 import net.sf.l2j.gameserver.model.zone.type.BossZone;
+import net.sf.l2j.gameserver.model.zone.type.subtype.SpawnZoneType;
+import net.sf.l2j.gameserver.model.zone.type.subtype.ZoneType;
 import net.sf.l2j.gameserver.network.serverpackets.L2GameServerPacket;
 
 import org.w3c.dom.Document;
@@ -43,7 +42,6 @@ public class ZoneManager implements IXmlReader
 	private static final String INSERT_GRAND_BOSS_LIST = "INSERT INTO grandboss_list (player_id,zone) VALUES (?,?)";
 	
 	private final Map<Class<? extends ZoneType>, Map<Integer, ? extends ZoneType>> _zones = new HashMap<>();
-	private final Map<Integer, ItemInstance> _debugItems = new ConcurrentHashMap<>();
 	
 	private int _lastDynamicId = 0;
 	
@@ -121,7 +119,7 @@ public class ZoneManager implements IXmlReader
 				forEach(zoneNode, "spawn", spawnNode ->
 				{
 					final NamedNodeMap spawnAttrs = spawnNode.getAttributes();
-					((SpawnZoneType) temp).addLoc(parseLocation(spawnNode), parseBoolean(spawnAttrs, "isChaotic", false));
+					((SpawnZoneType) temp).addSpawn(parseEnum(spawnAttrs, SpawnType.class, "type"), parseLocation(spawnNode));
 				});
 			}
 			
@@ -208,7 +206,6 @@ public class ZoneManager implements IXmlReader
 		
 		// Clear _zones and _debugItems Maps.
 		_zones.clear();
-		clearDebugItems();
 		
 		// Reset dynamic id.
 		_lastDynamicId = 0;
@@ -231,7 +228,7 @@ public class ZoneManager implements IXmlReader
 	 */
 	public final void save()
 	{
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection())
+		try (Connection con = ConnectionPool.getConnection())
 		{
 			// clear table first
 			try (PreparedStatement ps = con.prepareStatement(DELETE_GRAND_BOSS_LIST))
@@ -319,15 +316,6 @@ public class ZoneManager implements IXmlReader
 	}
 	
 	/**
-	 * @param object : The object position to refer.
-	 * @return all zones based on object position.
-	 */
-	public List<ZoneType> getZones(WorldObject object)
-	{
-		return getZones(object.getX(), object.getY(), object.getZ());
-	}
-	
-	/**
 	 * @param <T> : The {@link ZoneType} children class.
 	 * @param object : The object position to refer.
 	 * @param type : The Class type to refer.
@@ -342,39 +330,6 @@ public class ZoneManager implements IXmlReader
 	}
 	
 	/**
-	 * @param x : The X location to check.
-	 * @param y : The Y location to check.
-	 * @return all zones on a 2D plane from given coordinates (no matter their {@link Class}).
-	 */
-	public List<ZoneType> getZones(int x, int y)
-	{
-		final List<ZoneType> temp = new ArrayList<>();
-		for (ZoneType zone : World.getInstance().getRegion(x, y).getZones())
-		{
-			if (zone.isInsideZone(x, y))
-				temp.add(zone);
-		}
-		return temp;
-	}
-	
-	/**
-	 * @param x : The X location to check.
-	 * @param y : The Y location to check.
-	 * @param z : The Z location to check.
-	 * @return all zones on a 3D plane from given coordinates (no matter their {@link Class}).
-	 */
-	public List<ZoneType> getZones(int x, int y, int z)
-	{
-		final List<ZoneType> temp = new ArrayList<>();
-		for (ZoneType zone : World.getInstance().getRegion(x, y).getZones())
-		{
-			if (zone.isInsideZone(x, y, z))
-				temp.add(zone);
-		}
-		return temp;
-	}
-	
-	/**
 	 * @param <T> : The {@link ZoneType} children class.
 	 * @param x : The X location to check.
 	 * @param y : The Y location to check.
@@ -386,7 +341,7 @@ public class ZoneManager implements IXmlReader
 	{
 		for (ZoneType zone : World.getInstance().getRegion(x, y).getZones())
 		{
-			if (zone.isInsideZone(x, y) && type.isInstance(zone))
+			if (type.isInstance(zone) && zone.isInsideZone(x, y))
 				return (T) zone;
 		}
 		return null;
@@ -405,30 +360,10 @@ public class ZoneManager implements IXmlReader
 	{
 		for (ZoneType zone : World.getInstance().getRegion(x, y).getZones())
 		{
-			if (zone.isInsideZone(x, y, z) && type.isInstance(zone))
+			if (type.isInstance(zone) && zone.isInsideZone(x, y, z))
 				return (T) zone;
 		}
 		return null;
-	}
-	
-	/**
-	 * Add an {@link ItemInstance} on debug list. Used to visualize zones.
-	 * @param item : The item to add.
-	 */
-	public void addDebugItem(ItemInstance item)
-	{
-		_debugItems.put(item.getObjectId(), item);
-	}
-	
-	/**
-	 * Remove all {@link ItemInstance} debug items from the world and clear _debugItems {@link Map}.
-	 */
-	public void clearDebugItems()
-	{
-		for (ItemInstance item : _debugItems.values())
-			item.decayMe();
-		
-		_debugItems.clear();
 	}
 	
 	/**

@@ -1,6 +1,6 @@
 package net.sf.l2j.loginserver.network.loginserverpackets;
 
-import net.sf.l2j.loginserver.GameServerManager;
+import net.sf.l2j.loginserver.data.manager.GameServerManager;
 import net.sf.l2j.loginserver.network.serverpackets.ServerBasePacket;
 
 public class AuthResponse extends ServerBasePacket

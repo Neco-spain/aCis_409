@@ -1,6 +1,6 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.manager.CastleManager;
@@ -34,6 +34,7 @@ public final class RequestRestartPoint extends L2GameClientPacket
 		if (player == null)
 			return;
 		
+		// TODO Needed? Possible?
 		if (player.isFakeDeath())
 		{
 			player.stopFakeDeath(true);

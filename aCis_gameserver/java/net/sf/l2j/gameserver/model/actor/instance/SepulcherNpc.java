@@ -1,27 +1,17 @@
 package net.sf.l2j.gameserver.model.actor.instance;
 
 import java.util.Calendar;
-import java.util.List;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
-import net.sf.l2j.commons.random.Rnd;
+import net.sf.l2j.commons.pool.ThreadPool;
 
 import net.sf.l2j.gameserver.data.manager.FourSepulchersManager;
 import net.sf.l2j.gameserver.data.xml.DoorData;
-import net.sf.l2j.gameserver.enums.IntentionType;
-import net.sf.l2j.gameserver.enums.ScriptEventType;
-import net.sf.l2j.gameserver.geoengine.GeoEngine;
-import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
 import net.sf.l2j.gameserver.model.group.Party;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
-import net.sf.l2j.gameserver.network.clientpackets.Say2;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
-import net.sf.l2j.gameserver.network.serverpackets.CreatureSay;
-import net.sf.l2j.gameserver.network.serverpackets.MoveToPawn;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
-import net.sf.l2j.gameserver.scripting.Quest;
 
 public class SepulcherNpc extends Folk
 {
@@ -34,79 +24,7 @@ public class SepulcherNpc extends Folk
 	}
 	
 	@Override
-	public void onAction(Player player)
-	{
-		// Set the target of the player
-		if (player.getTarget() != this)
-			player.setTarget(this);
-		else
-		{
-			// Check if the player is attackable (without a forced attack)
-			if (isAutoAttackable(player))
-				player.getAI().setIntention(IntentionType.ATTACK, this);
-			else if (!isAutoAttackable(player))
-			{
-				// Calculate the distance between the Player and this instance.
-				if (!canInteract(player))
-					player.getAI().setIntention(IntentionType.INTERACT, this);
-				else
-				{
-					// Stop moving if we're already in interact range.
-					if (player.isMoving() || player.isInCombat())
-						player.getAI().setIntention(IntentionType.IDLE);
-					
-					// Rotate the player to face the instance
-					player.sendPacket(new MoveToPawn(player, this, Npc.INTERACTION_DISTANCE));
-					
-					// Send ActionFailed to the player in order to avoid he stucks
-					player.sendPacket(ActionFailed.STATIC_PACKET);
-					
-					if (hasRandomAnimation())
-						onRandomAnimation(Rnd.get(8));
-					
-					doAction(player);
-				}
-			}
-		}
-	}
-	
-	@Override
-	public void onActionShift(Player player)
-	{
-		// Check if the Player is a GM ; send him NPC infos if true.
-		if (player.isGM())
-			sendNpcInfos(player);
-		
-		if (player.getTarget() != this)
-			player.setTarget(this);
-		else
-		{
-			if (isAutoAttackable(player))
-			{
-				if (player.isInsideRadius(this, player.getPhysicalAttackRange(), false, false) && GeoEngine.getInstance().canSeeTarget(player, this))
-					player.getAI().setIntention(IntentionType.ATTACK, this);
-				else
-					player.sendPacket(ActionFailed.STATIC_PACKET);
-			}
-			else if (canInteract(player))
-			{
-				// Rotate the player to face the instance
-				player.sendPacket(new MoveToPawn(player, this, Npc.INTERACTION_DISTANCE));
-				
-				// Send ActionFailed to the player in order to avoid he stucks
-				player.sendPacket(ActionFailed.STATIC_PACKET);
-				
-				if (hasRandomAnimation())
-					onRandomAnimation(Rnd.get(8));
-				
-				doAction(player);
-			}
-			else
-				player.sendPacket(ActionFailed.STATIC_PACKET);
-		}
-	}
-	
-	private void doAction(Player player)
+	public void onInteract(Player player)
 	{
 		if (isDead())
 		{
@@ -168,17 +86,7 @@ public class SepulcherNpc extends Folk
 				break;
 			
 			default:
-			{
-				List<Quest> scripts = getTemplate().getEventQuests(ScriptEventType.QUEST_START);
-				if (scripts != null && !scripts.isEmpty())
-					player.setLastQuestNpcObject(getObjectId());
-				
-				scripts = getTemplate().getEventQuests(ScriptEventType.ON_FIRST_TALK);
-				if (scripts != null && scripts.size() == 1)
-					scripts.get(0).notifyFirstTalk(this, player);
-				else
-					showChatWindow(player);
-			}
+				super.onInteract(player);
 		}
 		player.sendPacket(ActionFailed.STATIC_PACKET);
 	}
@@ -212,8 +120,8 @@ public class SepulcherNpc extends Folk
 					case 31939:
 					case 31944:
 						FourSepulchersManager.getInstance().spawnShadow(getNpcId());
+						
 					default:
-					{
 						openNextDoor(getNpcId());
 						
 						final Party party = player.getParty();
@@ -228,7 +136,6 @@ public class SepulcherNpc extends Folk
 						}
 						else
 							player.destroyItemByItemId("Quest", HALLS_KEY, hallsKey.getCount(), player, true);
-					}
 				}
 			}
 		}
@@ -258,9 +165,7 @@ public class SepulcherNpc extends Folk
 		if (msg == null || msg.isEmpty())
 			return;
 		
-		final CreatureSay sm = new CreatureSay(getObjectId(), Say2.SHOUT, getName(), msg);
-		for (Player player : getKnownType(Player.class))
-			player.sendPacket(sm);
+		broadcastNpcShout(msg);
 	}
 	
 	public void showHtmlFile(Player player, String file)

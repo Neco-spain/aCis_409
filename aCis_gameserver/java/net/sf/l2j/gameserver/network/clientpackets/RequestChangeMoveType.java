@@ -26,8 +26,8 @@ public final class RequestChangeMoveType extends L2GameClientPacket
 		
 		// Change movement type.
 		if (_typeRun)
-			player.setRunning();
+			player.forceRunStance();
 		else
-			player.setWalking();
+			player.forceWalkStance();
 	}
 }

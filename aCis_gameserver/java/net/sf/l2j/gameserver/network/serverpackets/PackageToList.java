@@ -2,10 +2,6 @@ package net.sf.l2j.gameserver.network.serverpackets;
 
 import java.util.Map;
 
-/**
- * Format: (c) d[dS] d: list size [ d: char ID S: char Name ]
- * @author -Wooden-
- */
 public class PackageToList extends L2GameServerPacket
 {
 	private final Map<Integer, String> _players;
@@ -20,10 +16,10 @@ public class PackageToList extends L2GameServerPacket
 	{
 		writeC(0xC2);
 		writeD(_players.size());
-		for (Map.Entry<Integer, String> playerEntry : _players.entrySet())
+		for (Map.Entry<Integer, String> entry : _players.entrySet())
 		{
-			writeD(playerEntry.getKey());
-			writeS(playerEntry.getValue());
+			writeD(entry.getKey());
+			writeS(entry.getValue());
 		}
 	}
 }

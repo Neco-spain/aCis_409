@@ -1,11 +1,7 @@
 package net.sf.l2j.gameserver.model.actor.instance;
 
-import net.sf.l2j.gameserver.enums.IntentionType;
 import net.sf.l2j.gameserver.model.WorldObject;
-import net.sf.l2j.gameserver.model.actor.Creature;
-import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
 import net.sf.l2j.gameserver.network.serverpackets.ShowTownMap;
 import net.sf.l2j.gameserver.network.serverpackets.StaticObjectInfo;
@@ -25,20 +21,42 @@ public class StaticObject extends WorldObject
 		super(objectId);
 	}
 	
-	/**
-	 * @return the StaticObjectId.
-	 */
+	@Override
+	public void onInteract(Player player)
+	{
+		if (getType() == 2)
+		{
+			final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
+			html.setFile("data/html/signboard.htm");
+			player.sendPacket(html);
+		}
+		else if (getType() == 0)
+			player.sendPacket(getMap());
+	}
+	
+	@Override
+	public void onAction(Player player, boolean isCtrlPressed, boolean isShiftPressed)
+	{
+		if (player.getTarget() != this)
+			player.setTarget(this);
+		else
+			player.getAI().tryToInteract(this, isCtrlPressed, isShiftPressed);
+	}
+	
+	@Override
+	public void sendInfo(Player player)
+	{
+		player.sendPacket(new StaticObjectInfo(this));
+	}
+	
 	public int getStaticObjectId()
 	{
 		return _staticObjectId;
 	}
 	
-	/**
-	 * @param StaticObjectId The StaticObjectId to set.
-	 */
-	public void setStaticObjectId(int StaticObjectId)
+	public void setStaticObjectId(int staticObjectId)
 	{
-		_staticObjectId = StaticObjectId;
+		_staticObjectId = staticObjectId;
 	}
 	
 	public int getType()
@@ -56,14 +74,9 @@ public class StaticObject extends WorldObject
 		return _isBusy;
 	}
 	
-	public void setBusy(boolean busy)
+	public void setBusy(boolean isBusy)
 	{
-		_isBusy = busy;
-	}
-	
-	public void setMap(String texture, int x, int y)
-	{
-		_map = new ShowTownMap("town_map." + texture, x, y);
+		_isBusy = isBusy;
 	}
 	
 	public ShowTownMap getMap()
@@ -71,69 +84,8 @@ public class StaticObject extends WorldObject
 		return _map;
 	}
 	
-	@Override
-	public void onAction(Player player)
+	public void setMap(String texture, int x, int y)
 	{
-		// Set the target of the player
-		if (player.getTarget() != this)
-			player.setTarget(this);
-		else
-		{
-			// Calculate the distance between the Player and the Npc.
-			if (!player.isInsideRadius(this, Npc.INTERACTION_DISTANCE, false, false))
-			{
-				// Notify the Player AI with INTERACT
-				player.getAI().setIntention(IntentionType.INTERACT, this);
-			}
-			else
-			{
-				if (getType() == 2)
-				{
-					final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
-					html.setFile("data/html/signboard.htm");
-					player.sendPacket(html);
-				}
-				else if (getType() == 0)
-					player.sendPacket(getMap());
-				
-				// Send ActionFailed to the player in order to avoid he stucks
-				player.sendPacket(ActionFailed.STATIC_PACKET);
-			}
-		}
-	}
-	
-	@Override
-	public void onActionShift(Player player)
-	{
-		if (player.isGM())
-		{
-			final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
-			html.setFile("data/html/admin/staticinfo.htm");
-			html.replace("%x%", getX());
-			html.replace("%y%", getY());
-			html.replace("%z%", getZ());
-			html.replace("%objid%", getObjectId());
-			html.replace("%staticid%", getStaticObjectId());
-			html.replace("%class%", getClass().getSimpleName());
-			player.sendPacket(html);
-			player.sendPacket(ActionFailed.STATIC_PACKET);
-		}
-		
-		if (player.getTarget() != this)
-			player.setTarget(this);
-		else
-			player.sendPacket(ActionFailed.STATIC_PACKET);
-	}
-	
-	@Override
-	public boolean isAutoAttackable(Creature attacker)
-	{
-		return false;
-	}
-	
-	@Override
-	public void sendInfo(Player activeChar)
-	{
-		activeChar.sendPacket(new StaticObjectInfo(this));
+		_map = new ShowTownMap("town_map." + texture, x, y);
 	}
 }

@@ -1,11 +1,12 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
-/**
- * @author Maktakien
- */
 public class GetOffVehicle extends L2GameServerPacket
 {
-	private final int _charObjId, _boatObjId, _x, _y, _z;
+	private final int _charObjId;
+	private final int _boatObjId;
+	private final int _x;
+	private final int _y;
+	private final int _z;
 	
 	public GetOffVehicle(int charObjId, int boatObjId, int x, int y, int z)
 	{

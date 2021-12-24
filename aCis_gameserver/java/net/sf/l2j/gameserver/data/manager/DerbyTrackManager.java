@@ -12,11 +12,11 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
 import net.sf.l2j.commons.logging.CLogger;
+import net.sf.l2j.commons.pool.ConnectionPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 import net.sf.l2j.commons.random.Rnd;
 
-import net.sf.l2j.L2DatabaseFactory;
 import net.sf.l2j.gameserver.data.xml.NpcData;
 import net.sf.l2j.gameserver.idfactory.IdFactory;
 import net.sf.l2j.gameserver.model.HistoryInfo;
@@ -39,7 +39,7 @@ public class DerbyTrackManager
 	private static final String SAVE_BETS = "REPLACE INTO mdt_bets (lane_id, bet) VALUES (?,?)";
 	private static final String CLEAR_BETS = "UPDATE mdt_bets SET bet = 0";
 	
-	public static enum RaceState
+	public enum RaceState
 	{
 		ACCEPTING_BETS,
 		WAITING,
@@ -68,7 +68,7 @@ public class DerbyTrackManager
 	
 	protected final List<Npc> _runners = new ArrayList<>(); // List holding initial npcs, shuffled on a new race.
 	protected final TreeMap<Integer, HistoryInfo> _history = new TreeMap<>(); // List holding old race records.
-	protected final Map<Integer, Long> _betsPerLane = new ConcurrentHashMap<>(); // Map holding all bets for each lane ; values setted to 0 after every race.
+	protected final Map<Integer, Long> _betsPerLane = new ConcurrentHashMap<>(); // Map holding all bets for each lane ; values are set to 0 after every race.
 	protected final List<Double> _odds = new ArrayList<>(); // List holding sorted odds per lane ; cleared at new odds calculation.
 	
 	protected int _raceNumber = 1;
@@ -99,9 +99,9 @@ public class DerbyTrackManager
 				if (template == null)
 					continue;
 				
-				final Constructor<?> _constructor = Class.forName("net.sf.l2j.gameserver.model.actor.instance." + template.getType()).getConstructors()[0];
+				final Constructor<?> constructor = Class.forName("net.sf.l2j.gameserver.model.actor.instance." + template.getType()).getConstructors()[0];
 				
-				_runners.add((Npc) _constructor.newInstance(IdFactory.getInstance().getNextId(), template));
+				_runners.add((Npc) constructor.newInstance(IdFactory.getInstance().getNextId(), template));
 			}
 		}
 		catch (Exception e)
@@ -245,7 +245,7 @@ public class DerbyTrackManager
 	 */
 	protected void loadHistory()
 	{
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(LOAD_HISTORY);
 			ResultSet rs = ps.executeQuery())
 		{
@@ -273,7 +273,7 @@ public class DerbyTrackManager
 	 */
 	protected void saveHistory(HistoryInfo history)
 	{
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(SAVE_HISTORY))
 		{
 			ps.setInt(1, history.getRaceId());
@@ -293,7 +293,7 @@ public class DerbyTrackManager
 	 */
 	protected void loadBets()
 	{
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(LOAD_BETS);
 			ResultSet rs = ps.executeQuery())
 		{
@@ -313,7 +313,7 @@ public class DerbyTrackManager
 	 */
 	protected void saveBet(int lane, long sum)
 	{
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(SAVE_BETS))
 		{
 			ps.setInt(1, lane);
@@ -334,7 +334,7 @@ public class DerbyTrackManager
 		for (int key : _betsPerLane.keySet())
 			_betsPerLane.put(key, 0L);
 		
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(CLEAR_BETS))
 		{
 			ps.execute();
@@ -349,7 +349,7 @@ public class DerbyTrackManager
 	 * Setup lane bet, based on previous value (if any).
 	 * @param lane : The lane to edit.
 	 * @param amount : The amount to add.
-	 * @param saveOnDb : Should it be saved on db or not.
+	 * @param saveOnDb : Should it be saved on the database or not.
 	 */
 	public void setBetOnLane(int lane, long amount, boolean saveOnDb)
 	{

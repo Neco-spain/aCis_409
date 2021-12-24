@@ -5,10 +5,10 @@ import net.sf.l2j.gameserver.network.serverpackets.ExListPartyMatchingWaitingRoo
 
 public class RequestListPartyMatchingWaitingRoom extends L2GameClientPacket
 {
-	private static int _page;
-	private static int _minlvl;
-	private static int _maxlvl;
-	private static int _mode; // 1 - waitlist 0 - room waitlist
+	private int _page;
+	private int _minlvl;
+	private int _maxlvl;
+	private int _mode; // 1 - waitlist 0 - room waitlist
 	
 	@Override
 	protected void readImpl()
@@ -22,10 +22,10 @@ public class RequestListPartyMatchingWaitingRoom extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		activeChar.sendPacket(new ExListPartyMatchingWaitingRoom(activeChar, _page, _minlvl, _maxlvl, _mode));
+		player.sendPacket(new ExListPartyMatchingWaitingRoom(player, _page, _minlvl, _maxlvl, _mode));
 	}
 }

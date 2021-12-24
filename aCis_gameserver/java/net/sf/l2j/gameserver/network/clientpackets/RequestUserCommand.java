@@ -6,12 +6,12 @@ import net.sf.l2j.gameserver.model.actor.Player;
 
 public class RequestUserCommand extends L2GameClientPacket
 {
-	private int _command;
+	private int _commandId;
 	
 	@Override
 	protected void readImpl()
 	{
-		_command = readD();
+		_commandId = readD();
 	}
 	
 	@Override
@@ -21,8 +21,8 @@ public class RequestUserCommand extends L2GameClientPacket
 		if (player == null)
 			return;
 		
-		final IUserCommandHandler handler = UserCommandHandler.getInstance().getHandler(_command);
+		final IUserCommandHandler handler = UserCommandHandler.getInstance().getHandler(_commandId);
 		if (handler != null)
-			handler.useUserCommand(_command, getClient().getPlayer());
+			handler.useUserCommand(_commandId, player);
 	}
 }

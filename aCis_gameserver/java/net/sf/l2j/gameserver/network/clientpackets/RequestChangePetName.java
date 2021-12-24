@@ -3,11 +3,10 @@ package net.sf.l2j.gameserver.network.clientpackets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 
 import net.sf.l2j.commons.lang.StringUtil;
+import net.sf.l2j.commons.pool.ConnectionPool;
 
-import net.sf.l2j.L2DatabaseFactory;
 import net.sf.l2j.gameserver.data.xml.NpcData;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Pet;
@@ -37,9 +36,9 @@ public final class RequestChangePetName extends L2GameClientPacket
 			return;
 		
 		// Name length integrity check.
-		if (_name.length() < 2 || _name.length() > 8)
+		if (_name.length() < 1 || _name.length() > 16)
 		{
-			player.sendPacket(SystemMessageId.NAMING_PETNAME_UP_TO_8CHARS);
+			player.sendPacket(SystemMessageId.NAMING_CHARNAME_UP_TO_16CHARS);
 			return;
 		}
 		
@@ -52,7 +51,7 @@ public final class RequestChangePetName extends L2GameClientPacket
 		}
 		
 		// Invalid name pattern.
-		if (!StringUtil.isValidString(_name, "^[A-Za-z0-9]{2,8}$"))
+		if (!StringUtil.isValidString(_name, "^[A-Za-z0-9]{1,16}$"))
 		{
 			player.sendPacket(SystemMessageId.NAMING_PETNAME_CONTAINS_INVALID_CHARS);
 			return;
@@ -81,7 +80,7 @@ public final class RequestChangePetName extends L2GameClientPacket
 	{
 		boolean result = true;
 		
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(SEARCH_NAME))
 		{
 			ps.setString(1, name);
@@ -91,7 +90,7 @@ public final class RequestChangePetName extends L2GameClientPacket
 				result = rs.next();
 			}
 		}
-		catch (SQLException e)
+		catch (Exception e)
 		{
 			LOGGER.error("Couldn't check existing petname.", e);
 		}

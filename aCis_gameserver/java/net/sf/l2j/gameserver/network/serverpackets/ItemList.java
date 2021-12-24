@@ -38,7 +38,7 @@ public class ItemList extends L2GameServerPacket
 			writeD(item.getBodyPart());
 			writeH(temp.getEnchantLevel());
 			writeH(temp.getCustomType2());
-			writeD((temp.isAugmented()) ? temp.getAugmentation().getAugmentationId() : 0x00);
+			writeD((temp.isAugmented()) ? temp.getAugmentation().getId() : 0x00);
 			writeD(temp.getMana());
 		}
 	}

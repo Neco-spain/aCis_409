@@ -15,17 +15,17 @@ public final class RequestPledgeMemberList extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		final Clan clan = activeChar.getClan();
+		final Clan clan = player.getClan();
 		if (clan == null)
 			return;
 		
-		activeChar.sendPacket(new PledgeShowMemberListAll(clan, 0));
+		player.sendPacket(new PledgeShowMemberListAll(clan, 0));
 		
 		for (SubPledge sp : clan.getAllSubPledges())
-			activeChar.sendPacket(new PledgeShowMemberListAll(clan, sp.getId()));
+			player.sendPacket(new PledgeShowMemberListAll(clan, sp.getId()));
 	}
 }

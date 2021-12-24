@@ -21,7 +21,7 @@ public final class RequestRecipeBookOpen extends L2GameClientPacket
 		if (player == null)
 			return;
 		
-		if (player.isCastingNow() || player.isAllSkillsDisabled())
+		if (player.getCast().isCastingNow() || player.isAllSkillsDisabled())
 		{
 			player.sendPacket(SystemMessageId.NO_RECIPE_BOOK_WHILE_CASTING);
 			return;

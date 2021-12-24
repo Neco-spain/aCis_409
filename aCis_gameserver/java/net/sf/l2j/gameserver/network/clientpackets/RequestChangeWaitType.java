@@ -1,5 +1,6 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
+import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Player;
 
 public final class RequestChangeWaitType extends L2GameClientPacket
@@ -19,6 +20,11 @@ public final class RequestChangeWaitType extends L2GameClientPacket
 		if (player == null)
 			return;
 		
-		player.tryToSitOrStand(player.getTarget(), _typeStand);
+		final WorldObject target = player.getTarget();
+		
+		if (_typeStand)
+			player.getAI().tryToStand();
+		else
+			player.getAI().tryToSit(target);
 	}
 }

@@ -1,38 +1,39 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
-import net.sf.l2j.gameserver.model.L2Effect;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
-/**
- * @author mkizub
- */
-public class EffectFakeDeath extends L2Effect
+public class EffectFakeDeath extends AbstractEffect
 {
-	public EffectFakeDeath(Env env, EffectTemplate template)
+	public EffectFakeDeath(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
 	{
-		super(env, template);
+		super(template, skill, effected, effector);
 	}
 	
 	@Override
-	public L2EffectType getEffectType()
+	public EffectType getEffectType()
 	{
-		return L2EffectType.FAKE_DEATH;
+		return EffectType.FAKE_DEATH;
 	}
 	
 	@Override
 	public boolean onStart()
 	{
-		getEffected().startFakeDeath();
+		final Player player = (Player) getEffected();
+		player.startFakeDeath();
 		return true;
 	}
 	
 	@Override
 	public void onExit()
 	{
-		getEffected().stopFakeDeath(false);
+		final Player player = (Player) getEffected();
+		player.stopFakeDeath(true);
 	}
 	
 	@Override
@@ -41,18 +42,13 @@ public class EffectFakeDeath extends L2Effect
 		if (getEffected().isDead())
 			return false;
 		
-		double manaDam = calc();
-		
-		if (manaDam > getEffected().getCurrentMp())
+		if (getTemplate().getValue() > getEffected().getStatus().getMp())
 		{
-			if (getSkill().isToggle())
-			{
-				getEffected().sendPacket(SystemMessage.getSystemMessage(SystemMessageId.SKILL_REMOVED_DUE_LACK_MP));
-				return false;
-			}
+			getEffected().sendPacket(SystemMessage.getSystemMessage(SystemMessageId.SKILL_REMOVED_DUE_LACK_MP));
+			return false;
 		}
 		
-		getEffected().reduceCurrentMp(manaDam);
+		getEffected().getStatus().reduceMp(getTemplate().getValue());
 		return true;
 	}
 }

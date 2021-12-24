@@ -10,6 +10,7 @@ import net.sf.l2j.gameserver.model.actor.instance.Door;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
+import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public class PaganKeys implements IItemHandler
 {
@@ -19,22 +20,22 @@ public class PaganKeys implements IItemHandler
 		if (!(playable instanceof Player))
 			return;
 		
-		final Player activeChar = (Player) playable;
-		final WorldObject target = activeChar.getTarget();
+		final Player player = (Player) playable;
+		final WorldObject target = player.getTarget();
 		
 		if (!(target instanceof Door))
 		{
-			activeChar.sendPacket(SystemMessageId.INCORRECT_TARGET);
-			activeChar.sendPacket(ActionFailed.STATIC_PACKET);
+			player.sendPacket(SystemMessageId.INVALID_TARGET);
+			player.sendPacket(ActionFailed.STATIC_PACKET);
 			return;
 		}
 		
 		final Door door = (Door) target;
 		
-		if (!(activeChar.isInsideRadius(door, Npc.INTERACTION_DISTANCE, false, false)))
+		if (!(player.isIn3DRadius(door, Npc.INTERACTION_DISTANCE)))
 		{
-			activeChar.sendPacket(SystemMessageId.DIST_TOO_FAR_CASTING_STOPPED);
-			activeChar.sendPacket(ActionFailed.STATIC_PACKET);
+			player.sendPacket(SystemMessageId.DIST_TOO_FAR_CASTING_STOPPED);
+			player.sendPacket(ActionFailed.STATIC_PACKET);
 			return;
 		}
 		
@@ -52,7 +53,7 @@ public class PaganKeys implements IItemHandler
 					DoorData.getInstance().getDoor(23150004).openMe();
 				}
 				else
-					activeChar.sendPacket(SystemMessageId.TARGET_IS_INCORRECT);
+					player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_CANNOT_BE_USED).addItemName(8056));
 				break;
 			
 			case 8273:
@@ -70,7 +71,7 @@ public class PaganKeys implements IItemHandler
 						break;
 					
 					default:
-						activeChar.sendPacket(SystemMessageId.TARGET_IS_INCORRECT);
+						player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_CANNOT_BE_USED).addItemName(8273));
 						break;
 				}
 				break;
@@ -84,7 +85,7 @@ public class PaganKeys implements IItemHandler
 						break;
 					
 					default:
-						activeChar.sendPacket(SystemMessageId.TARGET_IS_INCORRECT);
+						player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_CANNOT_BE_USED).addItemName(8275));
 						break;
 				}
 				break;

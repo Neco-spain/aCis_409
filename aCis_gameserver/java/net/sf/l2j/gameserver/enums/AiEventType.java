@@ -1,47 +1,40 @@
 package net.sf.l2j.gameserver.enums;
 
 /**
- * This class contains an enum of each possible event, that can happen on an AI character.
+ * This class contains each possible event that can happen to an actor.
  */
 public enum AiEventType
 {
-	/** Something has changed, usually a previous step has being completed or maybe was completed, the AI must thing on next action. */
+	/** An action is required, due to a previous step being completed/aborted. The actor must think on next action. */
 	THINK,
-	/** The actor was attacked. This event comes each time a physical or magical attack was done on the actor. NPC may start attack in response, or ignore this event if they already attack someone, or change target and so on. */
+	/** The actor was attacked. It may start attack in response, or ignore this event if it already attacks someone. */
 	ATTACKED,
 	/** Increase/decrease aggression towards a target, or reduce global aggression if target is null. */
 	AGGRESSION,
-	/** Actor is in stun state. */
-	STUNNED,
-	/** Actor is paralyzed or petrified. */
-	PARALYZED,
-	/** Actor starts/stops sleeping. */
-	SLEEPING,
-	/** Actor is in rooted state (cannot move). */
-	ROOTED,
-	/** Actor evaded hit. */
+	/** The actor evaded an hit. */
 	EVADED,
-	/** An event that previous action was completed. The action may be an attempt to physically or magically hit an enemy, or an action that discarded attack attempt has finished. */
-	READY_TO_ACT,
-	/** The actor arrived to assigned location, or it's a time to modify movement destination (follow, interact, random move and others intentions). */
+	/** The actor completed an action and is now ready to act. */
+	FINISHED_ATTACK,
+	/** The actor arrived to assigned location, or didn't need to move. */
 	ARRIVED,
-	/** The actor cannot move anymore. */
+	/** The actor cannot move anymore due to obstacles. */
 	ARRIVED_BLOCKED,
-	/**
-	 * Attempt to cancel current step execution, but not change the intention. For example, the actor was put into a stun, so it's current attack or movement has to be canceled. But after the stun state expired, the actor may try to attack again. Another usage for CANCEL is a user's attempt to
-	 * cancel a cast/bow attack and so on.
-	 */
+	/** Cancel the actor's current action execution, without changing the intention. */
 	CANCEL,
-	/** The character is dead. */
+	/** The actor died. */
 	DEAD,
-	/** The character looks like dead. */
-	FAKE_DEATH,
-	/** The character attack anyone randomly. */
-	CONFUSED,
-	/** The character cannot cast spells anymore. */
-	MUTED,
-	/** The character flee in random directions */
-	AFRAID,
-	/** The character finish casting. */
-	FINISH_CASTING
+	/** The actor has finished a skill cast. */
+	FINISHED_CASTING,
+	/** The actor has finished sitting down */
+	SAT_DOWN,
+	/** The actor has finished standing up */
+	STOOD_UP,
+	/** The actor has finished to attack with a bow */
+	FINISHED_ATTACK_BOW,
+	/** The actor attack bow reuse tim has now ended */
+	BOW_ATTACK_REUSED,
+	/** The actor's owner is under attack */
+	OWNER_ATTACKED,
+	/** The actor has been teleported */
+	TELEPORTED
 }

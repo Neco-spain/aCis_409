@@ -1,37 +1,48 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import net.sf.l2j.gameserver.enums.skills.L2EffectFlag;
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
-import net.sf.l2j.gameserver.model.L2Effect;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.enums.AiEventType;
+import net.sf.l2j.gameserver.enums.skills.EffectFlag;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
-/**
- * @author mkizub
- */
-final class EffectStun extends L2Effect
+public class EffectStun extends AbstractEffect
 {
-	public EffectStun(Env env, EffectTemplate template)
+	public EffectStun(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
 	{
-		super(env, template);
+		super(template, skill, effected, effector);
 	}
 	
 	@Override
-	public L2EffectType getEffectType()
+	public EffectType getEffectType()
 	{
-		return L2EffectType.STUN;
+		return EffectType.STUN;
 	}
 	
 	@Override
 	public boolean onStart()
 	{
-		getEffected().startStunning();
+		// Abort attack, cast and move.
+		getEffected().abortAll(false);
+		
+		getEffected().getAI().tryToIdle();
+		
+		// Refresh abnormal effects.
+		getEffected().updateAbnormalEffect();
+		
 		return true;
 	}
 	
 	@Override
 	public void onExit()
 	{
-		getEffected().stopStunning(false);
+		if (!(getEffected() instanceof Player))
+			getEffected().getAI().notifyEvent(AiEventType.THINK, null, null);
+		
+		// Refresh abnormal effects.
+		getEffected().updateAbnormalEffect();
 	}
 	
 	@Override
@@ -41,7 +52,7 @@ final class EffectStun extends L2Effect
 	}
 	
 	@Override
-	public boolean onSameEffect(L2Effect effect)
+	public boolean onSameEffect(AbstractEffect effect)
 	{
 		return false;
 	}
@@ -49,6 +60,6 @@ final class EffectStun extends L2Effect
 	@Override
 	public int getEffectFlags()
 	{
-		return L2EffectFlag.STUNNED.getMask();
+		return EffectFlag.STUNNED.getMask();
 	}
 }

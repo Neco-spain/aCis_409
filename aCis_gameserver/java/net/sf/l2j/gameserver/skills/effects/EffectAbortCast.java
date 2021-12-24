@@ -1,20 +1,21 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
-import net.sf.l2j.gameserver.model.L2Effect;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
-public class EffectAbortCast extends L2Effect
+public class EffectAbortCast extends AbstractEffect
 {
-	public EffectAbortCast(Env env, EffectTemplate template)
+	public EffectAbortCast(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
 	{
-		super(env, template);
+		super(template, skill, effected, effector);
 	}
 	
 	@Override
-	public L2EffectType getEffectType()
+	public EffectType getEffectType()
 	{
-		return L2EffectType.ABORT_CAST;
+		return EffectType.ABORT_CAST;
 	}
 	
 	@Override
@@ -23,7 +24,9 @@ public class EffectAbortCast extends L2Effect
 		if (getEffected() == null || getEffected() == getEffector() || getEffected().isRaidRelated())
 			return false;
 		
-		getEffected().breakCast();
+		if (getEffected().getCast().isCastingNow())
+			getEffected().getCast().interrupt();
+		
 		return true;
 	}
 	

@@ -3,24 +3,19 @@ package net.sf.l2j.gameserver.model.actor.instance;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.sf.l2j.gameserver.data.xml.NpcData;
-import net.sf.l2j.gameserver.enums.IntentionType;
 import net.sf.l2j.gameserver.enums.SiegeSide;
-import net.sf.l2j.gameserver.geoengine.GeoEngine;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Npc;
+import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
 import net.sf.l2j.gameserver.model.entity.Siege;
-import net.sf.l2j.gameserver.model.spawn.L2Spawn;
+import net.sf.l2j.gameserver.model.spawn.Spawn;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
-import net.sf.l2j.gameserver.network.serverpackets.MoveToPawn;
-import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public class ControlTower extends Npc
 {
-	private final List<L2Spawn> _guards = new ArrayList<>();
+	private final List<Spawn> _spawns = new ArrayList<>();
 	
 	private boolean _isActive = true;
 	
@@ -30,51 +25,29 @@ public class ControlTower extends Npc
 	}
 	
 	@Override
-	public boolean isAttackable()
+	public boolean isAttackableBy(Creature attacker)
 	{
-		// Attackable during siege by attacker only
-		return getCastle() != null && getCastle().getSiege().isInProgress();
+		if (!super.isAttackableBy(attacker))
+			return false;
+		
+		if (!(attacker instanceof Playable))
+			return false;
+		
+		if (getCastle() != null && getCastle().getSiege().isInProgress())
+			return getCastle().getSiege().checkSides(attacker.getActingPlayer().getClan(), SiegeSide.ATTACKER);
+		
+		return false;
 	}
 	
 	@Override
-	public boolean isAutoAttackable(Creature attacker)
+	public boolean isAttackableWithoutForceBy(Playable attacker)
 	{
-		// Attackable during siege by attacker only
-		return attacker instanceof Player && getCastle() != null && getCastle().getSiege().isInProgress() && getCastle().getSiege().checkSide(((Player) attacker).getClan(), SiegeSide.ATTACKER);
+		return isAttackableBy(attacker);
 	}
 	
 	@Override
-	public void onForcedAttack(Player player)
+	public void onInteract(Player player)
 	{
-		onAction(player);
-	}
-	
-	@Override
-	public void onAction(Player player)
-	{
-		// Set the target of the player
-		if (player.getTarget() != this)
-			player.setTarget(this);
-		else
-		{
-			if (isAutoAttackable(player) && Math.abs(player.getZ() - getZ()) < 100 && GeoEngine.getInstance().canSeeTarget(player, this))
-			{
-				// Notify the Player AI with INTERACT
-				player.getAI().setIntention(IntentionType.ATTACK, this);
-			}
-			else
-			{
-				// Stop moving if we're already in interact range.
-				if (player.isMoving() || player.isInCombat())
-					player.getAI().setIntention(IntentionType.IDLE);
-				
-				// Rotate the player to face the instance
-				player.sendPacket(new MoveToPawn(player, this, Npc.INTERACTION_DISTANCE));
-				
-				// Send ActionFailed to the player in order to avoid he stucks
-				player.sendPacket(ActionFailed.STATIC_PACKET);
-			}
-		}
 	}
 	
 	@Override
@@ -87,19 +60,17 @@ public class ControlTower extends Npc
 			{
 				_isActive = false;
 				
-				for (L2Spawn spawn : _guards)
+				for (Spawn spawn : _spawns)
 					spawn.setRespawnState(false);
-				
-				_guards.clear();
 				
 				// If siege life controls reach 0, broadcast a message to defenders.
 				if (siege.getControlTowerCount() == 0)
-					siege.announceToPlayers(SystemMessage.getSystemMessage(SystemMessageId.TOWER_DESTROYED_NO_RESURRECTION), false);
+					siege.announce(SystemMessageId.TOWER_DESTROYED_NO_RESURRECTION, SiegeSide.DEFENDER);
 				
 				// Spawn a little version of it. This version is a simple NPC, cleaned on siege end.
 				try
 				{
-					final L2Spawn spawn = new L2Spawn(NpcData.getInstance().getTemplate(13003));
+					final Spawn spawn = new Spawn(13003);
 					spawn.setLoc(getPosition());
 					
 					final Npc tower = spawn.doSpawn(false);
@@ -122,14 +93,14 @@ public class ControlTower extends Npc
 		return false;
 	}
 	
-	public void registerGuard(L2Spawn guard)
+	public final List<Spawn> getSpawns()
 	{
-		_guards.add(guard);
+		return _spawns;
 	}
 	
-	public final List<L2Spawn> getGuards()
+	public void addSpawn(Spawn spawn)
 	{
-		return _guards;
+		_spawns.add(spawn);
 	}
 	
 	public final boolean isActive()

@@ -8,58 +8,53 @@ import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 
 public final class AttackRequest extends L2GameClientPacket
 {
-	// cddddc
 	private int _objectId;
-	@SuppressWarnings("unused")
-	private int _originX, _originY, _originZ;
-	@SuppressWarnings("unused")
 	private boolean _isShiftAction;
 	
 	@Override
 	protected void readImpl()
 	{
 		_objectId = readD();
-		_originX = readD();
-		_originY = readD();
-		_originZ = readD();
+		readD(); // originX
+		readD(); // originY
+		readD(); // originZ
 		_isShiftAction = readC() != 0;
 	}
 	
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		if (activeChar.isInObserverMode())
+		if (player.isOutOfControl())
 		{
-			activeChar.sendPacket(SystemMessageId.OBSERVERS_CANNOT_PARTICIPATE);
-			activeChar.sendPacket(ActionFailed.STATIC_PACKET);
+			player.sendPacket(ActionFailed.STATIC_PACKET);
+			return;
+		}
+		
+		if (player.isInObserverMode())
+		{
+			player.sendPacket(SystemMessageId.OBSERVERS_CANNOT_PARTICIPATE);
+			player.sendPacket(ActionFailed.STATIC_PACKET);
 			return;
 		}
 		
 		// avoid using expensive operations if not needed
 		final WorldObject target;
-		if (activeChar.getTargetId() == _objectId)
-			target = activeChar.getTarget();
+		if (player.getTargetId() == _objectId)
+			target = player.getTarget();
 		else
 			target = World.getInstance().getObject(_objectId);
 		
 		if (target == null)
 		{
-			activeChar.sendPacket(ActionFailed.STATIC_PACKET);
+			player.sendPacket(ActionFailed.STATIC_PACKET);
 			return;
 		}
 		
-		if (activeChar.getTarget() != target)
-			target.onAction(activeChar);
-		else
-		{
-			if ((target.getObjectId() != activeChar.getObjectId()) && !activeChar.isInStoreMode() && activeChar.getActiveRequester() == null)
-				target.onForcedAttack(activeChar);
-			else
-				sendPacket(ActionFailed.STATIC_PACKET);
-		}
+		// (player.getTarget() == target) -> This happens when you control + click a target without having had it selected beforehand. Behaves as the Action packet and will NOT trigger an attack.
+		target.onAction(player, (player.getTarget() == target), _isShiftAction);
 	}
 }

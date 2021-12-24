@@ -1,10 +1,9 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
-/**
- * Format: (ch)ddd
- */
 public class ExVariationResult extends L2GameServerPacket
 {
+	public static final ExVariationResult RESULT_FAILED = new ExVariationResult(0, 0, 0);
+	
 	private final int _stat12;
 	private final int _stat34;
 	private final int _unk3;

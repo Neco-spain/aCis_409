@@ -1,6 +1,6 @@
 package net.sf.l2j.util;
 
-import java.nio.channels.SocketChannel;
+import java.net.Socket;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -21,9 +21,9 @@ public class IPv4Filter implements IAcceptFilter, Runnable
 	}
 	
 	@Override
-	public boolean accept(SocketChannel sc)
+	public boolean accept(Socket socket)
 	{
-		final int hash = hash(sc.socket().getInetAddress().getAddress());
+		final int hash = hash(socket.getInetAddress().getAddress());
 		
 		final FloodHolder flood = _floods.get(hash);
 		if (flood != null)

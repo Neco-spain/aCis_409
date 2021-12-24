@@ -1,34 +1,49 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import net.sf.l2j.gameserver.enums.skills.L2EffectFlag;
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
-import net.sf.l2j.gameserver.model.L2Effect;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.enums.AiEventType;
+import net.sf.l2j.gameserver.enums.skills.EffectFlag;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
-public class EffectStunSelf extends L2Effect
+public class EffectStunSelf extends AbstractEffect
 {
-	public EffectStunSelf(Env env, EffectTemplate template)
+	public EffectStunSelf(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
 	{
-		super(env, template);
+		super(template, skill, effected, effector);
 	}
 	
 	@Override
-	public L2EffectType getEffectType()
+	public EffectType getEffectType()
 	{
-		return L2EffectType.STUN_SELF;
+		return EffectType.STUN_SELF;
 	}
 	
 	@Override
 	public boolean onStart()
 	{
-		getEffector().startStunning();
+		// Trigger onAttacked event.
+		getEffector().getAI().notifyEvent(AiEventType.ATTACKED, getEffector(), null);
+		
+		getEffector().getAI().tryToIdle();
+		
+		// Refresh abnormal effects.
+		getEffector().updateAbnormalEffect();
+		
 		return true;
 	}
 	
 	@Override
 	public void onExit()
 	{
-		getEffector().stopStunning(false);
+		// TODO This never occurs in interlude. Besides punch of doom (a player skill), in IL there is no other skill. this is here for <skill id="5183" levels="1" name="Production: Dimensional Stun">
+		if (!(getEffector() instanceof Player))
+			getEffector().getAI().notifyEvent(AiEventType.THINK, null, null);
+		
+		// Refresh abnormal effects.
+		getEffector().updateAbnormalEffect();
 	}
 	
 	@Override
@@ -46,6 +61,6 @@ public class EffectStunSelf extends L2Effect
 	@Override
 	public int getEffectFlags()
 	{
-		return L2EffectFlag.STUNNED.getMask();
+		return EffectFlag.STUNNED.getMask();
 	}
 }

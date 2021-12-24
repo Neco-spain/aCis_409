@@ -3,7 +3,7 @@ package net.sf.l2j.gameserver.network.serverpackets;
 import java.util.List;
 
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.tradelist.TradeItem;
+import net.sf.l2j.gameserver.model.trade.TradeItem;
 
 public class PrivateStoreManageListSell extends L2GameServerPacket
 {
@@ -21,8 +21,8 @@ public class PrivateStoreManageListSell extends L2GameServerPacket
 		player.getSellList().updateItems();
 		
 		_packageSale = (player.getSellList().isPackaged()) ? true : isPackageSale;
-		_itemList = player.getInventory().getAvailableItems(player.getSellList());
-		_sellList = player.getSellList().getItems();
+		_itemList = player.getInventory().getAvailableItems(player.getSellList(), false);
+		_sellList = player.getSellList();
 	}
 	
 	@Override

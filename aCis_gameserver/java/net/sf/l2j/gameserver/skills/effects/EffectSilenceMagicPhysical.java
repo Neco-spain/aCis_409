@@ -1,28 +1,33 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import net.sf.l2j.gameserver.enums.skills.L2EffectFlag;
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
-import net.sf.l2j.gameserver.model.L2Effect;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.enums.skills.EffectFlag;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
-public class EffectSilenceMagicPhysical extends L2Effect
+public class EffectSilenceMagicPhysical extends AbstractEffect
 {
-	public EffectSilenceMagicPhysical(Env env, EffectTemplate template)
+	public EffectSilenceMagicPhysical(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
 	{
-		super(env, template);
+		super(template, skill, effected, effector);
 	}
 	
 	@Override
-	public L2EffectType getEffectType()
+	public EffectType getEffectType()
 	{
-		return L2EffectType.SILENCE_MAGIC_PHYSICAL;
+		return EffectType.SILENCE_MAGIC_PHYSICAL;
 	}
 	
 	@Override
 	public boolean onStart()
 	{
-		getEffected().startMuted();
-		getEffected().startPhysicalMuted();
+		// Abort cast.
+		getEffected().getCast().stop();
+		
+		// Refresh abnormal effects.
+		getEffected().updateAbnormalEffect();
+		
 		return true;
 	}
 	
@@ -35,13 +40,13 @@ public class EffectSilenceMagicPhysical extends L2Effect
 	@Override
 	public void onExit()
 	{
-		getEffected().stopMuted(false);
-		getEffected().stopPhysicalMuted(false);
+		// Refresh abnormal effects.
+		getEffected().updateAbnormalEffect();
 	}
 	
 	@Override
 	public int getEffectFlags()
 	{
-		return L2EffectFlag.MUTED.getMask() | L2EffectFlag.PHYSICAL_MUTED.getMask();
+		return EffectFlag.MUTED.getMask() | EffectFlag.PHYSICAL_MUTED.getMask();
 	}
 }

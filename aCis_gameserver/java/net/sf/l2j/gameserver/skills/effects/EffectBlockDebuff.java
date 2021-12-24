@@ -1,20 +1,21 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
-import net.sf.l2j.gameserver.model.L2Effect;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
-public class EffectBlockDebuff extends L2Effect
+public class EffectBlockDebuff extends AbstractEffect
 {
-	public EffectBlockDebuff(Env env, EffectTemplate template)
+	public EffectBlockDebuff(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
 	{
-		super(env, template);
+		super(template, skill, effected, effector);
 	}
 	
 	@Override
-	public L2EffectType getEffectType()
+	public EffectType getEffectType()
 	{
-		return L2EffectType.BLOCK_DEBUFF;
+		return EffectType.BLOCK_DEBUFF;
 	}
 	
 	@Override

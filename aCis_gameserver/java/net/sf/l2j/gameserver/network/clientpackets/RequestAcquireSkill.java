@@ -4,7 +4,6 @@ import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.SkillTable;
 import net.sf.l2j.gameserver.data.xml.SkillTreeData;
 import net.sf.l2j.gameserver.data.xml.SpellbookData;
-import net.sf.l2j.gameserver.model.L2Skill;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Fisherman;
 import net.sf.l2j.gameserver.model.actor.instance.Folk;
@@ -15,6 +14,7 @@ import net.sf.l2j.gameserver.model.holder.skillnode.GeneralSkillNode;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ExStorageMaxCount;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class RequestAcquireSkill extends L2GameClientPacket
 {
@@ -44,7 +44,7 @@ public class RequestAcquireSkill extends L2GameClientPacket
 		
 		// Incorrect npc, return.
 		final Folk folk = player.getCurrentFolk();
-		if (folk == null || !folk.canInteract(player))
+		if (folk == null || !player.getAI().canDoInteract(folk))
 			return;
 		
 		// Skill doesn't exist, return.
@@ -71,7 +71,7 @@ public class RequestAcquireSkill extends L2GameClientPacket
 					return;
 				
 				// Not enought SP.
-				if (player.getSp() < gsn.getCorrectedCost())
+				if (player.getStatus().getSp() < gsn.getCorrectedCost())
 				{
 					player.sendPacket(SystemMessageId.NOT_ENOUGH_SP_TO_LEARN_SKILL);
 					folk.showSkillList(player);
@@ -154,10 +154,14 @@ public class RequestAcquireSkill extends L2GameClientPacket
 					return;
 				}
 				
-				player.getClan().takeReputationScore(csn.getCost());
+				// Remove reputation score.
+				final boolean needRefresh = player.getClan().takeReputationScore(csn.getCost());
+				
+				// Send message to Player.
 				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_DEDUCTED_FROM_CLAN_REP).addNumber(csn.getCost()));
 				
-				player.getClan().addNewSkill(skill);
+				// Reward Player's Clan with new skill. Keep track of the refresh.
+				player.getClan().addClanSkill(skill, needRefresh);
 				
 				VillageMaster.showPledgeSkillList(player);
 				return;

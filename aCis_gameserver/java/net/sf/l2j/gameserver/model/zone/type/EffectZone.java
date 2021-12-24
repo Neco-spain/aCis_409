@@ -4,16 +4,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Future;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 import net.sf.l2j.commons.random.Rnd;
 
 import net.sf.l2j.gameserver.enums.ZoneId;
-import net.sf.l2j.gameserver.model.L2Skill;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
-import net.sf.l2j.gameserver.model.zone.ZoneType;
+import net.sf.l2j.gameserver.model.zone.type.subtype.ZoneType;
 import net.sf.l2j.gameserver.network.serverpackets.EtcStatusUpdate;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 /**
  * A zone extending {@link ZoneType}, which fires a task on the first character entrance.<br>
@@ -30,7 +30,7 @@ public class EffectZone extends ZoneType
 	
 	private boolean _isEnabled = true;
 	
-	private Future<?> _task;
+	private volatile Future<?> _task;
 	private String _target = "Playable";
 	
 	public EffectZone(int id)
@@ -94,12 +94,14 @@ public class EffectZone extends ZoneType
 	@Override
 	protected void onEnter(Creature character)
 	{
-		if (_task == null)
+		Future<?> task = _task;
+		if (task == null)
 		{
 			synchronized (this)
 			{
-				if (_task == null)
-					_task = ThreadPool.scheduleAtFixedRate(() ->
+				task = _task;
+				if (task == null)
+					_task = task = ThreadPool.scheduleAtFixedRate(() ->
 					{
 						if (!_isEnabled)
 							return;

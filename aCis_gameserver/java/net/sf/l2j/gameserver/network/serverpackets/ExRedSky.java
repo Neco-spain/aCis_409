@@ -1,9 +1,5 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
-/**
- * Format: ch d
- * @author KenM
- */
 public class ExRedSky extends L2GameServerPacket
 {
 	private final int _duration;

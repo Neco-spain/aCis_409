@@ -13,15 +13,15 @@ public final class RequestDismissAlly extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		if (!activeChar.isClanLeader())
+		if (!player.isClanLeader())
 		{
-			activeChar.sendPacket(SystemMessageId.FEATURE_ONLY_FOR_ALLIANCE_LEADER);
+			player.sendPacket(SystemMessageId.FEATURE_ONLY_FOR_ALLIANCE_LEADER);
 			return;
 		}
-		activeChar.getClan().dissolveAlly(activeChar);
+		player.getClan().dissolveAlly(player);
 	}
 }

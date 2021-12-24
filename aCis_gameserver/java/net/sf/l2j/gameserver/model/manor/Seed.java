@@ -1,9 +1,9 @@
 package net.sf.l2j.gameserver.model.manor;
 
-import net.sf.l2j.commons.util.StatsSet;
+import net.sf.l2j.commons.data.StatSet;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.gameserver.data.ItemTable;
+import net.sf.l2j.gameserver.data.xml.ItemData;
 import net.sf.l2j.gameserver.model.item.kind.Item;
 
 public final class Seed
@@ -21,7 +21,7 @@ public final class Seed
 	private final int _seedReferencePrice;
 	private final int _cropReferencePrice;
 	
-	public Seed(StatsSet set)
+	public Seed(StatSet set)
 	{
 		_seedId = set.getInteger("id");
 		_cropId = set.getInteger("cropId");
@@ -34,10 +34,10 @@ public final class Seed
 		_limitCrops = set.getInteger("cropsLimit");
 		_limitSeeds = set.getInteger("seedsLimit");
 		
-		Item item = ItemTable.getInstance().getTemplate(_cropId);
+		Item item = ItemData.getInstance().getTemplate(_cropId);
 		_cropReferencePrice = (item != null) ? item.getReferencePrice() : 1;
 		
-		item = ItemTable.getInstance().getTemplate(_seedId);
+		item = ItemData.getInstance().getTemplate(_seedId);
 		_seedReferencePrice = (item != null) ? item.getReferencePrice() : 1;
 	}
 	

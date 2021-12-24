@@ -1,24 +1,32 @@
 package net.sf.l2j.gameserver.enums;
 
-/** Enumeration of generic intentions of an NPC/PC */
+/**
+ * Enumeration of generic intentions of an actor.
+ */
 public enum IntentionType
 {
-	/** Do nothing, disconnect AI of NPC if no players around. */
-	IDLE,
 	/** Alerted state without goal : scan attackable targets, random walk, etc. */
 	ACTIVE,
-	/** Rest (sit until attacked). */
-	REST,
-	/** Attack target (cast combat magic, go to target, combat) - may be ignored (another target, invalid zoning, etc). */
+	/** Move to target if too far, then attack it - may be ignored (another target, invalid zoning, etc). */
 	ATTACK,
-	/** Cast a spell, depending on the spell - may start or stop attacking. */
+	/** Move to target if too far, then cast a spell. */
 	CAST,
-	/** Just move to another location. */
-	MOVE_TO,
-	/** Like move, but check target's movement and follow it. */
+	/** Fake death. */
+	FAKE_DEATH,
+	/** Check target's movement and follow it. */
 	FOLLOW,
-	/** Pick up item (go to item, pick up it, become idle). */
+	/** Stop all actions and do nothing. In case of Npc, disconnect AI if no players around. */
+	IDLE,
+	/** Move to target if too far, then interact. */
+	INTERACT,
+	/** Move to another location. */
+	MOVE_TO,
+	/** Move to target if too far, then pick up the item. */
 	PICK_UP,
-	/** Move to target, then interact. */
-	INTERACT
+	/** Rest (sit until attacked). */
+	SIT,
+	/** Stand Up. */
+	STAND,
+	/** Use an Item. */
+	USE_ITEM;
 }

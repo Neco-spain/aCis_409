@@ -5,17 +5,14 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.concurrent.ScheduledFuture;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
+import net.sf.l2j.commons.data.StatSet;
 import net.sf.l2j.commons.logging.CLogger;
+import net.sf.l2j.commons.pool.ConnectionPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 import net.sf.l2j.commons.random.Rnd;
-import net.sf.l2j.commons.util.StatsSet;
 
-import net.sf.l2j.L2DatabaseFactory;
 import net.sf.l2j.gameserver.data.SkillTable;
 import net.sf.l2j.gameserver.enums.MessageType;
-import net.sf.l2j.gameserver.geoengine.GeoEngine;
-import net.sf.l2j.gameserver.model.L2Effect;
-import net.sf.l2j.gameserver.model.L2Skill;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Attackable;
 import net.sf.l2j.gameserver.model.actor.Creature;
@@ -28,6 +25,8 @@ import net.sf.l2j.gameserver.network.serverpackets.ExRedSky;
 import net.sf.l2j.gameserver.network.serverpackets.SocialAction;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.network.serverpackets.UserInfo;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 /**
  * One of these swords can drop from any mob. But only one instance of each sword can exist in the world. When a cursed sword drops, the world becomes red for several seconds, the ground shakes, and there's also an announcement as a system message that a cursed sword is found.<br>
@@ -94,7 +93,7 @@ public class CursedWeapon
 	protected int _hungryTime = 0;
 	protected long _endTime = 0;
 	
-	public CursedWeapon(StatsSet set)
+	public CursedWeapon(StatSet set)
 	{
 		_name = set.getString("name");
 		_itemId = set.getInteger("id");
@@ -107,7 +106,7 @@ public class CursedWeapon
 		
 		_skillMaxLevel = SkillTable.getInstance().getMaxLevel(_skillId);
 		
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection())
+		try (Connection con = ConnectionPool.getConnection())
 		{
 			try (PreparedStatement ps = con.prepareStatement(LOAD_CW))
 			{
@@ -261,7 +260,7 @@ public class CursedWeapon
 			{
 				LOGGER.info("{} is being removed online.", _name);
 				
-				_player.abortAttack();
+				_player.getAttack().stop();
 				
 				_player.setKarma(_playerKarma);
 				_player.setPkKills(_playerPkKills);
@@ -281,7 +280,7 @@ public class CursedWeapon
 			{
 				LOGGER.info("{} is being removed offline.", _name);
 				
-				try (Connection con = L2DatabaseFactory.getInstance().getConnection())
+				try (Connection con = ConnectionPool.getConnection())
 				{
 					// Delete the item
 					try (PreparedStatement ps = con.prepareStatement(DELETE_ITEM))
@@ -384,7 +383,7 @@ public class CursedWeapon
 	 */
 	private void dropFromPlayer(Creature killer)
 	{
-		_player.abortAttack();
+		_player.getAttack().stop();
 		
 		// Prevent item from being removed by ItemsAutoDestroy.
 		_item.setDestroyProtected(true);
@@ -424,19 +423,14 @@ public class CursedWeapon
 	{
 		_isActivated = false;
 		
-		// Get position.
-		int x = attackable.getX() + Rnd.get(-70, 70);
-		int y = attackable.getY() + Rnd.get(-70, 70);
-		int z = GeoEngine.getInstance().getHeight(x, y, attackable.getZ());
-		
 		// Create item and drop it.
 		_item = ItemInstance.create(_itemId, 1, player, attackable);
 		_item.setDestroyProtected(true);
-		_item.dropMe(attackable, x, y, z);
+		_item.dropMe(attackable, 70);
 		
 		// RedSky and Earthquake
 		World.toAllOnlinePlayers(new ExRedSky(10));
-		World.toAllOnlinePlayers(new Earthquake(x, y, z, 14, 3));
+		World.toAllOnlinePlayers(new Earthquake(_item, 14, 3));
 		
 		_isDropped = true;
 		
@@ -453,25 +447,25 @@ public class CursedWeapon
 	 */
 	public void cursedOnLogin()
 	{
-		SystemMessage msg = SystemMessage.getSystemMessage(SystemMessageId.S2_OWNER_HAS_LOGGED_INTO_THE_S1_REGION);
-		msg.addZoneName(_player.getPosition());
-		msg.addItemName(_player.getCursedWeaponEquippedId());
-		World.toAllOnlinePlayers(msg);
+		SystemMessage sm = SystemMessage.getSystemMessage(SystemMessageId.S2_OWNER_HAS_LOGGED_INTO_THE_S1_REGION);
+		sm.addZoneName(_player.getPosition());
+		sm.addItemName(_player.getCursedWeaponEquippedId());
+		World.toAllOnlinePlayers(sm);
 		
 		final int timeLeft = (int) (getTimeLeft() / 60000);
 		if (timeLeft > 60)
 		{
-			msg = SystemMessage.getSystemMessage(SystemMessageId.S2_HOUR_OF_USAGE_TIME_ARE_LEFT_FOR_S1);
-			msg.addItemName(_player.getCursedWeaponEquippedId());
-			msg.addNumber(Math.round(timeLeft / 60));
+			sm = SystemMessage.getSystemMessage(SystemMessageId.S2_HOUR_OF_USAGE_TIME_ARE_LEFT_FOR_S1);
+			sm.addItemName(_player.getCursedWeaponEquippedId());
+			sm.addNumber(Math.round(timeLeft / 60F));
 		}
 		else
 		{
-			msg = SystemMessage.getSystemMessage(SystemMessageId.S2_MINUTE_OF_USAGE_TIME_ARE_LEFT_FOR_S1);
-			msg.addItemName(_player.getCursedWeaponEquippedId());
-			msg.addNumber(timeLeft);
+			sm = SystemMessage.getSystemMessage(SystemMessageId.S2_MINUTE_OF_USAGE_TIME_ARE_LEFT_FOR_S1);
+			sm.addItemName(_player.getCursedWeaponEquippedId());
+			sm.addNumber(timeLeft);
 		}
-		_player.sendPacket(msg);
+		_player.sendPacket(sm);
 	}
 	
 	/**
@@ -552,14 +546,9 @@ public class CursedWeapon
 	 */
 	public void activate(Player player, ItemInstance item)
 	{
-		// if the player is mounted, attempt to unmount first and pick it if successful.
-		if (player.isMounted() && !player.dismount())
-		{
-			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.FAILED_TO_PICKUP_S1).addItemName(item.getItemId()));
-			item.setDestroyProtected(true);
-			player.dropItem("InvDrop", item, null, true);
-			return;
-		}
+		// If the Player is mounted, unmount him first.
+		if (player.isMounted())
+			player.dismount();
 		
 		_isActivated = true;
 		
@@ -584,7 +573,7 @@ public class CursedWeapon
 		cancelDropTimer();
 		
 		// Save data on database.
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection())
+		try (Connection con = ConnectionPool.getConnection())
 		{
 			try (PreparedStatement ps = con.prepareStatement(INSERT_CW))
 			{
@@ -614,7 +603,7 @@ public class CursedWeapon
 			_player.getParty().removePartyMember(_player, MessageType.EXPELLED);
 		
 		// Disable active toggles
-		for (L2Effect effect : _player.getAllEffects())
+		for (AbstractEffect effect : _player.getAllEffects())
 		{
 			if (effect.getSkill().isToggle())
 				effect.exit();
@@ -627,13 +616,11 @@ public class CursedWeapon
 		_player.useEquippableItem(_item, true);
 		
 		// Fully heal player
-		_player.setCurrentHpMp(_player.getMaxHp(), _player.getMaxMp());
-		_player.setCurrentCp(_player.getMaxCp());
+		_player.getStatus().setMaxCpHpMp();
 		
 		// Refresh player stats
 		_player.broadcastUserInfo();
 		
-		// _player.broadcastPacket(new SocialAction(_player, 17));
 		World.toAllOnlinePlayers(SystemMessage.getSystemMessage(SystemMessageId.THE_OWNER_OF_S2_HAS_APPEARED_IN_THE_S1_REGION).addZoneName(_player.getPosition()).addItemName(_item.getItemId()));
 	}
 	
@@ -642,7 +629,7 @@ public class CursedWeapon
 	 */
 	private void removeFromDb()
 	{
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection())
+		try (Connection con = ConnectionPool.getConnection())
 		{
 			try (PreparedStatement ps = con.prepareStatement(DELETE_CW))
 			{
@@ -716,7 +703,7 @@ public class CursedWeapon
 		_player.broadcastPacket(new SocialAction(_player, 17));
 	}
 	
-	public void goTo(Player player)
+	public void teleportTo(Player player)
 	{
 		if (player == null)
 			return;
@@ -767,7 +754,7 @@ public class CursedWeapon
 				{
 					msg = SystemMessage.getSystemMessage(SystemMessageId.S2_HOUR_OF_USAGE_TIME_ARE_LEFT_FOR_S1);
 					msg.addItemName(_player.getCursedWeaponEquippedId());
-					msg.addNumber(Math.round(timeLeft / 60));
+					msg.addNumber(Math.round(timeLeft / 60F));
 				}
 				else
 				{
@@ -795,7 +782,7 @@ public class CursedWeapon
 			// Save data.
 			else
 			{
-				try (Connection con = L2DatabaseFactory.getInstance().getConnection())
+				try (Connection con = ConnectionPool.getConnection())
 				{
 					try (PreparedStatement ps = con.prepareStatement(UPDATE_CW))
 					{

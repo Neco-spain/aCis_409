@@ -18,10 +18,10 @@ public final class StartRotating extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		activeChar.broadcastPacket(new StartRotation(activeChar.getObjectId(), _degree, _side, 0));
+		player.broadcastPacket(new StartRotation(player.getObjectId(), _degree, _side, 0));
 	}
 }

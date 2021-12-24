@@ -1,31 +1,38 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
+import net.sf.l2j.gameserver.model.WorldObject;
+import net.sf.l2j.gameserver.model.location.Location;
+
 public class Earthquake extends L2GameServerPacket
 {
-	private final int _x;
-	private final int _y;
-	private final int _z;
+	private final Location _loc;
 	private final int _intensity;
 	private final int _duration;
+	private final int _isNpc;
 	
-	public Earthquake(int x, int y, int z, int intensity, int duration)
+	public Earthquake(WorldObject object, int intensity, int duration, boolean isNpc)
 	{
-		_x = x;
-		_y = y;
-		_z = z;
+		_loc = object.getPosition().clone();
 		_intensity = intensity;
 		_duration = duration;
+		_isNpc = (isNpc) ? 1 : 0;
+	}
+	
+	public Earthquake(WorldObject object, int intensity, int duration)
+	{
+		_loc = object.getPosition().clone();
+		_intensity = intensity;
+		_duration = duration;
+		_isNpc = 0;
 	}
 	
 	@Override
 	protected final void writeImpl()
 	{
 		writeC(0xc4);
-		writeD(_x);
-		writeD(_y);
-		writeD(_z);
+		writeLoc(_loc);
 		writeD(_intensity);
 		writeD(_duration);
-		writeD(0x00); // Unknown
+		writeD(_isNpc);
 	}
 }

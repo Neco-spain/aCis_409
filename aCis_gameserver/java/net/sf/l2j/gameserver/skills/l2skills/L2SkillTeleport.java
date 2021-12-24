@@ -1,24 +1,24 @@
 package net.sf.l2j.gameserver.skills.l2skills;
 
-import net.sf.l2j.commons.util.StatsSet;
+import net.sf.l2j.commons.data.StatSet;
 
 import net.sf.l2j.gameserver.data.xml.MapRegionData;
 import net.sf.l2j.gameserver.data.xml.MapRegionData.TeleportType;
 import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.enums.items.ShotType;
-import net.sf.l2j.gameserver.enums.skills.L2SkillType;
-import net.sf.l2j.gameserver.model.L2Skill;
+import net.sf.l2j.gameserver.enums.skills.SkillType;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.location.Location;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class L2SkillTeleport extends L2Skill
 {
 	private final String _recallType;
 	private final Location _loc;
 	
-	public L2SkillTeleport(StatsSet set)
+	public L2SkillTeleport(StatSet set)
 	{
 		super(set);
 		
@@ -71,7 +71,7 @@ public class L2SkillTeleport extends L2Skill
 			}
 			
 			Location loc = null;
-			if (getSkillType() == L2SkillType.TELEPORT)
+			if (getSkillType() == SkillType.TELEPORT)
 			{
 				if (_loc != null)
 				{

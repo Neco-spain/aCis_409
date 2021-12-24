@@ -10,17 +10,18 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.locks.ReentrantLock;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
 import net.sf.l2j.commons.logging.CLogger;
 import net.sf.l2j.commons.mmocore.MMOClient;
 import net.sf.l2j.commons.mmocore.MMOConnection;
 import net.sf.l2j.commons.mmocore.ReceivablePacket;
+import net.sf.l2j.commons.pool.ConnectionPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.L2DatabaseFactory;
 import net.sf.l2j.gameserver.LoginServerThread;
 import net.sf.l2j.gameserver.data.sql.ClanTable;
 import net.sf.l2j.gameserver.data.sql.PlayerInfoTable;
+import net.sf.l2j.gameserver.enums.FloodProtector;
 import net.sf.l2j.gameserver.model.CharSelectSlot;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
@@ -55,12 +56,12 @@ public final class GameClient extends MMOClient<MMOConnection<GameClient>> imple
 	private static final String DELETE_CHAR_NOBLE = "DELETE FROM olympiad_nobles WHERE char_id=?";
 	private static final String DELETE_CHAR_SEVEN_SIGNS = "DELETE FROM seven_signs WHERE char_obj_id=?";
 	private static final String DELETE_CHAR_PETS = "DELETE FROM pets WHERE item_obj_id IN (SELECT object_id FROM items WHERE items.owner_id=?)";
-	private static final String DELETE_CHAR_AUGMENTS = "DELETE FROM augmentations WHERE item_id IN (SELECT object_id FROM items WHERE items.owner_id=?)";
+	private static final String DELETE_CHAR_AUGMENTS = "DELETE FROM augmentations WHERE item_oid IN (SELECT object_id FROM items WHERE items.owner_id=?)";
 	private static final String DELETE_CHAR_ITEMS = "DELETE FROM items WHERE owner_id=?";
 	private static final String DELETE_CHAR_RBP = "DELETE FROM character_raid_points WHERE char_id=?";
 	private static final String DELETE_CHAR = "DELETE FROM characters WHERE obj_Id=?";
 	
-	public static enum GameClientState
+	public enum GameClientState
 	{
 		CONNECTED, // client has just connected
 		AUTHED, // client has authed but doesnt has character attached to it yet
@@ -68,7 +69,7 @@ public final class GameClient extends MMOClient<MMOConnection<GameClient>> imple
 		IN_GAME // client has selected a char and is in game
 	}
 	
-	private final long[] _floodProtectors = new long[FloodProtectors.Action.VALUES_LENGTH];
+	private final long[] _floodProtectors = new long[FloodProtector.VALUES_LENGTH];
 	private final ArrayBlockingQueue<ReceivablePacket<GameClient>> _packetQueue;
 	private final ReentrantLock _queueLock = new ReentrantLock();
 	private final ReentrantLock _activeCharLock = new ReentrantLock();
@@ -336,7 +337,7 @@ public final class GameClient extends MMOClient<MMOConnection<GameClient>> imple
 		
 		byte answer = 0;
 		
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection())
+		try (Connection con = ConnectionPool.getConnection())
 		{
 			try (PreparedStatement ps = con.prepareStatement(SELECT_CLAN))
 			{
@@ -390,7 +391,7 @@ public final class GameClient extends MMOClient<MMOConnection<GameClient>> imple
 		if (objectId < 0)
 			return;
 		
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(UPDATE_DELETE_TIME))
 		{
 			ps.setLong(1, 0);
@@ -410,7 +411,7 @@ public final class GameClient extends MMOClient<MMOConnection<GameClient>> imple
 		
 		PlayerInfoTable.getInstance().removePlayer(objectId);
 		
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection())
+		try (Connection con = ConnectionPool.getConnection())
 		{
 			try (PreparedStatement ps = con.prepareStatement(DELETE_CHAR_FRIENDS))
 			{
@@ -547,7 +548,7 @@ public final class GameClient extends MMOClient<MMOConnection<GameClient>> imple
 		player = Player.restore(objectId);
 		if (player != null)
 		{
-			player.setRunning();
+			player.forceRunStance();
 			player.standUp();
 			
 			player.setOnlineStatus(true, false);
@@ -583,13 +584,14 @@ public final class GameClient extends MMOClient<MMOConnection<GameClient>> imple
 		getConnection().close(gsp);
 	}
 	
-	private int getObjectIdForSlot(int charslot)
+	/**
+	 * @param slot : The slot to test.
+	 * @return the objectId of the character associated to that slot, or -1 if not found.
+	 */
+	private int getObjectIdForSlot(int slot)
 	{
-		final CharSelectSlot info = getCharSelectSlot(charslot);
-		if (info == null)
-			return -1;
-		
-		return info.getObjectId();
+		final CharSelectSlot info = getCharSelectSlot(slot);
+		return (info == null) ? -1 : info.getObjectId();
 	}
 	
 	/**
@@ -745,6 +747,30 @@ public final class GameClient extends MMOClient<MMOConnection<GameClient>> imple
 		}
 		catch (RejectedExecutionException e)
 		{
+		}
+	}
+	
+	/**
+	 * Try to perform an action according to client FPs value. A 0 reuse delay means the action is always possible.
+	 * @param fp : The {@link FloodProtector} to track.
+	 * @return True if the action is possible, False otherwise.
+	 */
+	public boolean performAction(FloodProtector fp)
+	{
+		final int reuseDelay = fp.getReuseDelay();
+		if (reuseDelay == 0)
+			return true;
+		
+		final long currentTime = System.nanoTime();
+		final long[] value = _floodProtectors;
+		
+		synchronized (value)
+		{
+			if (value[fp.getId()] > currentTime)
+				return false;
+			
+			value[fp.getId()] = currentTime + reuseDelay * 1000000L;
+			return true;
 		}
 	}
 }

@@ -4,10 +4,10 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import net.sf.l2j.gameserver.idfactory.IdFactory;
-import net.sf.l2j.gameserver.model.L2Effect;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.entity.Duel;
 import net.sf.l2j.gameserver.network.serverpackets.L2GameServerPacket;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
 
 /**
  * Loads and stores {@link Duel}s for easier management.
@@ -89,7 +89,7 @@ public final class DuelManager
 	 * @param player : The player to buff.
 	 * @param buff : The effect to cast.
 	 */
-	public void onBuff(Player player, L2Effect buff)
+	public void onBuff(Player player, AbstractEffect buff)
 	{
 		if (player == null || !player.isInDuel() || buff == null)
 			return;

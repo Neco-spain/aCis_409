@@ -1,8 +1,5 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
-/**
- * @author chris_00 close the CommandChannel Information window
- */
 public class ExCloseMPCC extends L2GameServerPacket
 {
 	public static final ExCloseMPCC STATIC_PACKET = new ExCloseMPCC();

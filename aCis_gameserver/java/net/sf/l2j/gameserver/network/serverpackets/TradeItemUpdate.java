@@ -5,18 +5,18 @@ import java.util.Set;
 
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
-import net.sf.l2j.gameserver.model.tradelist.TradeItem;
-import net.sf.l2j.gameserver.model.tradelist.TradeList;
+import net.sf.l2j.gameserver.model.trade.TradeItem;
+import net.sf.l2j.gameserver.model.trade.TradeList;
 
 public class TradeItemUpdate extends L2GameServerPacket
 {
 	private final Set<ItemInstance> _items;
 	private final List<TradeItem> _currentTrade;
 	
-	public TradeItemUpdate(TradeList trade, Player activeChar)
+	public TradeItemUpdate(TradeList trade, Player player)
 	{
-		_items = activeChar.getInventory().getItems();
-		_currentTrade = trade.getItems();
+		_items = player.getInventory().getItems();
+		_currentTrade = trade;
 	}
 	
 	private int getItemCount(int objectId)
@@ -32,6 +32,7 @@ public class TradeItemUpdate extends L2GameServerPacket
 	protected final void writeImpl()
 	{
 		writeC(0x74);
+		
 		writeH(_currentTrade.size());
 		
 		for (TradeItem item : _currentTrade)

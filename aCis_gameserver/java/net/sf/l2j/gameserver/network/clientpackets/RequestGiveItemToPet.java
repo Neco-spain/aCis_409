@@ -1,7 +1,5 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
-import net.sf.l2j.commons.math.MathUtil;
-
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.enums.items.EtcItemType;
 import net.sf.l2j.gameserver.model.actor.Npc;
@@ -40,7 +38,7 @@ public final class RequestGiveItemToPet extends L2GameClientPacket
 			return;
 		}
 		
-		if (player.isInStoreMode())
+		if (player.isOperating())
 		{
 			player.sendPacket(SystemMessageId.CANNOT_PICKUP_OR_USE_ITEM_WHILE_TRADING);
 			return;
@@ -69,7 +67,7 @@ public final class RequestGiveItemToPet extends L2GameClientPacket
 			return;
 		}
 		
-		if (MathUtil.calculateDistance(player, pet, true) > Npc.INTERACTION_DISTANCE)
+		if (!player.isIn3DRadius(pet, Npc.INTERACTION_DISTANCE))
 		{
 			player.sendPacket(SystemMessageId.TARGET_TOO_FAR);
 			return;

@@ -111,14 +111,14 @@ public class AutoSpawn
 		return ret;
 	}
 	
-	public L2Spawn[] getSpawns()
+	public Spawn[] getSpawns()
 	{
-		List<L2Spawn> npcSpawns = new ArrayList<>();
+		List<Spawn> npcSpawns = new ArrayList<>();
 		
 		for (Npc npcInst : _npcList)
 			npcSpawns.add(npcInst.getSpawn());
 		
-		return npcSpawns.toArray(new L2Spawn[npcSpawns.size()]);
+		return npcSpawns.toArray(new Spawn[npcSpawns.size()]);
 	}
 	
 	public void setSpawnCount(int spawnCount)

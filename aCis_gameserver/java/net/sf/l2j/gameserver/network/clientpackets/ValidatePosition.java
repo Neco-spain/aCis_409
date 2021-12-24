@@ -1,7 +1,13 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
-import net.sf.l2j.gameserver.enums.ZoneId;
+import java.awt.Color;
+
+import net.sf.l2j.gameserver.enums.TeleportMode;
+import net.sf.l2j.gameserver.enums.actors.MoveType;
+import net.sf.l2j.gameserver.model.World;
+import net.sf.l2j.gameserver.model.WorldRegion;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.network.serverpackets.ExServerPrimitive;
 import net.sf.l2j.gameserver.network.serverpackets.GetOnVehicle;
 import net.sf.l2j.gameserver.network.serverpackets.ValidateLocation;
 
@@ -31,62 +37,57 @@ public class ValidatePosition extends L2GameClientPacket
 		if (player == null || player.isTeleporting() || player.isInObserverMode())
 			return;
 		
-		final int realX = player.getX();
-		final int realY = player.getY();
-		int realZ = player.getZ();
-		
-		if (_x == 0 && _y == 0)
+		// Disable validation for CameraMode.
+		if (player.getTeleportMode() == TeleportMode.CAMERA_MODE)
 		{
-			if (realX != 0) // in this case this seems like a client error
-				return;
-		}
-		
-		int dx, dy, dz;
-		double diffSq;
-		
-		if (player.isInBoat())
-		{
-			dx = _x - player.getBoatPosition().getX();
-			dy = _y - player.getBoatPosition().getY();
-			dz = _z - player.getBoatPosition().getZ();
-			diffSq = (dx * dx + dy * dy);
+			// Retrieve the current WorldRegion passed by the client location, and set it. It allows knownlist to be properly refreshed.
+			final WorldRegion region = World.getInstance().getRegion(_x, _y);
+			if (region != null)
+				player.setRegion(region);
 			
-			if (diffSq > 250000)
-				sendPacket(new GetOnVehicle(player.getObjectId(), _boatId, player.getBoatPosition()));
-			
+			player.setXYZ(_x, _y, _z);
 			return;
 		}
 		
+		// Disable validation during fall to avoid "jumping".
 		if (player.isFalling(_z))
-			return; // disable validations during fall to avoid "jumping"
-			
-		dx = _x - realX;
-		dy = _y - realY;
-		dz = _z - realZ;
-		diffSq = (dx * dx + dy * dy);
+			return;
 		
-		if (player.isFlying() || player.isInsideZone(ZoneId.WATER))
+		final float actualSpeed;
+		final double dist;
+		
+		// Send back position if client<>server desync is too big. For boats, send back if the desync is bigger than 500.
+		if (player.isInBoat())
 		{
-			player.setXYZ(realX, realY, _z);
-			if (diffSq > 90000) // validate packet, may also cause z bounce if close to land
-				player.sendPacket(new ValidateLocation(player));
+			actualSpeed = 500;
+			dist = player.getBoatPosition().distance2D(_x, _y);
+			
+			if (dist > actualSpeed)
+				sendPacket(new GetOnVehicle(player.getObjectId(), _boatId, player.getBoatPosition()));
 		}
-		else if (diffSq < 360000) // if too large, messes observation
+		// For regular movement, send back if the desync is bigger than actual speed.
+		else
 		{
-			if (diffSq > 250000 || Math.abs(dz) > 200)
+			actualSpeed = player.getStatus().getMoveSpeed();
+			dist = (player.getMove().getMoveType() == MoveType.GROUND) ? player.getPosition().distance2D(_x, _y) : player.getPosition().distance3D(_x, _y, _z);
+			
+			if (dist > actualSpeed)
+				sendPacket(new ValidateLocation(player));
+		}
+		
+		// Draw a debug of this packet if activated.
+		if (player.getMove().isDebugMove())
+		{
+			final String desc = "speed=" + actualSpeed + " desync=" + dist;
+			
+			// Draw debug packet to all players.
+			for (Player p : player.getSurroundingGMs())
 			{
-				if (Math.abs(dz) > 200 && Math.abs(dz) < 1500 && Math.abs(_z - player.getClientZ()) < 800)
-				{
-					player.setXYZ(realX, realY, _z);
-					realZ = _z;
-				}
-				else
-					player.sendPacket(new ValidateLocation(player));
+				// Get debug packet.
+				final ExServerPrimitive debug = p.getDebugPacket("MOVE" + player.getObjectId());
+				debug.addPoint(desc, Color.GREEN, true, _x, _y, _z);
+				debug.sendTo(p);
 			}
 		}
-		
-		player.setClientX(_x);
-		player.setClientY(_y);
-		player.setClientZ(_z);
 	}
 }

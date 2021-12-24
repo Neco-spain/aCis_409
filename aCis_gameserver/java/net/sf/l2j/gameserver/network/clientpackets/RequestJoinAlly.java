@@ -9,43 +9,42 @@ import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public final class RequestJoinAlly extends L2GameClientPacket
 {
-	private int _id;
+	private int _targetId;
 	
 	@Override
 	protected void readImpl()
 	{
-		_id = readD();
+		_targetId = readD();
 	}
 	
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		final Clan clan = activeChar.getClan();
+		final Clan clan = player.getClan();
 		if (clan == null)
 		{
-			activeChar.sendPacket(SystemMessageId.YOU_ARE_NOT_A_CLAN_MEMBER);
+			player.sendPacket(SystemMessageId.YOU_ARE_NOT_A_CLAN_MEMBER);
 			return;
 		}
 		
-		final Player target = World.getInstance().getPlayer(_id);
+		final Player target = World.getInstance().getPlayer(_targetId);
 		if (target == null)
 		{
-			activeChar.sendPacket(SystemMessageId.YOU_HAVE_INVITED_THE_WRONG_TARGET);
+			player.sendPacket(SystemMessageId.YOU_HAVE_INVITED_THE_WRONG_TARGET);
 			return;
 		}
 		
-		if (!Clan.checkAllyJoinCondition(activeChar, target))
+		if (!Clan.checkAllyJoinCondition(player, target))
 			return;
 		
-		if (!activeChar.getRequest().setRequest(target, this))
+		if (!player.getRequest().setRequest(target, this))
 			return;
 		
-		target.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S2_ALLIANCE_LEADER_OF_S1_REQUESTED_ALLIANCE).addString(clan.getAllyName()).addCharName(activeChar));
-		target.sendPacket(new AskJoinAlly(activeChar.getObjectId(), clan.getAllyName()));
-		return;
+		target.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S2_ALLIANCE_LEADER_OF_S1_REQUESTED_ALLIANCE).addString(clan.getAllyName()).addCharName(player));
+		target.sendPacket(new AskJoinAlly(player.getObjectId(), clan.getAllyName()));
 	}
 }

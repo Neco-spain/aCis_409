@@ -1,32 +1,35 @@
 package net.sf.l2j.gameserver.handler.chathandlers;
 
 import net.sf.l2j.gameserver.data.manager.PetitionManager;
+import net.sf.l2j.gameserver.enums.SayType;
 import net.sf.l2j.gameserver.handler.IChatHandler;
+import net.sf.l2j.gameserver.model.Petition;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 
 public class ChatPetition implements IChatHandler
 {
-	private static final int[] COMMAND_IDS =
+	private static final SayType[] COMMAND_IDS =
 	{
-		6,
-		7
+		SayType.PETITION_PLAYER,
+		SayType.PETITION_GM
 	};
 	
 	@Override
-	public void handleChat(int type, Player activeChar, String target, String text)
+	public void handleChat(SayType type, Player player, String target, String text)
 	{
-		if (!PetitionManager.getInstance().isPlayerInConsultation(activeChar))
+		final Petition petition = PetitionManager.getInstance().getPetitionInProcess(player);
+		if (petition == null)
 		{
-			activeChar.sendPacket(SystemMessageId.YOU_ARE_NOT_IN_PETITION_CHAT);
+			player.sendPacket(SystemMessageId.YOU_ARE_NOT_IN_PETITION_CHAT);
 			return;
 		}
 		
-		PetitionManager.getInstance().sendActivePetitionMessage(activeChar, text);
+		petition.sendMessage(player, text);
 	}
 	
 	@Override
-	public int[] getChatTypeList()
+	public SayType[] getChatTypeList()
 	{
 		return COMMAND_IDS;
 	}

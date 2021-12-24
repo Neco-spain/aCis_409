@@ -14,18 +14,17 @@ public class ChannelListUpdate implements IUserCommandHandler
 	};
 	
 	@Override
-	public boolean useUserCommand(int id, Player player)
+	public void useUserCommand(int id, Player player)
 	{
 		final Party party = player.getParty();
 		if (party == null)
-			return false;
+			return;
 		
 		final CommandChannel channel = party.getCommandChannel();
 		if (channel == null)
-			return false;
+			return;
 		
 		player.sendPacket(new ExMultiPartyCommandChannelInfo(channel));
-		return true;
 	}
 	
 	@Override

@@ -1,28 +1,35 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
+import net.sf.l2j.gameserver.model.actor.Boat;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.location.Location;
 
 public class MoveToLocationInVehicle extends L2GameServerPacket
 {
 	private final int _objectId;
 	private final int _boatId;
-	private final int _targetX;
-	private final int _targetY;
-	private final int _targetZ;
-	private final int _originX;
-	private final int _originY;
-	private final int _originZ;
+	private final int _tX;
+	private final int _tY;
+	private final int _tZ;
+	private final int _oX;
+	private final int _oY;
+	private final int _oZ;
 	
-	public MoveToLocationInVehicle(Player player, int targetX, int targetY, int targetZ, int originX, int originY, int originZ)
+	public MoveToLocationInVehicle(Player player, Boat boat, Location tLoc, Location oLoc)
+	{
+		this(player, boat, tLoc.getX(), tLoc.getY(), tLoc.getZ(), oLoc.getX(), oLoc.getY(), oLoc.getZ());
+	}
+	
+	public MoveToLocationInVehicle(Player player, Boat boat, int tX, int tY, int tZ, int oX, int oY, int oZ)
 	{
 		_objectId = player.getObjectId();
-		_boatId = player.getBoat().getObjectId();
-		_targetX = targetX;
-		_targetY = targetY;
-		_targetZ = targetZ;
-		_originX = originX;
-		_originY = originY;
-		_originZ = originZ;
+		_boatId = boat.getObjectId();
+		_tX = tX;
+		_tY = tY;
+		_tZ = tZ;
+		_oX = oX;
+		_oY = oY;
+		_oZ = oZ;
 	}
 	
 	@Override
@@ -31,11 +38,11 @@ public class MoveToLocationInVehicle extends L2GameServerPacket
 		writeC(0x71);
 		writeD(_objectId);
 		writeD(_boatId);
-		writeD(_targetX);
-		writeD(_targetY);
-		writeD(_targetZ);
-		writeD(_originX);
-		writeD(_originY);
-		writeD(_originZ);
+		writeD(_tX);
+		writeD(_tY);
+		writeD(_tZ);
+		writeD(_oX);
+		writeD(_oY);
+		writeD(_oZ);
 	}
 }

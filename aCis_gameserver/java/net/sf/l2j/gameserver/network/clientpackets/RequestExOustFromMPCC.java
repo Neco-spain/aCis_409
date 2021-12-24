@@ -9,12 +9,12 @@ import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public final class RequestExOustFromMPCC extends L2GameClientPacket
 {
-	private String _name;
+	private String _targetName;
 	
 	@Override
 	protected void readImpl()
 	{
-		_name = readS();
+		_targetName = readS();
 	}
 	
 	@Override
@@ -24,7 +24,7 @@ public final class RequestExOustFromMPCC extends L2GameClientPacket
 		if (requestor == null)
 			return;
 		
-		final Player target = World.getInstance().getPlayer(_name);
+		final Player target = World.getInstance().getPlayer(_targetName);
 		if (target == null)
 		{
 			requestor.sendPacket(SystemMessageId.TARGET_CANT_FOUND);
@@ -33,7 +33,7 @@ public final class RequestExOustFromMPCC extends L2GameClientPacket
 		
 		if (requestor.equals(target))
 		{
-			requestor.sendPacket(SystemMessageId.INCORRECT_TARGET);
+			requestor.sendPacket(SystemMessageId.INVALID_TARGET);
 			return;
 		}
 		
@@ -42,7 +42,7 @@ public final class RequestExOustFromMPCC extends L2GameClientPacket
 		
 		if (requestorParty == null || targetParty == null)
 		{
-			requestor.sendPacket(SystemMessageId.INCORRECT_TARGET);
+			requestor.sendPacket(SystemMessageId.INVALID_TARGET);
 			return;
 		}
 		
@@ -55,7 +55,7 @@ public final class RequestExOustFromMPCC extends L2GameClientPacket
 		
 		if (!requestorChannel.removeParty(targetParty))
 		{
-			requestor.sendPacket(SystemMessageId.INCORRECT_TARGET);
+			requestor.sendPacket(SystemMessageId.INVALID_TARGET);
 			return;
 		}
 		

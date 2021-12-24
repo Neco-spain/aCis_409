@@ -2,6 +2,7 @@ package net.sf.l2j.gameserver.network.clientpackets;
 
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.cache.HtmCache;
+import net.sf.l2j.gameserver.enums.StatusType;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Fisherman;
@@ -56,16 +57,14 @@ public final class RequestSellItem extends L2GameClientPacket
 			return;
 		
 		final Npc merchant = (player.getTarget() instanceof Merchant || player.getTarget() instanceof MercenaryManagerNpc) ? (Npc) player.getTarget() : null;
-		if (merchant == null || !merchant.canInteract(player))
+		if (merchant == null || !player.getAI().canDoInteract(merchant))
 			return;
 		
-		if (_listId > 1000000) // lease
-		{
-			if (merchant.getTemplate().getNpcId() != _listId - 1000000)
-				return;
-		}
+		if (_listId > 1000000 && merchant.getTemplate().getNpcId() != _listId - 1000000)
+			return;
 		
-		int totalPrice = 0;
+		long totalPrice = 0;
+		
 		// Proceed the sell
 		for (IntIntHolder i : _items)
 		{
@@ -78,10 +77,10 @@ public final class RequestSellItem extends L2GameClientPacket
 			if ((Integer.MAX_VALUE / i.getValue()) < price || totalPrice > Integer.MAX_VALUE)
 				return;
 			
-			item = player.getInventory().destroyItem("Sell", i.getId(), i.getValue(), player, merchant);
+			player.getInventory().destroyItem("Sell", i.getId(), i.getValue(), player, merchant);
 		}
 		
-		player.addAdena("Sell", totalPrice, merchant, false);
+		player.addAdena("Sell", (int) totalPrice, merchant, false);
 		
 		// Send the htm, if existing.
 		String htmlFolder = "";
@@ -104,7 +103,7 @@ public final class RequestSellItem extends L2GameClientPacket
 		
 		// Update current load as well
 		StatusUpdate su = new StatusUpdate(player);
-		su.addAttribute(StatusUpdate.CUR_LOAD, player.getCurrentLoad());
+		su.addAttribute(StatusType.CUR_LOAD, player.getCurrentWeight());
 		player.sendPacket(su);
 		player.sendPacket(new ItemList(player, true));
 	}

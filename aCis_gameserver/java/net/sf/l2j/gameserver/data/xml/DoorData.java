@@ -7,9 +7,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.sf.l2j.commons.data.StatSet;
 import net.sf.l2j.commons.data.xml.IXmlReader;
 import net.sf.l2j.commons.geometry.Polygon;
-import net.sf.l2j.commons.util.StatsSet;
 
 import net.sf.l2j.gameserver.data.manager.CastleManager;
 import net.sf.l2j.gameserver.enums.DoorType;
@@ -17,9 +17,11 @@ import net.sf.l2j.gameserver.geoengine.GeoEngine;
 import net.sf.l2j.gameserver.geoengine.geodata.ABlock;
 import net.sf.l2j.gameserver.geoengine.geodata.GeoStructure;
 import net.sf.l2j.gameserver.idfactory.IdFactory;
+import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.instance.Door;
 import net.sf.l2j.gameserver.model.actor.template.DoorTemplate;
 import net.sf.l2j.gameserver.model.entity.Castle;
+import net.sf.l2j.gameserver.model.location.Point2D;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
@@ -50,9 +52,10 @@ public class DoorData implements IXmlReader
 	{
 		forEach(doc, "list", listNode -> forEach(listNode, "door", doorNode ->
 		{
-			final StatsSet set = parseAttributes(doorNode);
+			final StatSet set = parseAttributes(doorNode);
 			final int id = set.getInteger("id");
 			forEach(doorNode, "castle", castleNode -> set.set("castle", parseString(castleNode.getAttributes(), "id")));
+			forEach(doorNode, "clanHall", chNode -> set.set("clanHall", parseString(chNode.getAttributes(), "id")));
 			forEach(doorNode, "position", positionNode ->
 			{
 				final NamedNodeMap attrs = positionNode.getAttributes();
@@ -61,27 +64,29 @@ public class DoorData implements IXmlReader
 				set.set("posZ", parseInteger(attrs, "z"));
 			});
 			
-			final List<int[]> coords = new ArrayList<>();
+			final List<Point2D> coords = new ArrayList<>();
 			forEach(doorNode, "coordinates", coordinatesNode -> forEach(coordinatesNode, "loc", locNode ->
 			{
 				final NamedNodeMap attrs = locNode.getAttributes();
-				coords.add(new int[]
-				{
-					parseInteger(attrs, "x"),
-					parseInteger(attrs, "y")
-				});
+				coords.add(new Point2D(parseInteger(attrs, "x"), parseInteger(attrs, "y")));
 			}));
 			
 			int minX = Integer.MAX_VALUE;
 			int maxX = Integer.MIN_VALUE;
 			int minY = Integer.MAX_VALUE;
 			int maxY = Integer.MIN_VALUE;
-			for (final int[] coord : coords)
+			for (final Point2D coord : coords)
 			{
-				minX = Math.min(minX, coord[0]);
-				maxX = Math.max(maxX, coord[0]);
-				minY = Math.min(minY, coord[1]);
-				maxY = Math.max(maxY, coord[1]);
+				minX = Math.min(minX, coord.getX());
+				maxX = Math.max(maxX, coord.getX());
+				minY = Math.min(minY, coord.getY());
+				maxY = Math.max(maxY, coord.getY());
+			}
+			
+			if (World.isOutOfWorld(minX, maxX, minY, maxY))
+			{
+				LOGGER.error("Door id {} coords are outside of world.", id);
+				return;
 			}
 			
 			forEach(doorNode, "stats|function", node -> set.putAll(parseAttributes(node)));
@@ -97,10 +102,10 @@ public class DoorData implements IXmlReader
 			final int geoY = GeoEngine.getGeoY(posY);
 			final int geoZ = GeoEngine.getInstance().getHeightNearest(geoX, geoY, posZ);
 			final ABlock block = GeoEngine.getInstance().getBlock(geoX, geoY);
-			final int i = block.getIndexAbove(geoX, geoY, geoZ);
-			if (i != -1)
+			final int i = block.getIndexAbove(geoX, geoY, geoZ, null);
+			if (i >= 0)
 			{
-				final int layerDiff = block.getHeight(i) - geoZ;
+				final int layerDiff = block.getHeight(i, null) - geoZ;
 				if (set.getInteger("height") > layerDiff)
 					set.set("height", layerDiff - GeoStructure.CELL_IGNORE_HEIGHT);
 			}
@@ -139,15 +144,16 @@ public class DoorData implements IXmlReader
 			set.set("geoY", y);
 			set.set("geoZ", geoZ);
 			set.set("geoData", GeoEngine.calculateGeoObject(inside));
+			set.set("coords", coords.toArray(Point2D[]::new));
 			set.set("pAtk", 0);
 			set.set("mAtk", 0);
 			set.set("runSpd", 0);
 			set.set("radius", 16);
 			
-			final DoorTemplate template = new DoorTemplate(set);
-			final Door door = new Door(IdFactory.getInstance().getNextId(), template);
-			door.setCurrentHpMp(door.getMaxHp(), door.getMaxMp());
+			final Door door = new Door(IdFactory.getInstance().getNextId(), new DoorTemplate(set));
+			door.getStatus().setMaxHpMp();
 			door.getPosition().set(posX, posY, posZ);
+			
 			_doors.put(door.getDoorId(), door);
 		}));
 	}

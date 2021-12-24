@@ -1,6 +1,5 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
-import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.model.actor.Creature;
 
 public class ChangeMoveType extends L2GameServerPacket
@@ -13,7 +12,7 @@ public class ChangeMoveType extends L2GameServerPacket
 	{
 		_objectId = creature.getObjectId();
 		_running = (creature.isRunning()) ? 1 : 0;
-		_swimming = (creature.isInsideZone(ZoneId.WATER)) ? 1 : 0;
+		_swimming = (creature.isInWater()) ? 1 : 0;
 	}
 	
 	@Override

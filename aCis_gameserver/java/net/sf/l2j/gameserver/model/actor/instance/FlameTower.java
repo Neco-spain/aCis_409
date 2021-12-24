@@ -3,21 +3,16 @@ package net.sf.l2j.gameserver.model.actor.instance;
 import java.util.List;
 
 import net.sf.l2j.gameserver.data.manager.ZoneManager;
-import net.sf.l2j.gameserver.data.xml.NpcData;
-import net.sf.l2j.gameserver.enums.IntentionType;
 import net.sf.l2j.gameserver.enums.SiegeSide;
-import net.sf.l2j.gameserver.geoengine.GeoEngine;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Npc;
+import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
-import net.sf.l2j.gameserver.model.spawn.L2Spawn;
-import net.sf.l2j.gameserver.model.zone.CastleZoneType;
-import net.sf.l2j.gameserver.model.zone.ZoneType;
+import net.sf.l2j.gameserver.model.spawn.Spawn;
+import net.sf.l2j.gameserver.model.zone.type.subtype.CastleZoneType;
+import net.sf.l2j.gameserver.model.zone.type.subtype.ZoneType;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
-import net.sf.l2j.gameserver.network.serverpackets.MoveToPawn;
-import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public class FlameTower extends Npc
 {
@@ -30,51 +25,29 @@ public class FlameTower extends Npc
 	}
 	
 	@Override
-	public boolean isAttackable()
+	public boolean isAttackableBy(Creature attacker)
 	{
-		// Attackable during siege by attacker only
-		return getCastle() != null && getCastle().getSiege().isInProgress();
+		if (!super.isAttackableBy(attacker))
+			return false;
+		
+		if (!(attacker instanceof Playable))
+			return false;
+		
+		if (getCastle() != null && getCastle().getSiege().isInProgress())
+			return getCastle().getSiege().checkSides(attacker.getActingPlayer().getClan(), SiegeSide.ATTACKER);
+		
+		return false;
 	}
 	
 	@Override
-	public boolean isAutoAttackable(Creature attacker)
+	public boolean isAttackableWithoutForceBy(Playable attacker)
 	{
-		// Attackable during siege by attacker only
-		return attacker instanceof Player && getCastle() != null && getCastle().getSiege().isInProgress() && getCastle().getSiege().checkSide(((Player) attacker).getClan(), SiegeSide.ATTACKER);
+		return isAttackableBy(attacker);
 	}
 	
 	@Override
-	public void onForcedAttack(Player player)
+	public void onInteract(Player player)
 	{
-		onAction(player);
-	}
-	
-	@Override
-	public void onAction(Player player)
-	{
-		// Set the target of the player
-		if (player.getTarget() != this)
-			player.setTarget(this);
-		else
-		{
-			if (isAutoAttackable(player) && Math.abs(player.getZ() - getZ()) < 100 && GeoEngine.getInstance().canSeeTarget(player, this))
-			{
-				// Notify the Player AI with INTERACT
-				player.getAI().setIntention(IntentionType.ATTACK, this);
-			}
-			else
-			{
-				// Stop moving if we're already in interact range.
-				if (player.isMoving() || player.isInCombat())
-					player.getAI().setIntention(IntentionType.IDLE);
-				
-				// Rotate the player to face the instance
-				player.sendPacket(new MoveToPawn(player, this, Npc.INTERACTION_DISTANCE));
-				
-				// Send ActionFailed to the player in order to avoid he stucks
-				player.sendPacket(ActionFailed.STATIC_PACKET);
-			}
-		}
 	}
 	
 	@Override
@@ -86,12 +59,12 @@ public class FlameTower extends Npc
 		{
 			// Message occurs only if the trap was triggered first.
 			if (_zoneList != null && _upgradeLevel != 0)
-				getCastle().getSiege().announceToPlayers(SystemMessage.getSystemMessage(SystemMessageId.A_TRAP_DEVICE_HAS_BEEN_STOPPED), false);
+				getCastle().getSiege().announce(SystemMessageId.A_TRAP_DEVICE_HAS_BEEN_STOPPED, SiegeSide.DEFENDER);
 			
 			// Spawn a little version of it. This version is a simple NPC, cleaned on siege end.
 			try
 			{
-				final L2Spawn spawn = new L2Spawn(NpcData.getInstance().getTemplate(13005));
+				final Spawn spawn = new Spawn(13005);
 				spawn.setLoc(getPosition());
 				
 				final Npc tower = spawn.doSpawn(false);
@@ -129,7 +102,7 @@ public class FlameTower extends Npc
 			for (int i = 0; i < maxIndex; i++)
 			{
 				final ZoneType zone = ZoneManager.getInstance().getZoneById(_zoneList.get(i));
-				if (zone != null && zone instanceof CastleZoneType)
+				if (zone instanceof CastleZoneType)
 					((CastleZoneType) zone).setEnabled(state);
 			}
 		}

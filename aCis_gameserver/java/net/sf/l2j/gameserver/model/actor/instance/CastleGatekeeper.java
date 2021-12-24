@@ -1,20 +1,25 @@
 package net.sf.l2j.gameserver.model.actor.instance;
 
-import java.util.StringTokenizer;
+import java.util.concurrent.Future;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 
 import net.sf.l2j.gameserver.data.xml.MapRegionData;
+import net.sf.l2j.gameserver.enums.SayType;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
 import net.sf.l2j.gameserver.network.serverpackets.NpcSay;
 
+/**
+ * This class manages all Mass Gatekeepers, an entity linked to Castle system. It inherits from {@link Folk}.<br>
+ * <br>
+ * Mass Gatekeepers allow Castle Defenders Players to teleport back to battle, after 30 seconds. The time can increase to 480 seconds (8 minutes) during an active siege where all ControlTowers shattered.
+ */
 public class CastleGatekeeper extends Folk
 {
-	protected boolean _currentTask;
-	private int _delay;
+	private Future<?> _teleportTask;
 	
 	public CastleGatekeeper(int objectId, NpcTemplate template)
 	{
@@ -24,30 +29,14 @@ public class CastleGatekeeper extends Folk
 	@Override
 	public void onBypassFeedback(Player player, String command)
 	{
-		StringTokenizer st = new StringTokenizer(command, " ");
-		String actualCommand = st.nextToken(); // Get actual command
-		
-		if (actualCommand.equalsIgnoreCase("tele"))
+		if (command.startsWith("tele"))
 		{
-			if (!_currentTask)
-			{
-				if (getCastle().getSiege().isInProgress())
-				{
-					if (getCastle().getSiege().getControlTowerCount() == 0)
-						_delay = 480000;
-					else
-						_delay = 30000;
-				}
-				else
-					_delay = 0;
-				
-				_currentTask = true;
-				ThreadPool.schedule(new oustAllPlayers(), _delay);
-			}
+			if (_teleportTask == null)
+				_teleportTask = ThreadPool.schedule(this::oustPlayers, getTeleportDelay() * 1000L);
 			
 			final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
 			html.setFile("data/html/castleteleporter/MassGK-1.htm");
-			html.replace("%delay%", getDelayInSeconds());
+			html.replace("%delay%", getTeleportDelay());
 			player.sendPacket(html);
 		}
 		else
@@ -57,48 +46,54 @@ public class CastleGatekeeper extends Folk
 	@Override
 	public void showChatWindow(Player player)
 	{
-		String filename;
-		if (!_currentTask)
+		final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
+		
+		if (_teleportTask == null)
 		{
 			if (getCastle().getSiege().isInProgress() && getCastle().getSiege().getControlTowerCount() == 0)
-				filename = "data/html/castleteleporter/MassGK-2.htm";
+				html.setFile("data/html/castleteleporter/MassGK-2.htm");
 			else
-				filename = "data/html/castleteleporter/MassGK.htm";
+				html.setFile("data/html/castleteleporter/MassGK.htm");
 		}
 		else
-			filename = "data/html/castleteleporter/MassGK-1.htm";
-		
-		final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
-		html.setFile(filename);
+		{
+			html.setFile("data/html/castleteleporter/MassGK-1.htm");
+			html.replace("%delay%", getTeleportDelay());
+		}
 		html.replace("%objectId%", getObjectId());
-		html.replace("%delay%", getDelayInSeconds());
 		player.sendPacket(html);
 	}
 	
-	protected class oustAllPlayers implements Runnable
+	/**
+	 * Oust all {@link Player}s and broadcast a message to everyone set into the region, during an active siege event.
+	 */
+	private final void oustPlayers()
 	{
-		@Override
-		public void run()
+		// Region talk is only done during an active siege.
+		if (getCastle().getSiege().isInProgress())
 		{
-			// Make the region talk only during a siege
-			if (getCastle().getSiege().isInProgress())
+			final NpcSay cs = new NpcSay(this, SayType.SHOUT, "The defenders of " + getCastle().getName() + " castle have been teleported to the inner castle.");
+			final int region = MapRegionData.getInstance().getMapRegion(getX(), getY());
+			
+			for (Player player : World.getInstance().getPlayers())
 			{
-				final NpcSay cs = new NpcSay(getObjectId(), 1, getNpcId(), "The defenders of " + getCastle().getName() + " castle have been teleported to the inner castle.");
-				final int region = MapRegionData.getInstance().getMapRegion(getX(), getY());
-				
-				for (Player player : World.getInstance().getPlayers())
-				{
-					if (region == MapRegionData.getInstance().getMapRegion(player.getX(), player.getY()))
-						player.sendPacket(cs);
-				}
+				if (region == MapRegionData.getInstance().getMapRegion(player.getX(), player.getY()))
+					player.sendPacket(cs);
 			}
-			getCastle().oustAllPlayers();
-			_currentTask = false;
 		}
+		
+		// Oust all related players.
+		getCastle().oustAllPlayers();
+		
+		// Reset the variable, in order to properly reuse it.
+		_teleportTask = null;
 	}
 	
-	private final int getDelayInSeconds()
+	/**
+	 * @return The teleport delay, as following : 30 seconds for regular teleport, 480 seconds (8 minutes) during an active siege, and if all ControlTowers have been broken.
+	 */
+	private final int getTeleportDelay()
 	{
-		return (_delay > 0) ? _delay / 1000 : 0;
+		return (getCastle().getSiege().isInProgress() && getCastle().getSiege().getControlTowerCount() == 0) ? 480 : 30;
 	}
 }

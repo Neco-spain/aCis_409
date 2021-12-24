@@ -4,5 +4,6 @@ public enum FlyType
 {
 	THROW_UP,
 	THROW_HORIZONTAL,
-	DUMMY; // no effect
+	DUMMY,
+	CHARGE
 }

@@ -5,35 +5,40 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
 import net.sf.l2j.commons.math.MathUtil;
+import net.sf.l2j.commons.pool.ThreadPool;
 import net.sf.l2j.commons.random.Rnd;
 
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.manager.CursedWeaponManager;
 import net.sf.l2j.gameserver.data.xml.HerbDropData;
-import net.sf.l2j.gameserver.model.L2Skill;
+import net.sf.l2j.gameserver.enums.BossInfoType;
+import net.sf.l2j.gameserver.geoengine.GeoEngine;
 import net.sf.l2j.gameserver.model.actor.Attackable;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.Summon;
-import net.sf.l2j.gameserver.model.actor.npc.AbsorbInfo;
-import net.sf.l2j.gameserver.model.actor.npc.AggroInfo;
-import net.sf.l2j.gameserver.model.actor.npc.MinionList;
-import net.sf.l2j.gameserver.model.actor.npc.RewardInfo;
+import net.sf.l2j.gameserver.model.actor.container.monster.OverhitState;
+import net.sf.l2j.gameserver.model.actor.container.monster.SeedState;
+import net.sf.l2j.gameserver.model.actor.container.monster.SpoilState;
+import net.sf.l2j.gameserver.model.actor.container.npc.AbsorbInfo;
+import net.sf.l2j.gameserver.model.actor.container.npc.AggroInfo;
+import net.sf.l2j.gameserver.model.actor.container.npc.MinionList;
+import net.sf.l2j.gameserver.model.actor.container.npc.RewardInfo;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
-import net.sf.l2j.gameserver.model.actor.template.NpcTemplate.SkillType;
 import net.sf.l2j.gameserver.model.group.CommandChannel;
 import net.sf.l2j.gameserver.model.group.Party;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
 import net.sf.l2j.gameserver.model.item.DropCategory;
 import net.sf.l2j.gameserver.model.item.DropData;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
-import net.sf.l2j.gameserver.model.manor.Seed;
+import net.sf.l2j.gameserver.model.location.Location;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 /**
  * A monster extends {@link Attackable} class.<br>
@@ -44,86 +49,29 @@ public class Monster extends Attackable
 {
 	private final Map<Integer, AbsorbInfo> _absorbersList = new ConcurrentHashMap<>();
 	
-	private final List<IntIntHolder> _sweepItems = new ArrayList<>();
-	private final List<IntIntHolder> _harvestItems = new ArrayList<>();
+	private final OverhitState _overhitState = new OverhitState(this);
+	private final SpoilState _spoilState = new SpoilState();
+	private final SeedState _seedState = new SeedState(this);
 	
 	private Monster _master;
 	private MinionList _minionList;
 	
+	private ScheduledFuture<?> _ccTask;
+	
+	private CommandChannel _firstCcAttacker;
+	
+	private long _lastCcAttack;
+	
 	private boolean _isRaid;
 	private boolean _isMinion;
-	
-	private int _spoilerId;
-	
-	private Seed _seed;
-	private int _seederObjId;
-	
-	private boolean _overhit;
-	private double _overhitDamage;
-	private Creature _overhitAttacker;
-	
-	private CommandChannel _firstCommandChannelAttacked;
-	private CommandChannelTimer _commandChannelTimer;
-	private long _commandChannelLastAttack;
 	
 	public Monster(int objectId, NpcTemplate template)
 	{
 		super(objectId, template);
 	}
 	
-	/**
-	 * Reduce the current HP of the L2Attackable, update its _aggroList and launch the doDie Task if necessary.
-	 * @param attacker The Creature who attacks
-	 * @param awake The awake state (If True : stop sleeping)
-	 */
 	@Override
-	public void reduceCurrentHp(double damage, Creature attacker, boolean awake, boolean isDOT, L2Skill skill)
-	{
-		if (isRaidBoss() && attacker != null)
-		{
-			final Party party = attacker.getParty();
-			if (party != null)
-			{
-				final CommandChannel cc = party.getCommandChannel();
-				if (cc != null && cc.meetRaidWarCondition(this))
-				{
-					if (_firstCommandChannelAttacked == null) // looting right isn't set
-					{
-						synchronized (this)
-						{
-							if (_firstCommandChannelAttacked == null)
-							{
-								_firstCommandChannelAttacked = attacker.getParty().getCommandChannel();
-								if (_firstCommandChannelAttacked != null)
-								{
-									_commandChannelTimer = new CommandChannelTimer(this);
-									_commandChannelLastAttack = System.currentTimeMillis();
-									ThreadPool.schedule(_commandChannelTimer, 10000); // check for last attack
-								}
-							}
-						}
-					}
-					else if (attacker.getParty().getCommandChannel().equals(_firstCommandChannelAttacked)) // is in same channel
-						_commandChannelLastAttack = System.currentTimeMillis(); // update last attack time
-				}
-			}
-		}
-		// Reduce the current HP of the L2Attackable and launch the doDie Task if necessary
-		super.reduceCurrentHp(damage, attacker, awake, isDOT, skill);
-	}
-	
-	/**
-	 * Distribute Exp and SP rewards to Player (including Summon owner) that hit the L2Attackable and to their Party members.
-	 * <ul>
-	 * <li>Get the Player owner of the Servitor (if necessary) and L2Party in progress</li>
-	 * <li>Calculate the Experience and SP rewards in function of the level difference</li>
-	 * <li>Add Exp and SP rewards to Player (including Summon penalty) and to Party members in the known area of the last attacker</li>
-	 * </ul>
-	 * <FONT COLOR=#FF0000><B> <U>Caution</U> : This method DOESN'T GIVE rewards to L2PetInstance</B></FONT>
-	 * @param lastAttacker The Creature that has killed the L2Attackable
-	 */
-	@Override
-	protected void calculateRewards(Creature lastAttacker)
+	protected void calculateRewards(Creature creature)
 	{
 		if (getAggroList().isEmpty())
 			return;
@@ -135,13 +83,13 @@ public class Monster extends Attackable
 		int maxDamage = 0;
 		long totalDamage = 0;
 		
-		// Go through the _aggroList of the L2Attackable.
+		// Go through the aggro list.
 		for (AggroInfo info : getAggroList().values())
 		{
 			if (!(info.getAttacker() instanceof Playable))
 				continue;
 			
-			// Get the Creature corresponding to this attacker.
+			// Get the Playable corresponding to this attacker.
 			final Playable attacker = (Playable) info.getAttacker();
 			
 			// Get damages done by this attacker.
@@ -184,12 +132,12 @@ public class Monster extends Attackable
 			}
 		}
 		
-		// Command channel restriction ; if such thing exists, the main contributor is the channel leader, no matter the participation of the channel, and no matter the damage done by other participants.
-		if (isRaidBoss() && getFirstCommandChannelAttacked() != null)
-			maxDealer = getFirstCommandChannelAttacked().getLeader();
+		// Command channel restriction ; if a CC is registered, the main contributor is the channel leader, no matter the participation of the channel, and no matter the damage done by other participants.
+		if (_firstCcAttacker != null)
+			maxDealer = _firstCcAttacker.getLeader();
 		
-		// Manage Base, Quests and Sweep drops of the L2Attackable.
-		doItemDrop(getTemplate(), (maxDealer != null && maxDealer.isOnline()) ? maxDealer : lastAttacker);
+		// Manage Base, Quests and Sweep drops.
+		doItemDrop(getTemplate(), (maxDealer != null && maxDealer.isOnline()) ? maxDealer : creature);
 		
 		for (RewardInfo reward : rewards.values())
 		{
@@ -204,35 +152,31 @@ public class Monster extends Attackable
 			
 			// Get party.
 			final Party attackerParty = attacker.getParty();
-			
-			// Penalty applied to the attacker's XP
-			final float penalty = attacker.hasServitor() ? ((Servitor) attacker.getSummon()).getExpPenalty() : 0;
-			
-			// If there's NO party in progress.
 			if (attackerParty == null)
 			{
 				// Calculate Exp and SP rewards.
-				if (!attacker.isDead() && attacker.getKnownType(Attackable.class).contains(this))
+				if (!attacker.isDead() && attacker.knows(this))
 				{
-					// Calculate the difference of level between this attacker and the L2Attackable.
-					final int levelDiff = attacker.getLevel() - getLevel();
-					
+					final int levelDiff = attacker.getStatus().getLevel() - getStatus().getLevel();
+					final float penalty = (attacker.hasServitor()) ? ((Servitor) attacker.getSummon()).getExpPenalty() : 0;
 					final int[] expSp = calculateExpAndSp(levelDiff, damage, totalDamage);
+					
 					long exp = expSp[0];
 					int sp = expSp[1];
 					
 					exp *= 1 - penalty;
 					
-					if (isOverhit() && _overhitAttacker != null && _overhitAttacker.getActingPlayer() != null && attacker == _overhitAttacker.getActingPlayer())
+					// Test over-hit.
+					if (_overhitState.isValidOverhit(attacker))
 					{
 						attacker.sendPacket(SystemMessageId.OVER_HIT);
-						exp += calculateOverhitExp(exp);
+						exp += _overhitState.calculateOverhitExp(exp);
 					}
 					
 					// Set new karma.
 					attacker.updateKarmaLoss(exp);
 					
-					// Distribute the Exp and SP between the Player and its L2Summon.
+					// Distribute the Exp and SP.
 					attacker.addExpAndSp(exp, sp, rewards);
 				}
 			}
@@ -243,59 +187,50 @@ public class Monster extends Attackable
 				float partyMul = 1;
 				int partyLvl = 0;
 				
-				// Get all Creature that can be rewarded in the party.
 				final List<Player> rewardedMembers = new ArrayList<>();
-				
-				// Go through all Player in the party.
-				final List<Player> groupMembers = (attackerParty.isInCommandChannel()) ? attackerParty.getCommandChannel().getMembers() : attackerParty.getMembers();
-				
 				final Map<Creature, RewardInfo> playersWithPets = new HashMap<>();
 				
-				for (Player partyPlayer : groupMembers)
+				// Iterate every Party member.
+				for (Player partyPlayer : (attackerParty.isInCommandChannel()) ? attackerParty.getCommandChannel().getMembers() : attackerParty.getMembers())
 				{
 					if (partyPlayer == null || partyPlayer.isDead())
 						continue;
 					
-					// Get the RewardInfo of this Player from L2Attackable rewards
-					final RewardInfo reward2 = rewards.get(partyPlayer);
+					// Add Player of the Party (that have attacked or not) to members that can be rewarded and in range of the monster.
+					final boolean isInRange = MathUtil.checkIfInRange(Config.PARTY_RANGE, this, partyPlayer, true);
+					if (isInRange)
+					{
+						rewardedMembers.add(partyPlayer);
+						
+						if (partyPlayer.getStatus().getLevel() > partyLvl)
+							partyLvl = (attackerParty.isInCommandChannel()) ? attackerParty.getCommandChannel().getLevel() : partyPlayer.getStatus().getLevel();
+					}
 					
-					// If the Player is in the L2Attackable rewards add its damages to party damages
+					// Retrieve the associated RewardInfo, if any.
+					final RewardInfo reward2 = rewards.get(partyPlayer);
 					if (reward2 != null)
 					{
-						if (MathUtil.checkIfInRange(Config.PARTY_RANGE, this, partyPlayer, true))
-						{
-							partyDmg += reward2.getDamage(); // Add Player damages to party damages
-							rewardedMembers.add(partyPlayer);
-							
-							if (partyPlayer.getLevel() > partyLvl)
-								partyLvl = (attackerParty.isInCommandChannel()) ? attackerParty.getCommandChannel().getLevel() : partyPlayer.getLevel();
-						}
-						rewards.remove(partyPlayer); // Remove the Player from the L2Attackable rewards
+						// Add Player damages to Party damages.
+						if (isInRange)
+							partyDmg += reward2.getDamage();
+						
+						// Remove the Player from the rewards.
+						rewards.remove(partyPlayer);
 						
 						playersWithPets.put(partyPlayer, reward2);
 						if (partyPlayer.hasPet() && rewards.containsKey(partyPlayer.getSummon()))
 							playersWithPets.put(partyPlayer.getSummon(), rewards.get(partyPlayer.getSummon()));
 					}
-					// Add Player of the party (that have attacked or not) to members that can be rewarded and in range of the monster.
-					else
-					{
-						if (MathUtil.checkIfInRange(Config.PARTY_RANGE, this, partyPlayer, true))
-						{
-							rewardedMembers.add(partyPlayer);
-							if (partyPlayer.getLevel() > partyLvl)
-								partyLvl = (attackerParty.isInCommandChannel()) ? attackerParty.getCommandChannel().getLevel() : partyPlayer.getLevel();
-						}
-					}
 				}
 				
-				// If the party didn't killed this L2Attackable alone
+				// If the Party didn't kill this Monster alone, calculate their part.
 				if (partyDmg < totalDamage)
 					partyMul = ((float) partyDmg / totalDamage);
 				
-				// Calculate the level difference between Party and L2Attackable
-				final int levelDiff = partyLvl - getLevel();
+				// Calculate the level difference between Party and this Monster.
+				final int levelDiff = partyLvl - getStatus().getLevel();
 				
-				// Calculate Exp and SP rewards
+				// Calculate Exp and SP rewards.
 				final int[] expSp = calculateExpAndSp(levelDiff, partyDmg, totalDamage);
 				long exp = expSp[0];
 				int sp = expSp[1];
@@ -303,29 +238,18 @@ public class Monster extends Attackable
 				exp *= partyMul;
 				sp *= partyMul;
 				
-				// Check for an over-hit enabled strike
-				// (When in party, the over-hit exp bonus is given to the whole party and splitted proportionally through the party members)
-				if (isOverhit() && _overhitAttacker != null && _overhitAttacker.getActingPlayer() != null && attacker == _overhitAttacker.getActingPlayer())
+				// Test over-hit.
+				if (_overhitState.isValidOverhit(attacker))
 				{
 					attacker.sendPacket(SystemMessageId.OVER_HIT);
-					exp += calculateOverhitExp(exp);
+					exp += _overhitState.calculateOverhitExp(exp);
 				}
 				
-				// Distribute Experience and SP rewards to Player Party members in the known area of the last attacker
+				// Distribute Experience and SP rewards to Player Party members in the known area of the last attacker.
 				if (partyDmg > 0)
 					attackerParty.distributeXpAndSp(exp, sp, rewardedMembers, partyLvl, playersWithPets);
 			}
 		}
-	}
-	
-	@Override
-	public boolean isAutoAttackable(Creature attacker)
-	{
-		// FIXME: to test to allow monsters hit others monsters
-		if (attacker instanceof Monster)
-			return false;
-		
-		return true;
 	}
 	
 	@Override
@@ -343,20 +267,15 @@ public class Monster extends Attackable
 		
 		super.onSpawn();
 		
-		// Clear mob spoil/seed state
-		setSpoilerId(0);
+		// Clear over-hit state.
+		_overhitState.clear();
 		
-		// Clear Harvester Reward List
-		_harvestItems.clear();
+		// Clear spoil state.
+		_spoilState.clear();
 		
-		// Clear mod Seeded stat
-		_seed = null;
-		_seederObjId = 0;
+		// Clear seed state.
+		_seedState.clear();
 		
-		// Clear overhit value
-		overhitEnabled(false);
-		
-		_sweepItems.clear();
 		_absorbersList.clear();
 	}
 	
@@ -392,6 +311,34 @@ public class Monster extends Attackable
 		return _isRaid && !_isMinion;
 	}
 	
+	@Override
+	public void reduceCurrentHp(double damage, Creature attacker, boolean awake, boolean isDOT, L2Skill skill)
+	{
+		if (attacker != null && isRaidBoss())
+		{
+			final Party party = attacker.getParty();
+			if (party != null)
+			{
+				final CommandChannel cc = party.getCommandChannel();
+				if (BossInfoType.isCcMeetCondition(cc, getNpcId()))
+				{
+					if (_ccTask == null)
+					{
+						_ccTask = ThreadPool.scheduleAtFixedRate(this::checkCcLastAttack, 1000, 1000);
+						_lastCcAttack = System.currentTimeMillis();
+						_firstCcAttacker = cc;
+						
+						// Broadcast message.
+						broadcastOnScreen(10000, BossInfoType.getBossInfo(getNpcId()).getCcRightsMsg(), cc.getLeader().getName());
+					}
+					else if (_firstCcAttacker.equals(cc))
+						_lastCcAttack = System.currentTimeMillis();
+				}
+			}
+		}
+		super.reduceCurrentHp(damage, attacker, awake, isDOT, skill);
+	}
+	
 	/**
 	 * Set this object as part of raid (it can be either a boss or a minion).<br>
 	 * <br>
@@ -411,8 +358,14 @@ public class Monster extends Attackable
 		return _isRaid;
 	}
 	
+	@Override
+	public boolean isMinion()
+	{
+		return _isMinion;
+	}
+	
 	/**
-	 * Set this {@link Attackable} as a minion instance.
+	 * Set this {@link Monster} as a minion instance.
 	 * @param isRaidMinion : If true, this instance is considered a raid minion.
 	 */
 	public void setMinion(boolean isRaidMinion)
@@ -421,116 +374,34 @@ public class Monster extends Attackable
 		_isMinion = true;
 	}
 	
-	@Override
-	public boolean isMinion()
+	public OverhitState getOverhitState()
 	{
-		return _isMinion;
+		return _overhitState;
+	}
+	
+	public SpoilState getSpoilState()
+	{
+		return _spoilState;
+	}
+	
+	public SeedState getSeedState()
+	{
+		return _seedState;
 	}
 	
 	/**
-	 * @return true if a Dwarf used Spoil on the L2Attackable.
+	 * Add a {@link Player} that successfully absorbed the soul of this {@link Monster} into the _absorbersList.
+	 * @param player : The {@link Player} to test.
+	 * @param crystal : The {@link ItemInstance} which was used to register.
 	 */
-	public boolean isSpoiled()
+	public void addAbsorber(Player player, ItemInstance crystal)
 	{
-		return !_sweepItems.isEmpty();
-	}
-	
-	/**
-	 * @return list containing all ItemHolder that can be spoiled.
-	 */
-	public List<IntIntHolder> getSweepItems()
-	{
-		return _sweepItems;
-	}
-	
-	/**
-	 * @return list containing all ItemHolder that can be harvested.
-	 */
-	public List<IntIntHolder> getHarvestItems()
-	{
-		return _harvestItems;
-	}
-	
-	/**
-	 * Set the over-hit flag on the L2Attackable.
-	 * @param status The status of the over-hit flag
-	 */
-	public void overhitEnabled(boolean status)
-	{
-		_overhit = status;
-	}
-	
-	/**
-	 * Set the over-hit values like the attacker who did the strike and the amount of damage done by the skill.
-	 * @param attacker The Creature who hit on the L2Attackable using the over-hit enabled skill
-	 * @param damage The ammount of damage done by the over-hit enabled skill on the L2Attackable
-	 */
-	public void setOverhitValues(Creature attacker, double damage)
-	{
-		// Calculate the over-hit damage
-		// Ex: mob had 10 HP left, over-hit skill did 50 damage total, over-hit damage is 40
-		double overhitDmg = ((getCurrentHp() - damage) * (-1));
-		if (overhitDmg < 0)
-		{
-			// we didn't killed the mob with the over-hit strike. (it wasn't really an over-hit strike)
-			// let's just clear all the over-hit related values
-			overhitEnabled(false);
-			_overhitDamage = 0;
-			_overhitAttacker = null;
-			return;
-		}
-		overhitEnabled(true);
-		_overhitDamage = overhitDmg;
-		_overhitAttacker = attacker;
-	}
-	
-	/**
-	 * @return the Creature who hit on the L2Attackable using an over-hit enabled skill.
-	 */
-	public Creature getOverhitAttacker()
-	{
-		return _overhitAttacker;
-	}
-	
-	/**
-	 * @return the amount of damage done on the L2Attackable using an over-hit enabled skill.
-	 */
-	public double getOverhitDamage()
-	{
-		return _overhitDamage;
-	}
-	
-	/**
-	 * @return True if the L2Attackable was hit by an over-hit enabled skill.
-	 */
-	public boolean isOverhit()
-	{
-		return _overhit;
-	}
-	
-	public final int getSpoilerId()
-	{
-		return _spoilerId;
-	}
-	
-	public final void setSpoilerId(int value)
-	{
-		_spoilerId = value;
-	}
-	
-	/**
-	 * Adds an attacker that successfully absorbed the soul of this L2Attackable into the _absorbersList.
-	 * @param user : The Player who attacked the monster.
-	 * @param crystal : The ItemInstance which was used to register.
-	 */
-	public void addAbsorber(Player user, ItemInstance crystal)
-	{
-		// If the Creature attacker isn't already in the _absorbersList of this L2Attackable, add it
-		AbsorbInfo ai = _absorbersList.get(user.getObjectId());
+		// If the Player isn't already in the _absorbersList, add it.
+		AbsorbInfo ai = _absorbersList.get(player.getObjectId());
 		if (ai == null)
 		{
 			// Create absorb info.
-			_absorbersList.put(user.getObjectId(), new AbsorbInfo(crystal.getObjectId()));
+			_absorbersList.put(player.getObjectId(), new AbsorbInfo(crystal.getObjectId()));
 		}
 		else
 		{
@@ -540,21 +411,25 @@ public class Monster extends Attackable
 		}
 	}
 	
-	public void registerAbsorber(Player user)
+	/**
+	 * Register a {@link Player} into this instance _absorbersList, setting the HP ratio. The {@link AbsorbInfo} must already exist.
+	 * @param player : The {@link Player} to test.
+	 */
+	public void registerAbsorber(Player player)
 	{
 		// Get AbsorbInfo for user.
-		AbsorbInfo ai = _absorbersList.get(user.getObjectId());
+		AbsorbInfo ai = _absorbersList.get(player.getObjectId());
 		if (ai == null)
 			return;
 		
 		// Check item being used and register player to mob's absorber list.
-		if (user.getInventory().getItemByObjectId(ai.getItemId()) == null)
+		if (player.getInventory().getItemByObjectId(ai.getItemId()) == null)
 			return;
 		
 		// Register AbsorbInfo.
 		if (!ai.isRegistered())
 		{
-			ai.setAbsorbedHpPercent((int) ((100 * getCurrentHp()) / getMaxHp()));
+			ai.setAbsorbedHpPercent((int) getStatus().getHpRatio() * 100);
 			ai.setRegistered(true);
 		}
 	}
@@ -566,7 +441,7 @@ public class Monster extends Attackable
 	
 	/**
 	 * Calculate the XP and SP to distribute to the attacker of the {@link Monster}.
-	 * @param diff : The difference of level between the attacker and the Monster.
+	 * @param diff : The difference of level between the attacker and the {@link Monster}.
 	 * @param damage : The damages done by the attacker.
 	 * @param totalDamage : The total damage done.
 	 * @return an array consisting of xp and sp values.
@@ -585,13 +460,6 @@ public class Monster extends Attackable
 			sp = sp * pow;
 		}
 		
-		// Add champion ratio, if any.
-		if (isChampion())
-		{
-			xp *= Config.CHAMPION_REWARDS;
-			sp *= Config.CHAMPION_REWARDS;
-		}
-		
 		// If the XP is inferior or equals 0, don't reward any SP. Both XP and SP can't be inferior to 0.
 		if (xp <= 0)
 		{
@@ -606,23 +474,6 @@ public class Monster extends Attackable
 			(int) xp,
 			(int) sp
 		};
-	}
-	
-	public long calculateOverhitExp(long normalExp)
-	{
-		// Get the percentage based on the total of extra (over-hit) damage done relative to the total (maximum) ammount of HP on the L2Attackable
-		double overhitPercentage = ((getOverhitDamage() * 100) / getMaxHp());
-		
-		// Over-hit damage percentages are limited to 25% max
-		if (overhitPercentage > 25)
-			overhitPercentage = 25;
-			
-		// Get the overhit exp bonus according to the above over-hit damage percentage
-		// (1/1 basis - 13% of over-hit damage, 13% of extra exp is given, and so on...)
-		double overhitExp = ((overhitPercentage / 100) * normalExp);
-		
-		// Return the rounded ammount of exp points to be added to the player's normal exp reward
-		return Math.round(overhitExp);
 	}
 	
 	public void setMaster(Monster master)
@@ -644,148 +495,29 @@ public class Monster extends Attackable
 	}
 	
 	/**
-	 * Sets state of the mob to seeded.
-	 * @param objectId : The player object id to check.
-	 */
-	public void setSeeded(int objectId)
-	{
-		if (_seed != null && _seederObjId == objectId)
-		{
-			int count = 1;
-			
-			for (L2Skill skill : getTemplate().getSkills(SkillType.PASSIVE))
-			{
-				switch (skill.getId())
-				{
-					case 4303: // Strong type x2
-						count *= 2;
-						break;
-					case 4304: // Strong type x3
-						count *= 3;
-						break;
-					case 4305: // Strong type x4
-						count *= 4;
-						break;
-					case 4306: // Strong type x5
-						count *= 5;
-						break;
-					case 4307: // Strong type x6
-						count *= 6;
-						break;
-					case 4308: // Strong type x7
-						count *= 7;
-						break;
-					case 4309: // Strong type x8
-						count *= 8;
-						break;
-					case 4310: // Strong type x9
-						count *= 9;
-						break;
-				}
-			}
-			
-			final int diff = getLevel() - _seed.getLevel() - 5;
-			if (diff > 0)
-				count += diff;
-			
-			_harvestItems.add(new IntIntHolder(_seed.getCropId(), count * Config.RATE_DROP_MANOR));
-		}
-	}
-	
-	/**
-	 * Sets the seed parameters, but not the seed state.
-	 * @param seed - the seed.
-	 * @param objectId - the player objectId who is sowing the seed.
-	 */
-	public void setSeeded(Seed seed, int objectId)
-	{
-		if (_seed == null)
-		{
-			_seed = seed;
-			_seederObjId = objectId;
-		}
-	}
-	
-	public int getSeederId()
-	{
-		return _seederObjId;
-	}
-	
-	public Seed getSeed()
-	{
-		return _seed;
-	}
-	
-	public boolean isSeeded()
-	{
-		return _seed != null;
-	}
-	
-	public CommandChannelTimer getCommandChannelTimer()
-	{
-		return _commandChannelTimer;
-	}
-	
-	protected void setCommandChannelTimer(CommandChannelTimer commandChannelTimer)
-	{
-		_commandChannelTimer = commandChannelTimer;
-	}
-	
-	public CommandChannel getFirstCommandChannelAttacked()
-	{
-		return _firstCommandChannelAttacked;
-	}
-	
-	public void setFirstCommandChannelAttacked(CommandChannel firstCommandChannelAttacked)
-	{
-		_firstCommandChannelAttacked = firstCommandChannelAttacked;
-	}
-	
-	public long getCommandChannelLastAttack()
-	{
-		return _commandChannelLastAttack;
-	}
-	
-	public void setCommandChannelLastAttack(long channelLastAttack)
-	{
-		_commandChannelLastAttack = channelLastAttack;
-	}
-	
-	/**
 	 * Teleport this {@link Monster} to its master.
 	 */
-	public void teleToMaster()
+	public void teleportToMaster()
 	{
 		if (_master == null)
 			return;
 		
-		// Init the position of the Minion and add it in the world as a visible object
-		final int offset = (int) (100 + getCollisionRadius() + _master.getCollisionRadius());
-		final int minRadius = (int) (_master.getCollisionRadius() + 30);
+		final int minOffset = (int) (_master.getCollisionRadius() + 30);
+		final int maxOffset = (int) (100 + getCollisionRadius() + _master.getCollisionRadius());
 		
-		int newX = Rnd.get(minRadius * 2, offset * 2); // x
-		int newY = Rnd.get(newX, offset * 2); // distance
-		newY = (int) Math.sqrt(newY * newY - newX * newX); // y
+		final Location spawnLoc = _master.getPosition().clone();
+		spawnLoc.addRandomOffsetBetweenTwoValues(minOffset, maxOffset);
+		spawnLoc.set(GeoEngine.getInstance().getValidLocation(_master, spawnLoc));
 		
-		if (newX > offset + minRadius)
-			newX = _master.getX() + newX - offset;
-		else
-			newX = _master.getX() - newX + minRadius;
-		
-		if (newY > offset + minRadius)
-			newY = _master.getY() + newY - offset;
-		else
-			newY = _master.getY() - newY + minRadius;
-		
-		teleportTo(newX, newY, _master.getZ(), 0);
+		teleportTo(spawnLoc, 0);
 	}
 	
 	/**
-	 * Calculates quantity of items for specific drop acording to current situation.
-	 * @param drop The L2DropData count is being calculated for
-	 * @param levelModifier level modifier in %'s (will be subtracted from drop chance)
-	 * @param isSweep if true, use spoil drop chance.
-	 * @return the ItemHolder.
+	 * Calculate the quantity for a specific drop.
+	 * @param drop : The {@link DropData} informations to use.
+	 * @param levelModifier : The level modifier (will be subtracted from drop chance).
+	 * @param isSweep : If True, use the spoil drop chance.
+	 * @return An {@link IntIntHolder} corresponding to the item id and count.
 	 */
 	private IntIntHolder calculateRewardItem(DropData drop, int levelModifier, boolean isSweep)
 	{
@@ -820,9 +552,6 @@ public class Monster extends Attackable
 		else
 			dropChance *= (isRaidBoss()) ? Config.RATE_DROP_ITEMS_BY_RAID : Config.RATE_DROP_ITEMS;
 		
-		if (isChampion())
-			dropChance *= Config.CHAMPION_REWARDS;
-		
 		// Set our limits for chance of drop
 		if (dropChance < 1)
 			dropChance = 1;
@@ -846,14 +575,10 @@ public class Monster extends Attackable
 			else
 				itemCount++;
 			
-			// Prepare for next iteration if dropChance > L2DropData.MAX_CHANCE
+			// Prepare for next iteration if dropChance > DropData.MAX_CHANCE
 			dropChance -= DropData.MAX_CHANCE;
 		}
 		
-		if (isChampion())
-			if (drop.getItemId() == 57 || (drop.getItemId() >= 6360 && drop.getItemId() <= 6362))
-				itemCount *= Config.CHAMPION_ADENAS_REWARDS;
-			
 		if (itemCount > 0)
 			return new IntIntHolder(drop.getItemId(), itemCount);
 		
@@ -861,22 +586,23 @@ public class Monster extends Attackable
 	}
 	
 	/**
-	 * Calculates quantity of items for specific drop CATEGORY according to current situation <br>
-	 * Only a max of ONE item from a category is allowed to be dropped.
-	 * @param categoryDrops The category to make checks on.
-	 * @param levelModifier level modifier in %'s (will be subtracted from drop chance)
-	 * @return the ItemHolder.
+	 * Calculate the quantity for a specific drop, according its {@link DropCategory}.<br>
+	 * <br>
+	 * Only a maximum of ONE item from a {@link DropCategory} is allowed to be dropped.
+	 * @param cat : The {@link DropCategory} informations to use.
+	 * @param levelModifier : The level modifier (will be subtracted from drop chance).
+	 * @return An {@link IntIntHolder} corresponding to the item id and count.
 	 */
-	private IntIntHolder calculateCategorizedRewardItem(DropCategory categoryDrops, int levelModifier)
+	private IntIntHolder calculateCategorizedRewardItem(DropCategory cat, int levelModifier)
 	{
-		if (categoryDrops == null)
+		if (cat == null)
 			return null;
 			
 		// Get default drop chance for the category (that's the sum of chances for all items in the category)
 		// keep track of the base category chance as it'll be used later, if an item is drop from the category.
 		// for everything else, use the total "categoryDropChance"
-		int basecategoryDropChance = categoryDrops.getCategoryChance();
-		int categoryDropChance = basecategoryDropChance;
+		int baseCategoryDropChance = cat.getCategoryChance();
+		int categoryDropChance = baseCategoryDropChance;
 		
 		if (Config.DEEPBLUE_DROP_RULES)
 		{
@@ -889,9 +615,6 @@ public class Monster extends Attackable
 		// Applies Drop rates
 		categoryDropChance *= (isRaidBoss()) ? Config.RATE_DROP_ITEMS_BY_RAID : Config.RATE_DROP_ITEMS;
 		
-		if (isChampion())
-			categoryDropChance *= Config.CHAMPION_REWARDS;
-		
 		// Set our limits for chance of drop
 		if (categoryDropChance < 1)
 			categoryDropChance = 1;
@@ -899,7 +622,7 @@ public class Monster extends Attackable
 		// Check if an Item from this category must be dropped
 		if (Rnd.get(DropData.MAX_CHANCE) < categoryDropChance)
 		{
-			DropData drop = categoryDrops.dropOne(isRaidBoss());
+			final DropData drop = cat.dropOne(isRaidBoss());
 			if (drop == null)
 				return null;
 				
@@ -920,9 +643,6 @@ public class Monster extends Attackable
 				dropChance *= Config.RATE_DROP_ADENA;
 			else
 				dropChance *= (isRaidBoss()) ? Config.RATE_DROP_ITEMS_BY_RAID : Config.RATE_DROP_ITEMS;
-			
-			if (isChampion())
-				dropChance *= Config.CHAMPION_REWARDS;
 			
 			if (dropChance < DropData.MAX_CHANCE)
 				dropChance = DropData.MAX_CHANCE;
@@ -946,14 +666,10 @@ public class Monster extends Attackable
 				else
 					itemCount++;
 				
-				// Prepare for next iteration if dropChance > L2DropData.MAX_CHANCE
+				// Prepare for next iteration if dropChance > DropData.MAX_CHANCE
 				dropChance -= DropData.MAX_CHANCE;
 			}
 			
-			if (isChampion())
-				if (drop.getItemId() == 57 || (drop.getItemId() >= 6360 && drop.getItemId() <= 6362))
-					itemCount *= Config.CHAMPION_ADENAS_REWARDS;
-				
 			if (itemCount > 0)
 				return new IntIntHolder(drop.getItemId(), itemCount);
 		}
@@ -961,46 +677,33 @@ public class Monster extends Attackable
 	}
 	
 	/**
-	 * @param lastAttacker The Player that has killed the L2Attackable
-	 * @return the level modifier for drop
+	 * Calculate the quantity for a specific herb, according its {@link DropCategory}.
+	 * @param cat : The {@link DropCategory} informations to use.
+	 * @param levelModifier : The level modifier (will be subtracted from drop chance).
+	 * @return An {@link IntIntHolder} corresponding to the item id and count.
 	 */
-	private int calculateLevelModifierForDrop(Player lastAttacker)
+	private static IntIntHolder calculateCategorizedHerbItem(DropCategory cat, int levelModifier)
 	{
-		if (Config.DEEPBLUE_DROP_RULES)
-		{
-			int highestLevel = lastAttacker.getLevel();
-			
-			// Check to prevent very high level player to nearly kill mob and let low level player do the last hit.
-			for (Creature atkChar : getAttackByList())
-				if (atkChar.getLevel() > highestLevel)
-					highestLevel = atkChar.getLevel();
-				
-			// According to official data (Prima), deep blue mobs are 9 or more levels below players
-			if (highestLevel - 9 >= getLevel())
-				return ((highestLevel - (getLevel() + 8)) * 9);
-		}
-		return 0;
-	}
-	
-	private static IntIntHolder calculateCategorizedHerbItem(DropCategory categoryDrops, int levelModifier)
-	{
-		if (categoryDrops == null)
+		if (cat == null)
 			return null;
 		
-		int categoryDropChance = categoryDrops.getCategoryChance();
+		int categoryDropChance = cat.getCategoryChance();
 		
 		// Applies Drop rates
-		switch (categoryDrops.getCategoryType())
+		switch (cat.getCategoryType())
 		{
 			case 1:
 				categoryDropChance *= Config.RATE_DROP_HP_HERBS;
 				break;
+			
 			case 2:
 				categoryDropChance *= Config.RATE_DROP_MP_HERBS;
 				break;
+			
 			case 3:
 				categoryDropChance *= Config.RATE_DROP_SPECIAL_HERBS;
 				break;
+			
 			default:
 				categoryDropChance *= Config.RATE_DROP_COMMON_HERBS;
 		}
@@ -1017,7 +720,7 @@ public class Monster extends Attackable
 		// Check if an Item from this category must be dropped
 		if (Rnd.get(DropData.MAX_CHANCE) < Math.max(1, categoryDropChance))
 		{
-			final DropData drop = categoryDrops.dropOne(false);
+			final DropData drop = cat.dropOne(false);
 			if (drop == null)
 				return null;
 			
@@ -1028,17 +731,20 @@ public class Monster extends Attackable
 			 */
 			double dropChance = drop.getChance();
 			
-			switch (categoryDrops.getCategoryType())
+			switch (cat.getCategoryType())
 			{
 				case 1:
 					dropChance *= Config.RATE_DROP_HP_HERBS;
 					break;
+				
 				case 2:
 					dropChance *= Config.RATE_DROP_MP_HERBS;
 					break;
+				
 				case 3:
 					dropChance *= Config.RATE_DROP_SPECIAL_HERBS;
 					break;
+				
 				default:
 					dropChance *= Config.RATE_DROP_COMMON_HERBS;
 			}
@@ -1076,94 +782,87 @@ public class Monster extends Attackable
 	}
 	
 	/**
-	 * Manage Base & Quests drops of this {@link Attackable} using an associated {@link NpcTemplate} (can be its or another template).<br>
-	 * <br>
-	 * This method is called by {@link Attackable#calculateRewards}.
-	 * @param npcTemplate : The template used to retrieve drops.
-	 * @param mainDamageDealer : The Creature that made the most damage.
+	 * @param player : The {@link Player} to test.
+	 * @return The level modifier for drop purpose, based on this instance and the {@link Player} set as parameter.
 	 */
-	public void doItemDrop(NpcTemplate npcTemplate, Creature mainDamageDealer)
+	private int calculateLevelModifierForDrop(Player player)
 	{
-		if (mainDamageDealer == null)
+		if (Config.DEEPBLUE_DROP_RULES)
+		{
+			int highestLevel = player.getStatus().getLevel();
+			
+			// Check to prevent very high level player to nearly kill mob and let low level player do the last hit.
+			for (Creature creature : getAttackByList())
+			{
+				if (creature.getStatus().getLevel() > highestLevel)
+					highestLevel = creature.getStatus().getLevel();
+			}
+			
+			// According to official data (Prima), deep blue mobs are 9 or more levels below players
+			if (highestLevel - 9 >= getStatus().getLevel())
+				return ((highestLevel - (getStatus().getLevel() + 8)) * 9);
+		}
+		return 0;
+	}
+	
+	/**
+	 * Manage Base & Quests drops of this {@link Monster} using an associated {@link NpcTemplate}.<br>
+	 * <br>
+	 * This method is called by {@link #calculateRewards}.
+	 * @param template : The {@link NpcTemplate} used to retrieve drops.
+	 * @param creature : The {@link Creature} that made the most damage.
+	 */
+	public void doItemDrop(NpcTemplate template, Creature creature)
+	{
+		if (creature == null)
 			return;
 		
-		// Don't drop anything if the last attacker or owner isn't Player
-		final Player player = mainDamageDealer.getActingPlayer();
+		// Don't drop anything if the last attacker or owner isn't a Player.
+		final Player player = creature.getActingPlayer();
 		if (player == null)
 			return;
 		
-		// level modifier in %'s (will be subtracted from drop chance)
+		// Calculate level modifier.
 		final int levelModifier = calculateLevelModifierForDrop(player);
 		
+		// Check Cursed Weapons drop.
 		CursedWeaponManager.getInstance().checkDrop(this, player);
 		
 		// now throw all categorized drops and handle spoil.
-		for (DropCategory cat : npcTemplate.getDropData())
+		for (DropCategory cat : template.getDropData())
 		{
-			IntIntHolder item = null;
+			IntIntHolder holder = null;
 			if (cat.isSweep())
 			{
-				if (getSpoilerId() != 0)
+				if (getSpoilState().isSpoiled())
 				{
 					for (DropData drop : cat.getAllDrops())
 					{
-						item = calculateRewardItem(drop, levelModifier, true);
-						if (item == null)
+						holder = calculateRewardItem(drop, levelModifier, true);
+						if (holder == null)
 							continue;
 						
-						_sweepItems.add(item);
+						getSpoilState().add(holder);
 					}
 				}
 			}
 			else
 			{
-				if (isSeeded())
+				if (getSeedState().isSeeded())
 				{
-					DropData drop = cat.dropSeedAllowedDropsOnly();
+					final DropData drop = cat.dropSeedAllowedDropsOnly();
 					if (drop == null)
 						continue;
 					
-					item = calculateRewardItem(drop, levelModifier, false);
+					holder = calculateRewardItem(drop, levelModifier, false);
 				}
 				else
-					item = calculateCategorizedRewardItem(cat, levelModifier);
+					holder = calculateCategorizedRewardItem(cat, levelModifier);
 				
-				if (item != null)
-				{
-					// Check if the autoLoot mode is active
-					if ((isRaidBoss() && Config.AUTO_LOOT_RAID) || (!isRaidBoss() && Config.AUTO_LOOT))
-						player.doAutoLoot(this, item);
-					else
-						dropItem(player, item);
-					
-					// Broadcast message if RaidBoss was defeated
-					if (isRaidBoss())
-						broadcastPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_DIED_DROPPED_S3_S2).addCharName(this).addItemName(item.getId()).addNumber(item.getValue()));
-				}
-			}
-		}
-		
-		// Apply special item drop for champions.
-		if (isChampion() && Config.CHAMPION_REWARD > 0)
-		{
-			int dropChance = Config.CHAMPION_REWARD;
-			
-			// Apply level modifier, if any/wanted.
-			if (Config.DEEPBLUE_DROP_RULES)
-			{
-				int deepBlueDrop = (levelModifier > 0) ? 3 : 1;
+				if (holder == null)
+					continue;
 				
-				// Check if we should apply our maths so deep blue mobs will not drop that easy.
-				dropChance = ((Config.CHAMPION_REWARD - ((Config.CHAMPION_REWARD * levelModifier) / 100)) / deepBlueDrop);
-			}
-			
-			if (Rnd.get(100) < dropChance)
-			{
-				final IntIntHolder item = new IntIntHolder(Config.CHAMPION_REWARD_ID, Math.max(1, Rnd.get(1, Config.CHAMPION_REWARD_QTY)));
-				if (Config.AUTO_LOOT)
-					player.addItem("ChampionLoot", item.getId(), item.getValue(), this, true);
-				else
-					dropItem(player, item);
+				dropOrAutoLootItem(player, holder, true);
 			}
 		}
 		
@@ -1172,42 +871,76 @@ public class Monster extends Attackable
 		{
 			for (DropCategory cat : HerbDropData.getInstance().getHerbDroplist(getTemplate().getDropHerbGroup()))
 			{
-				final IntIntHolder item = calculateCategorizedHerbItem(cat, levelModifier);
-				if (item != null)
-				{
-					if (Config.AUTO_LOOT_HERBS)
-						player.addItem("Loot", item.getId(), 1, this, true);
-					else
-					{
-						// If multiple similar herbs drop, split them and make a unique drop per item.
-						final int count = item.getValue();
-						if (count > 1)
-						{
-							item.setValue(1);
-							for (int i = 0; i < count; i++)
-								dropItem(player, item);
-						}
-						else
-							dropItem(player, item);
-					}
-				}
+				final IntIntHolder holder = calculateCategorizedHerbItem(cat, levelModifier);
+				if (holder == null)
+					continue;
+				
+				dropOrAutoLootItem(player, holder, false);
 			}
 		}
 	}
 	
 	/**
-	 * Drop reward item.
-	 * @param mainDamageDealer The player who made highest damage.
-	 * @param holder The ItemHolder.
+	 * Drop on ground or auto loot a reward item, depending about activated {@link Config}s.
+	 * @param player : The {@link Player} who made the highest damage contribution.
+	 * @param holder : The {@link IntIntHolder} used for reward (item id / amount).
+	 * @param isRegularItem : If True, regular item scenario occurs ; if False, herb scenario occurs.
 	 */
-	private void dropItem(Player mainDamageDealer, IntIntHolder holder)
+	public void dropOrAutoLootItem(Player player, IntIntHolder holder, boolean isRegularItem)
+	{
+		if (isRegularItem)
+		{
+			// Check Config.
+			if (((isRaidBoss() && Config.AUTO_LOOT_RAID) || (!isRaidBoss() && Config.AUTO_LOOT)) && player.getInventory().validateCapacityByItemId(holder))
+			{
+				if (player.isInParty())
+					player.getParty().distributeItem(player, holder, false, this);
+				else if (holder.getId() == 57)
+					player.addAdena("Loot", holder.getValue(), this, true);
+				else
+					player.addItem("Loot", holder.getId(), holder.getValue(), this, true);
+			}
+			else
+				dropItem(player, holder);
+			
+			// Broadcast message if RaidBoss was defeated.
+			if (isRaidBoss())
+				broadcastPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_DIED_DROPPED_S3_S2).addCharName(this).addItemName(holder.getId()).addNumber(holder.getValue()));
+		}
+		else
+		{
+			// Check Config.
+			if (Config.AUTO_LOOT_HERBS)
+				player.addItem("Loot", holder.getId(), 1, this, true);
+			else
+			{
+				// If multiple similar herbs drop, split them and make a unique drop per item.
+				final int count = holder.getValue();
+				if (count > 1)
+				{
+					holder.setValue(1);
+					for (int i = 0; i < count; i++)
+						dropItem(player, holder);
+				}
+				else
+					dropItem(player, holder);
+			}
+		}
+	}
+	
+	/**
+	 * Drop a reward on the ground, to this {@link Monster} feet. It is item protected to the {@link Player} set as parameter.
+	 * @param player : The {@link Player} used as item protection.
+	 * @param holder : The {@link IntIntHolder} used for reward (item id / amount).
+	 */
+	public void dropItem(Player player, IntIntHolder holder)
 	{
 		for (int i = 0; i < holder.getValue(); i++)
 		{
-			// Init the dropped ItemInstance and add it in the world as a visible object at the position where mob was last
-			final ItemInstance item = ItemInstance.create(holder.getId(), holder.getValue(), mainDamageDealer, this);
-			item.setDropProtection(mainDamageDealer.getObjectId(), isRaidBoss());
-			item.dropMe(this, getX() + Rnd.get(-70, 70), getY() + Rnd.get(-70, 70), Math.max(getZ(), mainDamageDealer.getZ()) + 20);
+			// Create the ItemInstance and add it in the world as a visible object.
+			final ItemInstance item = ItemInstance.create(holder.getId(), holder.getValue(), player, this);
+			item.setDropProtection(player.getObjectId(), isRaidBoss());
+			item.dropMe(this, 70);
 			
 			// If stackable, end loop as entire count is included in 1 instance of item.
 			if (item.isStackable() || !Config.MULTIPLE_ITEM_DROP)
@@ -1215,26 +948,33 @@ public class Monster extends Attackable
 		}
 	}
 	
-	private static class CommandChannelTimer implements Runnable
+	/**
+	 * Check CommandChannel loot priority every second. After 5min, the loot priority dissapears.
+	 */
+	private void checkCcLastAttack()
 	{
-		private final Monster _monster;
+		// We're still on time, do nothing.
+		if (System.currentTimeMillis() - _lastCcAttack <= 300000)
+			return;
 		
-		public CommandChannelTimer(Monster monster)
+		// Reset variables.
+		_firstCcAttacker = null;
+		_lastCcAttack = 0;
+		
+		// Set task to null.
+		if (_ccTask != null)
 		{
-			_monster = monster;
+			_ccTask.cancel(false);
+			_ccTask = null;
 		}
 		
-		@Override
-		public void run()
-		{
-			if ((System.currentTimeMillis() - _monster.getCommandChannelLastAttack()) > 900000)
-			{
-				_monster.setCommandChannelTimer(null);
-				_monster.setFirstCommandChannelAttacked(null);
-				_monster.setCommandChannelLastAttack(0);
-			}
-			else
-				ThreadPool.schedule(this, 10000); // 10sec
-		}
+		// Broadcast message.
+		broadcastOnScreen(10000, BossInfoType.getBossInfo(getNpcId()).getCcNoRightsMsg());
+	}
+	
+	@Override
+	public boolean isAttackableWithoutForceBy(Playable attacker)
+	{
+		return isAttackableBy(attacker);
 	}
 }

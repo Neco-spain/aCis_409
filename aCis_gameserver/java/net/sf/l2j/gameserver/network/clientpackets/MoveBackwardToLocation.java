@@ -2,14 +2,16 @@ package net.sf.l2j.gameserver.network.clientpackets;
 
 import java.nio.BufferUnderflowException;
 
+import net.sf.l2j.commons.math.MathUtil;
+
 import net.sf.l2j.Config;
-import net.sf.l2j.gameserver.enums.IntentionType;
+import net.sf.l2j.gameserver.enums.TeleportMode;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.location.Location;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 import net.sf.l2j.gameserver.network.serverpackets.EnchantResult;
-import net.sf.l2j.gameserver.network.serverpackets.StopMove;
+import net.sf.l2j.gameserver.network.serverpackets.MoveToLocation;
 
 public class MoveBackwardToLocation extends L2GameClientPacket
 {
@@ -18,6 +20,7 @@ public class MoveBackwardToLocation extends L2GameClientPacket
 	private int _targetZ;
 	private int _originX;
 	private int _originY;
+	@SuppressWarnings("unused")
 	private int _originZ;
 	
 	@SuppressWarnings("unused")
@@ -51,40 +54,41 @@ public class MoveBackwardToLocation extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		if (activeChar.isOutOfControl())
+		if (player.isOutOfControl())
 		{
-			activeChar.sendPacket(ActionFailed.STATIC_PACKET);
+			player.sendPacket(ActionFailed.STATIC_PACKET);
 			return;
 		}
 		
-		if (activeChar.getActiveEnchantItem() != null)
+		if (player.getStatus().getMoveSpeed() == 0)
 		{
-			activeChar.setActiveEnchantItem(null);
-			activeChar.sendPacket(EnchantResult.CANCELLED);
-			activeChar.sendPacket(SystemMessageId.ENCHANT_SCROLL_CANCELLED);
+			player.sendPacket(ActionFailed.STATIC_PACKET);
+			player.sendPacket(SystemMessageId.CANT_MOVE_TOO_ENCUMBERED);
+			return;
 		}
 		
-		if (_targetX == _originX && _targetY == _originY && _targetZ == _originZ)
+		if (player.getActiveEnchantItem() != null)
 		{
-			activeChar.sendPacket(new StopMove(activeChar));
-			return;
+			player.setActiveEnchantItem(null);
+			player.sendPacket(EnchantResult.CANCELLED);
+			player.sendPacket(SystemMessageId.ENCHANT_SCROLL_CANCELLED);
 		}
 		
 		// Correcting targetZ from floor level to head level
-		_targetZ += activeChar.getCollisionHeight();
+		_targetZ += player.getCollisionHeight();
 		
-		if (activeChar.getTeleMode() > 0)
+		switch (player.getTeleportMode())
 		{
-			if (activeChar.getTeleMode() == 1)
-				activeChar.setTeleMode(0);
-			
-			activeChar.sendPacket(ActionFailed.STATIC_PACKET);
-			activeChar.teleportTo(_targetX, _targetY, _targetZ, 0);
-			return;
+			case ONE_TIME:
+				player.setTeleportMode(TeleportMode.NONE);
+			case FULL_TIME:
+				player.sendPacket(ActionFailed.STATIC_PACKET);
+				player.teleportTo(_targetX, _targetY, _targetZ, 0);
+				return;
 		}
 		
 		double dx = _targetX - _originX;
@@ -92,9 +96,20 @@ public class MoveBackwardToLocation extends L2GameClientPacket
 		
 		if ((dx * dx + dy * dy) > 98010000) // 9900*9900
 		{
-			activeChar.sendPacket(ActionFailed.STATIC_PACKET);
+			player.sendPacket(ActionFailed.STATIC_PACKET);
 			return;
 		}
-		activeChar.getAI().setIntention(IntentionType.MOVE_TO, new Location(_targetX, _targetY, _targetZ));
+		
+		if (!player.isInBoat())
+			player.getAI().tryToMoveTo(new Location(_targetX, _targetY, _targetZ), null);
+		// Player is on the boat, we don't want to schedule a real movement until he gets out of it otherwise GeoEngine will be confused.
+		else
+		{
+			// We want to set the real player heading though so it can be used during actual departure.
+			player.getPosition().setHeading(MathUtil.calculateHeadingFrom(_originX, _originY, _targetX, _targetY));
+			
+			// Just sending a client move packet so player will try to move towards exit.
+			player.broadcastPacket(new MoveToLocation(player, new Location(_targetX, _targetY, _targetZ)));
+		}
 	}
 }

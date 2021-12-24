@@ -6,8 +6,12 @@ import net.sf.l2j.commons.data.xml.IXmlReader;
 
 import net.sf.l2j.gameserver.data.manager.CastleManager;
 import net.sf.l2j.gameserver.data.manager.ClanHallManager;
+import net.sf.l2j.gameserver.data.manager.SevenSignsManager;
 import net.sf.l2j.gameserver.data.manager.ZoneManager;
+import net.sf.l2j.gameserver.enums.CabalType;
+import net.sf.l2j.gameserver.enums.SealType;
 import net.sf.l2j.gameserver.enums.SiegeSide;
+import net.sf.l2j.gameserver.enums.SpawnType;
 import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.enums.actors.ClassRace;
 import net.sf.l2j.gameserver.model.actor.Creature;
@@ -15,10 +19,9 @@ import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.clanhall.ClanHall;
 import net.sf.l2j.gameserver.model.entity.Castle;
+import net.sf.l2j.gameserver.model.entity.ClanHallSiege;
 import net.sf.l2j.gameserver.model.entity.Siege;
 import net.sf.l2j.gameserver.model.location.Location;
-import net.sf.l2j.gameserver.model.zone.type.ArenaZone;
-import net.sf.l2j.gameserver.model.zone.type.ClanHallZone;
 import net.sf.l2j.gameserver.model.zone.type.TownZone;
 
 import org.w3c.dom.Document;
@@ -31,7 +34,7 @@ import org.w3c.dom.NamedNodeMap;
  */
 public class MapRegionData implements IXmlReader
 {
-	public static enum TeleportType
+	public enum TeleportType
 	{
 		CASTLE,
 		CLAN_HALL,
@@ -116,7 +119,6 @@ public class MapRegionData implements IXmlReader
 			
 			case 10: // Town of Aden
 			case 11: // Hunters Village
-			default: // Town of Aden
 				return 5;
 			
 			case 13: // Heine
@@ -133,6 +135,9 @@ public class MapRegionData implements IXmlReader
 			case 4: // Dwarven Village
 			case 16: // Town of Schuttgart
 				return 9;
+			
+			default: // Town of Aden
+				return 5;
 		}
 	}
 	
@@ -214,9 +219,12 @@ public class MapRegionData implements IXmlReader
 	 */
 	public Location getLocationToTeleport(Creature creature, TeleportType teleportType)
 	{
-		// The character isn't a player, bypass all checks and retrieve a random spawn location on closest town.
+		// Retrieve the TownZone associated to the Creature's position.
+		final TownZone town = getClosestTown(creature);
+		
+		// If the Creature isn't a Player, retrieve a random Location from closest town. If none is found, move it to MDT (should never happen).
 		if (!(creature instanceof Player))
-			return getClosestTown(creature).getRandomLoc();
+			return (town != null) ? town.getRndSpawn(SpawnType.NORMAL) : MDT_LOCATION;
 		
 		final Player player = ((Player) creature);
 		
@@ -230,11 +238,7 @@ public class MapRegionData implements IXmlReader
 			{
 				final ClanHall ch = ClanHallManager.getInstance().getClanHallByOwner(player.getClan());
 				if (ch != null)
-				{
-					final ClanHallZone zone = ch.getZone();
-					if (zone != null)
-						return zone.getRandomLoc();
-				}
+					return ch.getRndSpawn((player.getKarma() > 0) ? SpawnType.CHAOTIC : SpawnType.OWNER);
 			}
 			else if (teleportType == TeleportType.CASTLE)
 			{
@@ -248,8 +252,8 @@ public class MapRegionData implements IXmlReader
 						castle = null;
 				}
 				
-				if (castle != null && castle.getCastleId() > 0)
-					return castle.getCastleZone().getRandomLoc();
+				if (castle != null)
+					return castle.getRndSpawn((player.getKarma() > 0) ? SpawnType.CHAOTIC : SpawnType.OWNER);
 			}
 			else if (teleportType == TeleportType.SIEGE_FLAG)
 			{
@@ -260,25 +264,26 @@ public class MapRegionData implements IXmlReader
 					if (flag != null)
 						return flag.getPosition();
 				}
+				
+				final ClanHallSiege chs = ClanHallManager.getInstance().getActiveSiege(player);
+				if (chs != null)
+				{
+					final Npc flag = chs.getFlag(player.getClan());
+					if (flag != null)
+						return flag.getPosition();
+				}
 			}
 		}
 		
-		// Check if the player needs to be teleported in second closest town, during an active siege.
+		// Returning to Town in a Siege - Seal of Strife.
+		// When owned by Dawn: Player restarts in the second nearest village.
+		// When owned by Dusk / not owned: A clan that has participated in a siege restarts in the first town at the time of escape or death.
 		final Castle castle = CastleManager.getInstance().getCastle(player);
-		if (castle != null && castle.getSiege().isInProgress())
-			return (player.getKarma() > 0) ? castle.getSiegeZone().getRandomChaoticLoc() : castle.getSiegeZone().getRandomLoc();
+		if (castle != null && castle.getSiege().isInProgress() && SevenSignsManager.getInstance().isSealValidationPeriod() && SevenSignsManager.getInstance().getSealOwner(SealType.STRIFE) == CabalType.DAWN)
+			return castle.getRndSpawn((player.getKarma() > 0) ? SpawnType.CHAOTIC : SpawnType.OTHER);
 		
-		// Karma player lands out of city.
-		if (player.getKarma() > 0)
-			return getClosestTown(player).getRandomChaoticLoc();
-		
-		// Check if player is in arena.
-		final ArenaZone arena = ZoneManager.getInstance().getZone(player, ArenaZone.class);
-		if (arena != null)
-			return arena.getRandomLoc();
-		
-		// Retrieve a random spawn location of the nearest town.
-		return getClosestTown(player).getRandomLoc();
+		// Karma player lands out of city, otherwise retrieve a random spawn location of the nearest town.
+		return (town != null) ? (town.getRndSpawn((player.getKarma() > 0) ? SpawnType.CHAOTIC : SpawnType.NORMAL)) : MDT_LOCATION;
 	}
 	
 	/**
@@ -345,61 +350,6 @@ public class MapRegionData implements IXmlReader
 				return getTown(19);
 		}
 		return getTown(16); // Default to floran
-	}
-	
-	/**
-	 * @param x : The X value (part of 2D point) to check.
-	 * @param y : The Y value (part of 2D point) to check.
-	 * @return the closest regionId based on X/Y points.
-	 */
-	public final int getClosestLocation(int x, int y)
-	{
-		switch (getMapRegion(x, y))
-		{
-			case 0: // TI
-				return 1;
-			
-			case 1: // Elven
-				return 4;
-			
-			case 2: // DE
-				return 3;
-			
-			case 3: // Orc
-			case 4: // Dwarven
-			case 16:// Schuttgart
-				return 9;
-			
-			case 5: // Gludio
-			case 6: // Gludin
-				return 2;
-			
-			case 7: // Dion
-				return 5;
-			
-			case 8: // Giran
-			case 12: // Giran Harbor
-				return 6;
-			
-			case 9: // Oren
-				return 10;
-			
-			case 10: // Aden
-				return 13;
-			
-			case 11: // HV
-				return 11;
-			
-			case 13: // Heine
-				return 12;
-			
-			case 14: // Rune
-				return 14;
-			
-			case 15: // Goddard
-				return 15;
-		}
-		return 0;
 	}
 	
 	/**

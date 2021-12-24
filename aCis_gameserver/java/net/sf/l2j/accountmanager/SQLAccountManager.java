@@ -1,18 +1,21 @@
 package net.sf.l2j.accountmanager;
 
-import java.security.MessageDigest;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Base64;
 import java.util.Scanner;
 
+import net.sf.l2j.commons.crypt.BCrypt;
+import net.sf.l2j.commons.pool.ConnectionPool;
+
 import net.sf.l2j.Config;
-import net.sf.l2j.L2DatabaseFactory;
 
 public class SQLAccountManager
 {
+	private static final String INSERT_OR_UPDATE_ACCOUNT = "INSERT INTO accounts(login, password, access_level) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE password = VALUES(password), access_level = VALUES(access_level)";
+	private static final String UPDATE_ACCOUNT_LEVEL = "UPDATE accounts SET access_level = ? WHERE login = ?";
+	private static final String DELETE_ACCOUNT = "DELETE FROM accounts WHERE login = ?";
+	
 	private static String _uname = "";
 	private static String _pass = "";
 	private static String _level = "";
@@ -21,6 +24,8 @@ public class SQLAccountManager
 	public static void main(String[] args)
 	{
 		Config.loadAccountManager();
+		
+		ConnectionPool.init();
 		
 		try (Scanner _scn = new Scanner(System.in))
 		{
@@ -147,7 +152,7 @@ public class SQLAccountManager
 		}
 		q = q.concat(" ORDER BY login ASC");
 		
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(q);
 			ResultSet rset = ps.executeQuery())
 		{
@@ -159,7 +164,7 @@ public class SQLAccountManager
 			
 			System.out.println("Displayed accounts: " + count);
 		}
-		catch (SQLException e)
+		catch (Exception e)
 		{
 			System.out.println("There was error while displaying accounts:");
 			System.out.println(e.getMessage());
@@ -168,14 +173,16 @@ public class SQLAccountManager
 	
 	private static void addOrUpdateAccount(String account, String password, String level)
 	{
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
-			PreparedStatement ps = con.prepareStatement("REPLACE accounts(login, password, access_level) VALUES (?, ?, ?)"))
+		try (Connection con = ConnectionPool.getConnection();
+			PreparedStatement ps = con.prepareStatement(INSERT_OR_UPDATE_ACCOUNT))
 		{
-			byte[] newPassword = MessageDigest.getInstance("SHA").digest(password.getBytes("UTF-8"));
+			// Hash the password with default (10) salt
+			final String hashed = BCrypt.hashPw(password);
 			
 			ps.setString(1, account);
-			ps.setString(2, Base64.getEncoder().encodeToString(newPassword));
+			ps.setString(2, hashed);
 			ps.setString(3, level);
+			
 			if (ps.executeUpdate() > 0)
 			{
 				System.out.println("Account " + account + " has been created or updated");
@@ -194,8 +201,8 @@ public class SQLAccountManager
 	
 	private static void changeAccountLevel(String account, String level)
 	{
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
-			PreparedStatement ps = con.prepareStatement("UPDATE accounts SET access_level = ? WHERE login = ?"))
+		try (Connection con = ConnectionPool.getConnection();
+			PreparedStatement ps = con.prepareStatement(UPDATE_ACCOUNT_LEVEL))
 		{
 			ps.setString(1, level);
 			ps.setString(2, account);
@@ -208,7 +215,7 @@ public class SQLAccountManager
 				System.out.println("Account " + account + " doesn't exist");
 			}
 		}
-		catch (SQLException e)
+		catch (Exception e)
 		{
 			System.out.println("There was error while updating account:");
 			System.out.println(e.getMessage());
@@ -217,8 +224,8 @@ public class SQLAccountManager
 	
 	private static void deleteAccount(String account)
 	{
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
-			PreparedStatement ps = con.prepareStatement("DELETE FROM accounts WHERE login = ?"))
+		try (Connection con = ConnectionPool.getConnection();
+			PreparedStatement ps = con.prepareStatement(DELETE_ACCOUNT))
 		{
 			ps.setString(1, account);
 			if (ps.executeUpdate() > 0)
@@ -230,7 +237,7 @@ public class SQLAccountManager
 				System.out.println("Account " + account + " doesn't exist");
 			}
 		}
-		catch (SQLException e)
+		catch (Exception e)
 		{
 			System.out.println("There was error while deleting account:");
 			System.out.println(e.getMessage());

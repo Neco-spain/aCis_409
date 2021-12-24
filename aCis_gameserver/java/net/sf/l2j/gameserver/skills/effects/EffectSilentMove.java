@@ -1,65 +1,50 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import net.sf.l2j.gameserver.enums.skills.L2EffectFlag;
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
-import net.sf.l2j.gameserver.enums.skills.L2SkillType;
-import net.sf.l2j.gameserver.model.L2Effect;
+import net.sf.l2j.gameserver.enums.skills.EffectFlag;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.enums.skills.SkillType;
+import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
-public class EffectSilentMove extends L2Effect
+public class EffectSilentMove extends AbstractEffect
 {
-	public EffectSilentMove(Env env, EffectTemplate template)
+	public EffectSilentMove(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
 	{
-		super(env, template);
+		super(template, skill, effected, effector);
 	}
 	
 	@Override
-	public boolean onStart()
+	public EffectType getEffectType()
 	{
-		super.onStart();
-		return true;
-	}
-	
-	@Override
-	public void onExit()
-	{
-		super.onExit();
-	}
-	
-	@Override
-	public L2EffectType getEffectType()
-	{
-		return L2EffectType.SILENT_MOVE;
+		return EffectType.SILENT_MOVE;
 	}
 	
 	@Override
 	public boolean onActionTime()
 	{
 		// Only cont skills shouldn't end
-		if (getSkill().getSkillType() != L2SkillType.CONT)
+		if (getSkill().getSkillType() != SkillType.CONT)
 			return false;
 		
 		if (getEffected().isDead())
 			return false;
 		
-		double manaDam = calc();
-		
-		if (manaDam > getEffected().getCurrentMp())
+		if (getTemplate().getValue() > getEffected().getStatus().getMp())
 		{
-			SystemMessage sm = SystemMessage.getSystemMessage(SystemMessageId.SKILL_REMOVED_DUE_LACK_MP);
-			getEffected().sendPacket(sm);
+			getEffected().sendPacket(SystemMessage.getSystemMessage(SystemMessageId.SKILL_REMOVED_DUE_LACK_MP));
 			return false;
 		}
 		
-		getEffected().reduceCurrentMp(manaDam);
+		getEffected().getStatus().reduceMp(getTemplate().getValue());
 		return true;
 	}
 	
 	@Override
 	public int getEffectFlags()
 	{
-		return L2EffectFlag.SILENT_MOVE.getMask();
+		return EffectFlag.SILENT_MOVE.getMask();
 	}
 }

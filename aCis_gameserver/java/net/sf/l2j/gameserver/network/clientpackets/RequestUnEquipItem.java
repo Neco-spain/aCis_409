@@ -7,9 +7,6 @@ import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.InventoryUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
-/**
- * format: cd
- */
 public class RequestUnEquipItem extends L2GameClientPacket
 {
 	private int _slot;
@@ -23,39 +20,38 @@ public class RequestUnEquipItem extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
-			return;
-		
-		ItemInstance item = activeChar.getInventory().getPaperdollItemByL2ItemId(_slot);
-		if (item == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
 		// Prevent of unequiping a cursed weapon
-		if (_slot == Item.SLOT_LR_HAND && activeChar.isCursedWeaponEquipped())
+		if (_slot == Item.SLOT_LR_HAND && player.isCursedWeaponEquipped())
 			return;
 		
+		final ItemInstance item = player.getInventory().getItemFrom(_slot);
+		if (item == null)
+			return;
+			
 		// Prevent player from unequipping items in special conditions
-		if (activeChar.isStunned() || activeChar.isSleeping() || activeChar.isParalyzed() || activeChar.isAfraid() || activeChar.isAlikeDead())
+		// Unequip item on advExt sends the error message if castingNow
+		// This is rather stupid, since UseItem achieves the same effect and is allowed.
+		if (player.getCast().isCastingNow() || player.isStunned() || player.isSleeping() || player.isParalyzed() || player.isAfraid() || player.isAlikeDead())
 		{
-			activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_CANNOT_BE_USED).addItemName(item));
+			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_CANNOT_BE_USED).addItemName(item));
 			return;
 		}
 		
-		if (activeChar.isCastingNow() || activeChar.isCastingSimultaneouslyNow())
-			return;
-		
-		ItemInstance[] unequipped = activeChar.getInventory().unEquipItemInBodySlotAndRecord(_slot);
+		final ItemInstance[] unequipped = player.getInventory().unequipItemInBodySlotAndRecord(_slot);
 		
 		// show the update in the inventory
-		InventoryUpdate iu = new InventoryUpdate();
+		final InventoryUpdate iu = new InventoryUpdate();
 		for (ItemInstance itm : unequipped)
 		{
 			itm.unChargeAllShots();
 			iu.addModifiedItem(itm);
 		}
-		activeChar.sendPacket(iu);
-		activeChar.broadcastUserInfo();
+		player.sendPacket(iu);
+		player.broadcastUserInfo();
 		
 		// this can be 0 if the user pressed the right mousebutton twice very fast
 		if (unequipped.length > 0)
@@ -72,7 +68,7 @@ public class RequestUnEquipItem extends L2GameClientPacket
 				sm = SystemMessage.getSystemMessage(SystemMessageId.S1_DISARMED);
 				sm.addItemName(unequipped[0]);
 			}
-			activeChar.sendPacket(sm);
+			player.sendPacket(sm);
 		}
 	}
 }

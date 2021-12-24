@@ -18,14 +18,14 @@ public final class RequestHennaItemInfo extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		final Henna template = HennaData.getInstance().getHenna(_symbolId);
-		if (template == null)
+		final Henna henna = HennaData.getInstance().getHenna(_symbolId);
+		if (henna == null)
 			return;
 		
-		activeChar.sendPacket(new HennaItemInfo(template, activeChar));
+		player.sendPacket(new HennaItemInfo(henna, player));
 	}
 }

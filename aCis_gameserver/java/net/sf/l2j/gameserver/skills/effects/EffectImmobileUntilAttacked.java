@@ -1,50 +1,65 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import net.sf.l2j.gameserver.enums.skills.L2EffectFlag;
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
-import net.sf.l2j.gameserver.model.L2Effect;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.enums.AiEventType;
+import net.sf.l2j.gameserver.enums.skills.EffectFlag;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
-/**
- * @author Ahmed
- */
-public class EffectImmobileUntilAttacked extends L2Effect
+public class EffectImmobileUntilAttacked extends AbstractEffect
 {
-	public EffectImmobileUntilAttacked(Env env, EffectTemplate template)
+	public EffectImmobileUntilAttacked(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
 	{
-		super(env, template);
+		super(template, skill, effected, effector);
 	}
 	
 	@Override
-	public L2EffectType getEffectType()
+	public EffectType getEffectType()
 	{
-		return L2EffectType.IMMOBILEUNTILATTACKED;
+		return EffectType.IMMOBILE_UNTIL_ATTACKED;
 	}
 	
 	@Override
 	public boolean onStart()
 	{
-		getEffected().startImmobileUntilAttacked();
+		// Abort attack, cast and move.
+		getEffected().abortAll(false);
+		
+		// Refresh abnormal effects.
+		getEffected().updateAbnormalEffect();
+		
 		return true;
 	}
 	
 	@Override
 	public void onExit()
 	{
-		getEffected().stopImmobileUntilAttacked(this);
+		getEffected().removeEffect(this);
+		getEffected().stopSkillEffects(getSkill().getId());
+		
+		getEffected().getAI().notifyEvent(AiEventType.THINK, null, null);
+		
+		// Refresh abnormal effects.
+		getEffected().updateAbnormalEffect();
 	}
 	
 	@Override
 	public boolean onActionTime()
 	{
-		getEffected().stopImmobileUntilAttacked(this);
-		// just stop this effect
+		getEffected().removeEffect(this);
+		getEffected().stopSkillEffects(getSkill().getId());
+		
+		getEffected().getAI().notifyEvent(AiEventType.THINK, null, null);
+		
+		// Refresh abnormal effects.
+		getEffected().updateAbnormalEffect();
 		return false;
 	}
 	
 	@Override
 	public int getEffectFlags()
 	{
-		return L2EffectFlag.MEDITATING.getMask();
+		return EffectFlag.MEDITATING.getMask();
 	}
 }

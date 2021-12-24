@@ -1,21 +1,21 @@
 package net.sf.l2j.gameserver.skills.l2skills;
 
-import net.sf.l2j.commons.util.StatsSet;
+import net.sf.l2j.commons.data.StatSet;
 
 import net.sf.l2j.gameserver.enums.items.ShotType;
-import net.sf.l2j.gameserver.model.L2Effect;
-import net.sf.l2j.gameserver.model.L2Skill;
+import net.sf.l2j.gameserver.enums.skills.ShieldDefense;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
 import net.sf.l2j.gameserver.skills.Formulas;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class L2SkillElemental extends L2Skill
 {
 	private final int[] _seeds;
 	private final boolean _seedAny;
 	
-	public L2SkillElemental(StatsSet set)
+	public L2SkillElemental(StatSet set)
 	{
 		super(set);
 		
@@ -55,8 +55,8 @@ public class L2SkillElemental extends L2Skill
 				{
 					if (_seed != 0)
 					{
-						L2Effect e = target.getFirstEffect(_seed);
-						if (e == null || !e.getInUse())
+						final AbstractEffect effect = target.getFirstEffect(_seed);
+						if (effect == null || !effect.getInUse())
 						{
 							charged = false;
 							break;
@@ -71,8 +71,8 @@ public class L2SkillElemental extends L2Skill
 				{
 					if (_seed != 0)
 					{
-						L2Effect e = target.getFirstEffect(_seed);
-						if (e != null && e.getInUse())
+						final AbstractEffect effect = target.getFirstEffect(_seed);
+						if (effect != null && effect.getInUse())
 						{
 							charged = true;
 							break;
@@ -87,10 +87,10 @@ public class L2SkillElemental extends L2Skill
 				continue;
 			}
 			
-			boolean mcrit = Formulas.calcMCrit(activeChar.getMCriticalHit(target, this));
-			byte shld = Formulas.calcShldUse(activeChar, target, this);
+			final boolean isCrit = Formulas.calcMCrit(activeChar, target, this);
+			final ShieldDefense sDef = Formulas.calcShldUse(activeChar, target, this, false);
 			
-			int damage = (int) Formulas.calcMagicDam(activeChar, target, this, shld, sps, bsps, mcrit);
+			int damage = (int) Formulas.calcMagicDam(activeChar, target, this, sDef, sps, bsps, isCrit);
 			if (damage > 0)
 			{
 				target.reduceCurrentHp(damage, activeChar, this);
@@ -103,7 +103,7 @@ public class L2SkillElemental extends L2Skill
 			
 			// activate attacked effects, if any
 			target.stopSkillEffects(getId());
-			getEffects(activeChar, target, new Env(shld, sps, false, bsps));
+			getEffects(activeChar, target, sDef, bsps);
 		}
 		
 		activeChar.setChargedShot(bsps ? ShotType.BLESSED_SPIRITSHOT : ShotType.SPIRITSHOT, isStaticReuse());

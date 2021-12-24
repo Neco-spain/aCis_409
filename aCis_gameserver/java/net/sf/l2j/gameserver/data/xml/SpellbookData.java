@@ -7,7 +7,7 @@ import java.util.Map;
 import net.sf.l2j.commons.data.xml.IXmlReader;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.gameserver.model.L2Skill;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;

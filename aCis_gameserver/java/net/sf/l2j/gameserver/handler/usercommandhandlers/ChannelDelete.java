@@ -13,18 +13,17 @@ public class ChannelDelete implements IUserCommandHandler
 	};
 	
 	@Override
-	public boolean useUserCommand(int id, Player player)
+	public void useUserCommand(int id, Player player)
 	{
 		final Party party = player.getParty();
 		if (party == null || !party.isLeader(player))
-			return false;
+			return;
 		
 		final CommandChannel channel = party.getCommandChannel();
 		if (channel == null || !channel.isLeader(player))
-			return false;
+			return;
 		
 		channel.disband();
-		return true;
 	}
 	
 	@Override

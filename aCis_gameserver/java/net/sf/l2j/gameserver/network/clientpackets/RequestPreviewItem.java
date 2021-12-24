@@ -3,10 +3,11 @@ package net.sf.l2j.gameserver.network.clientpackets;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.manager.BuyListManager;
+import net.sf.l2j.gameserver.enums.Paperdoll;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
@@ -22,7 +23,6 @@ import net.sf.l2j.gameserver.network.serverpackets.UserInfo;
 
 public final class RequestPreviewItem extends L2GameClientPacket
 {
-	private Map<Integer, Integer> _itemList;
 	@SuppressWarnings("unused")
 	private int _unk;
 	private int _listId;
@@ -62,13 +62,13 @@ public final class RequestPreviewItem extends L2GameClientPacket
 		}
 		
 		// Get the current player and return if null
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
 		// Check current target of the player and the INTERACTION_DISTANCE
-		WorldObject target = activeChar.getTarget();
-		if (!activeChar.isGM() && (target == null || !(target instanceof Merchant) || !activeChar.isInsideRadius(target, Npc.INTERACTION_DISTANCE, false, false)))
+		final WorldObject target = player.getTarget();
+		if (!player.isGM() && (!(target instanceof Merchant) || !player.isIn3DRadius(target, Npc.INTERACTION_DISTANCE)))
 			return;
 		
 		// Get the current merchant targeted by the player
@@ -80,15 +80,16 @@ public final class RequestPreviewItem extends L2GameClientPacket
 		if (buyList == null)
 			return;
 		
-		int totalPrice = 0;
-		_listId = buyList.getListId();
-		_itemList = new HashMap<>();
+		long totalPrice = 0;
 		
+		_listId = buyList.getListId();
+		
+		final Map<Paperdoll, Integer> items = new HashMap<>();
 		for (int i = 0; i < _count; i++)
 		{
 			int itemId = _items[i];
 			
-			final Product product = buyList.getProductByItemId(itemId);
+			final Product product = buyList.get(itemId);
 			if (product == null)
 				return;
 			
@@ -96,16 +97,16 @@ public final class RequestPreviewItem extends L2GameClientPacket
 			if (template == null)
 				continue;
 			
-			final int slot = Inventory.getPaperdollIndex(template.getBodyPart());
-			if (slot < 0)
+			final Paperdoll slot = Inventory.getPaperdollIndex(template.getBodyPart());
+			if (slot == Paperdoll.NULL)
 				continue;
 			
-			if (_itemList.containsKey(slot))
+			if (items.containsKey(slot))
 			{
-				activeChar.sendPacket(SystemMessageId.YOU_CAN_NOT_TRY_THOSE_ITEMS_ON_AT_THE_SAME_TIME);
+				player.sendPacket(SystemMessageId.YOU_CAN_NOT_TRY_THOSE_ITEMS_ON_AT_THE_SAME_TIME);
 				return;
 			}
-			_itemList.put(slot, itemId);
+			items.put(slot, itemId);
 			
 			totalPrice += Config.WEAR_PRICE;
 			if (totalPrice > Integer.MAX_VALUE)
@@ -113,22 +114,22 @@ public final class RequestPreviewItem extends L2GameClientPacket
 		}
 		
 		// Charge buyer and add tax to castle treasury if not owned by npc clan because a Try On is not Free
-		if (totalPrice < 0 || !activeChar.reduceAdena("Wear", totalPrice, activeChar.getCurrentFolk(), true))
+		if (totalPrice < 0 || !player.reduceAdena("Wear", (int) totalPrice, player.getCurrentFolk(), true))
 		{
-			activeChar.sendPacket(SystemMessageId.YOU_NOT_ENOUGH_ADENA);
+			player.sendPacket(SystemMessageId.YOU_NOT_ENOUGH_ADENA);
 			return;
 		}
 		
-		if (!_itemList.isEmpty())
+		if (!items.isEmpty())
 		{
-			activeChar.sendPacket(new ShopPreviewInfo(_itemList));
+			player.sendPacket(new ShopPreviewInfo(items));
 			
 			// Schedule task
 			ThreadPool.schedule(() ->
 			{
-				activeChar.sendPacket(SystemMessageId.NO_LONGER_TRYING_ON);
-				activeChar.sendPacket(new UserInfo(activeChar));
-			}, Config.WEAR_DELAY * 1000);
+				player.sendPacket(SystemMessageId.NO_LONGER_TRYING_ON);
+				player.sendPacket(new UserInfo(player));
+			}, Config.WEAR_DELAY * 1000L);
 		}
 	}
 }

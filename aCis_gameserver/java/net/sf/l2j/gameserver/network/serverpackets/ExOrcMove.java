@@ -1,9 +1,5 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
-/**
- * Format: (ch)
- * @author -Wooden-
- */
 public class ExOrcMove extends L2GameServerPacket
 {
 	public static final ExOrcMove STATIC_PACKET = new ExOrcMove();

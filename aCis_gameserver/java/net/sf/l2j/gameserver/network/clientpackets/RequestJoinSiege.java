@@ -1,21 +1,24 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
 import net.sf.l2j.gameserver.data.manager.CastleManager;
+import net.sf.l2j.gameserver.data.manager.ClanHallManager;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.clanhall.SiegableHall;
 import net.sf.l2j.gameserver.model.entity.Castle;
+import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SiegeInfo;
 
 public final class RequestJoinSiege extends L2GameClientPacket
 {
-	private int _castleId;
+	private int _id;
 	private int _isAttacker;
 	private int _isJoining;
 	
 	@Override
 	protected void readImpl()
 	{
-		_castleId = readD();
+		_id = readD();
 		_isAttacker = readD();
 		_isJoining = readD();
 	}
@@ -27,32 +30,58 @@ public final class RequestJoinSiege extends L2GameClientPacket
 		if (player == null)
 			return;
 		
-		if (!player.isClanLeader())
+		if (!player.hasClanPrivileges(Clan.CP_CS_MANAGE_SIEGE))
 		{
 			player.sendPacket(SystemMessageId.YOU_ARE_NOT_AUTHORIZED_TO_DO_THAT);
 			return;
 		}
 		
-		final Castle castle = CastleManager.getInstance().getCastleById(_castleId);
-		if (castle == null)
+		final Clan clan = player.getClan();
+		if (clan == null)
 			return;
 		
-		if (_isJoining == 1)
+		// Check Castle entity associated to the id.
+		final Castle castle = CastleManager.getInstance().getCastleById(_id);
+		if (castle != null)
 		{
-			if (System.currentTimeMillis() < player.getClan().getDissolvingExpiryTime())
+			if (_isJoining == 1)
 			{
-				player.sendPacket(SystemMessageId.CANT_PARTICIPATE_IN_SIEGE_WHILE_DISSOLUTION_IN_PROGRESS);
-				return;
+				if (System.currentTimeMillis() < clan.getDissolvingExpiryTime())
+				{
+					player.sendPacket(SystemMessageId.CANT_PARTICIPATE_IN_SIEGE_WHILE_DISSOLUTION_IN_PROGRESS);
+					return;
+				}
+				
+				if (_isAttacker == 1)
+					castle.getSiege().registerAttacker(player);
+				else
+					castle.getSiege().registerDefender(player);
 			}
-			
-			if (_isAttacker == 1)
-				castle.getSiege().registerAttacker(player);
 			else
-				castle.getSiege().registerDefender(player);
+				castle.getSiege().unregisterClan(clan);
+			
+			player.sendPacket(new SiegeInfo(castle));
+			return;
 		}
-		else
-			castle.getSiege().unregisterClan(player.getClan());
 		
-		player.sendPacket(new SiegeInfo(castle));
+		// Check SiegableHall entity associated to the id.
+		final SiegableHall sh = ClanHallManager.getInstance().getSiegableHall(_id);
+		if (sh != null)
+		{
+			if (_isJoining == 1)
+			{
+				if (System.currentTimeMillis() < clan.getDissolvingExpiryTime())
+				{
+					player.sendPacket(SystemMessageId.CANT_PARTICIPATE_IN_SIEGE_WHILE_DISSOLUTION_IN_PROGRESS);
+					return;
+				}
+				
+				sh.registerClan(clan, player);
+			}
+			else
+				sh.unregisterClan(clan);
+			
+			player.sendPacket(new SiegeInfo(sh));
+		}
 	}
 }

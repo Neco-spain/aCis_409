@@ -2,10 +2,6 @@ package net.sf.l2j.gameserver.network.clientpackets;
 
 import net.sf.l2j.gameserver.communitybbs.CommunityBoard;
 
-/**
- * Format SSSSSS
- * @author -Wooden-
- */
 public class RequestBBSwrite extends L2GameClientPacket
 {
 	private String _url;

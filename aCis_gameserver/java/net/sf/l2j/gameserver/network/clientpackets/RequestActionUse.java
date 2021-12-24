@@ -1,25 +1,21 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
-import net.sf.l2j.commons.math.MathUtil;
 import net.sf.l2j.commons.random.Rnd;
 import net.sf.l2j.commons.util.ArraysUtil;
 
-import net.sf.l2j.gameserver.enums.IntentionType;
-import net.sf.l2j.gameserver.model.L2Skill;
+import net.sf.l2j.gameserver.enums.SayType;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.Summon;
 import net.sf.l2j.gameserver.model.actor.ai.type.SummonAI;
 import net.sf.l2j.gameserver.model.actor.instance.Door;
-import net.sf.l2j.gameserver.model.actor.instance.Folk;
 import net.sf.l2j.gameserver.model.actor.instance.Pet;
 import net.sf.l2j.gameserver.model.actor.instance.Servitor;
-import net.sf.l2j.gameserver.model.actor.instance.SiegeSummon;
-import net.sf.l2j.gameserver.model.location.Location;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 import net.sf.l2j.gameserver.network.serverpackets.NpcSay;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public final class RequestActionUse extends L2GameClientPacket
 {
@@ -74,15 +70,15 @@ public final class RequestActionUse extends L2GameClientPacket
 	};
 	
 	private int _actionId;
-	private boolean _ctrlPressed;
-	private boolean _shiftPressed;
+	private boolean _isCtrlPressed;
+	private boolean _isShiftPressed;
 	
 	@Override
 	protected void readImpl()
 	{
 		_actionId = readD();
-		_ctrlPressed = (readD() == 1);
-		_shiftPressed = (readC() == 1);
+		_isCtrlPressed = (readD() == 1);
+		_isShiftPressed = (readC() == 1);
 	}
 	
 	@Override
@@ -91,11 +87,18 @@ public final class RequestActionUse extends L2GameClientPacket
 		final Player player = getClient().getPlayer();
 		if (player == null)
 			return;
-		
+			
 		// Dont do anything if player is dead, or use fakedeath using another action than sit.
+		// You can stopFakeDEeath with sit/stand. On adv, you cannot.
 		if ((player.isFakeDeath() && _actionId != 0) || player.isDead() || player.isOutOfControl())
 		{
 			player.sendPacket(ActionFailed.STATIC_PACKET);
+			return;
+		}
+		
+		if (player.isInObserverMode())
+		{
+			player.sendPacket(SystemMessageId.OBSERVERS_CANNOT_PARTICIPATE);
 			return;
 		}
 		
@@ -104,19 +107,21 @@ public final class RequestActionUse extends L2GameClientPacket
 		
 		switch (_actionId)
 		{
-			case 0:
-				player.tryToSitOrStand(target, player.isSitting());
+			case 0: // Sit/Stand
+				if (player.isSitting() || player.isSittingNow())
+					player.getAI().tryToStand();
+				else
+					player.getAI().tryToSit(target);
 				break;
 			
-			case 1:
-				// Player is mounted, do not allow to change movement type.
+			case 1: // Walk/Run
 				if (player.isMounted())
 					return;
 				
 				if (player.isRunning())
-					player.setWalking();
+					player.forceWalkStance();
 				else
-					player.setRunning();
+					player.forceRunStance();
 				break;
 			
 			case 10: // Private Store - Sell
@@ -133,7 +138,7 @@ public final class RequestActionUse extends L2GameClientPacket
 					return;
 				
 				// You can't order anymore your pet to stop if distance is superior to 2000.
-				if (summon.getFollowStatus() && MathUtil.calculateDistance(player, summon, true) > 2000)
+				if (((SummonAI) summon.getAI()).getFollowStatus() && !player.isIn3DRadius(summon, 2000))
 					return;
 				
 				if (summon.isOutOfControl())
@@ -142,12 +147,16 @@ public final class RequestActionUse extends L2GameClientPacket
 					return;
 				}
 				
-				((SummonAI) summon.getAI()).notifyFollowStatusChange();
+				((SummonAI) summon.getAI()).switchFollowStatus();
 				break;
 			
 			case 16:
 			case 22: // Attack (pet attack)
-				if (!(target instanceof Creature) || summon == null || summon == target || player == target)
+				if (target == null || summon == null || summon == target || player == target)
+					return;
+				
+				// If target is trully dead, then do nothing at all. Fake Death is handled elsewhere (attack task).
+				if (target instanceof Creature && ((Creature) target).isDead())
 					return;
 				
 				// Sin eater, Big Boom, Wyvern can't attack with attack button.
@@ -160,50 +169,24 @@ public final class RequestActionUse extends L2GameClientPacket
 					return;
 				}
 				
-				if (summon.isAttackingDisabled())
-				{
-					if (summon.getAttackEndTime() <= System.currentTimeMillis())
-						return;
-					
-					summon.getAI().setIntention(IntentionType.ATTACK, target);
-				}
-				
-				if (summon instanceof Pet && (summon.getLevel() - player.getLevel() > 20))
+				if (summon instanceof Pet && (summon.getStatus().getLevel() - player.getStatus().getLevel() > 20))
 				{
 					player.sendPacket(SystemMessageId.PET_TOO_HIGH_TO_CONTROL);
 					return;
 				}
 				
-				if (player.isInOlympiadMode() && !player.isOlympiadStart())
-					return;
-				
 				summon.setTarget(target);
 				
-				// Summons can attack NPCs even when the owner cannot.
-				if (!target.isAutoAttackable(player) && !_ctrlPressed && (!(target instanceof Folk)))
+				if (target instanceof Creature)
 				{
-					summon.setFollowStatus(false);
-					summon.getAI().setIntention(IntentionType.FOLLOW, target);
-					player.sendPacket(SystemMessageId.INCORRECT_TARGET);
-					return;
-				}
-				
-				if (target instanceof Door)
-				{
-					if (((Door) target).isAutoAttackable(player) && summon.getNpcId() != SiegeSummon.SWOOP_CANNON_ID)
-						summon.getAI().setIntention(IntentionType.ATTACK, target);
-				}
-				// siege golem AI doesn't support attacking other than doors at the moment
-				else if (summon.getNpcId() != SiegeSummon.SIEGE_GOLEM_ID)
-				{
-					if (Creature.isInsidePeaceZone(summon, target))
-					{
-						summon.setFollowStatus(false);
-						summon.getAI().setIntention(IntentionType.FOLLOW, target);
-					}
+					final Creature creature = (Creature) target;
+					if (creature.isAttackableWithoutForceBy(player) || (_isCtrlPressed && creature.isAttackableBy(player)))
+						summon.getAI().tryToAttack(creature, _isCtrlPressed, _isShiftPressed);
 					else
-						summon.getAI().setIntention(IntentionType.ATTACK, target);
+						summon.getAI().tryToFollow(creature, _isShiftPressed);
 				}
+				else
+					summon.getAI().tryToInteract(target, _isCtrlPressed, _isShiftPressed);
 				break;
 			
 			case 17:
@@ -217,18 +200,18 @@ public final class RequestActionUse extends L2GameClientPacket
 					return;
 				}
 				
-				summon.getAI().setIntention(IntentionType.ACTIVE, null);
+				summon.getAI().tryToActive();
 				break;
 			
 			case 19: // Returns pet to control item
-				if (summon == null || !(summon instanceof Pet))
+				if (!(summon instanceof Pet))
 					return;
 				
 				if (summon.isDead())
 					player.sendPacket(SystemMessageId.DEAD_PET_CANNOT_BE_RETURNED);
 				else if (summon.isOutOfControl())
 					player.sendPacket(SystemMessageId.PET_REFUSING_ORDER);
-				else if (summon.isAttackingNow() || summon.isInCombat())
+				else if (summon.getAttack().isAttackingNow() || summon.isInCombat())
 					player.sendPacket(SystemMessageId.PET_CANNOT_SENT_BACK_DURING_BATTLE);
 				else if (((Pet) summon).checkUnsummonState())
 					player.sendPacket(SystemMessageId.YOU_CANNOT_RESTORE_HUNGRY_PETS);
@@ -259,7 +242,7 @@ public final class RequestActionUse extends L2GameClientPacket
 			case 41: // Wild Hog Cannon - Attack
 				if (!(target instanceof Door))
 				{
-					player.sendPacket(SystemMessageId.INCORRECT_TARGET);
+					player.sendPacket(SystemMessageId.INVALID_TARGET);
 					return;
 				}
 				
@@ -299,14 +282,14 @@ public final class RequestActionUse extends L2GameClientPacket
 				break;
 			
 			case 52: // Unsummon a servitor
-				if (summon == null || !(summon instanceof Servitor))
+				if (!(summon instanceof Servitor))
 					return;
 				
 				if (summon.isDead())
 					player.sendPacket(SystemMessageId.DEAD_PET_CANNOT_BE_RETURNED);
 				else if (summon.isOutOfControl())
 					player.sendPacket(SystemMessageId.PET_REFUSING_ORDER);
-				else if (summon.isAttackingNow() || summon.isInCombat())
+				else if (summon.getAttack().isAttackingNow() || summon.isInCombat())
 					player.sendPacket(SystemMessageId.PET_CANNOT_SENT_BACK_DURING_BATTLE);
 				else
 					summon.unSummon(player);
@@ -323,8 +306,12 @@ public final class RequestActionUse extends L2GameClientPacket
 					return;
 				}
 				
-				summon.setFollowStatus(false);
-				summon.getAI().setIntention(IntentionType.MOVE_TO, new Location(target.getX(), target.getY(), target.getZ()));
+				summon.getAI().setFollowStatus(false);
+				
+				if (!(target instanceof Creature))
+					summon.getAI().tryToInteract(target, _isCtrlPressed, _isShiftPressed);
+				else
+					summon.getAI().tryToFollow((Creature) target, _isShiftPressed);
 				break;
 			
 			case 61: // Private Store Package Sell
@@ -334,7 +321,7 @@ public final class RequestActionUse extends L2GameClientPacket
 			case 1000: // Siege Golem - Siege Hammer
 				if (!(target instanceof Door))
 				{
-					player.sendPacket(SystemMessageId.INCORRECT_TARGET);
+					player.sendPacket(SystemMessageId.INVALID_TARGET);
 					return;
 				}
 				
@@ -343,7 +330,7 @@ public final class RequestActionUse extends L2GameClientPacket
 			
 			case 1001: // Sin Eater - Ultimate Bombastic Buster
 				if (useSkill(4139, summon) && summon.getNpcId() == SIN_EATER_ID && Rnd.get(100) < 10)
-					summon.broadcastPacket(new NpcSay(summon.getObjectId(), Say2.ALL, summon.getNpcId(), Rnd.get(SIN_EATER_ACTIONS_STRINGS)));
+					summon.broadcastPacket(new NpcSay(summon, SayType.ALL, Rnd.get(SIN_EATER_ACTIONS_STRINGS)));
 				break;
 			
 			case 1003: // Wind Hatchling/Strider - Wild Stun
@@ -441,7 +428,7 @@ public final class RequestActionUse extends L2GameClientPacket
 			case 1039: // Swoop Cannon - Cannon Fodder
 				if (target instanceof Door)
 				{
-					player.sendPacket(SystemMessageId.INCORRECT_TARGET);
+					player.sendPacket(SystemMessageId.INVALID_TARGET);
 					return;
 				}
 				
@@ -451,7 +438,7 @@ public final class RequestActionUse extends L2GameClientPacket
 			case 1040: // Swoop Cannon - Big Bang
 				if (target instanceof Door)
 				{
-					player.sendPacket(SystemMessageId.INCORRECT_TARGET);
+					player.sendPacket(SystemMessageId.INVALID_TARGET);
 					return;
 				}
 				
@@ -472,39 +459,25 @@ public final class RequestActionUse extends L2GameClientPacket
 	private boolean useSkill(int skillId, WorldObject target)
 	{
 		final Player player = getClient().getPlayer();
-		
-		// No owner, or owner in shop mode.
-		if (player == null || player.isInStoreMode())
+		if (player == null)
 			return false;
 		
 		final Summon summon = player.getSummon();
 		if (summon == null)
 			return false;
 		
-		// Pet which is 20 levels higher than owner.
-		if (summon instanceof Pet && summon.getLevel() - player.getLevel() > 20)
-		{
-			player.sendPacket(SystemMessageId.PET_TOO_HIGH_TO_CONTROL);
-			return false;
-		}
-		
-		// Out of control pet.
-		if (summon.isOutOfControl())
-		{
-			player.sendPacket(SystemMessageId.PET_REFUSING_ORDER);
-			return false;
-		}
-		
-		// Verify if the launched skill is mastered by the summon.
 		final L2Skill skill = summon.getSkill(skillId);
 		if (skill == null)
 			return false;
 		
-		// Can't launch offensive skills on owner.
-		if (skill.isOffensive() && player == target)
+		if (summon instanceof Pet && summon.getStatus().getLevel() - player.getStatus().getLevel() > 20)
 			return false;
 		
-		summon.setTarget(target);
-		return summon.useMagic(skill, _ctrlPressed, _shiftPressed);
+		Creature finalTarget = null;
+		if (target instanceof Creature)
+			finalTarget = (Creature) target;
+		
+		summon.getAI().tryToCast(finalTarget, skill, _isCtrlPressed, _isShiftPressed, 0);
+		return true;
 	}
 }

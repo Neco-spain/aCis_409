@@ -7,18 +7,23 @@ public class HennaItemInfo extends L2GameServerPacket
 {
 	private final Henna _henna;
 	private final int _adena;
-	private final int _int, _str, _con, _men, _dex, _wit;
+	private final int _int;
+	private final int _str;
+	private final int _con;
+	private final int _men;
+	private final int _dex;
+	private final int _wit;
 	
 	public HennaItemInfo(Henna henna, Player player)
 	{
 		_henna = henna;
 		_adena = player.getAdena();
-		_int = player.getINT();
-		_str = player.getSTR();
-		_con = player.getCON();
-		_men = player.getMEN();
-		_dex = player.getDEX();
-		_wit = player.getWIT();
+		_int = player.getStatus().getINT();
+		_str = player.getStatus().getSTR();
+		_con = player.getStatus().getCON();
+		_men = player.getStatus().getMEN();
+		_dex = player.getStatus().getDEX();
+		_wit = player.getStatus().getWIT();
 	}
 	
 	@Override

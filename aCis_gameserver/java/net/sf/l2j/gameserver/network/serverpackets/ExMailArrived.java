@@ -1,9 +1,5 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
-/**
- * Format: (ch) (just a trigger)
- * @author -Wooden-
- */
 public class ExMailArrived extends L2GameServerPacket
 {
 	public static final ExMailArrived STATIC_PACKET = new ExMailArrived();

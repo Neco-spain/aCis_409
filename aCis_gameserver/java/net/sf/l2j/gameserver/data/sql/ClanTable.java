@@ -10,15 +10,17 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
 import net.sf.l2j.commons.lang.StringUtil;
 import net.sf.l2j.commons.logging.CLogger;
+import net.sf.l2j.commons.pool.ConnectionPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.L2DatabaseFactory;
 import net.sf.l2j.gameserver.data.manager.CastleManager;
+import net.sf.l2j.gameserver.data.manager.ClanHallManager;
 import net.sf.l2j.gameserver.idfactory.IdFactory;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.clanhall.SiegableHall;
 import net.sf.l2j.gameserver.model.entity.Castle;
 import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.model.pledge.ClanMember;
@@ -56,7 +58,7 @@ public class ClanTable
 	protected ClanTable()
 	{
 		// Load all clans.
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(LOAD_CLANS);
 			ResultSet rs = ps.executeQuery())
 		{
@@ -80,7 +82,7 @@ public class ClanTable
 				
 				// If character expire time has been reached while server was off, keep it to 0.
 				final long charExpireTime = rs.getLong("char_penalty_expiry_time");
-				if (charExpireTime + Config.ALT_CLAN_JOIN_DAYS * 86400000L > System.currentTimeMillis())
+				if (charExpireTime + Config.CLAN_JOIN_DAYS * 86400000L > System.currentTimeMillis())
 					clan.setCharPenaltyExpiryTime(charExpireTime);
 				
 				clan.setDissolvingExpiryTime(rs.getLong("dissolving_expiry_time"));
@@ -96,9 +98,7 @@ public class ClanTable
 				if (clan.getDissolvingExpiryTime() != 0)
 					scheduleRemoveClan(clan);
 				
-				clan.setNoticeEnabled(rs.getBoolean("enabled"));
-				clan.setNotice(rs.getString("notice"));
-				
+				clan.setNotice(rs.getString("notice"), rs.getBoolean("enabled"), false);
 				clan.setIntroduction(rs.getString("introduction"), false);
 			}
 		}
@@ -155,7 +155,7 @@ public class ClanTable
 		if (player == null)
 			return null;
 		
-		if (player.getLevel() < 10)
+		if (player.getStatus().getLevel() < 10)
 		{
 			player.sendPacket(SystemMessageId.YOU_DO_NOT_MEET_CRITERIA_IN_ORDER_TO_CREATE_A_CLAN);
 			return null;
@@ -218,11 +218,25 @@ public class ClanTable
 		if (!_clans.containsKey(clan.getClanId()))
 			return;
 		
-		clan.broadcastToOnlineMembers(SystemMessage.getSystemMessage(SystemMessageId.CLAN_HAS_DISPERSED));
+		clan.broadcastToMembers(SystemMessage.getSystemMessage(SystemMessageId.CLAN_HAS_DISPERSED));
 		
 		// Drop the clan from all sieges. The related mySQL query is handled below.
 		for (Castle castle : CastleManager.getInstance().getCastles())
 			castle.getSiege().getRegisteredClans().keySet().removeIf(c -> c.getClanId() == clan.getClanId());
+		
+		// Delete informations related to Siegable Halls.
+		final int hallId = clan.getClanHallId();
+		if (hallId == 0)
+		{
+			for (SiegableHall sh : ClanHallManager.getInstance().getSiegableHalls())
+				sh.removeAttacker(clan);
+		}
+		else
+		{
+			final SiegableHall hall = ClanHallManager.getInstance().getSiegableHall(hallId);
+			if (hall != null && hall.getOwnerId() == clan.getClanId())
+				hall.free();
+		}
 		
 		// Delete all clan wars.
 		for (int clanId : clan.getAttackerList())
@@ -240,7 +254,7 @@ public class ClanTable
 			clan.removeClanMember(member.getObjectId(), 0);
 		
 		// Numerous mySQL queries.
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection())
+		try (Connection con = ConnectionPool.getConnection())
 		{
 			try (PreparedStatement ps = con.prepareStatement(DELETE_CLAN))
 			{
@@ -341,12 +355,12 @@ public class ClanTable
 		final Clan clan2 = _clans.get(clanId2);
 		
 		clan1.setEnemyClan(clanId2);
-		clan1.broadcastToOnlineMembers(new PledgeShowInfoUpdate(clan1), SystemMessage.getSystemMessage(SystemMessageId.CLAN_WAR_DECLARED_AGAINST_S1_IF_KILLED_LOSE_LOW_EXP).addString(clan2.getName()));
+		clan1.broadcastToMembers(new PledgeShowInfoUpdate(clan1), SystemMessage.getSystemMessage(SystemMessageId.CLAN_WAR_DECLARED_AGAINST_S1_IF_KILLED_LOSE_LOW_EXP).addString(clan2.getName()));
 		
 		clan2.setAttackerClan(clanId1);
-		clan2.broadcastToOnlineMembers(new PledgeShowInfoUpdate(clan2), SystemMessage.getSystemMessage(SystemMessageId.CLAN_S1_DECLARED_WAR).addString(clan1.getName()));
+		clan2.broadcastToMembers(new PledgeShowInfoUpdate(clan2), SystemMessage.getSystemMessage(SystemMessageId.CLAN_S1_DECLARED_WAR).addString(clan1.getName()));
 		
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(INSERT_WAR))
 		{
 			ps.setInt(1, clanId1);
@@ -370,16 +384,16 @@ public class ClanTable
 		final Clan clan2 = _clans.get(clanId2);
 		
 		clan1.deleteEnemyClan(clanId2);
-		clan1.broadcastToOnlineMembers(new PledgeShowInfoUpdate(clan1), SystemMessage.getSystemMessage(SystemMessageId.WAR_AGAINST_S1_HAS_STOPPED).addString(clan2.getName()));
+		clan1.broadcastToMembers(new PledgeShowInfoUpdate(clan1), SystemMessage.getSystemMessage(SystemMessageId.WAR_AGAINST_S1_HAS_STOPPED).addString(clan2.getName()));
 		
 		clan2.deleteAttackerClan(clanId1);
-		clan2.broadcastToOnlineMembers(new PledgeShowInfoUpdate(clan2), SystemMessage.getSystemMessage(SystemMessageId.CLAN_S1_HAS_DECIDED_TO_STOP).addString(clan1.getName()));
+		clan2.broadcastToMembers(new PledgeShowInfoUpdate(clan2), SystemMessage.getSystemMessage(SystemMessageId.CLAN_S1_HAS_DECIDED_TO_STOP).addString(clan1.getName()));
 		
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection())
+		try (Connection con = ConnectionPool.getConnection())
 		{
-			if (Config.ALT_CLAN_WAR_PENALTY_WHEN_ENDED > 0)
+			if (Config.CLAN_WAR_PENALTY_WHEN_ENDED > 0)
 			{
-				final long penaltyExpiryTime = System.currentTimeMillis() + Config.ALT_CLAN_WAR_PENALTY_WHEN_ENDED * 86400000L;
+				final long penaltyExpiryTime = System.currentTimeMillis() + Config.CLAN_WAR_PENALTY_WHEN_ENDED * 86400000L;
 				
 				clan1.addWarPenaltyTime(clanId2, penaltyExpiryTime);
 				
@@ -434,7 +448,7 @@ public class ClanTable
 	 */
 	private void restoreWars()
 	{
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection())
+		try (Connection con = ConnectionPool.getConnection())
 		{
 			// Delete deprecated wars (server was offline).
 			try (PreparedStatement ps = con.prepareStatement(DELETE_OLD_WARS))
@@ -475,20 +489,13 @@ public class ClanTable
 	 */
 	private void allianceCheck()
 	{
-		for (Clan clan : _clans.values())
+		_clans.values().stream().filter(c -> c.getAllyId() != 0 && c.getClanId() != c.getAllyId() && !_clans.containsKey(c.getAllyId())).forEach(c ->
 		{
-			int allyId = clan.getAllyId();
-			if (allyId != 0 && clan.getClanId() != allyId)
-			{
-				if (!_clans.containsKey(allyId))
-				{
-					clan.setAllyId(0);
-					clan.setAllyName(null);
-					clan.changeAllyCrest(0, true);
-					clan.updateClanInDB();
-				}
-			}
-		}
+			c.setAllyId(0);
+			c.setAllyName(null);
+			c.changeAllyCrest(0, true);
+			c.updateClanInDB();
+		});
 	}
 	
 	/**
@@ -518,7 +525,7 @@ public class ClanTable
 		}
 		
 		// Retrieve the 99 best clans, allocate their ranks.
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(LOAD_RANK);
 			ResultSet rs = ps.executeQuery())
 		{

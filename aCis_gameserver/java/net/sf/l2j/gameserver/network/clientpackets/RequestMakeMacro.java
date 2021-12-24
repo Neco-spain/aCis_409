@@ -10,7 +10,7 @@ public final class RequestMakeMacro extends L2GameClientPacket
 	private static final int MAX_MACRO_LENGTH = 12;
 	
 	private Macro _macro;
-	private int _commandsLenght = 0;
+	private int _commandsLenght;
 	
 	@Override
 	protected void readImpl()

@@ -1,24 +1,21 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
 import net.sf.l2j.gameserver.model.actor.Boat;
+import net.sf.l2j.gameserver.model.location.Location;
 
 public class VehicleDeparture extends L2GameServerPacket
 {
 	private final int _objectId;
-	private final int _x;
-	private final int _y;
-	private final int _z;
+	private final Location _loc;
 	private final int _moveSpeed;
 	private final int _rotationSpeed;
 	
 	public VehicleDeparture(Boat boat)
 	{
 		_objectId = boat.getObjectId();
-		_x = boat.getXdestination();
-		_y = boat.getYdestination();
-		_z = boat.getZdestination();
-		_moveSpeed = (int) boat.getStat().getMoveSpeed();
-		_rotationSpeed = boat.getStat().getRotationSpeed();
+		_loc = boat.getMove().getDestination().clone();
+		_moveSpeed = (int) boat.getStatus().getMoveSpeed();
+		_rotationSpeed = boat.getStatus().getRotationSpeed();
 	}
 	
 	@Override
@@ -28,8 +25,6 @@ public class VehicleDeparture extends L2GameServerPacket
 		writeD(_objectId);
 		writeD(_moveSpeed);
 		writeD(_rotationSpeed);
-		writeD(_x);
-		writeD(_y);
-		writeD(_z);
+		writeLoc(_loc);
 	}
 }

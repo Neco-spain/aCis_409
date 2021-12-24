@@ -3,7 +3,7 @@ package net.sf.l2j.commons.mmocore;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.SelectionKey;
@@ -77,9 +77,7 @@ public final class SelectorThread<T extends MMOClient<?>> extends Thread
 		_bufferPool = new LinkedList<>();
 		
 		for (int i = 0; i < HELPER_BUFFER_COUNT; i++)
-		{
 			_bufferPool.addLast(ByteBuffer.wrap(new byte[HELPER_BUFFER_SIZE]).order(BYTE_ORDER));
-		}
 		
 		_acceptFilter = acceptFilter;
 		_packetHandler = packetHandler;
@@ -90,16 +88,9 @@ public final class SelectorThread<T extends MMOClient<?>> extends Thread
 	
 	public final void openServerSocket(InetAddress address, int tcpPort) throws IOException
 	{
-		ServerSocketChannel selectable = ServerSocketChannel.open();
+		final ServerSocketChannel selectable = ServerSocketChannel.open();
 		selectable.configureBlocking(false);
-		
-		ServerSocket ss = selectable.socket();
-		
-		if (address == null)
-			ss.bind(new InetSocketAddress(tcpPort));
-		else
-			ss.bind(new InetSocketAddress(address, tcpPort));
-		
+		selectable.socket().bind((address == null) ? new InetSocketAddress(tcpPort) : new InetSocketAddress(address, tcpPort));
 		selectable.register(_selector, SelectionKey.OP_ACCEPT);
 	}
 	
@@ -238,16 +229,20 @@ public final class SelectorThread<T extends MMOClient<?>> extends Thread
 		{
 			while ((sc = ssc.accept()) != null)
 			{
-				if (_acceptFilter == null || _acceptFilter.accept(sc))
+				final Socket socket = sc.socket();
+				if (_acceptFilter == null || _acceptFilter.accept(socket))
 				{
 					sc.configureBlocking(false);
-					SelectionKey clientKey = sc.register(_selector, SelectionKey.OP_READ);
+					
+					final SelectionKey clientKey = sc.register(_selector, SelectionKey.OP_READ);
+					
 					con = new MMOConnection<>(this, sc.socket(), clientKey, TCP_NODELAY);
 					con.setClient(_clientFactory.create(con));
+					
 					clientKey.attach(con);
 				}
 				else
-					sc.socket().close();
+					socket.close();
 			}
 		}
 		catch (IOException e)

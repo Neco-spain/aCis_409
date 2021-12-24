@@ -4,7 +4,7 @@ import java.util.List;
 
 import net.sf.l2j.gameserver.enums.actors.HennaType;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.actor.player.HennaList;
+import net.sf.l2j.gameserver.model.actor.container.player.HennaList;
 import net.sf.l2j.gameserver.model.item.Henna;
 
 public final class HennaInfo extends L2GameServerPacket

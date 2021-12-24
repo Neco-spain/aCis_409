@@ -30,7 +30,7 @@ public final class RequestStopPledgeWar extends L2GameClientPacket
 		if (clan == null)
 			return;
 		
-		if ((player.getClanPrivileges() & Clan.CP_CL_PLEDGE_WAR) != Clan.CP_CL_PLEDGE_WAR)
+		if (!player.hasClanPrivileges(Clan.CP_CL_PLEDGE_WAR))
 		{
 			player.sendPacket(SystemMessageId.YOU_ARE_NOT_AUTHORIZED_TO_DO_THAT);
 			return;

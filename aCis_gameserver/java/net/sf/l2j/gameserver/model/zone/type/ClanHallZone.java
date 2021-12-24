@@ -1,31 +1,45 @@
 package net.sf.l2j.gameserver.model.zone.type;
 
 import net.sf.l2j.gameserver.data.manager.ClanHallManager;
-import net.sf.l2j.gameserver.data.xml.MapRegionData.TeleportType;
+import net.sf.l2j.gameserver.enums.SpawnType;
 import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.clanhall.ClanHall;
-import net.sf.l2j.gameserver.model.zone.SpawnZoneType;
+import net.sf.l2j.gameserver.model.zone.type.subtype.ResidenceZoneType;
 import net.sf.l2j.gameserver.network.serverpackets.ClanHallDecoration;
 
 /**
- * A zone extending {@link SpawnZoneType} used by {@link ClanHall}s.
+ * A zone extending {@link ResidenceZoneType} used by {@link ClanHall}s.
  */
-public class ClanHallZone extends SpawnZoneType
+public class ClanHallZone extends ResidenceZoneType
 {
-	private int _clanHallId;
-	
 	public ClanHallZone(int id)
 	{
 		super(id);
 	}
 	
 	@Override
+	public void banishForeigners(int clanId)
+	{
+		final ClanHall ch = ClanHallManager.getInstance().getClanHall(getResidenceId());
+		if (ch == null)
+			return;
+		
+		for (Player player : getKnownTypeInside(Player.class))
+		{
+			if (player.getClanId() == clanId)
+				continue;
+			
+			player.teleportTo(ch.getRndSpawn(SpawnType.BANISH), 20);
+		}
+	}
+	
+	@Override
 	public void setParameter(String name, String value)
 	{
 		if (name.equals("clanHallId"))
-			_clanHallId = Integer.parseInt(value);
+			setResidenceId(Integer.parseInt(value));
 		else
 			super.setParameter(name, value);
 	}
@@ -38,7 +52,7 @@ public class ClanHallZone extends SpawnZoneType
 			// Set as in clan hall
 			character.setInsideZone(ZoneId.CLAN_HALL, true);
 			
-			final ClanHall ch = ClanHallManager.getInstance().getClanHall(_clanHallId);
+			final ClanHall ch = ClanHallManager.getInstance().getClanHall(getResidenceId());
 			if (ch == null)
 				return;
 			
@@ -52,25 +66,5 @@ public class ClanHallZone extends SpawnZoneType
 	{
 		if (character instanceof Player)
 			character.setInsideZone(ZoneId.CLAN_HALL, false);
-	}
-	
-	/**
-	 * Kick {@link Player}s who don't belong to the clan set as parameter from this zone. They are ported to town.
-	 * @param clanId : The clanhall owner id. Related players aren't teleported out.
-	 */
-	public void banishForeigners(int clanId)
-	{
-		for (Player player : getKnownTypeInside(Player.class))
-		{
-			if (player.getClanId() == clanId)
-				continue;
-			
-			player.teleportTo(TeleportType.TOWN);
-		}
-	}
-	
-	public int getClanHallId()
-	{
-		return _clanHallId;
 	}
 }

@@ -10,6 +10,7 @@ import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
 import net.sf.l2j.gameserver.model.holder.skillnode.FishingSkillNode;
 import net.sf.l2j.gameserver.network.SystemMessageId;
+import net.sf.l2j.gameserver.network.serverpackets.AcquireSkillDone;
 import net.sf.l2j.gameserver.network.serverpackets.AcquireSkillList;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
@@ -49,7 +50,7 @@ public class Fisherman extends Merchant
 			showFishSkillList(player);
 		else if (command.startsWith("FishingChampionship"))
 		{
-			if (!Config.ALT_FISH_CHAMPIONSHIP_ENABLED)
+			if (!Config.ALLOW_FISH_CHAMPIONSHIP)
 			{
 				final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
 				html.setFile("data/html/fisherman/championship/no_fish_event001.htm");
@@ -60,7 +61,7 @@ public class Fisherman extends Merchant
 		}
 		else if (command.startsWith("FishingReward"))
 		{
-			if (!Config.ALT_FISH_CHAMPIONSHIP_ENABLED)
+			if (!Config.ALLOW_FISH_CHAMPIONSHIP)
 			{
 				final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
 				html.setFile("data/html/fisherman/championship/no_fish_event001.htm");
@@ -101,6 +102,8 @@ public class Fisherman extends Merchant
 				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.DO_NOT_HAVE_FURTHER_SKILLS_TO_LEARN_S1).addNumber(minlevel));
 			else
 				player.sendPacket(SystemMessageId.NO_MORE_SKILLS_TO_LEARN);
+			
+			player.sendPacket(AcquireSkillDone.STATIC_PACKET);
 		}
 		else
 			player.sendPacket(new AcquireSkillList(AcquireSkillType.FISHING, skills));

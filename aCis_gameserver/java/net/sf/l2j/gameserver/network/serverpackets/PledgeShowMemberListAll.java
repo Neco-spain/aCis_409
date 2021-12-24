@@ -1,12 +1,8 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
-import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.model.pledge.ClanMember;
 
-/**
- * format dSS dddddddddSdd d (Sddddd) dddSS dddddddddSdd d (Sdddddd)
- */
 public class PledgeShowMemberListAll extends L2GameServerPacket
 {
 	private final Clan _clan;
@@ -43,12 +39,12 @@ public class PledgeShowMemberListAll extends L2GameServerPacket
 		writeD(_clan.getClanHallId());
 		writeD(_clan.getRank());
 		writeD(_clan.getReputationScore());
-		writeD(0); // 0
-		writeD(0); // 0
+		writeD(0);
+		writeD(0);
 		writeD(_clan.getAllyId());
 		writeS(_clan.getAllyName());
 		writeD(_clan.getAllyCrestId());
-		writeD(_clan.isAtWar() ? 1 : 0);// new c3
+		writeD(_clan.isAtWar() ? 1 : 0);
 		writeD(_clan.getSubPledgeMembersCount(_pledgeType));
 		
 		for (ClanMember m : _clan.getMembers())
@@ -59,19 +55,8 @@ public class PledgeShowMemberListAll extends L2GameServerPacket
 			writeS(m.getName());
 			writeD(m.getLevel());
 			writeD(m.getClassId());
-			
-			Player player = m.getPlayerInstance();
-			if (player != null)
-			{
-				writeD(player.getAppearance().getSex().ordinal()); // no visible effect
-				writeD(player.getRace().ordinal());// writeD(1);
-			}
-			else
-			{
-				writeD(0x01); // no visible effect
-				writeD(0x01); // writeD(1);
-			}
-			
+			writeD(m.getSex().ordinal());
+			writeD(m.getRace().ordinal());
 			writeD((m.isOnline()) ? m.getObjectId() : 0);
 			writeD((m.getSponsor() != 0 || m.getApprentice() != 0) ? 1 : 0);
 		}

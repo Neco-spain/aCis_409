@@ -22,21 +22,21 @@ public class SiegeStatus implements IUserCommandHandler
 	private static final String OUTSIDE_ZONE = "Outside Castle Siege Zone";
 	
 	@Override
-	public boolean useUserCommand(int id, Player activeChar)
+	public void useUserCommand(int id, Player player)
 	{
-		if (!activeChar.isClanLeader())
+		if (!player.isClanLeader())
 		{
-			activeChar.sendPacket(SystemMessageId.ONLY_CLAN_LEADER_CAN_ISSUE_COMMANDS);
-			return false;
+			player.sendPacket(SystemMessageId.ONLY_CLAN_LEADER_CAN_ISSUE_COMMANDS);
+			return;
 		}
 		
-		if (!activeChar.isNoble())
+		if (!player.isNoble())
 		{
-			activeChar.sendPacket(SystemMessageId.ONLY_NOBLESSE_LEADER_CAN_VIEW_SIEGE_STATUS_WINDOW);
-			return false;
+			player.sendPacket(SystemMessageId.ONLY_NOBLESSE_LEADER_CAN_VIEW_SIEGE_STATUS_WINDOW);
+			return;
 		}
 		
-		final Clan clan = activeChar.getClan();
+		final Clan clan = player.getClan();
 		
 		final StringBuilder sb = new StringBuilder();
 		
@@ -54,12 +54,11 @@ public class SiegeStatus implements IUserCommandHandler
 			html.replace("%kills%", clan.getSiegeKills());
 			html.replace("%deaths%", clan.getSiegeDeaths());
 			html.replace("%content%", sb.toString());
-			activeChar.sendPacket(html);
-			return true;
+			player.sendPacket(html);
+			return;
 		}
 		
-		activeChar.sendPacket(SystemMessageId.ONLY_DURING_SIEGE);
-		return false;
+		player.sendPacket(SystemMessageId.ONLY_DURING_SIEGE);
 	}
 	
 	@Override

@@ -1,157 +1,129 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
 import java.awt.Color;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
+import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.location.Location;
 
 /**
- * A packet used to draw points and lines on client.<br/>
- * <b>Note:</b> Names in points and lines are bugged they will appear even when not looking at them.
+ * A packet used to draw points and lines on client.<br>
+ * <br>
+ * <b>Note:</b><br>
+ * Names in points and lines are bugged they will appear even when not looking at them.<br>
+ * Packet must be sent using sendTo() method, otherwise nested packets are not sent.
  */
 public class ExServerPrimitive extends L2GameServerPacket
 {
+	private static final int MAX_SIZE = 16000;
+	
+	private final Set<Point> _points = ConcurrentHashMap.newKeySet();
+	private final Set<Line> _lines = ConcurrentHashMap.newKeySet();
+	
 	private final String _name;
-	private final List<Point> _points = new ArrayList<>();
-	private final List<Line> _lines = new ArrayList<>();
-	private int _x;
-	private int _y;
-	private int _z;
+	
+	private final int _x;
+	private final int _y;
+	private final int _z;
+	private final int _index;
+	
+	private int _size = 0;
+	private ExServerPrimitive _next;
 	
 	/**
-	 * @param name A unique name this will be used to replace lines if second packet is sent
-	 * @param x the x coordinate usually middle of drawing area
-	 * @param y the y coordinate usually middle of drawing area
-	 * @param z the z coordinate usually middle of drawing area
-	 */
-	public ExServerPrimitive(String name, int x, int y, int z)
-	{
-		_name = name;
-		_x = x;
-		_y = y;
-		_z = z;
-	}
-	
-	/**
-	 * @param name A unique name this will be used to replace lines if second packet is sent
-	 * @param location the Location to take coordinates usually middle of drawing area
+	 * @param name : An unique name this will be used to replace lines if second packet is sent.
+	 * @param location : The {@link Player}'s enter world {@link Location}.
 	 */
 	public ExServerPrimitive(String name, Location location)
 	{
-		this(name, location.getX(), location.getY(), location.getZ());
+		_name = name;
+		_x = location.getX();
+		_y = location.getY();
+		_z = location.getZ();
+		_index = 0;
 	}
 	
 	/**
-	 * @param name A unique name this will be used to replace lines if second packet is sent
+	 * Constructor of a dummy packet as a simple container. Should not be send out.
 	 */
-	public ExServerPrimitive(String name)
+	public ExServerPrimitive()
 	{
-		this(name, 0, 0, 0);
+		_name = null;
+		_x = 0;
+		_y = 0;
+		_z = 0;
+		_index = -1;
 	}
 	
 	/**
-	 * Set XYZ before changing packet each time. Useful for broadcasting purposes instead of building the object anew each time.
-	 * @param x the x coordinate usually middle of drawing area
-	 * @param y the y coordinate usually middle of drawing area
-	 * @param z the z coordinate usually middle of drawing area
+	 * Constructor of a following packet. Used, when parent packet is out of capacity.
+	 * @param parent : A parent {@link ExServerPrimitive} packet used for nesting.
 	 */
-	public void setXYZ(final int x, final int y, final int z)
+	public ExServerPrimitive(ExServerPrimitive parent)
 	{
-		_x = x;
-		_y = y;
-		_z = z;
+		_name = parent._name;
+		_x = parent._x;
+		_y = parent._y;
+		_z = parent._z;
+		_index = parent._index + 1;
 	}
 	
 	/**
-	 * Set XYZ before sending packet each time. Useful for broadcasting purposes instead of building the object anew each time.
-	 * @param location the Location to take coordinates usually middle of drawing area
+	 * Add a point to the {@link ExServerPrimitive} ; create next {@link ExServerPrimitive} if out of capacity.
+	 * @param point : Added {@link Point}.
 	 */
-	public void setXYZ(Location location)
+	private void addPoint(Point point)
 	{
-		setXYZ(location.getX(), location.getY(), location.getZ());
+		// Check size and add point, if free capacity (or add if dummy packet).
+		if (_size < MAX_SIZE || _index < 0)
+		{
+			_size += point.size();
+			_points.add(point);
+			return;
+		}
+		
+		// Capacity not enough, create next packet (if needed).
+		if (_next == null)
+			_next = new ExServerPrimitive(this);
+		
+		// Add point to next packet.
+		_next.addPoint(point);
 	}
 	
 	/**
-	 * Adds a point to be displayed on client.
-	 * @param name the name that will be displayed over the point
-	 * @param color the color
-	 * @param isNameColored if {@code true} name will be colored as well.
-	 * @param x the x coordinate for this point
-	 * @param y the y coordinate for this point
-	 * @param z the z coordinate for this point
-	 */
-	public void addPoint(String name, int color, boolean isNameColored, int x, int y, int z)
-	{
-		_points.add(new Point(name, color, isNameColored, x, y, z));
-	}
-	
-	/**
-	 * Adds a point to be displayed on client.
-	 * @param name the name that will be displayed over the point
-	 * @param color the color
-	 * @param isNameColored if {@code true} name will be colored as well.
-	 * @param location the Location to take coordinates for this point
-	 */
-	public void addPoint(String name, int color, boolean isNameColored, Location location)
-	{
-		addPoint(name, color, isNameColored, location.getX(), location.getY(), location.getZ());
-	}
-	
-	/**
-	 * Adds a point to be displayed on client.
-	 * @param color the color
-	 * @param x the x coordinate for this point
-	 * @param y the y coordinate for this point
-	 * @param z the z coordinate for this point
-	 */
-	public void addPoint(int color, int x, int y, int z)
-	{
-		addPoint("", color, false, x, y, z);
-	}
-	
-	/**
-	 * Adds a point to be displayed on client.
-	 * @param color the color
-	 * @param location the Location to take coordinates for this point
-	 */
-	public void addPoint(int color, Location location)
-	{
-		addPoint("", color, false, location);
-	}
-	
-	/**
-	 * Adds a point to be displayed on client.
-	 * @param name the name that will be displayed over the point
-	 * @param color the color
-	 * @param isNameColored if {@code true} name will be colored as well.
-	 * @param x the x coordinate for this point
-	 * @param y the y coordinate for this point
-	 * @param z the z coordinate for this point
+	 * Add a point to be displayed on client.
+	 * @param name : The {@link String} name that will be displayed over the point.
+	 * @param color : The used {@link Color}.
+	 * @param isNameColored : If true, the name will be colored.
+	 * @param x : The x coordinate for this point.
+	 * @param y : The y coordinate for this point.
+	 * @param z : The z coordinate for this point.
 	 */
 	public void addPoint(String name, Color color, boolean isNameColored, int x, int y, int z)
 	{
-		addPoint(name, color.getRGB(), isNameColored, x, y, z);
+		addPoint(new Point(name, color, isNameColored, x, y, z));
 	}
 	
 	/**
-	 * Adds a point to be displayed on client.
-	 * @param name the name that will be displayed over the point
-	 * @param color the color
-	 * @param isNameColored if {@code true} name will be colored as well.
-	 * @param location the Location to take coordinates for this point
+	 * Add a point to be displayed on client.
+	 * @param name : The {@link String} name that will be displayed over the point.
+	 * @param color : The used {@link Color}.
+	 * @param isNameColored : If true, the name will be colored.
+	 * @param loc : The {@link Location} to take coordinates for this point.
 	 */
-	public void addPoint(String name, Color color, boolean isNameColored, Location location)
+	public void addPoint(String name, Color color, boolean isNameColored, Location loc)
 	{
-		addPoint(name, color.getRGB(), isNameColored, location);
+		addPoint(name, color, isNameColored, loc.getX(), loc.getY(), loc.getZ());
 	}
 	
 	/**
-	 * Adds a point to be displayed on client.
-	 * @param color the color
-	 * @param x the x coordinate for this point
-	 * @param y the y coordinate for this point
-	 * @param z the z coordinate for this point
+	 * Add a point to be displayed on client.
+	 * @param color : The used {@link Color}.
+	 * @param x : The x coordinate for this point.
+	 * @param y : The y coordinate for this point.
+	 * @param z : The z coordinate for this point.
 	 */
 	public void addPoint(Color color, int x, int y, int z)
 	{
@@ -159,196 +131,106 @@ public class ExServerPrimitive extends L2GameServerPacket
 	}
 	
 	/**
-	 * Adds a point to be displayed on client.
-	 * @param color the color
-	 * @param location the Location to take coordinates for this point
+	 * Add a point to be displayed on client.
+	 * @param color : The used {@link Color}.
+	 * @param loc : The {@link Location} to take coordinates for this point.
 	 */
-	public void addPoint(Color color, Location location)
+	public void addPoint(Color color, Location loc)
 	{
-		addPoint("", color, false, location);
+		addPoint("", color, false, loc.getX(), loc.getY(), loc.getZ());
 	}
 	
 	/**
-	 * Adds a line to be displayed on client
-	 * @param name the name that will be displayed over the middle of line
-	 * @param color the color
-	 * @param isNameColored if {@code true} name will be colored as well.
-	 * @param x the x coordinate for this line start point
-	 * @param y the y coordinate for this line start point
-	 * @param z the z coordinate for this line start point
-	 * @param x2 the x coordinate for this line end point
-	 * @param y2 the y coordinate for this line end point
-	 * @param z2 the z coordinate for this line end point
+	 * Add a line to the {@link ExServerPrimitive} ; create next {@link ExServerPrimitive} if out of capacity.
+	 * @param line : Added {@link Line}.
 	 */
-	public void addLine(String name, int color, boolean isNameColored, int x, int y, int z, int x2, int y2, int z2)
+	private void addLine(Line line)
 	{
-		_lines.add(new Line(name, color, isNameColored, x, y, z, x2, y2, z2));
+		// Check size and add line, if free capacity (or add if dummy packet).
+		if (_size < MAX_SIZE || _index < 0)
+		{
+			_size += line.size();
+			_lines.add(line);
+			return;
+		}
+		
+		// Capacity not enough, create next packet (if needed).
+		if (_next == null)
+			_next = new ExServerPrimitive(this);
+		
+		// Add line to next packet.
+		_next.addLine(line);
 	}
 	
 	/**
-	 * Adds a line to be displayed on client
-	 * @param name the name that will be displayed over the middle of line
-	 * @param color the color
-	 * @param isNameColored if {@code true} name will be colored as well.
-	 * @param location the Location to take coordinates for this line start point
-	 * @param x2 the x coordinate for this line end point
-	 * @param y2 the y coordinate for this line end point
-	 * @param z2 the z coordinate for this line end point
-	 */
-	public void addLine(String name, int color, boolean isNameColored, Location location, int x2, int y2, int z2)
-	{
-		addLine(name, color, isNameColored, location.getX(), location.getY(), location.getZ(), x2, y2, z2);
-	}
-	
-	/**
-	 * Adds a line to be displayed on client
-	 * @param name the name that will be displayed over the middle of line
-	 * @param color the color
-	 * @param isNameColored if {@code true} name will be colored as well.
-	 * @param x the x coordinate for this line start point
-	 * @param y the y coordinate for this line start point
-	 * @param z the z coordinate for this line start point
-	 * @param location the Location to take coordinates for this line end point
-	 */
-	public void addLine(String name, int color, boolean isNameColored, int x, int y, int z, Location location)
-	{
-		addLine(name, color, isNameColored, x, y, z, location.getX(), location.getY(), location.getZ());
-	}
-	
-	/**
-	 * Adds a line to be displayed on client
-	 * @param name the name that will be displayed over the middle of line
-	 * @param color the color
-	 * @param isNameColored if {@code true} name will be colored as well.
-	 * @param location the Location to take coordinates for this line start point
-	 * @param location2 the Location to take coordinates for this line end point
-	 */
-	public void addLine(String name, int color, boolean isNameColored, Location location, Location location2)
-	{
-		addLine(name, color, isNameColored, location, location2.getX(), location2.getY(), location2.getZ());
-	}
-	
-	/**
-	 * Adds a line to be displayed on client
-	 * @param color the color
-	 * @param x the x coordinate for this line start point
-	 * @param y the y coordinate for this line start point
-	 * @param z the z coordinate for this line start point
-	 * @param x2 the x coordinate for this line end point
-	 * @param y2 the y coordinate for this line end point
-	 * @param z2 the z coordinate for this line end point
-	 */
-	public void addLine(int color, int x, int y, int z, int x2, int y2, int z2)
-	{
-		addLine("", color, false, x, y, z, x2, y2, z2);
-	}
-	
-	/**
-	 * Adds a line to be displayed on client
-	 * @param color the color
-	 * @param location the Location to take coordinates for this line start point
-	 * @param x2 the x coordinate for this line end point
-	 * @param y2 the y coordinate for this line end point
-	 * @param z2 the z coordinate for this line end point
-	 */
-	public void addLine(int color, Location location, int x2, int y2, int z2)
-	{
-		addLine("", color, false, location, x2, y2, z2);
-	}
-	
-	/**
-	 * Adds a line to be displayed on client
-	 * @param color the color
-	 * @param x the x coordinate for this line start point
-	 * @param y the y coordinate for this line start point
-	 * @param z the z coordinate for this line start point
-	 * @param location the Location to take coordinates for this line end point
-	 */
-	public void addLine(int color, int x, int y, int z, Location location)
-	{
-		addLine("", color, false, x, y, z, location);
-	}
-	
-	/**
-	 * Adds a line to be displayed on client
-	 * @param color the color
-	 * @param location the Location to take coordinates for this line start point
-	 * @param location2 the Location to take coordinates for this line end point
-	 */
-	public void addLine(int color, Location location, Location location2)
-	{
-		addLine("", color, false, location, location2);
-	}
-	
-	/**
-	 * Adds a line to be displayed on client
-	 * @param name the name that will be displayed over the middle of line
-	 * @param color the color
-	 * @param isNameColored if {@code true} name will be colored as well.
-	 * @param x the x coordinate for this line start point
-	 * @param y the y coordinate for this line start point
-	 * @param z the z coordinate for this line start point
-	 * @param x2 the x coordinate for this line end point
-	 * @param y2 the y coordinate for this line end point
-	 * @param z2 the z coordinate for this line end point
+	 * Add a line to be displayed on client.
+	 * @param name : The {@link String} name that will be displayed over the point.
+	 * @param color : The used {@link Color}.
+	 * @param isNameColored : If true, the name will be colored.
+	 * @param x : The x coordinate for this line start point.
+	 * @param y : The y coordinate for this line start point.
+	 * @param z : The z coordinate for this line start point.
+	 * @param x2 : The x coordinate for this line end point.
+	 * @param y2 : The y coordinate for this line end point.
+	 * @param z2 : The z coordinate for this line end point.
 	 */
 	public void addLine(String name, Color color, boolean isNameColored, int x, int y, int z, int x2, int y2, int z2)
 	{
-		addLine(name, color.getRGB(), isNameColored, x, y, z, x2, y2, z2);
+		addLine(new Line(name, color, isNameColored, x, y, z, x2, y2, z2));
 	}
 	
 	/**
-	 * Adds a line to be displayed on client
-	 * @param name the name that will be displayed over the middle of line
-	 * @param color the color
-	 * @param isNameColored if {@code true} name will be colored as well.
-	 * @param location the Location to take coordinates for this line start point
-	 * @param x2 the x coordinate for this line end point
-	 * @param y2 the y coordinate for this line end point
-	 * @param z2 the z coordinate for this line end point
+	 * Add a line to be displayed on client.
+	 * @param name : The {@link String} name that will be displayed over the point.
+	 * @param color : The used {@link Color}.
+	 * @param isNameColored : If true, the name will be colored.
+	 * @param loc : The {@link Location} to take coordinates for this line start point.
+	 * @param x2 : The x coordinate for this line end point.
+	 * @param y2 : The y coordinate for this line end point.
+	 * @param z2 : The z coordinate for this line end point.
 	 */
-	public void addLine(String name, Color color, boolean isNameColored, Location location, int x2, int y2, int z2)
+	public void addLine(String name, Color color, boolean isNameColored, Location loc, int x2, int y2, int z2)
 	{
-		addLine(name, color.getRGB(), isNameColored, location, x2, y2, z2);
+		addLine(name, color, isNameColored, loc.getX(), loc.getY(), loc.getZ(), x2, y2, z2);
 	}
 	
 	/**
-	 * Adds a line to be displayed on client
-	 * @param name the name that will be displayed over the middle of line
-	 * @param color the color
-	 * @param isNameColored if {@code true} name will be colored as well.
-	 * @param x the x coordinate for this line start point
-	 * @param y the y coordinate for this line start point
-	 * @param z the z coordinate for this line start point
-	 * @param location the Location to take coordinates for this line end point
+	 * Add a line to be displayed on client.
+	 * @param name : The {@link String} name that will be displayed over the point.
+	 * @param color : The used {@link Color}.
+	 * @param isNameColored : If true, the name will be colored.
+	 * @param x : The x coordinate for this line end point.
+	 * @param y : The y coordinate for this line end point.
+	 * @param z : The z coordinate for this line end point.
+	 * @param loc : The {@link Location} to take coordinates for this line end point.
 	 */
-	public void addLine(String name, Color color, boolean isNameColored, int x, int y, int z, Location location)
+	public void addLine(String name, Color color, boolean isNameColored, int x, int y, int z, Location loc)
 	{
-		addLine(name, color.getRGB(), isNameColored, x, y, z, location);
+		addLine(name, color, isNameColored, x, y, z, loc.getX(), loc.getY(), loc.getZ());
 	}
 	
 	/**
-	 * Adds a line to be displayed on client
-	 * @param name the name that will be displayed over the middle of line
-	 * @param color the color
-	 * @param isNameColored if {@code true} name will be colored as well.
-	 * @param location the Location to take coordinates for this line start point
-	 * @param location2 the Location to take coordinates for this line end point
+	 * Add a line to be displayed on client.
+	 * @param name : The {@link String} name that will be displayed over the point.
+	 * @param color : The used {@link Color}.
+	 * @param isNameColored : If true, the name will be colored.
+	 * @param loc : The {@link Location} to take coordinates for this line start point.
+	 * @param loc2 : The {@link Location} to take coordinates for this line end point.
 	 */
-	public void addLine(String name, Color color, boolean isNameColored, Location location, Location location2)
+	public void addLine(String name, Color color, boolean isNameColored, Location loc, Location loc2)
 	{
-		addLine(name, color.getRGB(), isNameColored, location, location2);
+		addLine(name, color, isNameColored, loc.getX(), loc.getY(), loc.getZ(), loc2.getX(), loc2.getY(), loc2.getZ());
 	}
 	
 	/**
-	 * Adds a line to be displayed on client
-	 * @param color the color
-	 * @param x the x coordinate for this line start point
-	 * @param y the y coordinate for this line start point
-	 * @param z the z coordinate for this line start point
-	 * @param x2 the x coordinate for this line end point
-	 * @param y2 the y coordinate for this line end point
-	 * @param z2 the z coordinate for this line end point
+	 * Add a line to be displayed on client.
+	 * @param color : The used {@link Color}.
+	 * @param x : The x coordinate for this line start point.
+	 * @param y : The y coordinate for this line start point.
+	 * @param z : The z coordinate for this line start point.
+	 * @param x2 : The x coordinate for this line end point.
+	 * @param y2 : The y coordinate for this line end point.
+	 * @param z2 : The z coordinate for this line end point.
 	 */
 	public void addLine(Color color, int x, int y, int z, int x2, int y2, int z2)
 	{
@@ -356,40 +238,211 @@ public class ExServerPrimitive extends L2GameServerPacket
 	}
 	
 	/**
-	 * Adds a line to be displayed on client
-	 * @param color the color
-	 * @param location the Location to take coordinates for this line start point
-	 * @param x2 the x coordinate for this line end point
-	 * @param y2 the y coordinate for this line end point
-	 * @param z2 the z coordinate for this line end point
+	 * Add a line to be displayed on client.
+	 * @param color : The used {@link Color}.
+	 * @param loc : The {@link Location} to take coordinates for this line start point.
+	 * @param x2 : The x coordinate for this line end point.
+	 * @param y2 : The y coordinate for this line end point.
+	 * @param z2 : The z coordinate for this line end point.
 	 */
-	public void addLine(Color color, Location location, int x2, int y2, int z2)
+	public void addLine(Color color, Location loc, int x2, int y2, int z2)
 	{
-		addLine("", color, false, location, x2, y2, z2);
+		addLine("", color, false, loc.getX(), loc.getY(), loc.getZ(), x2, y2, z2);
 	}
 	
 	/**
-	 * Adds a line to be displayed on client
-	 * @param color the color
-	 * @param x the x coordinate for this line start point
-	 * @param y the y coordinate for this line start point
-	 * @param z the z coordinate for this line start point
-	 * @param location the Location to take coordinates for this line end point
+	 * Add a line to be displayed on client.
+	 * @param color : The used {@link Color}.
+	 * @param x : The x coordinate for this line end point.
+	 * @param y : The y coordinate for this line end point.
+	 * @param z : The z coordinate for this line end point.
+	 * @param loc : The {@link Location} to take coordinates for this line end point.
 	 */
-	public void addLine(Color color, int x, int y, int z, Location location)
+	public void addLine(Color color, int x, int y, int z, Location loc)
 	{
-		addLine("", color, false, x, y, z, location);
+		addLine("", color, false, x, y, z, loc.getX(), loc.getY(), loc.getZ());
 	}
 	
 	/**
-	 * Adds a line to be displayed on client
-	 * @param color the color
-	 * @param location the ILocational to take coordinates for this line start point
-	 * @param location2 the ILocational to take coordinates for this line end point
+	 * Add a line to be displayed on client.
+	 * @param color : The used {@link Color}.
+	 * @param loc : The {@link Location} to take coordinates for this line start point.
+	 * @param loc2 : The {@link Location} to take coordinates for this line end point.
 	 */
-	public void addLine(Color color, Location location, Location location2)
+	public void addLine(Color color, Location loc, Location loc2)
 	{
-		addLine("", color, false, location, location2);
+		addLine("", color, false, loc.getX(), loc.getY(), loc.getZ(), loc2.getX(), loc2.getY(), loc2.getZ());
+	}
+	
+	/**
+	 * Add a rectangle to be displayed on client.
+	 * @param name : The {@link String} name that will be displayed over the point.
+	 * @param color : The used {@link Color}.
+	 * @param isNameColored : If true, the name will be colored.
+	 * @param x : The x coordinate of one corner.
+	 * @param y : The y coordinate of one corner.
+	 * @param x2 : The x coordinate of opposite corner.
+	 * @param y2 : The y coordinate of opposite corner.
+	 * @param z : The z coordinate of all corners.
+	 */
+	public void addRectangle(String name, Color color, boolean isNameColored, int x, int y, int x2, int y2, int z)
+	{
+		addLine(name, color, isNameColored, x, y, z, x, y2, z);
+		addLine(name, color, isNameColored, x2, y2, z, x, y2, z);
+		addLine(name, color, isNameColored, x2, y2, z, x2, y, z);
+		addLine(name, color, isNameColored, x, y, z, x2, y, z);
+	}
+	
+	/**
+	 * Add a rectangle to be displayed on client.
+	 * @param name : The {@link String} name that will be displayed over the point.
+	 * @param color : The used {@link Color}.
+	 * @param isNameColored : If true, the name will be colored.
+	 * @param loc : The {@link Location} of one corner, the height of all corners is taken from this {@link Location}.
+	 * @param loc2 : The {@link Location} of opposite corner.
+	 */
+	public void addRectangle(String name, Color color, boolean isNameColored, Location loc, Location loc2)
+	{
+		addRectangle(name, color, isNameColored, loc.getX(), loc.getY(), loc2.getX(), loc2.getY(), loc.getZ());
+	}
+	
+	/**
+	 * Add a rectangle to be displayed on client.
+	 * @param color : The used {@link Color}.
+	 * @param x : The x coordinate of one corner.
+	 * @param y : The y coordinate of one corner.
+	 * @param x2 : The x coordinate of opposite corner.
+	 * @param y2 : The y coordinate of opposite corner.
+	 * @param z : The z coordinate of all corners.
+	 */
+	public void addRectangle(Color color, int x, int y, int x2, int y2, int z)
+	{
+		addRectangle("", color, false, x, y, x, y2, z);
+	}
+	
+	/**
+	 * Add a rectangle to be displayed on client.
+	 * @param color : The used {@link Color}.
+	 * @param loc : The {@link Location} of one corner, the height of all corners is taken from this {@link Location}.
+	 * @param loc2 : The {@link Location} of opposite corner.
+	 */
+	public void addRectangle(Color color, Location loc, Location loc2)
+	{
+		addRectangle("", color, false, loc.getX(), loc.getY(), loc2.getX(), loc2.getY(), loc.getZ());
+	}
+	
+	/**
+	 * Add a square to be displayed on client.
+	 * @param name : The {@link String} name that will be displayed over the point.
+	 * @param color : The used {@link Color}.
+	 * @param isNameColored : If true, the name will be colored.
+	 * @param x : The x coordinate of one corner.
+	 * @param y : The y coordinate of one corner.
+	 * @param z : The z coordinate of all corners.
+	 * @param size : The size of square (may be negative)
+	 */
+	public void addSquare(String name, Color color, boolean isNameColored, int x, int y, int z, int size)
+	{
+		int x2 = x + size;
+		int y2 = y + size;
+		addLine(name, color, isNameColored, x, y, z, x, y2, z);
+		addLine(name, color, isNameColored, x2, y2, z, x, y2, z);
+		addLine(name, color, isNameColored, x2, y2, z, x2, y, z);
+		addLine(name, color, isNameColored, x, y, z, x2, y, z);
+	}
+	
+	/**
+	 * Add a square to be displayed on client.
+	 * @param name : The {@link String} name that will be displayed over the point.
+	 * @param color : The used {@link Color}.
+	 * @param isNameColored : If true, the name will be colored.
+	 * @param loc : The {@link Location} of one corner, the height of all corners is taken from this {@link Location}.
+	 * @param size : The size of square (may be negative)
+	 */
+	public void addSquare(String name, Color color, boolean isNameColored, Location loc, int size)
+	{
+		addSquare(name, color, isNameColored, loc.getX(), loc.getY(), loc.getZ(), size);
+	}
+	
+	/**
+	 * Add a square to be displayed on client.
+	 * @param color : The used {@link Color}.
+	 * @param x : The x coordinate of one corner.
+	 * @param y : The y coordinate of one corner.
+	 * @param z : The z coordinate of all corners.
+	 * @param size : The size of square (may be negative)
+	 */
+	public void addSquare(Color color, int x, int y, int z, int size)
+	{
+		addSquare("", color, false, x, y, z, size);
+	}
+	
+	/**
+	 * Add a square to be displayed on client.
+	 * @param color : The used {@link Color}.
+	 * @param loc : The {@link Location} of one corner, the height of all corners is taken from this {@link Location}.
+	 * @param size : The size of square (may be negative)
+	 */
+	public void addSquare(Color color, Location loc, int size)
+	{
+		addSquare("", color, false, loc.getX(), loc.getY(), loc.getZ(), size);
+	}
+	
+	/**
+	 * Adds points and lines from existing {@link ExServerPrimitive} packet.
+	 * @param esp : The {@link ExServerPrimitive} packet to use points and lines from.
+	 */
+	public void addAll(ExServerPrimitive esp)
+	{
+		for (Point p : esp._points)
+			addPoint(p);
+		for (Line l : esp._lines)
+			addLine(l);
+	}
+	
+	/**
+	 * Reset both lines and points {@link List}s.
+	 */
+	public void reset()
+	{
+		_lines.clear();
+		_points.clear();
+		_size = 0;
+		
+		if (_next != null)
+			_next.reset();
+	}
+	
+	/**
+	 * Send packet to the {@link Player}. If out of capacity, send more packets.
+	 * @param player : The {@link Player} to send packet(s) to.
+	 */
+	public void sendTo(Player player)
+	{
+		// Packet is empty, add dummy points (happens at first packet only).
+		if (_size == 0)
+			addPoint(Color.WHITE, _x, _y, 16384);
+		
+		// Send packet.
+		player.sendPacket(this);
+		
+		// No next packet, return.
+		if (_next == null)
+			return;
+		
+		// Check next packet.
+		if (_next._size == 0)
+		{
+			// Next packet is empty, add dummy point.
+			_next.addPoint(Color.WHITE, _x, _y, 16384);
+			
+			// Send packet and remove next packet.
+			_next.sendTo(player);
+			_next = null;
+		}
+		else
+			// Next packet is not empty, send packet.
+			_next.sendTo(player);
 	}
 	
 	@Override
@@ -397,7 +450,10 @@ public class ExServerPrimitive extends L2GameServerPacket
 	{
 		writeC(0xFE);
 		writeH(0x24);
-		writeS(_name);
+		if (_index == 0)
+			writeS(_name);
+		else
+			writeS(_name == null ? "null" + _index : _name + _index);
 		writeD(_x);
 		writeD(_y);
 		writeD(_z);
@@ -440,69 +496,57 @@ public class ExServerPrimitive extends L2GameServerPacket
 	
 	private static class Point
 	{
-		private final String _name;
+		protected final String _name;
 		private final int _color;
 		private final boolean _isNameColored;
 		private final int _x;
 		private final int _y;
 		private final int _z;
 		
-		public Point(String name, int color, boolean isNameColored, int x, int y, int z)
+		public Point(String name, Color color, boolean isNameColored, int x, int y, int z)
 		{
 			_name = name;
-			_color = color;
+			_color = color.getRGB();
 			_isNameColored = isNameColored;
 			_x = x;
 			_y = y;
 			_z = z;
 		}
 		
-		/**
-		 * @return the name
-		 */
 		public String getName()
 		{
 			return _name;
 		}
 		
-		/**
-		 * @return the color
-		 */
 		public int getColor()
 		{
 			return _color;
 		}
 		
-		/**
-		 * @return the isNameColored
-		 */
 		public boolean isNameColored()
 		{
 			return _isNameColored;
 		}
 		
-		/**
-		 * @return the x
-		 */
 		public int getX()
 		{
 			return _x;
 		}
 		
-		/**
-		 * @return the y
-		 */
 		public int getY()
 		{
 			return _y;
 		}
 		
-		/**
-		 * @return the z
-		 */
 		public int getZ()
 		{
 			return _z;
+		}
+		
+		public int size()
+		{
+			// 1 byte, string (2 bytes per character + 2 termination bytes), 7 integers (4 bytes)
+			return _name == null ? 31 : 31 + 2 * _name.length();
 		}
 	}
 	
@@ -512,7 +556,7 @@ public class ExServerPrimitive extends L2GameServerPacket
 		private final int _y2;
 		private final int _z2;
 		
-		public Line(String name, int color, boolean isNameColored, int x, int y, int z, int x2, int y2, int z2)
+		public Line(String name, Color color, boolean isNameColored, int x, int y, int z, int x2, int y2, int z2)
 		{
 			super(name, color, isNameColored, x, y, z);
 			_x2 = x2;
@@ -520,28 +564,26 @@ public class ExServerPrimitive extends L2GameServerPacket
 			_z2 = z2;
 		}
 		
-		/**
-		 * @return the x2
-		 */
 		public int getX2()
 		{
 			return _x2;
 		}
 		
-		/**
-		 * @return the y2
-		 */
 		public int getY2()
 		{
 			return _y2;
 		}
 		
-		/**
-		 * @return the z2
-		 */
 		public int getZ2()
 		{
 			return _z2;
+		}
+		
+		@Override
+		public int size()
+		{
+			// 1 byte, string (2 bytes per character + 2 termination bytes), 10 integers (4 bytes)
+			return _name == null ? 43 : 43 + 2 * _name.length();
 		}
 	}
 }

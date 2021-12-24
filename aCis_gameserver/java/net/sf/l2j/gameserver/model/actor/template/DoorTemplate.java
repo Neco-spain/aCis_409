@@ -1,12 +1,17 @@
 package net.sf.l2j.gameserver.model.actor.template;
 
-import net.sf.l2j.commons.util.StatsSet;
+import java.awt.Color;
+
+import net.sf.l2j.commons.data.StatSet;
 
 import net.sf.l2j.gameserver.enums.DoorType;
 import net.sf.l2j.gameserver.enums.OpenType;
+import net.sf.l2j.gameserver.model.location.Point2D;
+import net.sf.l2j.gameserver.network.serverpackets.ExServerPrimitive;
 
 public class DoorTemplate extends CreatureTemplate
 {
+	private final Point2D[] _coords;
 	private final String _name;
 	private final int _id;
 	private final DoorType _type;
@@ -23,7 +28,8 @@ public class DoorTemplate extends CreatureTemplate
 	private final int _geoZ;
 	private final byte[][] _geoData;
 	
-	private final int _castle;
+	private final int _castleId;
+	private final int _clanHallId;
 	private final int _triggeredId;
 	private final boolean _opened;
 	
@@ -32,32 +38,34 @@ public class DoorTemplate extends CreatureTemplate
 	private final int _randomTime;
 	private final int _closeTime;
 	
-	public DoorTemplate(StatsSet stats)
+	public DoorTemplate(StatSet set)
 	{
-		super(stats);
+		super(set);
 		
-		_name = stats.getString("name");
-		_id = stats.getInteger("id");
-		_type = stats.getEnum("type", DoorType.class);
-		_level = stats.getInteger("level");
+		_name = set.getString("name");
+		_id = set.getInteger("id");
+		_type = set.getEnum("type", DoorType.class);
+		_level = set.getInteger("level");
 		
-		_x = stats.getInteger("posX");
-		_y = stats.getInteger("posY");
-		_z = stats.getInteger("posZ");
+		_x = set.getInteger("posX");
+		_y = set.getInteger("posY");
+		_z = set.getInteger("posZ");
 		
-		_geoX = stats.getInteger("geoX");
-		_geoY = stats.getInteger("geoY");
-		_geoZ = stats.getInteger("geoZ");
-		_geoData = stats.getObject("geoData", byte[][].class);
+		_geoX = set.getInteger("geoX");
+		_geoY = set.getInteger("geoY");
+		_geoZ = set.getInteger("geoZ");
+		_geoData = set.getObject("geoData", byte[][].class);
+		_coords = set.getObject("coords", Point2D[].class);
 		
-		_castle = stats.getInteger("castle", 0);
-		_triggeredId = stats.getInteger("triggeredId", 0);
-		_opened = stats.getBool("opened", false);
+		_castleId = set.getInteger("castle", 0);
+		_clanHallId = set.getInteger("clanHall", 0);
+		_triggeredId = set.getInteger("triggeredId", 0);
+		_opened = set.getBool("opened", false);
 		
-		_openType = stats.getEnum("openType", OpenType.class, OpenType.NPC);
-		_openTime = stats.getInteger("openTime", 0);
-		_randomTime = stats.getInteger("randomTime", 0);
-		_closeTime = stats.getInteger("closeTime", 0);
+		_openType = set.getEnum("openType", OpenType.class, OpenType.NPC);
+		_openTime = set.getInteger("openTime", 0);
+		_randomTime = set.getInteger("randomTime", 0);
+		_closeTime = set.getInteger("closeTime", 0);
 	}
 	
 	public final String getName()
@@ -115,9 +123,14 @@ public class DoorTemplate extends CreatureTemplate
 		return _geoData;
 	}
 	
-	public final int getCastle()
+	public final int getCastleId()
 	{
-		return _castle;
+		return _castleId;
+	}
+	
+	public final int getClanHallId()
+	{
+		return _clanHallId;
 	}
 	
 	public final int getTriggerId()
@@ -148,5 +161,27 @@ public class DoorTemplate extends CreatureTemplate
 	public final int getCloseTime()
 	{
 		return _closeTime;
+	}
+	
+	public void visualizeDoor(ExServerPrimitive debug)
+	{
+		final int z1 = _z - 32;
+		final int z2 = _z + 32;
+		
+		for (int i = 0; i < _coords.length; i++)
+		{
+			int nextIndex = i + 1;
+			
+			// ending point to first one
+			if (nextIndex == _coords.length)
+				nextIndex = 0;
+			
+			final Point2D curPoint = _coords[i];
+			final Point2D nextPoint = _coords[nextIndex];
+			
+			debug.addLine(_name + " MinZ", Color.GREEN, true, curPoint.getX(), curPoint.getY(), z1, nextPoint.getX(), nextPoint.getY(), z1);
+			debug.addLine(_name, Color.YELLOW, true, curPoint.getX(), curPoint.getY(), _z, nextPoint.getX(), nextPoint.getY(), _z);
+			debug.addLine(_name + " MaxZ", Color.RED, true, curPoint.getX(), curPoint.getY(), z2, nextPoint.getX(), nextPoint.getY(), z2);
+		}
 	}
 }

@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.gameserver.model.L2Augmentation;
+import net.sf.l2j.gameserver.enums.FloodProtector;
+import net.sf.l2j.gameserver.enums.StatusType;
+import net.sf.l2j.gameserver.model.Augmentation;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Folk;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
@@ -12,8 +14,6 @@ import net.sf.l2j.gameserver.model.itemcontainer.PcInventory;
 import net.sf.l2j.gameserver.model.multisell.Entry;
 import net.sf.l2j.gameserver.model.multisell.Ingredient;
 import net.sf.l2j.gameserver.model.multisell.PreparedListContainer;
-import net.sf.l2j.gameserver.network.FloodProtectors;
-import net.sf.l2j.gameserver.network.FloodProtectors.Action;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ItemList;
 import net.sf.l2j.gameserver.network.serverpackets.StatusUpdate;
@@ -44,7 +44,7 @@ public class MultiSellChoose extends L2GameClientPacket
 		if (player == null)
 			return;
 		
-		if (!FloodProtectors.performAction(getClient(), Action.MULTISELL))
+		if (!getClient().performAction(FloodProtector.MULTISELL))
 		{
 			player.setMultiSell(null);
 			return;
@@ -76,7 +76,7 @@ public class MultiSellChoose extends L2GameClientPacket
 			return;
 		}
 		
-		if (folk != null && !folk.canInteract(player))
+		if (folk != null && !player.getAI().canDoInteract(folk))
 		{
 			player.setMultiSell(null);
 			return;
@@ -98,6 +98,7 @@ public class MultiSellChoose extends L2GameClientPacket
 		
 		int slots = 0;
 		int weight = 0;
+		
 		for (Ingredient e : entry.getProducts())
 		{
 			if (e.getItemId() < 0)
@@ -141,7 +142,7 @@ public class MultiSellChoose extends L2GameClientPacket
 				// this happens if 1 list entry has the same ingredient twice (example 2 swords = 1 dual)
 				if (ex.getItemId() == e.getItemId() && ex.getEnchantLevel() == e.getEnchantLevel())
 				{
-					if (ex.getItemCount() + e.getItemCount() > Integer.MAX_VALUE)
+					if (ex.getItemCount() > Integer.MAX_VALUE - e.getItemCount())
 					{
 						player.sendPacket(SystemMessageId.YOU_HAVE_EXCEEDED_QUANTITY_THAT_CAN_BE_INPUTTED);
 						return;
@@ -165,7 +166,7 @@ public class MultiSellChoose extends L2GameClientPacket
 		// now check if the player has sufficient items in the inventory to cover the ingredients' expences
 		for (Ingredient e : ingredientsList)
 		{
-			if (e.getItemCount() * _amount > Integer.MAX_VALUE)
+			if (e.getItemCount() > Integer.MAX_VALUE / _amount)
 			{
 				player.sendPacket(SystemMessageId.YOU_HAVE_EXCEEDED_QUANTITY_THAT_CAN_BE_INPUTTED);
 				return;
@@ -195,7 +196,7 @@ public class MultiSellChoose extends L2GameClientPacket
 			{
 				// if this is not a list that maintains enchantment, check the count of all items that have the given id.
 				// otherwise, check only the count of items with exactly the needed enchantment level
-				if (inv.getInventoryItemCount(e.getItemId(), list.getMaintainEnchantment() ? e.getEnchantLevel() : -1, false) < ((Config.ALT_BLACKSMITH_USE_RECIPES || !e.getMaintainIngredient()) ? (e.getItemCount() * _amount) : e.getItemCount()))
+				if (inv.getItemCount(e.getItemId(), list.getMaintainEnchantment() ? e.getEnchantLevel() : -1, false) < ((Config.BLACKSMITH_USE_RECIPES || !e.getMaintainIngredient()) ? (e.getItemCount() * _amount) : e.getItemCount()))
 				{
 					player.sendPacket(SystemMessageId.NOT_ENOUGH_ITEMS);
 					return;
@@ -203,7 +204,7 @@ public class MultiSellChoose extends L2GameClientPacket
 			}
 		}
 		
-		List<L2Augmentation> augmentation = new ArrayList<>();
+		List<Augmentation> augmentation = new ArrayList<>();
 		
 		for (Ingredient e : entry.getIngredients())
 		{
@@ -223,7 +224,7 @@ public class MultiSellChoose extends L2GameClientPacket
 					return;
 				}
 				
-				if (Config.ALT_BLACKSMITH_USE_RECIPES || !e.getMaintainIngredient())
+				if (Config.BLACKSMITH_USE_RECIPES || !e.getMaintainIngredient())
 				{
 					// if it's a stackable item, just reduce the amount from the first (only) instance that is found in the inventory
 					if (itemToTake.isStackable())
@@ -310,7 +311,7 @@ public class MultiSellChoose extends L2GameClientPacket
 						if (product != null && list.getMaintainEnchantment())
 						{
 							if (i < augmentation.size())
-								product.setAugmentation(new L2Augmentation(augmentation.get(i).getAugmentationId(), augmentation.get(i).getSkill()));
+								product.setAugmentation(new Augmentation(augmentation.get(i).getId(), augmentation.get(i).getSkill()));
 							
 							product.setEnchantLevel(e.getEnchantLevel());
 							product.updateDatabase();
@@ -339,7 +340,7 @@ public class MultiSellChoose extends L2GameClientPacket
 		player.sendPacket(SystemMessageId.SUCCESSFULLY_TRADED_WITH_NPC);
 		
 		StatusUpdate su = new StatusUpdate(player);
-		su.addAttribute(StatusUpdate.CUR_LOAD, player.getCurrentLoad());
+		su.addAttribute(StatusType.CUR_LOAD, player.getCurrentWeight());
 		player.sendPacket(su);
 		
 		// finally, give the tax to the castle...

@@ -1,46 +1,53 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import net.sf.l2j.gameserver.enums.skills.L2EffectFlag;
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
-import net.sf.l2j.gameserver.model.L2Effect;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.enums.skills.EffectFlag;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
-public class EffectMute extends L2Effect
+public class EffectMute extends AbstractEffect
 {
-	public EffectMute(Env env, EffectTemplate template)
+	public EffectMute(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
 	{
-		super(env, template);
+		super(template, skill, effected, effector);
 	}
 	
 	@Override
-	public L2EffectType getEffectType()
+	public EffectType getEffectType()
 	{
-		return L2EffectType.MUTE;
+		return EffectType.MUTE;
 	}
 	
 	@Override
 	public boolean onStart()
 	{
-		getEffected().startMuted();
+		// Abort cast.
+		if (getEffected().getCast().isCastingNow() && getEffected().getCast().getCurrentSkill().isMagic())
+			getEffected().getCast().stop();
+		
+		// Refresh abnormal effects.
+		getEffected().updateAbnormalEffect();
+		
 		return true;
 	}
 	
 	@Override
 	public boolean onActionTime()
 	{
-		// Simply stop the effect
 		return false;
 	}
 	
 	@Override
 	public void onExit()
 	{
-		getEffected().stopMuted(false);
+		// Refresh abnormal effects.
+		getEffected().updateAbnormalEffect();
 	}
 	
 	@Override
 	public int getEffectFlags()
 	{
-		return L2EffectFlag.MUTED.getMask();
+		return EffectFlag.MUTED.getMask();
 	}
 }

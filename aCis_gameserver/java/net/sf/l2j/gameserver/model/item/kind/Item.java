@@ -2,12 +2,12 @@ package net.sf.l2j.gameserver.model.item.kind;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.logging.Logger;
+import java.util.Map;
 
-import net.sf.l2j.commons.util.StatsSet;
+import net.sf.l2j.commons.data.StatSet;
 
-import net.sf.l2j.gameserver.data.ItemTable;
 import net.sf.l2j.gameserver.enums.items.ActionType;
 import net.sf.l2j.gameserver.enums.items.ArmorType;
 import net.sf.l2j.gameserver.enums.items.CrystalType;
@@ -24,21 +24,43 @@ import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.scripting.Quest;
-import net.sf.l2j.gameserver.skills.Env;
 import net.sf.l2j.gameserver.skills.basefuncs.Func;
 import net.sf.l2j.gameserver.skills.basefuncs.FuncTemplate;
 import net.sf.l2j.gameserver.skills.conditions.Condition;
 
 /**
- * This class contains all informations concerning the item (weapon, armor, etc). Mother class of :
- * <ul>
- * <li>L2Armor</li>
- * <li>L2EtcItem</li>
- * <li>Weapon</li>
- * </ul>
+ * This container contains all informations concerning an item (weapon, armor, etc).
  */
 public abstract class Item
 {
+	private static final Map<String, Integer> SLOTS = new HashMap<>();
+	{
+		SLOTS.put("chest", SLOT_CHEST);
+		SLOTS.put("fullarmor", SLOT_FULL_ARMOR);
+		SLOTS.put("alldress", SLOT_ALLDRESS);
+		SLOTS.put("head", SLOT_HEAD);
+		SLOTS.put("hair", SLOT_HAIR);
+		SLOTS.put("face", SLOT_FACE);
+		SLOTS.put("hairall", SLOT_HAIRALL);
+		SLOTS.put("underwear", SLOT_UNDERWEAR);
+		SLOTS.put("back", SLOT_BACK);
+		SLOTS.put("neck", SLOT_NECK);
+		SLOTS.put("legs", SLOT_LEGS);
+		SLOTS.put("feet", SLOT_FEET);
+		SLOTS.put("gloves", SLOT_GLOVES);
+		SLOTS.put("chest,legs", SLOT_CHEST | SLOT_LEGS);
+		SLOTS.put("rhand", SLOT_R_HAND);
+		SLOTS.put("lhand", SLOT_L_HAND);
+		SLOTS.put("lrhand", SLOT_LR_HAND);
+		SLOTS.put("rear;lear", SLOT_R_EAR | SLOT_L_EAR);
+		SLOTS.put("rfinger;lfinger", SLOT_R_FINGER | SLOT_L_FINGER);
+		SLOTS.put("none", SLOT_NONE);
+		SLOTS.put("wolf", SLOT_WOLF); // for wolf
+		SLOTS.put("hatchling", SLOT_HATCHLING); // for hatchling
+		SLOTS.put("strider", SLOT_STRIDER); // for strider
+		SLOTS.put("babypet", SLOT_BABYPET); // for babypet
+	}
+	
 	public static final int TYPE1_WEAPON_RING_EARRING_NECKLACE = 0;
 	public static final int TYPE1_SHIELD_ARMOR = 1;
 	public static final int TYPE1_ITEM_QUESTITEM_ADENA = 4;
@@ -112,20 +134,14 @@ public abstract class Item
 	
 	private List<Quest> _questEvents = Collections.emptyList();
 	
-	protected static final Logger _log = Logger.getLogger(Item.class.getName());
-	
-	/**
-	 * Constructor of the L2Item that fill class variables.
-	 * @param set : StatsSet corresponding to a set of couples (key,value) for description of the item
-	 */
-	protected Item(StatsSet set)
+	protected Item(StatSet set)
 	{
 		_itemId = set.getInteger("item_id");
 		_name = set.getString("name");
 		_weight = set.getInteger("weight", 0);
 		_materialType = set.getEnum("material", MaterialType.class, MaterialType.STEEL);
 		_duration = set.getInteger("duration", -1);
-		_bodyPart = ItemTable._slots.get(set.getString("bodypart", "none"));
+		_bodyPart = SLOTS.get(set.getString("bodypart", "none"));
 		_referencePrice = set.getInteger("price", 0);
 		_crystalType = set.getEnum("crystal_type", CrystalType.class, CrystalType.NONE);
 		_crystalCount = set.getInteger("crystal_count", 0);
@@ -142,50 +158,8 @@ public abstract class Item
 		
 		_defaultAction = set.getEnum("default_action", ActionType.class, ActionType.none);
 		
-		String skills = set.getString("item_skill", null);
-		if (skills != null)
-		{
-			String[] skillsSplit = skills.split(";");
-			_skillHolder = new IntIntHolder[skillsSplit.length];
-			int used = 0;
-			
-			for (String element : skillsSplit)
-			{
-				try
-				{
-					String[] skillSplit = element.split("-");
-					int id = Integer.parseInt(skillSplit[0]);
-					int level = Integer.parseInt(skillSplit[1]);
-					
-					if (id == 0)
-					{
-						_log.info("Ignoring item_skill(" + element + ") for item " + toString() + ". Skill id is 0.");
-						continue;
-					}
-					
-					if (level == 0)
-					{
-						_log.info("Ignoring item_skill(" + element + ") for item " + toString() + ". Skill level is 0.");
-						continue;
-					}
-					
-					_skillHolder[used] = new IntIntHolder(id, level);
-					++used;
-				}
-				catch (Exception e)
-				{
-					_log.warning("Failed to parse item_skill(" + element + ") for item " + toString() + ". The used format is wrong.");
-				}
-			}
-			
-			// this is only loading? just don't leave a null or use a collection?
-			if (used != _skillHolder.length)
-			{
-				IntIntHolder[] skillHolder = new IntIntHolder[used];
-				System.arraycopy(_skillHolder, 0, skillHolder, 0, used);
-				_skillHolder = skillHolder;
-			}
-		}
+		if (set.containsKey("item_skill"))
+			_skillHolder = set.getIntIntHolderArray("item_skill");
 	}
 	
 	/**
@@ -416,16 +390,11 @@ public abstract class Item
 		
 		final List<Func> funcs = new ArrayList<>(_funcTemplates.size());
 		
-		final Env env = new Env();
-		env.setCharacter(player);
-		env.setTarget(player);
-		env.setItem(item);
-		
-		for (FuncTemplate t : _funcTemplates)
+		for (FuncTemplate template : _funcTemplates)
 		{
-			final Func f = t.getFunc(env, item);
-			if (f != null)
-				funcs.add(f);
+			final Func func = template.getFunc(player, player, item, item);
+			if (func != null)
+				funcs.add(func);
 		}
 		return funcs;
 	}
@@ -460,15 +429,15 @@ public abstract class Item
 		return _skillHolder;
 	}
 	
-	public boolean checkCondition(Creature activeChar, WorldObject target, boolean sendMessage)
+	public boolean checkCondition(Creature creature, WorldObject object, boolean sendMessage)
 	{
 		// Don't allow hero equipment and restricted items during Olympiad
-		if ((isOlyRestrictedItem() || isHeroItem()) && ((activeChar instanceof Player) && activeChar.getActingPlayer().isInOlympiadMode()))
+		if ((isOlyRestrictedItem() || isHeroItem()) && (creature instanceof Player && creature.getActingPlayer().isInOlympiadMode()))
 		{
 			if (isEquipable())
-				activeChar.getActingPlayer().sendPacket(SystemMessageId.THIS_ITEM_CANT_BE_EQUIPPED_FOR_THE_OLYMPIAD_EVENT);
+				creature.getActingPlayer().sendPacket(SystemMessageId.THIS_ITEM_CANT_BE_EQUIPPED_FOR_THE_OLYMPIAD_EVENT);
 			else
-				activeChar.getActingPlayer().sendPacket(SystemMessageId.THIS_ITEM_IS_NOT_AVAILABLE_FOR_THE_OLYMPIAD_EVENT);
+				creature.getActingPlayer().sendPacket(SystemMessageId.THIS_ITEM_IS_NOT_AVAILABLE_FOR_THE_OLYMPIAD_EVENT);
 			
 			return false;
 		}
@@ -476,21 +445,17 @@ public abstract class Item
 		if (_preConditions == null)
 			return true;
 		
-		final Env env = new Env();
-		env.setCharacter(activeChar);
-		if (target instanceof Creature)
-			env.setTarget((Creature) target);
-		
+		final Creature target = (object instanceof Creature) ? (Creature) object : null;
 		for (Condition preCondition : _preConditions)
 		{
 			if (preCondition == null)
 				continue;
 			
-			if (!preCondition.test(env))
+			if (!preCondition.test(creature, target, null, null))
 			{
-				if (activeChar instanceof Summon)
+				if (creature instanceof Summon)
 				{
-					activeChar.getActingPlayer().sendPacket(SystemMessageId.PET_CANNOT_USE_ITEM);
+					creature.getActingPlayer().sendPacket(SystemMessageId.PET_CANNOT_USE_ITEM);
 					return false;
 				}
 				
@@ -500,14 +465,14 @@ public abstract class Item
 					int msgId = preCondition.getMessageId();
 					if (msg != null)
 					{
-						activeChar.sendMessage(msg);
+						creature.sendMessage(msg);
 					}
 					else if (msgId != 0)
 					{
 						SystemMessage sm = SystemMessage.getSystemMessage(msgId);
 						if (preCondition.isAddName())
 							sm.addItemName(_itemId);
-						activeChar.sendPacket(sm);
+						creature.sendPacket(sm);
 					}
 				}
 				return false;

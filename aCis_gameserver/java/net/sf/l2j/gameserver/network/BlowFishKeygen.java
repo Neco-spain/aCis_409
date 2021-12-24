@@ -2,10 +2,6 @@ package net.sf.l2j.gameserver.network;
 
 import net.sf.l2j.commons.random.Rnd;
 
-/**
- * Blowfish keygen for GameServer client connections
- * @author KenM
- */
 public class BlowFishKeygen
 {
 	private static final int CRYPT_KEYS_SIZE = 20;

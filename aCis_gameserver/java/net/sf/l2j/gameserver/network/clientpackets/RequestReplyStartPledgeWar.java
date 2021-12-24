@@ -17,20 +17,20 @@ public final class RequestReplyStartPledgeWar extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		final Player requestor = activeChar.getActiveRequester();
+		final Player requestor = player.getActiveRequester();
 		if (requestor == null)
 			return;
 		
 		if (_answer == 1)
-			ClanTable.getInstance().storeClansWars(requestor.getClanId(), activeChar.getClanId());
+			ClanTable.getInstance().storeClansWars(requestor.getClanId(), player.getClanId());
 		else
 			requestor.sendPacket(SystemMessageId.WAR_PROCLAMATION_HAS_BEEN_REFUSED);
 		
-		activeChar.setActiveRequester(null);
+		player.setActiveRequester(null);
 		requestor.onTransactionResponse();
 	}
 }

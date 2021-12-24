@@ -1,22 +1,23 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
-import net.sf.l2j.gameserver.model.L2Effect;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
-public class EffectDamOverTime extends L2Effect
+public class EffectDamOverTime extends AbstractEffect
 {
-	public EffectDamOverTime(Env env, EffectTemplate template)
+	public EffectDamOverTime(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
 	{
-		super(env, template);
+		super(template, skill, effected, effector);
 	}
 	
 	@Override
-	public L2EffectType getEffectType()
+	public EffectType getEffectType()
 	{
-		return L2EffectType.DMG_OVER_TIME;
+		return EffectType.DMG_OVER_TIME;
 	}
 	
 	@Override
@@ -25,8 +26,8 @@ public class EffectDamOverTime extends L2Effect
 		if (getEffected().isDead())
 			return false;
 		
-		double damage = calc();
-		if (damage >= getEffected().getCurrentHp())
+		double damage = getTemplate().getValue();
+		if (damage >= getEffected().getStatus().getHp())
 		{
 			if (getSkill().isToggle())
 			{
@@ -38,10 +39,10 @@ public class EffectDamOverTime extends L2Effect
 			if (!getSkill().killByDOT())
 			{
 				// Fix for players dying by DOTs if HP < 1 since reduceCurrentHP method will kill them
-				if (getEffected().getCurrentHp() <= 1)
+				if (getEffected().getStatus().getHp() <= 1)
 					return true;
 				
-				damage = getEffected().getCurrentHp() - 1;
+				damage = getEffected().getStatus().getHp() - 1;
 			}
 		}
 		getEffected().reduceCurrentHpByDOT(damage, getEffector(), getSkill());

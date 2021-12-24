@@ -24,7 +24,7 @@ public final class RequestRestart extends L2GameClientPacket
 		if (player == null)
 			return;
 		
-		if (player.getActiveEnchantItem() != null || player.isLocked() || player.isInStoreMode())
+		if (player.getActiveEnchantItem() != null || player.isLocked())
 		{
 			sendPacket(RestartResponse.valueOf(false));
 			return;

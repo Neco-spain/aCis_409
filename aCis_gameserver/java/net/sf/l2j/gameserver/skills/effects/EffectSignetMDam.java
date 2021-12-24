@@ -1,62 +1,62 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import net.sf.l2j.gameserver.data.xml.NpcData;
-import net.sf.l2j.gameserver.enums.AiEventType;
+import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.enums.items.ShotType;
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.enums.skills.ShieldDefense;
+import net.sf.l2j.gameserver.enums.skills.SkillTargetType;
 import net.sf.l2j.gameserver.idfactory.IdFactory;
-import net.sf.l2j.gameserver.model.L2Effect;
-import net.sf.l2j.gameserver.model.L2Skill;
-import net.sf.l2j.gameserver.model.actor.Attackable;
 import net.sf.l2j.gameserver.model.actor.Creature;
-import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.Summon;
+import net.sf.l2j.gameserver.model.actor.instance.Door;
 import net.sf.l2j.gameserver.model.actor.instance.EffectPoint;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
 import net.sf.l2j.gameserver.model.location.Location;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.MagicSkillLaunched;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.network.serverpackets.MagicSkillUse;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
 import net.sf.l2j.gameserver.skills.Formulas;
+import net.sf.l2j.gameserver.skills.L2Skill;
 import net.sf.l2j.gameserver.skills.l2skills.L2SkillSignetCasttime;
 
-public class EffectSignetMDam extends L2Effect
+public class EffectSignetMDam extends AbstractEffect
 {
 	private EffectPoint _actor;
 	
-	public EffectSignetMDam(Env env, EffectTemplate template)
+	public EffectSignetMDam(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
 	{
-		super(env, template);
+		super(template, skill, effected, effector);
 	}
 	
 	@Override
-	public L2EffectType getEffectType()
+	public EffectType getEffectType()
 	{
-		return L2EffectType.SIGNET_GROUND;
+		return EffectType.SIGNET_GROUND;
 	}
 	
 	@Override
 	public boolean onStart()
 	{
-		NpcTemplate template;
-		if (getSkill() instanceof L2SkillSignetCasttime)
-			template = NpcData.getInstance().getTemplate(((L2SkillSignetCasttime) getSkill())._effectNpcId);
-		else
+		if (!(_skill instanceof L2SkillSignetCasttime))
 			return false;
 		
-		EffectPoint effectPoint = new EffectPoint(IdFactory.getInstance().getNextId(), template, getEffector());
-		effectPoint.setCurrentHp(effectPoint.getMaxHp());
-		effectPoint.setCurrentMp(effectPoint.getMaxMp());
+		final NpcTemplate template = NpcData.getInstance().getTemplate(((L2SkillSignetCasttime) getSkill()).effectNpcId);
+		if (template == null)
+			return false;
+		
+		final EffectPoint effectPoint = new EffectPoint(IdFactory.getInstance().getNextId(), template, getEffector());
+		effectPoint.getStatus().setMaxHpMp();
 		
 		Location worldPosition = null;
-		if (getEffector() instanceof Player && getSkill().getTargetType() == L2Skill.SkillTargetType.TARGET_GROUND)
-			worldPosition = ((Player) getEffector()).getCurrentSkillWorldPosition();
+		if (getEffector() instanceof Player && getSkill().getTargetType() == SkillTargetType.GROUND)
+			worldPosition = ((Player) getEffector()).getCast().getSignetLocation();
 		
-		effectPoint.setIsInvul(true);
+		effectPoint.setInvul(true);
 		effectPoint.spawnMe((worldPosition != null) ? worldPosition : getEffector().getPosition());
 		
 		_actor = effectPoint;
@@ -67,73 +67,48 @@ public class EffectSignetMDam extends L2Effect
 	@Override
 	public boolean onActionTime()
 	{
-		if (getCount() >= getTotalCount() - 2)
+		if (getCount() >= getTemplate().getCounter() - 2)
 			return true; // do nothing first 2 times
 			
 		final Player caster = (Player) getEffector();
-		
 		final int mpConsume = getSkill().getMpConsume();
 		
-		final boolean sps = caster.isChargedShot(ShotType.SPIRITSHOT);
-		final boolean bsps = caster.isChargedShot(ShotType.BLESSED_SPIRITSHOT);
-		
-		List<Creature> targets = new ArrayList<>();
-		
-		for (Creature cha : _actor.getKnownTypeInRadius(Creature.class, getSkill().getSkillRadius()))
+		if (mpConsume > caster.getStatus().getMp())
 		{
-			if (cha == caster)
-				continue;
+			caster.sendPacket(SystemMessageId.SKILL_REMOVED_DUE_LACK_MP);
+			return false;
+		}
+		
+		caster.getStatus().reduceMp(mpConsume);
+		
+		final List<Creature> list = _actor.getKnownTypeInRadius(Creature.class, _skill.getSkillRadius(), creature -> !creature.isDead() && !(creature instanceof Door) && !creature.isInsideZone(ZoneId.PEACE));
+		if (list.isEmpty())
+			return true;
+		
+		final Creature[] targets = list.toArray(new Creature[list.size()]);
+		for (Creature target : targets)
+		{
+			final boolean isCrit = Formulas.calcMCrit(caster, target, getSkill());
+			final ShieldDefense sDef = Formulas.calcShldUse(caster, target, getSkill(), false);
+			final boolean sps = caster.isChargedShot(ShotType.SPIRITSHOT);
+			final boolean bsps = caster.isChargedShot(ShotType.BLESSED_SPIRITSHOT);
+			final int damage = (int) Formulas.calcMagicDam(caster, target, getSkill(), sDef, sps, bsps, isCrit);
 			
-			if (cha instanceof Attackable || cha instanceof Playable)
+			if (target instanceof Summon)
+				target.getStatus().broadcastStatusUpdate();
+			
+			if (damage > 0)
 			{
-				if (cha.isAlikeDead())
-					continue;
+				// Manage cast break of the target (calculating rate, sending message...)
+				Formulas.calcCastBreak(target, damage);
 				
-				if (mpConsume > caster.getCurrentMp())
-				{
-					caster.sendPacket(SystemMessageId.SKILL_REMOVED_DUE_LACK_MP);
-					return false;
-				}
-				
-				caster.reduceCurrentMp(mpConsume);
-				
-				if (cha instanceof Playable)
-				{
-					if (caster.canAttackCharacter(cha))
-					{
-						targets.add(cha);
-						caster.updatePvPStatus(cha);
-					}
-				}
-				else
-					targets.add(cha);
+				caster.sendDamageMessage(target, damage, isCrit, false, false);
+				target.reduceCurrentHp(damage, caster, getSkill());
 			}
+			
+			_actor.broadcastPacket(new MagicSkillUse(_actor, target, _skill.getId(), _skill.getLevel(), 0, 0));
 		}
-		
-		if (!targets.isEmpty())
-		{
-			caster.broadcastPacket(new MagicSkillLaunched(caster, getSkill().getId(), getSkill().getLevel(), targets.toArray(new Creature[targets.size()])));
-			for (Creature target : targets)
-			{
-				boolean mcrit = Formulas.calcMCrit(caster.getMCriticalHit(target, getSkill()));
-				byte shld = Formulas.calcShldUse(caster, target, getSkill());
-				
-				int mdam = (int) Formulas.calcMagicDam(caster, target, getSkill(), shld, sps, bsps, mcrit);
-				
-				if (target instanceof Summon)
-					target.broadcastStatusUpdate();
-				
-				if (mdam > 0)
-				{
-					// Manage cast break of the target (calculating rate, sending message...)
-					Formulas.calcCastBreak(target, mdam);
-					
-					caster.sendDamageMessage(target, mdam, mcrit, false, false);
-					target.reduceCurrentHp(mdam, caster, getSkill());
-				}
-				target.getAI().notifyEvent(AiEventType.ATTACKED, caster);
-			}
-		}
+		_actor.broadcastPacket(new MagicSkillLaunched(_actor, _skill, targets));
 		return true;
 	}
 	

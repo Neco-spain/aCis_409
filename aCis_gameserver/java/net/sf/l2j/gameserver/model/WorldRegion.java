@@ -5,18 +5,17 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import net.sf.l2j.gameserver.enums.IntentionType;
-import net.sf.l2j.gameserver.model.actor.Attackable;
 import net.sf.l2j.gameserver.model.actor.Creature;
-import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.location.Location;
-import net.sf.l2j.gameserver.model.zone.ZoneType;
 import net.sf.l2j.gameserver.model.zone.type.DerbyTrackZone;
 import net.sf.l2j.gameserver.model.zone.type.PeaceZone;
 import net.sf.l2j.gameserver.model.zone.type.TownZone;
+import net.sf.l2j.gameserver.model.zone.type.subtype.ZoneType;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public final class WorldRegion
 {
@@ -28,8 +27,8 @@ public final class WorldRegion
 	private final int _tileX;
 	private final int _tileY;
 	
-	private boolean _active;
-	private AtomicInteger _playersCount = new AtomicInteger();
+	private final AtomicBoolean _isActive = new AtomicBoolean();
+	private final AtomicInteger _playersCount = new AtomicInteger();
 	
 	public WorldRegion(int x, int y)
 	{
@@ -40,7 +39,7 @@ public final class WorldRegion
 	@Override
 	public String toString()
 	{
-		return "WorldRegion " + _tileX + "_" + _tileY + ", _active=" + _active + ", _playersCount=" + _playersCount.get() + "]";
+		return "WorldRegion " + _tileX + "_" + _tileY + ", _active=" + _isActive.get() + ", _playersCount=" + _playersCount.get() + "]";
 	}
 	
 	public Collection<WorldObject> getObjects()
@@ -130,7 +129,7 @@ public final class WorldRegion
 	
 	public boolean isActive()
 	{
-		return _active;
+		return _isActive.get();
 	}
 	
 	public int getPlayersCount()
@@ -158,49 +157,15 @@ public final class WorldRegion
 	 */
 	public void setActive(boolean value)
 	{
-		if (_active == value)
+		if (!_isActive.compareAndSet(!value, value))
 			return;
 		
-		_active = value;
-		
-		if (!value)
+		for (WorldObject object : _objects.values())
 		{
-			for (WorldObject o : _objects.values())
-			{
-				if (o instanceof Attackable)
-				{
-					Attackable mob = (Attackable) o;
-					
-					// Set target to null and cancel Attack or Cast
-					mob.setTarget(null);
-					
-					// Stop movement
-					mob.stopMove(null);
-					
-					// Stop all active skills effects in progress on the Creature
-					mob.stopAllEffects();
-					
-					mob.getAggroList().clear();
-					mob.getAttackByList().clear();
-					
-					// stop the ai tasks
-					if (mob.hasAI())
-					{
-						mob.getAI().setIntention(IntentionType.IDLE);
-						mob.getAI().stopAITask();
-					}
-				}
-			}
-		}
-		else
-		{
-			for (WorldObject o : _objects.values())
-			{
-				if (o instanceof Attackable)
-					((Attackable) o).getStatus().startHpMpRegeneration();
-				else if (o instanceof Npc)
-					((Npc) o).startRandomAnimationTimer();
-			}
+			if (value)
+				object.onActiveRegion();
+			else
+				object.onInactiveRegion();
 		}
 	}
 	

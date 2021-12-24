@@ -5,35 +5,38 @@ import java.util.Collection;
 import net.sf.l2j.gameserver.data.sql.ClanTable;
 import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.model.pledge.ClanInfo;
-import net.sf.l2j.gameserver.network.clientpackets.RequestAllyInfo;
 
-/**
- * Sent in response to {@link RequestAllyInfo}, if applicable.
- * @author afk5min
- */
 public class AllianceInfo extends L2GameServerPacket
 {
 	private final String _name;
 	private final int _total;
 	private final int _online;
-	private final String _leaderC;
-	private final String _leaderP;
+	private final String _clanName;
+	private final String _leaderName;
 	private final ClanInfo[] _allies;
 	
 	public AllianceInfo(int allianceId)
 	{
-		final Clan leader = ClanTable.getInstance().getClan(allianceId);
-		_name = leader.getAllyName();
-		_leaderC = leader.getName();
-		_leaderP = leader.getLeaderName();
+		final Clan allianceClanLeader = ClanTable.getInstance().getClan(allianceId);
+		
+		_name = allianceClanLeader.getAllyName();
+		_clanName = allianceClanLeader.getName();
+		_leaderName = allianceClanLeader.getLeaderName();
 		
 		final Collection<Clan> allies = ClanTable.getInstance().getClanAllies(allianceId);
+		
 		_allies = new ClanInfo[allies.size()];
-		int idx = 0, total = 0, online = 0;
+		
+		int idx = 0;
+		int total = 0;
+		int online = 0;
+		
 		for (final Clan clan : allies)
 		{
 			final ClanInfo ci = new ClanInfo(clan);
+			
 			_allies[idx++] = ci;
+			
 			total += ci.getTotal();
 			online += ci.getOnline();
 		}
@@ -50,8 +53,8 @@ public class AllianceInfo extends L2GameServerPacket
 		writeS(_name);
 		writeD(_total);
 		writeD(_online);
-		writeS(_leaderC);
-		writeS(_leaderP);
+		writeS(_clanName);
+		writeS(_leaderName);
 		
 		writeD(_allies.length);
 		for (final ClanInfo aci : _allies)
@@ -80,14 +83,14 @@ public class AllianceInfo extends L2GameServerPacket
 		return _online;
 	}
 	
-	public String getLeaderC()
+	public String getClanName()
 	{
-		return _leaderC;
+		return _clanName;
 	}
 	
-	public String getLeaderP()
+	public String getLeaderName()
 	{
-		return _leaderP;
+		return _leaderName;
 	}
 	
 	public ClanInfo[] getAllies()

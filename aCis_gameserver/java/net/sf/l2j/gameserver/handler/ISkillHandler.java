@@ -2,10 +2,10 @@ package net.sf.l2j.gameserver.handler;
 
 import net.sf.l2j.commons.logging.CLogger;
 
-import net.sf.l2j.gameserver.enums.skills.L2SkillType;
-import net.sf.l2j.gameserver.model.L2Skill;
+import net.sf.l2j.gameserver.enums.skills.SkillType;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public interface ISkillHandler
 {
@@ -20,7 +20,7 @@ public interface ISkillHandler
 	public void useSkill(Creature creature, L2Skill skill, WorldObject[] targets);
 	
 	/**
-	 * @return all known {@link L2SkillType}s.
+	 * @return all known {@link SkillType}s.
 	 */
-	public L2SkillType[] getSkillIds();
+	public SkillType[] getSkillIds();
 }

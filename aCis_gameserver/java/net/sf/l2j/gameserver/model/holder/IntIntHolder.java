@@ -1,7 +1,7 @@
 package net.sf.l2j.gameserver.model.holder;
 
 import net.sf.l2j.gameserver.data.SkillTable;
-import net.sf.l2j.gameserver.model.L2Skill;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 /**
  * A generic int/int container.
@@ -15,6 +15,12 @@ public class IntIntHolder
 	{
 		_id = id;
 		_value = value;
+	}
+	
+	@Override
+	public String toString()
+	{
+		return "IntIntHolder [id=" + _id + " value=" + _value + "]";
 	}
 	
 	public int getId()
@@ -38,16 +44,10 @@ public class IntIntHolder
 	}
 	
 	/**
-	 * @return the L2Skill associated to the id/value.
+	 * @return The {@link L2Skill} associated to the id/value stored on this {@link IntIntHolder}.
 	 */
 	public final L2Skill getSkill()
 	{
 		return SkillTable.getInstance().getInfo(_id, _value);
-	}
-	
-	@Override
-	public String toString()
-	{
-		return getClass().getSimpleName() + ": Id: " + _id + ", Value: " + _value;
 	}
 }

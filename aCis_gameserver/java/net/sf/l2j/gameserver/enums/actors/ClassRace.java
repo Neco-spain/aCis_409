@@ -11,6 +11,8 @@ public enum ClassRace
 	ORC(0.9),
 	DWARF(0.8);
 	
+	public static final ClassRace[] VALUES = values();
+	
 	private final double _breathMultiplier;
 	
 	private ClassRace(double breathMultiplier)

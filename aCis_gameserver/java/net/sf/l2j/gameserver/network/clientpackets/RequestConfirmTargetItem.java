@@ -5,44 +5,40 @@ import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ExConfirmVariationItem;
 
-/**
- * Format:(ch) d
- * @author -Wooden-
- */
 public final class RequestConfirmTargetItem extends AbstractRefinePacket
 {
-	private int _itemObjId;
+	private int _objectId;
 	
 	@Override
 	protected void readImpl()
 	{
-		_itemObjId = readD();
+		_objectId = readD();
 	}
 	
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		final ItemInstance item = activeChar.getInventory().getItemByObjectId(_itemObjId);
+		final ItemInstance item = player.getInventory().getItemByObjectId(_objectId);
 		if (item == null)
 			return;
 		
-		if (!isValid(activeChar, item))
+		if (!isValid(player, item))
 		{
 			// Different system message here
 			if (item.isAugmented())
 			{
-				activeChar.sendPacket(SystemMessageId.ONCE_AN_ITEM_IS_AUGMENTED_IT_CANNOT_BE_AUGMENTED_AGAIN);
+				player.sendPacket(SystemMessageId.ONCE_AN_ITEM_IS_AUGMENTED_IT_CANNOT_BE_AUGMENTED_AGAIN);
 				return;
 			}
 			
-			activeChar.sendPacket(SystemMessageId.THIS_IS_NOT_A_SUITABLE_ITEM);
+			player.sendPacket(SystemMessageId.THIS_IS_NOT_A_SUITABLE_ITEM);
 			return;
 		}
 		
-		activeChar.sendPacket(new ExConfirmVariationItem(_itemObjId));
+		player.sendPacket(new ExConfirmVariationItem(_objectId));
 	}
 }

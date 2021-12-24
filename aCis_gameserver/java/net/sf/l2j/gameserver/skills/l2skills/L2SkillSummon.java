@@ -1,51 +1,46 @@
 package net.sf.l2j.gameserver.skills.l2skills;
 
-import net.sf.l2j.commons.util.StatsSet;
+import net.sf.l2j.commons.data.StatSet;
+import net.sf.l2j.commons.math.MathUtil;
 
+import net.sf.l2j.gameserver.data.SkillTable;
 import net.sf.l2j.gameserver.data.xml.NpcData;
+import net.sf.l2j.gameserver.enums.items.ShotType;
+import net.sf.l2j.gameserver.enums.skills.SkillTargetType;
 import net.sf.l2j.gameserver.geoengine.GeoEngine;
 import net.sf.l2j.gameserver.idfactory.IdFactory;
-import net.sf.l2j.gameserver.model.L2Skill;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.actor.instance.Cubic;
+import net.sf.l2j.gameserver.model.actor.Summon;
 import net.sf.l2j.gameserver.model.actor.instance.Servitor;
 import net.sf.l2j.gameserver.model.actor.instance.SiegeSummon;
-import net.sf.l2j.gameserver.model.actor.player.Experience;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
+import net.sf.l2j.gameserver.model.location.SpawnLocation;
 import net.sf.l2j.gameserver.network.SystemMessageId;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class L2SkillSummon extends L2Skill
 {
-	public static final int SKILL_CUBIC_MASTERY = 143;
-	
 	private final int _npcId;
 	private final float _expPenalty;
 	private final boolean _isCubic;
 	
-	// Activation time for a cubic
-	private final int _activationtime;
-	// Activation chance for a cubic.
-	private final int _activationchance;
+	private final int _activationTime;
+	private final int _activationChance;
 	
-	// What is the total lifetime of summons (in millisecs)
 	private final int _summonTotalLifeTime;
-	// How much lifetime is lost per second of idleness (non-fighting)
 	private final int _summonTimeLostIdle;
-	// How much time is lost per second of activity (fighting)
 	private final int _summonTimeLostActive;
 	
-	// item consume time in milliseconds
 	private final int _itemConsumeTime;
-	// item consume count over time
 	private final int _itemConsumeOT;
-	// item consume id over time
 	private final int _itemConsumeIdOT;
-	// how many times to consume an item
 	private final int _itemConsumeSteps;
 	
-	public L2SkillSummon(StatsSet set)
+	private static final int SUMMON_SOULLESS = 1278;
+	
+	public L2SkillSummon(StatSet set)
 	{
 		super(set);
 		
@@ -53,8 +48,8 @@ public class L2SkillSummon extends L2Skill
 		_expPenalty = set.getFloat("expPenalty", 0.f);
 		_isCubic = set.getBool("isCubic", false);
 		
-		_activationtime = set.getInteger("activationtime", 8);
-		_activationchance = set.getInteger("activationchance", 30);
+		_activationTime = set.getInteger("activationtime", 8);
+		_activationChance = set.getInteger("activationchance", 30);
 		
 		_summonTotalLifeTime = set.getInteger("summonTotalLifeTime", 1200000); // 20 minutes default
 		_summonTimeLostIdle = set.getInteger("summonTimeLostIdle", 0);
@@ -75,10 +70,10 @@ public class L2SkillSummon extends L2Skill
 			if (isCubic())
 			{
 				// Player is always able to cast mass cubic skill
-				if (getTargetType() != L2Skill.SkillTargetType.TARGET_SELF)
+				if (getTargetType() != SkillTargetType.SELF)
 					return true;
 				
-				if (player.getCubics().size() > player.getSkillLevel(SKILL_CUBIC_MASTERY))
+				if (player.getCubicList().isFull())
 				{
 					player.sendPacket(SystemMessageId.CUBIC_SUMMONING_FAILED);
 					return false;
@@ -115,112 +110,63 @@ public class L2SkillSummon extends L2Skill
 		
 		if (_isCubic)
 		{
-			int _cubicSkillLevel = getLevel();
-			if (_cubicSkillLevel > 100)
-				_cubicSkillLevel = Math.round(((getLevel() - 100) / 7) + 8);
+			int skillLevel = getLevel();
+			if (skillLevel > 100)
+				skillLevel = Math.round(((getLevel() - 100) / 7) + 8);
 			
-			if (targets.length > 1) // Mass cubic skill
+			// Mass cubic skill.
+			if (targets.length > 1)
 			{
 				for (WorldObject obj : targets)
 				{
 					if (!(obj instanceof Player))
 						continue;
 					
-					Player player = ((Player) obj);
-					
-					final int mastery = player.getSkillLevel(SKILL_CUBIC_MASTERY);
-					
-					// Player can have only 1 cubic if they don't own cubic mastery - we should replace old cubic with new one.
-					if (mastery == 0 && !player.getCubics().isEmpty())
-					{
-						for (Cubic c : player.getCubics().values())
-						{
-							c.stopAction();
-							c = null;
-						}
-						player.getCubics().clear();
-					}
-					
-					if (player.getCubics().containsKey(_npcId))
-					{
-						Cubic cubic = player.getCubic(_npcId);
-						cubic.stopAction();
-						cubic.cancelDisappear();
-						player.delCubic(_npcId);
-					}
-					
-					if (player.getCubics().size() > mastery)
-						continue;
-					
-					if (player == activeChar)
-						player.addCubic(_npcId, _cubicSkillLevel, getPower(), _activationtime, _activationchance, _summonTotalLifeTime, false);
-					else
-						// given by other player
-						player.addCubic(_npcId, _cubicSkillLevel, getPower(), _activationtime, _activationchance, _summonTotalLifeTime, true);
-					
-					player.broadcastUserInfo();
+					((Player) obj).getCubicList().addOrRefreshCubic(_npcId, skillLevel, getPower(), _activationTime, _activationChance, _summonTotalLifeTime, (obj != activeChar));
 				}
+			}
+			else
+				activeChar.getCubicList().addOrRefreshCubic(_npcId, skillLevel, getPower(), _activationTime, _activationChance, _summonTotalLifeTime, false);
+		}
+		else
+		{
+			if (activeChar.getSummon() != null || activeChar.isMounted())
+				return;
+			
+			Servitor summon;
+			NpcTemplate summonTemplate = NpcData.getInstance().getTemplate(_npcId);
+			if (summonTemplate == null)
+			{
+				LOGGER.warn("Couldn't properly spawn with id {} ; the template is missing.", _npcId);
 				return;
 			}
 			
-			if (activeChar.getCubics().containsKey(_npcId))
-			{
-				Cubic cubic = activeChar.getCubic(_npcId);
-				cubic.stopAction();
-				cubic.cancelDisappear();
-				activeChar.delCubic(_npcId);
-			}
+			if (summonTemplate.isType("SiegeSummon"))
+				summon = new SiegeSummon(IdFactory.getInstance().getNextId(), summonTemplate, activeChar, this);
+			else
+				summon = new Servitor(IdFactory.getInstance().getNextId(), summonTemplate, activeChar, this);
 			
-			if (activeChar.getCubics().size() > activeChar.getSkillLevel(SKILL_CUBIC_MASTERY))
-			{
-				activeChar.sendPacket(SystemMessageId.CUBIC_SUMMONING_FAILED);
-				return;
-			}
+			activeChar.setSummon(summon);
 			
-			activeChar.addCubic(_npcId, _cubicSkillLevel, getPower(), _activationtime, _activationchance, _summonTotalLifeTime, false);
-			activeChar.broadcastUserInfo();
-			return;
+			summon.setName(summonTemplate.getName());
+			summon.setTitle(activeChar.getName());
+			summon.setExpPenalty(_expPenalty);
+			summon.getStatus().setMaxHpMp();
+			summon.forceRunStance();
+			
+			final SpawnLocation spawnLoc = activeChar.getPosition().clone();
+			spawnLoc.addStrictOffset(40);
+			spawnLoc.setHeadingTo(activeChar.getPosition());
+			spawnLoc.set(GeoEngine.getInstance().getValidLocation(activeChar, spawnLoc));
+			
+			summon.spawnMe(spawnLoc);
+			summon.getAI().setFollowStatus(true);
+			
+			if (getId() == SUMMON_SOULLESS)
+				SkillTable.getInstance().getInfo(Summon.CONTRACT_PAYMENT, MathUtil.limit(getLevel() - 2, 1, 12)).getEffects(activeChar, activeChar);
 		}
 		
-		if (activeChar.getSummon() != null || activeChar.isMounted())
-			return;
-		
-		Servitor summon;
-		NpcTemplate summonTemplate = NpcData.getInstance().getTemplate(_npcId);
-		if (summonTemplate == null)
-		{
-			_log.warning("Summon attempt for nonexisting NPC ID: " + _npcId + ", skill ID: " + getId());
-			return;
-		}
-		
-		if (summonTemplate.isType("SiegeSummon"))
-			summon = new SiegeSummon(IdFactory.getInstance().getNextId(), summonTemplate, activeChar, this);
-		else
-			summon = new Servitor(IdFactory.getInstance().getNextId(), summonTemplate, activeChar, this);
-		
-		summon.setName(summonTemplate.getName());
-		summon.setTitle(activeChar.getName());
-		summon.setExpPenalty(_expPenalty);
-		
-		if (summon.getLevel() >= Experience.LEVEL.length)
-		{
-			summon.getStat().setExp(Experience.LEVEL[Experience.LEVEL.length - 1]);
-			_log.warning("Summon (" + summon.getName() + ") NpcID: " + summon.getNpcId() + " has a level above 75. Please rectify.");
-		}
-		else
-			summon.getStat().setExp(Experience.LEVEL[(summon.getLevel() % Experience.LEVEL.length)]);
-		
-		summon.setCurrentHp(summon.getMaxHp());
-		summon.setCurrentMp(summon.getMaxMp());
-		summon.setRunning();
-		activeChar.setSummon(summon);
-		
-		final int x = activeChar.getX();
-		final int y = activeChar.getY();
-		final int z = activeChar.getZ();
-		
-		summon.spawnMe(GeoEngine.getInstance().canMoveToTargetLoc(x, y, z, x + 20, y + 20, z), activeChar.getHeading());
-		summon.setFollowStatus(true);
+		activeChar.setChargedShot(activeChar.isChargedShot(ShotType.BLESSED_SPIRITSHOT) ? ShotType.BLESSED_SPIRITSHOT : ShotType.SPIRITSHOT, isStaticReuse());
 	}
 	
 	public final boolean isCubic()

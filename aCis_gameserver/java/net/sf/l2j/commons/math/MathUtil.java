@@ -2,9 +2,55 @@ package net.sf.l2j.commons.math;
 
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.model.location.Location;
+import net.sf.l2j.gameserver.model.location.Point2D;
 
 public class MathUtil
 {
+	public static final int[][] MATRICE_3X3_LINES =
+	{
+		{
+			1,
+			2,
+			3
+		}, // line 1
+		{
+			4,
+			5,
+			6
+		}, // line 2
+		{
+			7,
+			8,
+			9
+		}, // line 3
+		{
+			1,
+			4,
+			7
+		}, // column 1
+		{
+			2,
+			5,
+			8
+		}, // column 2
+		{
+			3,
+			6,
+			9
+		}, // column 3
+		{
+			1,
+			5,
+			9
+		}, // diagonal 1
+		{
+			3,
+			5,
+			7
+		}, // diagonal 2
+	};
+	
 	/**
 	 * @param objectsSize : The overall elements size.
 	 * @param pageSize : The number of elements per page.
@@ -45,17 +91,18 @@ public class MathUtil
 		return clientHeading / 182.04444444444444444444444444444;
 	}
 	
-	public static final int convertDegreeToClientHeading(double degree)
+	public static final Point2D getNewLocationByDistanceAndHeading(int x, int y, int heading, int distance)
 	{
-		if (degree < 0)
-			degree = 360 + degree;
-		
-		return (int) (degree * 182.04444444444444444444444444444);
+		return getNewLocationByDistanceAndDegree(x, y, MathUtil.convertHeadingToDegree(heading), distance);
 	}
 	
-	public static final int calculateHeadingFrom(WorldObject obj1, WorldObject obj2)
+	public static final Point2D getNewLocationByDistanceAndDegree(int x, int y, double degree, int distance)
 	{
-		return calculateHeadingFrom(obj1.getX(), obj1.getY(), obj2.getX(), obj2.getY());
+		final double radians = Math.toRadians(degree);
+		final int deltaX = (int) (distance * Math.cos(radians));
+		final int deltaY = (int) (distance * Math.sin(radians));
+		
+		return new Point2D(x + deltaX, y + deltaY);
 	}
 	
 	public static final int calculateHeadingFrom(int obj1X, int obj1Y, int obj2X, int obj2Y)
@@ -65,70 +112,6 @@ public class MathUtil
 			angleTarget = 360 + angleTarget;
 		
 		return (int) (angleTarget * 182.04444444444444444444444444444);
-	}
-	
-	public static final int calculateHeadingFrom(double dx, double dy)
-	{
-		double angleTarget = Math.toDegrees(Math.atan2(dy, dx));
-		if (angleTarget < 0)
-			angleTarget = 360 + angleTarget;
-		
-		return (int) (angleTarget * 182.04444444444444444444444444444);
-	}
-	
-	public static double calculateDistance(int x1, int y1, int x2, int y2)
-	{
-		return calculateDistance(x1, y1, 0, x2, y2, 0, false);
-	}
-	
-	public static double calculateDistance(int x1, int y1, int z1, int x2, int y2, int z2, boolean includeZAxis)
-	{
-		double dx = (double) x1 - x2;
-		double dy = (double) y1 - y2;
-		
-		if (includeZAxis)
-		{
-			double dz = z1 - z2;
-			return Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
-		}
-		
-		return Math.sqrt((dx * dx) + (dy * dy));
-	}
-	
-	public static double calculateDistance(WorldObject obj1, WorldObject obj2, boolean includeZAxis)
-	{
-		if (obj1 == null || obj2 == null)
-			return 1000000;
-		
-		return calculateDistance(obj1.getPosition().getX(), obj1.getPosition().getY(), obj1.getPosition().getZ(), obj2.getPosition().getX(), obj2.getPosition().getY(), obj2.getPosition().getZ(), includeZAxis);
-	}
-	
-	/**
-	 * Faster calculation than checkIfInRange if distance is short and collisionRadius isn't needed. Not for long distance checks (potential teleports, far away castles, etc)
-	 * @param radius The radius to use as check.
-	 * @param obj1 The position 1 to make check on.
-	 * @param obj2 The postion 2 to make check on.
-	 * @param includeZAxis Include Z check or not.
-	 * @return true if both objects are in the given radius.
-	 */
-	public static boolean checkIfInShortRadius(int radius, WorldObject obj1, WorldObject obj2, boolean includeZAxis)
-	{
-		if (obj1 == null || obj2 == null)
-			return false;
-		
-		if (radius == -1)
-			return true; // not limited
-			
-		int dx = obj1.getX() - obj2.getX();
-		int dy = obj1.getY() - obj2.getY();
-		
-		if (includeZAxis)
-		{
-			int dz = obj1.getZ() - obj2.getZ();
-			return dx * dx + dy * dy + dz * dz <= radius * radius;
-		}
-		
-		return dx * dx + dy * dy <= radius * radius;
 	}
 	
 	/**
@@ -161,6 +144,33 @@ public class MathUtil
 		if (includeZAxis)
 		{
 			double dz = obj1.getZ() - obj2.getZ();
+			double d = dx * dx + dy * dy + dz * dz;
+			
+			return d <= range * range + 2 * range * rad + rad * rad;
+		}
+		
+		double d = dx * dx + dy * dy;
+		return d <= range * range + 2 * range * rad + rad * rad;
+	}
+	
+	public static boolean checkIfInRange(int range, WorldObject obj, Location loc, boolean includeZAxis)
+	{
+		if (obj == null || loc.equals(Location.DUMMY_LOC))
+			return false;
+		
+		if (range == -1)
+			return true; // not limited
+			
+		double rad = 0;
+		if (obj instanceof Creature)
+			rad += ((Creature) obj).getCollisionRadius();
+		
+		double dx = obj.getX() - loc.getX();
+		double dy = obj.getY() - loc.getY();
+		
+		if (includeZAxis)
+		{
+			double dz = obj.getZ() - loc.getZ();
 			double d = dx * dx + dy * dy + dz * dz;
 			
 			return d <= range * range + 2 * range * rad + rad * rad;

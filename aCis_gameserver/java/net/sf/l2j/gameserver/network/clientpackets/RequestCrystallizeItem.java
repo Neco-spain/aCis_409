@@ -1,13 +1,13 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
 import net.sf.l2j.gameserver.enums.items.CrystalType;
-import net.sf.l2j.gameserver.model.L2Skill;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 import net.sf.l2j.gameserver.network.serverpackets.InventoryUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public final class RequestCrystallizeItem extends L2GameClientPacket
 {
@@ -34,7 +34,7 @@ public final class RequestCrystallizeItem extends L2GameClientPacket
 			return;
 		
 		// Player mustn't be already crystallizing or in store mode.
-		if (player.isInStoreMode() || player.isCrystallizing())
+		if (player.isOperating() || player.isCrystallizing())
 		{
 			player.sendPacket(SystemMessageId.CANNOT_TRADE_DISCARD_DROP_ITEM_WHILE_IN_SHOPMODE);
 			return;
@@ -98,18 +98,15 @@ public final class RequestCrystallizeItem extends L2GameClientPacket
 		if (item.isEquipped())
 		{
 			InventoryUpdate iu = new InventoryUpdate();
-			for (ItemInstance items : player.getInventory().unEquipItemInSlotAndRecord(item.getLocationSlot()))
+			for (ItemInstance items : player.getInventory().unequipItemInSlotAndRecord(item.getLocationSlot()))
 				iu.addModifiedItem(items);
 			
 			player.sendPacket(iu);
 			
-			SystemMessage msg;
 			if (item.getEnchantLevel() > 0)
-				msg = SystemMessage.getSystemMessage(SystemMessageId.EQUIPMENT_S1_S2_REMOVED).addNumber(item.getEnchantLevel()).addItemName(item.getItemId());
+				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.EQUIPMENT_S1_S2_REMOVED).addNumber(item.getEnchantLevel()).addItemName(item.getItemId()));
 			else
-				msg = SystemMessage.getSystemMessage(SystemMessageId.S1_DISARMED).addItemName(item.getItemId());
-			
-			player.sendPacket(msg);
+				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_DISARMED).addItemName(item.getItemId()));
 		}
 		
 		// Remove the item from inventory.

@@ -6,23 +6,21 @@ import net.sf.l2j.gameserver.network.serverpackets.StopRotation;
 public final class FinishRotating extends L2GameClientPacket
 {
 	private int _degree;
-	@SuppressWarnings("unused")
-	private int _unknown;
 	
 	@Override
 	protected void readImpl()
 	{
 		_degree = readD();
-		_unknown = readD();
+		readD(); // Not used.
 	}
 	
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		activeChar.broadcastPacket(new StopRotation(activeChar.getObjectId(), _degree, 0));
+		player.broadcastPacket(new StopRotation(player.getObjectId(), _degree, 0));
 	}
 }

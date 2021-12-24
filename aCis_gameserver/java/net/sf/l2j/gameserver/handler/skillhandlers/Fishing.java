@@ -1,29 +1,26 @@
 package net.sf.l2j.gameserver.handler.skillhandlers;
 
-import net.sf.l2j.commons.math.MathUtil;
 import net.sf.l2j.commons.random.Rnd;
 
 import net.sf.l2j.gameserver.data.manager.ZoneManager;
-import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.enums.items.WeaponType;
-import net.sf.l2j.gameserver.enums.skills.L2SkillType;
+import net.sf.l2j.gameserver.enums.skills.SkillType;
 import net.sf.l2j.gameserver.geoengine.GeoEngine;
 import net.sf.l2j.gameserver.handler.ISkillHandler;
-import net.sf.l2j.gameserver.model.L2Skill;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
-import net.sf.l2j.gameserver.model.itemcontainer.Inventory;
-import net.sf.l2j.gameserver.model.location.Location;
+import net.sf.l2j.gameserver.model.location.SpawnLocation;
 import net.sf.l2j.gameserver.model.zone.type.FishingZone;
 import net.sf.l2j.gameserver.network.SystemMessageId;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class Fishing implements ISkillHandler
 {
-	private static final L2SkillType[] SKILL_IDS =
+	private static final SkillType[] SKILL_IDS =
 	{
-		L2SkillType.FISHING
+		SkillType.FISHING
 	};
 	
 	@Override
@@ -56,46 +53,44 @@ public class Fishing implements ISkillHandler
 			return;
 		}
 		
-		if (player.isCrafting() || player.isInStoreMode())
+		if (player.isCrafting() || player.isOperating())
 		{
 			player.sendPacket(SystemMessageId.CANNOT_FISH_WHILE_USING_RECIPE_BOOK);
 			return;
 		}
 		
 		// You can't fish in water
-		if (player.isInsideZone(ZoneId.WATER))
+		if (player.isInWater())
 		{
 			player.sendPacket(SystemMessageId.CANNOT_FISH_UNDER_WATER);
 			return;
 		}
 		
 		// Check equipped baits.
-		final ItemInstance lure = player.getInventory().getPaperdollItem(Inventory.PAPERDOLL_LHAND);
-		if (lure == null)
+		final ItemInstance item = player.getSecondaryWeaponInstance();
+		if (item == null)
 		{
 			player.sendPacket(SystemMessageId.BAIT_ON_HOOK_BEFORE_FISHING);
 			return;
 		}
 		
-		final int rnd = Rnd.get(50) + 250;
-		final double radian = Math.toRadians(MathUtil.convertHeadingToDegree(player.getHeading()));
-		
-		final int x = player.getX() + (int) (Math.cos(radian) * rnd);
-		final int y = player.getY() + (int) (Math.sin(radian) * rnd);
+		// Calculate a Location for the fishing bait. The Z is edited later.
+		final SpawnLocation baitLoc = player.getPosition().clone();
+		baitLoc.addOffsetBasedOnHeading(Rnd.get(50) + 250);
 		
 		boolean canFish = false;
-		int z = 0;
 		
 		// Pick the fishing zone.
-		final FishingZone zone = ZoneManager.getInstance().getZone(x, y, FishingZone.class);
+		final FishingZone zone = ZoneManager.getInstance().getZone(baitLoc.getX(), baitLoc.getY(), FishingZone.class);
 		if (zone != null)
 		{
-			z = zone.getWaterZ();
+			// Refresh the Z based on zone, if existing.
+			baitLoc.setZ(zone.getWaterZ());
 			
 			// Check if the height related to the bait location is above water level. If yes, it means the water isn't visible.
-			if (GeoEngine.getInstance().canSeeTarget(player, new Location(x, y, z)) && GeoEngine.getInstance().getHeight(x, y, z) < z)
+			if (GeoEngine.getInstance().canSeeLocation(player, baitLoc) && GeoEngine.getInstance().getHeight(baitLoc) < baitLoc.getZ())
 			{
-				z += 10;
+				baitLoc.setZ(baitLoc.getZ() + 10);
 				canFish = true;
 			}
 		}
@@ -108,18 +103,18 @@ public class Fishing implements ISkillHandler
 		}
 		
 		// Has enough bait, consume 1 and update inventory.
-		if (!player.destroyItem("Consume", lure, 1, player, false))
+		if (!player.destroyItem("Consume", item, 1, player, false))
 		{
 			player.sendPacket(SystemMessageId.NOT_ENOUGH_BAIT);
 			return;
 		}
 		
 		// Start fishing.
-		player.getFishingStance().start(x, y, z, lure);
+		player.getFishingStance().start(baitLoc, item);
 	}
 	
 	@Override
-	public L2SkillType[] getSkillIds()
+	public SkillType[] getSkillIds()
 	{
 		return SKILL_IDS;
 	}

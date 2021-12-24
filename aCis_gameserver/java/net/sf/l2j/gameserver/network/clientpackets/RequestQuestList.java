@@ -13,10 +13,10 @@ public final class RequestQuestList extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		activeChar.sendPacket(new QuestList(activeChar));
+		player.sendPacket(new QuestList(player));
 	}
 }

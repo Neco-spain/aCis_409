@@ -53,7 +53,7 @@ public class PlaySound extends L2GameServerPacket
 		_soundFile = soundFile;
 		_bindToObject = true;
 		_objectId = object.getObjectId();
-		_location = object.getPosition();
+		_location = object.getPosition().clone();
 		_delay = 0;
 	}
 	

@@ -111,7 +111,7 @@ public class OlympiadManagerNpc extends Folk
 				return;
 			}
 			
-			if (!player.isNoble() || (player.getClassId().level() < 3))
+			if (!player.isNoble() || (player.getClassId().getLevel() < 3))
 			{
 				html.setFile(Olympiad.OLYMPIAD_HTML_PATH + "noble_cant_thirdclass.htm");
 				html.replace("%objectId%", getObjectId());
@@ -127,8 +127,8 @@ public class OlympiadManagerNpc extends Folk
 					break;
 				
 				case 2: // Show waiting list
-					final int nonClassed = OlympiadManager.getInstance().getRegisteredNonClassBased().size();
-					final int classed = OlympiadManager.getInstance().getRegisteredClassBased().size();
+					final int nonClassed = OlympiadManager.getInstance().getNonClassBasedParticipants().size();
+					final int classed = OlympiadManager.getInstance().getClassBasedParticipants().size();
 					
 					html.setFile(Olympiad.OLYMPIAD_HTML_PATH + "noble_registered.htm");
 					html.replace("%listClassed%", classed);
@@ -146,11 +146,11 @@ public class OlympiadManagerNpc extends Folk
 					break;
 				
 				case 4: // register non classed based
-					OlympiadManager.getInstance().registerNoble(player, OlympiadType.NON_CLASSED);
+					OlympiadManager.getInstance().registerNoble(this, player, OlympiadType.NON_CLASSED);
 					break;
 				
 				case 5: // register classed based
-					OlympiadManager.getInstance().registerNoble(player, OlympiadType.CLASSED);
+					OlympiadManager.getInstance().registerNoble(this, player, OlympiadType.CLASSED);
 					break;
 				
 				case 6: // request tokens reward
@@ -254,7 +254,7 @@ public class OlympiadManagerNpc extends Folk
 				case 6: // Hero confirm action.
 					if (HeroManager.getInstance().isInactiveHero(player.getObjectId()))
 					{
-						if (player.isSubClassActive() || player.getLevel() < 76)
+						if (player.isSubClassActive() || player.getStatus().getLevel() < 76)
 						{
 							player.sendMessage("You may only become an hero on a main class whose level is 75 or more.");
 							return;

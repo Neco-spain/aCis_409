@@ -18,6 +18,9 @@ import net.sf.l2j.commons.logging.CLogger;
 
 import net.sf.l2j.Config;
 import net.sf.l2j.loginserver.crypt.NewCrypt;
+import net.sf.l2j.loginserver.data.manager.GameServerManager;
+import net.sf.l2j.loginserver.data.manager.IpBanManager;
+import net.sf.l2j.loginserver.data.sql.AccountTable;
 import net.sf.l2j.loginserver.model.GameServerInfo;
 import net.sf.l2j.loginserver.network.SessionKey;
 import net.sf.l2j.loginserver.network.gameserverpackets.BlowFishKey;
@@ -50,21 +53,41 @@ public class GameServerThread extends Thread
 	private OutputStream _out;
 	
 	private NewCrypt _blowfish;
-	private byte[] _blowfishKey;
 	
 	private GameServerInfo _gsi;
 	
-	private String _connectionIPAddress;
+	public GameServerThread(Socket con)
+	{
+		_connection = con;
+		_connectionIp = con.getInetAddress().getHostAddress();
+		
+		try
+		{
+			_in = _connection.getInputStream();
+			_out = new BufferedOutputStream(_connection.getOutputStream());
+		}
+		catch (IOException e)
+		{
+			LOGGER.debug("Couldn't process gameserver input stream.", e);
+		}
+		
+		final KeyPair pair = GameServerManager.getInstance().getKeyPair();
+		
+		_privateKey = (RSAPrivateKey) pair.getPrivate();
+		_publicKey = (RSAPublicKey) pair.getPublic();
+		
+		_blowfish = new NewCrypt("_;v.]05-31!|+-%xT!^[$\00");
+		
+		start();
+	}
 	
 	@Override
 	public void run()
 	{
-		_connectionIPAddress = _connection.getInetAddress().getHostAddress();
-		
 		// Ensure no further processing for this connection if server is considered as banned.
-		if (GameServerThread.isBannedGameserverIP(_connectionIPAddress))
+		if (IpBanManager.getInstance().isBannedAddress(_connection.getInetAddress()))
 		{
-			LOGGER.info("Banned gameserver with IP {} tried to register.", _connectionIPAddress);
+			LOGGER.info("Banned gameserver with IP {} tried to register.", _connection.getInetAddress().getHostAddress());
 			forceClose(LoginServerFail.REASON_IP_BANNED);
 			return;
 		}
@@ -102,8 +125,9 @@ public class GameServerThread extends Thread
 					break;
 				}
 				
-				// decrypt if we have a key
-				data = _blowfish.decrypt(data);
+				// Decrypt if we have a key.
+				_blowfish.decrypt(data, 0, data.length);
+				
 				checksumOk = NewCrypt.verifyChecksum(data);
 				if (!checksumOk)
 				{
@@ -168,8 +192,7 @@ public class GameServerThread extends Thread
 	{
 		final BlowFishKey bfk = new BlowFishKey(data, _privateKey);
 		
-		_blowfishKey = bfk.getKey();
-		_blowfish = new NewCrypt(_blowfishKey);
+		_blowfish = new NewCrypt(bfk.getKey());
 	}
 	
 	private void onGameServerAuth(byte[] data)
@@ -211,7 +234,7 @@ public class GameServerThread extends Thread
 		{
 			final ChangeAccessLevel cal = new ChangeAccessLevel(data);
 			
-			LoginController.getInstance().setAccountAccessLevel(cal.getAccount(), cal.getLevel());
+			AccountTable.getInstance().setAccountAccessLevel(cal.getAccount(), cal.getLevel());
 			LOGGER.info("Changed {} access level to {}.", cal.getAccount(), cal.getLevel());
 		}
 		else
@@ -354,25 +377,6 @@ public class GameServerThread extends Thread
 		}
 	}
 	
-	/**
-	 * @param ipAddress : the IP address to test.
-	 * @return true if the given IP is banned.
-	 */
-	private static boolean isBannedGameserverIP(String ipAddress)
-	{
-		InetAddress netAddress = null;
-		try
-		{
-			netAddress = InetAddress.getByName(ipAddress);
-		}
-		catch (UnknownHostException e)
-		{
-			LOGGER.debug("Failed retrieving gameserver ip.", e);
-			return true;
-		}
-		return LoginController.getInstance().isBannedAddress(netAddress);
-	}
-	
 	private void sendPacket(ServerBasePacket sl)
 	{
 		try
@@ -394,28 +398,6 @@ public class GameServerThread extends Thread
 		{
 			LOGGER.error("Exception while sending packet {}.", sl.getClass().getSimpleName());
 		}
-	}
-	
-	public GameServerThread(Socket con)
-	{
-		_connection = con;
-		_connectionIp = con.getInetAddress().getHostAddress();
-		try
-		{
-			_in = _connection.getInputStream();
-			_out = new BufferedOutputStream(_connection.getOutputStream());
-		}
-		catch (IOException e)
-		{
-			LOGGER.debug("Couldn't process gameserver input stream.", e);
-		}
-		
-		final KeyPair pair = GameServerManager.getInstance().getKeyPair();
-		_privateKey = (RSAPrivateKey) pair.getPrivate();
-		_publicKey = (RSAPublicKey) pair.getPublic();
-		
-		_blowfish = new NewCrypt("_;v.]05-31!|+-%xT!^[$\00");
-		start();
 	}
 	
 	public boolean hasAccountOnGameServer(String account)
@@ -446,11 +428,6 @@ public class GameServerThread extends Thread
 	public void setGameServerInfo(GameServerInfo gsi)
 	{
 		_gsi = gsi;
-	}
-	
-	public String getConnectionIpAddress()
-	{
-		return _connectionIPAddress;
 	}
 	
 	private int getServerId()

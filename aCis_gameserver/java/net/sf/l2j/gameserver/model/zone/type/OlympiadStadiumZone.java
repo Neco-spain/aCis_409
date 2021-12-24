@@ -6,7 +6,7 @@ import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.Summon;
 import net.sf.l2j.gameserver.model.olympiad.OlympiadGameTask;
-import net.sf.l2j.gameserver.model.zone.SpawnZoneType;
+import net.sf.l2j.gameserver.model.zone.type.subtype.SpawnZoneType;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ExOlympiadMatchEnd;
 import net.sf.l2j.gameserver.network.serverpackets.ExOlympiadUserInfo;

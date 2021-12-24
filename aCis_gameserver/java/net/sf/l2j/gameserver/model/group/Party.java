@@ -6,32 +6,32 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
 import net.sf.l2j.commons.math.MathUtil;
+import net.sf.l2j.commons.pool.ThreadPool;
 import net.sf.l2j.commons.random.Rnd;
 
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.manager.DimensionalRiftManager;
 import net.sf.l2j.gameserver.data.manager.DuelManager;
 import net.sf.l2j.gameserver.data.manager.FestivalOfDarknessManager;
+import net.sf.l2j.gameserver.data.manager.PartyMatchRoomManager;
 import net.sf.l2j.gameserver.enums.LootRule;
 import net.sf.l2j.gameserver.enums.MessageType;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Attackable;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.actor.container.npc.RewardInfo;
 import net.sf.l2j.gameserver.model.actor.instance.Servitor;
-import net.sf.l2j.gameserver.model.actor.npc.RewardInfo;
-import net.sf.l2j.gameserver.model.actor.player.BlockList;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
-import net.sf.l2j.gameserver.model.partymatching.PartyMatchRoom;
-import net.sf.l2j.gameserver.model.partymatching.PartyMatchRoomList;
 import net.sf.l2j.gameserver.model.rift.DimensionalRift;
+import net.sf.l2j.gameserver.network.NpcStringId;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.CreatureSay;
 import net.sf.l2j.gameserver.network.serverpackets.ExCloseMPCC;
 import net.sf.l2j.gameserver.network.serverpackets.ExOpenMPCC;
+import net.sf.l2j.gameserver.network.serverpackets.ExShowScreenMessage;
 import net.sf.l2j.gameserver.network.serverpackets.L2GameServerPacket;
 import net.sf.l2j.gameserver.network.serverpackets.PartyMemberPosition;
 import net.sf.l2j.gameserver.network.serverpackets.PartySmallWindowAdd;
@@ -100,19 +100,15 @@ public class Party extends AbstractGroup
 			member.broadcastUserInfo();
 		}
 		
-		_positionBroadcastTask = ThreadPool.scheduleAtFixedRate(new PositionBroadcast(), PARTY_POSITION_BROADCAST / 2, PARTY_POSITION_BROADCAST);
-	}
-	
-	@Override
-	public boolean equals(Object obj)
-	{
-		if (!(obj instanceof Party))
-			return false;
-		
-		if (obj == this)
-			return true;
-		
-		return isLeader(((Party) obj).getLeader());
+		_positionPacket = new PartyMemberPosition(this);
+		_positionBroadcastTask = ThreadPool.scheduleAtFixedRate(() ->
+		{
+			// Refresh PartyMemberPosition packet.
+			_positionPacket.reuse(this);
+			
+			// Broadcast it to the Party.
+			broadcastPacket(_positionPacket);
+		}, PARTY_POSITION_BROADCAST / 2, PARTY_POSITION_BROADCAST);
 	}
 	
 	@Override
@@ -145,9 +141,21 @@ public class Party extends AbstractGroup
 	{
 		for (Player member : _members)
 		{
-			if (!BlockList.isBlocked(member, broadcaster))
+			if (!member.getBlockList().isInBlockList(broadcaster))
 				member.sendPacket(msg);
 		}
+	}
+	
+	@Override
+	public void broadcastOnScreen(int time, NpcStringId npcStringId)
+	{
+		broadcastPacket(new ExShowScreenMessage(npcStringId.getMessage(), time));
+	}
+	
+	@Override
+	public void broadcastOnScreen(int time, NpcStringId npcStringId, Object... params)
+	{
+		broadcastPacket(new ExShowScreenMessage(npcStringId.getMessage(params), time));
 	}
 	
 	@Override
@@ -156,8 +164,8 @@ public class Party extends AbstractGroup
 		int newLevel = 0;
 		for (Player member : _members)
 		{
-			if (member.getLevel() > newLevel)
-				newLevel = member.getLevel();
+			if (member.getStatus().getLevel() > newLevel)
+				newLevel = member.getStatus().getLevel();
 		}
 		setLevel(newLevel);
 	}
@@ -191,11 +199,11 @@ public class Party extends AbstractGroup
 				FestivalOfDarknessManager.getInstance().updateParticipants(member, this);
 			
 			if (member.getFusionSkill() != null)
-				member.abortCast();
+				member.getCast().stop();
 			
-			for (Creature character : member.getKnownType(Creature.class))
-				if (character.getFusionSkill() != null && character.getFusionSkill().getTarget() == member)
-					character.abortCast();
+			for (final Creature creature : member.getKnownType(Creature.class))
+				if (creature.getFusionSkill() != null && creature.getFusionSkill().getTarget() == member)
+					creature.getCast().stop();
 				
 			member.sendPacket(SystemMessageId.PARTY_DISPERSED);
 		}
@@ -209,8 +217,7 @@ public class Party extends AbstractGroup
 	}
 	
 	/**
-	 * Check if another player can start invitation process.
-	 * @return boolean if party waits for invitation respond.
+	 * @return True if this {@link Party} waits for invitation respond, false otherwise.
 	 */
 	public boolean getPendingInvitation()
 	{
@@ -218,8 +225,8 @@ public class Party extends AbstractGroup
 	}
 	
 	/**
-	 * Set invitation process flag and store time for expiration happens when player join or decline to join.
-	 * @param val : set the invitation process flag to that value.
+	 * Set invitation process flag and store time for expiration happens when a {@link Player} joins or declines to join.
+	 * @param val : Set the invitation process flag to that value.
 	 */
 	public void setPendingInvitation(boolean val)
 	{
@@ -228,9 +235,7 @@ public class Party extends AbstractGroup
 	}
 	
 	/**
-	 * Check if player invitation is expired.
-	 * @return boolean if time is expired.
-	 * @see net.sf.l2j.gameserver.model.actor.Player#isRequestExpired()
+	 * @return True if the invitation request time expired, false otherwise.
 	 */
 	public boolean isInvitationRequestExpired()
 	{
@@ -238,29 +243,27 @@ public class Party extends AbstractGroup
 	}
 	
 	/**
-	 * Get a random member from this party.
-	 * @param itemId : the ID of the item for which the member must have inventory space.
-	 * @param target : the object of which the member must be within a certain range (must not be null).
-	 * @return a random member from this party or {@code null} if none of the members have inventory space for the specified item.
+	 * @param itemId : The ID of the item for which the member must have inventory space.
+	 * @param target : The {@link Creature} of which the member must be within a certain range (must not be null).
+	 * @return A random valid {@link Player} looter from this {@link Party}, or null if none of the members match conditions.
 	 */
-	private Player getRandomMember(int itemId, Creature target)
+	private Player getRandomValidLooter(int itemId, Creature target)
 	{
-		final List<Player> availableMembers = new ArrayList<>();
+		final List<Player> validMembers = new ArrayList<>();
 		for (Player member : _members)
 		{
-			if (member.getInventory().validateCapacityByItemId(itemId) && MathUtil.checkIfInRange(Config.PARTY_RANGE, target, member, true))
-				availableMembers.add(member);
+			if (!member.isDead() && member.getInventory().validateCapacityByItemId(itemId, 1) && MathUtil.checkIfInRange(Config.PARTY_RANGE, target, member, true))
+				validMembers.add(member);
 		}
-		return (availableMembers.isEmpty()) ? null : Rnd.get(availableMembers);
+		return (validMembers.isEmpty()) ? null : Rnd.get(validMembers);
 	}
 	
 	/**
-	 * Get the next item looter for this party.
-	 * @param itemId : the ID of the item for which the member must have inventory space.
-	 * @param target : the object of which the member must be within a certain range (must not be null).
-	 * @return the next looter from this party or {@code null} if none of the members have inventory space for the specified item.
+	 * @param itemId : The ID of the item for which the member must have inventory space.
+	 * @param target : The {@link Creature} of which the member must be within a certain range (must not be null).
+	 * @return The next valid {@link Player} looter from this {@link Party}, or null if none of the members match conditions.
 	 */
-	private Player getNextLooter(int itemId, Creature target)
+	private Player getNextValidLooter(int itemId, Creature target)
 	{
 		for (int i = 0; i < getMembersCount(); i++)
 		{
@@ -268,41 +271,41 @@ public class Party extends AbstractGroup
 				_itemLastLoot = 0;
 			
 			final Player member = _members.get(_itemLastLoot);
-			if (member.getInventory().validateCapacityByItemId(itemId) && MathUtil.checkIfInRange(Config.PARTY_RANGE, target, member, true))
+			if (!member.isDead() && member.getInventory().validateCapacityByItemId(itemId, 1) && MathUtil.checkIfInRange(Config.PARTY_RANGE, target, member, true))
 				return member;
 		}
 		return null;
 	}
 	
 	/**
-	 * @param player : the potential, initial looter.
-	 * @param itemId : the ID of the item for which the member must have inventory space.
-	 * @param spoil : a boolean used for spoil process.
-	 * @param target : the object of which the member must be within a certain range (must not be null).
-	 * @return the next Player looter.
+	 * @param player : The {@link Player} used as reference looter.
+	 * @param itemId : The ID of the item for which the member must have inventory space.
+	 * @param isSpoil : True if the item comes from a spoil process, false otherwise.
+	 * @param target : The {@link Creature} of which the member must be within a certain range (must not be null).
+	 * @return A valid {@link Player} looter based on this {@link Party}'s {@link LootRule}.
 	 */
-	private Player getActualLooter(Player player, int itemId, boolean spoil, Creature target)
+	private Player getValidLooter(Player player, int itemId, boolean isSpoil, Creature target)
 	{
 		Player looter = player;
 		
 		switch (_lootRule)
 		{
 			case ITEM_RANDOM:
-				if (!spoil)
-					looter = getRandomMember(itemId, target);
+				if (!isSpoil)
+					looter = getRandomValidLooter(itemId, target);
 				break;
 			
 			case ITEM_RANDOM_SPOIL:
-				looter = getRandomMember(itemId, target);
+				looter = getRandomValidLooter(itemId, target);
 				break;
 			
 			case ITEM_ORDER:
-				if (!spoil)
-					looter = getNextLooter(itemId, target);
+				if (!isSpoil)
+					looter = getNextValidLooter(itemId, target);
 				break;
 			
 			case ITEM_ORDER_SPOIL:
-				looter = getNextLooter(itemId, target);
+				looter = getNextValidLooter(itemId, target);
 				break;
 		}
 		
@@ -322,22 +325,18 @@ public class Party extends AbstractGroup
 	}
 	
 	/**
-	 * Send a packet to all other players of the Party, except the player.
-	 * @param player : this player won't receive the packet.
-	 * @param msg : the packet to send.
+	 * Send a {@link L2GameServerPacket} to all {@link Player}s of this {@link Party}, except the {@link Player} set as parameter.
+	 * @param player : This {@link Player} won't receive the {@link L2GameServerPacket}.
+	 * @param gsp : The {@link L2GameServerPacket} to send.
 	 */
-	public void broadcastToPartyMembers(Player player, L2GameServerPacket msg)
+	public void broadcastToPartyMembers(Player player, L2GameServerPacket gsp)
 	{
-		for (Player member : _members)
-		{
-			if (member != null && !member.equals(player))
-				member.sendPacket(msg);
-		}
+		_members.stream().filter(m -> m != player).forEach(m -> m.sendPacket(gsp));
 	}
 	
 	/**
-	 * Add a new member to the party.
-	 * @param player : the player to add to the party.
+	 * Add a {@link Player} to this {@link Party}.
+	 * @param player : The {@link Player} to add to this {@link Party}.
 	 */
 	public void addPartyMember(Player player)
 	{
@@ -365,8 +364,8 @@ public class Party extends AbstractGroup
 		player.setParty(this);
 		
 		// Adjust party level.
-		if (player.getLevel() > getLevel())
-			setLevel(player.getLevel());
+		if (player.getStatus().getLevel() > getLevel())
+			setLevel(player.getStatus().getLevel());
 		
 		// Update icons.
 		for (Player member : _members)
@@ -380,9 +379,9 @@ public class Party extends AbstractGroup
 	}
 	
 	/**
-	 * Removes a party member using its name.
-	 * @param name : player the player to remove from the party.
-	 * @param type : the message type {@link MessageType}.
+	 * Remove a {@link Party} member using his name.
+	 * @param name : The {@link Player} name to remove from the {@link Party}.
+	 * @param type : The {@link MessageType} sent as removal information.
 	 */
 	public void removePartyMember(String name, MessageType type)
 	{
@@ -390,19 +389,36 @@ public class Party extends AbstractGroup
 	}
 	
 	/**
-	 * Removes a party member instance.
-	 * @param player : the player to remove from the party.
-	 * @param type : the message type {@link MessageType}.
+	 * Remove a {@link Party} member instance.
+	 * @param player : The {@link Player} to remove from the {@link Party}.
+	 * @param type : The {@link MessageType} sent as removal information.
 	 */
 	public void removePartyMember(Player player, MessageType type)
 	{
 		if (player == null || !_members.contains(player))
 			return;
 		
-		if (_members.size() == 2 || isLeader(player))
+		final boolean isLeader = isLeader(player);
+		
+		// If only two members are left, or if we are the leader and the type isn't DISCONNECTED, disband the group.
+		if (_members.size() == 2 || (type != MessageType.DISCONNECTED && isLeader))
 			disband();
 		else
 		{
+			// If the removed player was the leader, try to promote a member.
+			if (isLeader)
+			{
+				// Retrieve the first member which isn't the leader, and promote it.
+				for (Player member : _members)
+				{
+					if (member != player)
+					{
+						changePartyLeader(member);
+						break;
+					}
+				}
+			}
+			
 			// Cancel current rift session.
 			DimensionalRiftManager.getInstance().onPartyEdit(this);
 			
@@ -416,11 +432,11 @@ public class Party extends AbstractGroup
 				FestivalOfDarknessManager.getInstance().updateParticipants(player, this);
 			
 			if (player.getFusionSkill() != null)
-				player.abortCast();
+				player.getCast().stop();
 			
-			for (Creature character : player.getKnownType(Creature.class))
-				if (character.getFusionSkill() != null && character.getFusionSkill().getTarget() == player)
-					character.abortCast();
+			for (final Creature creature : player.getKnownType(Creature.class))
+				if (creature.getFusionSkill() != null && creature.getFusionSkill().getTarget() == player)
+					creature.getCast().stop();
 				
 			if (type == MessageType.EXPELLED)
 			{
@@ -444,12 +460,20 @@ public class Party extends AbstractGroup
 	}
 	
 	/**
-	 * Change the party leader. If CommandChannel leader was the previous leader, change it too.
-	 * @param name : the name of the player newly promoted to leader.
+	 * Change the {@link Party} leader. If CommandChannel leader was the previous leader, change it too.
+	 * @param name : The name of the {@link Player} newly promoted to leader.
 	 */
 	public void changePartyLeader(String name)
 	{
-		final Player player = getPlayerByName(name);
+		changePartyLeader(getPlayerByName(name));
+	}
+	
+	/**
+	 * Change the {@link Party} leader. If CommandChannel leader was the previous leader, change it too.
+	 * @param player : The {@link Player} newly promoted to leader.
+	 */
+	public void changePartyLeader(Player player)
+	{
 		if (player == null || player.isInDuel())
 			return;
 		
@@ -478,16 +502,18 @@ public class Party extends AbstractGroup
 		setLeader(player);
 		broadcastNewLeaderStatus();
 		
+		// If in PartyRoom, change the leader of the room.
 		if (player.isInPartyMatchRoom())
 		{
-			final PartyMatchRoom room = PartyMatchRoomList.getInstance().getPlayerRoom(player);
-			room.changeLeader(player);
+			final PartyMatchRoom room = PartyMatchRoomManager.getInstance().getRoom(player.getPartyRoom());
+			if (room != null)
+				room.changeLeader(player);
 		}
 	}
 	
 	/**
-	 * @param name : the name of the player to search.
-	 * @return a party member by its name.
+	 * @param name : The name of the {@link Player} to search.
+	 * @return A {@link Party} member by his name.
 	 */
 	private Player getPlayerByName(String name)
 	{
@@ -500,9 +526,9 @@ public class Party extends AbstractGroup
 	}
 	
 	/**
-	 * Distribute item(s) to one party member, based on party LootRule.
-	 * @param player : the initial looter.
-	 * @param item : the looted item to distribute.
+	 * Distribute item(s) to one {@link Party} member, based on {@link Party}'s {@link LootRule}.
+	 * @param player : The initial {@link Player} looter.
+	 * @param item : The {@link ItemInstance} used as looted item to distribute.
 	 */
 	public void distributeItem(Player player, ItemInstance item)
 	{
@@ -513,7 +539,7 @@ public class Party extends AbstractGroup
 			return;
 		}
 		
-		final Player target = getActualLooter(player, item.getItemId(), false, player);
+		final Player target = getValidLooter(player, item.getItemId(), false, player);
 		if (target == null)
 			return;
 		
@@ -529,13 +555,13 @@ public class Party extends AbstractGroup
 	}
 	
 	/**
-	 * Distribute item(s) to one party member, based on party LootRule.
-	 * @param player : the initial looter.
-	 * @param item : the looted item to distribute.
-	 * @param spoil : true if the item comes from a spoil process.
-	 * @param target : the looted character.
+	 * Distribute item(s) to one {@link Party} member, based on {@link Party}'s {@link LootRule}.
+	 * @param player : The initial {@link Player} looter.
+	 * @param item : The {@link IntIntHolder} used as looted item to distribute.
+	 * @param isSpoil : True if the item comes from a spoil process, false otherwise.
+	 * @param target : The {@link Attackable} used as looted target.
 	 */
-	public void distributeItem(Player player, IntIntHolder item, boolean spoil, Attackable target)
+	public void distributeItem(Player player, IntIntHolder item, boolean isSpoil, Attackable target)
 	{
 		if (item == null)
 			return;
@@ -546,24 +572,24 @@ public class Party extends AbstractGroup
 			return;
 		}
 		
-		final Player looter = getActualLooter(player, item.getId(), spoil, target);
+		final Player looter = getValidLooter(player, item.getId(), isSpoil, target);
 		if (looter == null)
 			return;
 		
-		looter.addItem(spoil ? "Sweep" : "Party", item.getId(), item.getValue(), player, true);
+		looter.addItem((isSpoil) ? "Sweep" : "Party", item.getId(), item.getValue(), player, true);
 		
 		// Send messages to other party members about reward.
 		SystemMessage msg;
 		if (item.getValue() > 1)
 		{
-			msg = (spoil) ? SystemMessage.getSystemMessage(SystemMessageId.S1_SWEEPED_UP_S3_S2) : SystemMessage.getSystemMessage(SystemMessageId.S1_OBTAINED_S3_S2);
+			msg = (isSpoil) ? SystemMessage.getSystemMessage(SystemMessageId.S1_SWEEPED_UP_S3_S2) : SystemMessage.getSystemMessage(SystemMessageId.S1_OBTAINED_S3_S2);
 			msg.addCharName(looter);
 			msg.addItemName(item.getId());
 			msg.addItemNumber(item.getValue());
 		}
 		else
 		{
-			msg = (spoil) ? SystemMessage.getSystemMessage(SystemMessageId.S1_SWEEPED_UP_S2) : SystemMessage.getSystemMessage(SystemMessageId.S1_OBTAINED_S2);
+			msg = (isSpoil) ? SystemMessage.getSystemMessage(SystemMessageId.S1_SWEEPED_UP_S2) : SystemMessage.getSystemMessage(SystemMessageId.S1_OBTAINED_S2);
 			msg.addCharName(looter);
 			msg.addItemName(item.getId());
 		}
@@ -571,17 +597,17 @@ public class Party extends AbstractGroup
 	}
 	
 	/**
-	 * Distribute adena to party members, according distance.
-	 * @param player : The player who picked.
-	 * @param adena : Amount of adenas.
-	 * @param target : Target used for distance checks.
+	 * Distribute adena to {@link Party} members.
+	 * @param player : The {@link Player} picker.
+	 * @param adena : The amount of adenas.
+	 * @param target : The {@link Creature} of which the member must be within a certain range (must not be null).
 	 */
 	public void distributeAdena(Player player, int adena, Creature target)
 	{
 		List<Player> toReward = new ArrayList<>(_members.size());
 		for (Player member : _members)
 		{
-			if (!MathUtil.checkIfInRange(Config.PARTY_RANGE, target, member, true) || member.getAdena() == Integer.MAX_VALUE)
+			if (member.getAdena() == Integer.MAX_VALUE || !MathUtil.checkIfInRange(Config.PARTY_RANGE, target, member, true))
 				continue;
 			
 			toReward.add(member);
@@ -597,22 +623,16 @@ public class Party extends AbstractGroup
 	}
 	
 	/**
-	 * Distribute Experience and SP rewards to party members in the known area of the last attacker.<BR>
+	 * Distribute Experience and SP rewards to {@link Party} members in the known area of the last attacker.<BR>
 	 * <BR>
-	 * <B><U> Actions</U> :</B><BR>
-	 * <ul>
-	 * <li>Get the owner of the Summon (if necessary).</li>
-	 * <li>Calculate the Experience and SP reward distribution rate.</li>
-	 * <li>Add Experience and SP to the player.</li>
-	 * </ul>
 	 * <FONT COLOR=#FF0000><B> <U>Caution</U> : This method DOESN'T GIVE rewards to Pet</B></FONT><BR>
 	 * <BR>
 	 * Exception are Pets that leech from the owner's XP; they get the exp indirectly, via the owner's exp gain.<BR>
 	 * @param xpReward : The Experience reward to distribute.
 	 * @param spReward : The SP reward to distribute.
-	 * @param rewardedMembers : The list of Player to reward.
+	 * @param rewardedMembers : The {@link Player}s' {@link List} to reward.
 	 * @param topLvl : The maximum level.
-	 * @param rewards : The list of players and summons.
+	 * @param rewards : The {@link Map} of {@link Creature}s and {@link RewardInfo}.
 	 */
 	public void distributeXpAndSp(long xpReward, int spReward, List<Player> rewardedMembers, int topLvl, Map<Creature, RewardInfo> rewards)
 	{
@@ -622,7 +642,7 @@ public class Party extends AbstractGroup
 		{
 			for (Player member : rewardedMembers)
 			{
-				if (topLvl - member.getLevel() <= Config.PARTY_XP_CUTOFF_LEVEL)
+				if (topLvl - member.getStatus().getLevel() <= Config.PARTY_XP_CUTOFF_LEVEL)
 					validMembers.add(member);
 			}
 		}
@@ -630,11 +650,11 @@ public class Party extends AbstractGroup
 		{
 			int sqLevelSum = 0;
 			for (Player member : rewardedMembers)
-				sqLevelSum += (member.getLevel() * member.getLevel());
+				sqLevelSum += (member.getStatus().getLevel() * member.getStatus().getLevel());
 			
 			for (Player member : rewardedMembers)
 			{
-				int sqLevel = member.getLevel() * member.getLevel();
+				int sqLevel = member.getStatus().getLevel() * member.getStatus().getLevel();
 				if (sqLevel * 100 >= sqLevelSum * Config.PARTY_XP_CUTOFF_PERCENT)
 					validMembers.add(member);
 			}
@@ -643,14 +663,14 @@ public class Party extends AbstractGroup
 		{
 			int sqLevelSum = 0;
 			for (Player member : rewardedMembers)
-				sqLevelSum += (member.getLevel() * member.getLevel());
+				sqLevelSum += (member.getStatus().getLevel() * member.getStatus().getLevel());
 			
 			// Have to use range 1 to 9, since we -1 it : 0 can't be a good number (would lead to a IOOBE). Since 0 and 1 got same values, it's not a problem.
 			final int partySize = MathUtil.limit(rewardedMembers.size(), 1, 9);
 			
 			for (Player member : rewardedMembers)
 			{
-				int sqLevel = member.getLevel() * member.getLevel();
+				int sqLevel = member.getStatus().getLevel() * member.getStatus().getLevel();
 				if (sqLevel >= sqLevelSum * (1 - 1 / (1 + BONUS_EXP_SP[partySize] - BONUS_EXP_SP[partySize - 1])))
 					validMembers.add(member);
 			}
@@ -664,7 +684,7 @@ public class Party extends AbstractGroup
 		
 		int sqLevelSum = 0;
 		for (Player member : validMembers)
-			sqLevelSum += member.getLevel() * member.getLevel();
+			sqLevelSum += member.getStatus().getLevel() * member.getStatus().getLevel();
 		
 		// Go through the players that must be rewarded.
 		for (Player member : rewardedMembers)
@@ -678,7 +698,7 @@ public class Party extends AbstractGroup
 				// The servitor penalty.
 				final float penalty = member.hasServitor() ? ((Servitor) member.getSummon()).getExpPenalty() : 0;
 				
-				final double sqLevel = member.getLevel() * member.getLevel();
+				final double sqLevel = member.getStatus().getLevel() * member.getStatus().getLevel();
 				final double preCalculation = (sqLevel / sqLevelSum) * (1 - penalty);
 				
 				final long xp = Math.round(xpReward * preCalculation);
@@ -731,29 +751,20 @@ public class Party extends AbstractGroup
 	}
 	
 	/**
-	 * @return true if the entire party is currently dead.
+	 * @return True if the entire party is currently dead, false otherwise.
 	 */
 	public boolean wipedOut()
 	{
-		for (Player member : _members)
-		{
-			if (!member.isDead())
-				return false;
-		}
-		return true;
+		return _members.stream().allMatch(Player::isDead);
 	}
 	
-	protected class PositionBroadcast implements Runnable
+	/**
+	 * Check whether the leader of this {@link Party} is the same as the leader of the specified {@link Party} (which essentially means they're the same group).
+	 * @param party : The other {@link Party} to check against.
+	 * @return True if this {@link Party} equals the specified {@link Party}, false otherwise.
+	 */
+	public boolean equals(Party party)
 	{
-		@Override
-		public void run()
-		{
-			if (_positionPacket == null)
-				_positionPacket = new PartyMemberPosition(Party.this);
-			else
-				_positionPacket.reuse(Party.this);
-			
-			broadcastPacket(_positionPacket);
-		}
+		return party != null && getLeaderObjectId() == party.getLeaderObjectId();
 	}
 }

@@ -2,9 +2,6 @@ package net.sf.l2j.gameserver.network.serverpackets;
 
 import net.sf.l2j.gameserver.model.pledge.ClanMember;
 
-/**
- * @author -Wooden-
- */
 public class PledgeReceiveMemberInfo extends L2GameServerPacket
 {
 	private final ClanMember _member;
@@ -22,8 +19,8 @@ public class PledgeReceiveMemberInfo extends L2GameServerPacket
 		
 		writeD(_member.getPledgeType());
 		writeS(_member.getName());
-		writeS(_member.getTitle()); // title
-		writeD(_member.getPowerGrade()); // power
+		writeS(_member.getTitle());
+		writeD(_member.getPowerGrade());
 		
 		// clan or subpledge name
 		if (_member.getPledgeType() != 0)
@@ -31,6 +28,6 @@ public class PledgeReceiveMemberInfo extends L2GameServerPacket
 		else
 			writeS(_member.getClan().getName());
 		
-		writeS(_member.getApprenticeOrSponsorName()); // name of this member's apprentice/sponsor
+		writeS(_member.getApprenticeOrSponsorName());
 	}
 }

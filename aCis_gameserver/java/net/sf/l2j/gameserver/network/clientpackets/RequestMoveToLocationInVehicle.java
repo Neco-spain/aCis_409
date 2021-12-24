@@ -1,10 +1,9 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
 import net.sf.l2j.gameserver.data.manager.BoatManager;
-import net.sf.l2j.gameserver.enums.items.WeaponType;
 import net.sf.l2j.gameserver.model.actor.Boat;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.network.SystemMessageId;
+import net.sf.l2j.gameserver.model.location.BoatEntrance;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 import net.sf.l2j.gameserver.network.serverpackets.MoveToLocationInVehicle;
 import net.sf.l2j.gameserver.network.serverpackets.StopMoveInVehicle;
@@ -12,79 +11,64 @@ import net.sf.l2j.gameserver.network.serverpackets.StopMoveInVehicle;
 public final class RequestMoveToLocationInVehicle extends L2GameClientPacket
 {
 	private int _boatId;
-	private int _targetX;
-	private int _targetY;
-	private int _targetZ;
-	private int _originX;
-	private int _originY;
-	private int _originZ;
+	private int _tX;
+	private int _tY;
+	private int _tZ;
+	private int _oX;
+	private int _oY;
+	private int _oZ;
 	
 	@Override
 	protected void readImpl()
 	{
 		_boatId = readD();
-		_targetX = readD();
-		_targetY = readD();
-		_targetZ = readD();
-		_originX = readD();
-		_originY = readD();
-		_originZ = readD();
+		_tX = readD();
+		_tY = readD();
+		_tZ = readD();
+		_oX = readD();
+		_oY = readD();
+		_oZ = readD();
 	}
 	
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		if (_targetX == _originX && _targetY == _originY && _targetZ == _originZ)
+		if (_tX == _oX && _tY == _oY && _tZ == _oZ)
 		{
-			activeChar.sendPacket(new StopMoveInVehicle(activeChar, _boatId));
-			return;
-		}
-		
-		if (activeChar.isAttackingNow() && activeChar.getAttackType() == WeaponType.BOW)
-		{
-			activeChar.sendPacket(ActionFailed.STATIC_PACKET);
-			return;
-		}
-		
-		if (activeChar.isSitting() || activeChar.isMovementDisabled())
-		{
-			activeChar.sendPacket(ActionFailed.STATIC_PACKET);
-			return;
-		}
-		
-		if (activeChar.getSummon() != null)
-		{
-			activeChar.sendPacket(SystemMessageId.RELEASE_PET_ON_BOAT);
-			activeChar.sendPacket(ActionFailed.STATIC_PACKET);
+			player.sendPacket(new StopMoveInVehicle(player, _boatId));
 			return;
 		}
 		
 		final Boat boat;
-		if (activeChar.isInBoat())
+		if (player.isInBoat())
 		{
-			boat = activeChar.getBoat();
+			boat = player.getBoat();
 			if (boat.getObjectId() != _boatId)
 			{
-				activeChar.sendPacket(ActionFailed.STATIC_PACKET);
+				player.sendPacket(ActionFailed.STATIC_PACKET);
 				return;
 			}
+			
+			// In case the player is already onboard, we don't want to do any server side movement, except updating position inside the boat.
+			player.getBoatPosition().set(_tX, _tY, _tZ);
+			
+			player.broadcastPacket(new MoveToLocationInVehicle(player, boat, _tX, _tY, _tZ, _oX, _oY, _oZ));
 		}
 		else
 		{
 			boat = BoatManager.getInstance().getBoat(_boatId);
-			if (boat == null || !boat.isInsideRadius(activeChar, 300, true, false))
+			if (boat == null)
 			{
-				activeChar.sendPacket(ActionFailed.STATIC_PACKET);
+				player.sendPacket(ActionFailed.STATIC_PACKET);
 				return;
 			}
-			activeChar.setBoat(boat);
+			
+			final BoatEntrance closestEntrance = boat.getClosestEntrance(player.getPosition());
+			player.getAI().tryToMoveTo(closestEntrance.getOuterLocation(), boat);
 		}
-		
-		activeChar.getBoatPosition().set(_targetX, _targetY, _targetZ);
-		activeChar.broadcastPacket(new MoveToLocationInVehicle(activeChar, _targetX, _targetY, _targetZ, _originX, _originY, _originZ));
 	}
 }

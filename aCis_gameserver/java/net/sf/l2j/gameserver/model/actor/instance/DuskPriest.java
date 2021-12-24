@@ -31,7 +31,7 @@ public class DuskPriest extends SignsPriest
 		
 		String filename = SevenSignsManager.SEVEN_SIGNS_HTML_PATH;
 		
-		final CabalType winningCabal = SevenSignsManager.getInstance().getCabalHighestScore();
+		final CabalType winningCabal = SevenSignsManager.getInstance().getWinningCabal();
 		
 		switch (SevenSignsManager.getInstance().getPlayerCabal(player.getObjectId()))
 		{
@@ -55,14 +55,11 @@ public class DuskPriest extends SignsPriest
 						filename += "dusk_priest_2b.htm";
 				}
 				else
-					filename += "dusk_priest_1b.htm";
+					filename += "dusk_priest_1.htm";
 				break;
 			
 			case DAWN:
-				if (SevenSignsManager.getInstance().isSealValidationPeriod())
-					filename += "dusk_priest_3a.htm";
-				else
-					filename += "dusk_priest_3b.htm";
+				filename += "dusk_priest_3.htm";
 				break;
 			
 			default:
@@ -80,7 +77,7 @@ public class DuskPriest extends SignsPriest
 						filename += "dusk_priest_2b.htm";
 				}
 				else
-					filename += "dusk_priest_1a.htm";
+					filename += "dusk_priest_1.htm";
 				break;
 		}
 		

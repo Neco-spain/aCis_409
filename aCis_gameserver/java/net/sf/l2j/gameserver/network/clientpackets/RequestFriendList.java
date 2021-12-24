@@ -16,14 +16,14 @@ public final class RequestFriendList extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
 		// ======<Friend List>======
-		activeChar.sendPacket(SystemMessageId.FRIEND_LIST_HEADER);
+		player.sendPacket(SystemMessageId.FRIEND_LIST_HEADER);
 		
-		for (int id : activeChar.getFriendList())
+		for (int id : player.getFriendList())
 		{
 			final String friendName = PlayerInfoTable.getInstance().getPlayerName(id);
 			if (friendName == null)
@@ -31,10 +31,10 @@ public final class RequestFriendList extends L2GameClientPacket
 			
 			final Player friend = World.getInstance().getPlayer(id);
 			
-			activeChar.sendPacket(SystemMessage.getSystemMessage((friend == null || !friend.isOnline()) ? SystemMessageId.S1_OFFLINE : SystemMessageId.S1_ONLINE).addString(friendName));
+			player.sendPacket(SystemMessage.getSystemMessage((friend == null || !friend.isOnline()) ? SystemMessageId.S1_OFFLINE : SystemMessageId.S1_ONLINE).addString(friendName));
 		}
 		
 		// =========================
-		activeChar.sendPacket(SystemMessageId.FRIEND_LIST_FOOTER);
+		player.sendPacket(SystemMessageId.FRIEND_LIST_FOOTER);
 	}
 }

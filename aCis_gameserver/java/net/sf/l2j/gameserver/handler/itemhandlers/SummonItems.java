@@ -1,26 +1,20 @@
 package net.sf.l2j.gameserver.handler.itemhandlers;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
+import java.util.List;
 
+import net.sf.l2j.gameserver.data.SkillTable;
 import net.sf.l2j.gameserver.data.xml.NpcData;
 import net.sf.l2j.gameserver.data.xml.SummonItemData;
-import net.sf.l2j.gameserver.enums.GaugeColor;
 import net.sf.l2j.gameserver.handler.IItemHandler;
-import net.sf.l2j.gameserver.model.World;
-import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.ChristmasTree;
-import net.sf.l2j.gameserver.model.actor.instance.Pet;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
-import net.sf.l2j.gameserver.model.spawn.L2Spawn;
+import net.sf.l2j.gameserver.model.spawn.Spawn;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.MagicSkillLaunched;
-import net.sf.l2j.gameserver.network.serverpackets.MagicSkillUse;
-import net.sf.l2j.gameserver.network.serverpackets.SetupGauge;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public class SummonItems implements IItemHandler
@@ -42,7 +36,7 @@ public class SummonItems implements IItemHandler
 		if (player.isInObserverMode())
 			return;
 		
-		if (player.isAllSkillsDisabled() || player.isCastingNow())
+		if (player.isAllSkillsDisabled() || player.getCast().isCastingNow())
 			return;
 		
 		final IntIntHolder sitem = SummonItemData.getInstance().getSummonItem(item.getItemId());
@@ -53,111 +47,56 @@ public class SummonItems implements IItemHandler
 			return;
 		}
 		
-		if (player.isAttackingNow())
+		if (player.getAttack().isAttackingNow())
 		{
 			player.sendPacket(SystemMessageId.YOU_CANNOT_SUMMON_IN_COMBAT);
 			return;
 		}
 		
-		final int npcId = sitem.getId();
-		if (npcId == 0)
-			return;
-		
-		final NpcTemplate npcTemplate = NpcData.getInstance().getTemplate(npcId);
+		final NpcTemplate npcTemplate = NpcData.getInstance().getTemplate(sitem.getId());
 		if (npcTemplate == null)
 			return;
-		
-		player.stopMove(null);
 		
 		switch (sitem.getValue())
 		{
 			case 0: // static summons (like Christmas tree)
+				final List<ChristmasTree> trees = player.getKnownTypeInRadius(ChristmasTree.class, 1200);
+				if (!trees.isEmpty())
+				{
+					player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.CANNOT_SUMMON_S1_AGAIN).addCharName(trees.get(0)));
+					return;
+				}
+				
+				if (!player.destroyItem("Summon", item, 1, null, false))
+					return;
+				
+				player.getMove().stop();
+				
 				try
 				{
-					for (ChristmasTree ch : player.getKnownTypeInRadius(ChristmasTree.class, 1200))
-					{
-						if (npcTemplate.getNpcId() == ChristmasTree.SPECIAL_TREE_ID)
-						{
-							player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.CANNOT_SUMMON_S1_AGAIN).addCharName(ch));
-							return;
-						}
-					}
+					final Spawn spawn = new Spawn(npcTemplate);
+					spawn.setLoc(player.getPosition());
+					spawn.setRespawnState(false);
 					
-					if (player.destroyItem("Summon", item.getObjectId(), 1, null, false))
-					{
-						final L2Spawn spawn = new L2Spawn(npcTemplate);
-						spawn.setLoc(player.getPosition());
-						spawn.setRespawnState(false);
-						
-						final Npc npc = spawn.doSpawn(true);
-						npc.setTitle(player.getName());
-						npc.setIsRunning(false); // broadcast info
-					}
+					final Npc npc = spawn.doSpawn(true);
+					npc.setTitle(player.getName());
+					npc.setWalkOrRun(false);
 				}
 				catch (Exception e)
 				{
 					player.sendPacket(SystemMessageId.TARGET_CANT_FOUND);
 				}
 				break;
-			case 1: // pet summons
-				final WorldObject oldTarget = player.getTarget();
-				player.setTarget(player);
-				player.broadcastPacket(new MagicSkillUse(player, 2046, 1, 5000, 0));
-				player.setTarget(oldTarget);
-				player.sendPacket(new SetupGauge(GaugeColor.BLUE, 5000));
+			
+			case 1: // summon pet through an item
+				player.getAI().tryToCast(player, SkillTable.getInstance().getInfo(2046, 1), false, false, item.getObjectId());
 				player.sendPacket(SystemMessageId.SUMMON_A_PET);
-				player.setIsCastingNow(true);
-				
-				ThreadPool.schedule(new PetSummonFinalizer(player, npcTemplate, item), 5000);
 				break;
+			
 			case 2: // wyvern
+				player.getMove().stop();
 				player.mount(sitem.getId(), item.getObjectId());
 				break;
-		}
-	}
-	
-	// TODO: this should be inside skill handler
-	static class PetSummonFinalizer implements Runnable
-	{
-		private final Player _player;
-		private final ItemInstance _item;
-		private final NpcTemplate _template;
-		
-		PetSummonFinalizer(Player player, NpcTemplate template, ItemInstance item)
-		{
-			_player = player;
-			_template = template;
-			_item = item;
-		}
-		
-		@Override
-		public void run()
-		{
-			_player.sendPacket(new MagicSkillLaunched(_player, 2046, 1));
-			_player.setIsCastingNow(false);
-			
-			// check for summon item validity
-			if (_item == null || _item.getOwnerId() != _player.getObjectId() || _item.getLocation() != ItemInstance.ItemLocation.INVENTORY)
-				return;
-			
-			// Owner has a pet listed in world.
-			if (World.getInstance().getPet(_player.getObjectId()) != null)
-				return;
-			
-			// Add the pet instance to world.
-			final Pet pet = Pet.restore(_item, _template, _player);
-			if (pet == null)
-				return;
-			
-			World.getInstance().addPet(_player.getObjectId(), pet);
-			
-			_player.setSummon(pet);
-			
-			pet.setRunning();
-			pet.setTitle(_player.getName());
-			pet.spawnMe();
-			pet.startFeed();
-			pet.setFollowStatus(true);
 		}
 	}
 }

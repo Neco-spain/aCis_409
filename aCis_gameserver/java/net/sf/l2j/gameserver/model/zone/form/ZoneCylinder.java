@@ -1,10 +1,20 @@
 package net.sf.l2j.gameserver.model.zone.form;
 
+import java.awt.Color;
+
 import net.sf.l2j.gameserver.model.zone.ZoneForm;
+import net.sf.l2j.gameserver.network.serverpackets.ExServerPrimitive;
 
 public class ZoneCylinder extends ZoneForm
 {
-	private final int _x, _y, _z1, _z2, _rad, _radS;
+	protected static final int STEP = 50;
+	
+	private final int _x;
+	private final int _y;
+	private final int _z1;
+	private final int _z2;
+	private final int _rad;
+	private final int _radS;
 	
 	public ZoneCylinder(int x, int y, int z1, int z2, int rad)
 	{
@@ -68,12 +78,6 @@ public class ZoneCylinder extends ZoneForm
 	}
 	
 	@Override
-	public double getDistanceToZone(int x, int y)
-	{
-		return (Math.sqrt((Math.pow(_x - x, 2) + Math.pow(_y - y, 2))) - _rad);
-	}
-	
-	@Override
 	public int getLowZ()
 	{
 		return _z1;
@@ -86,8 +90,11 @@ public class ZoneCylinder extends ZoneForm
 	}
 	
 	@Override
-	public void visualizeZone(int id, int z)
+	public void visualizeZone(String info, ExServerPrimitive debug, int z)
 	{
+		final int z1 = _z1 - 32;
+		final int z2 = _z2 - 32;
+		
 		int count = (int) (2 * Math.PI * _rad / STEP);
 		double angle = 2 * Math.PI / count;
 		
@@ -96,7 +103,9 @@ public class ZoneCylinder extends ZoneForm
 			int x = (int) (Math.cos(angle * i) * _rad);
 			int y = (int) (Math.sin(angle * i) * _rad);
 			
-			dropDebugItem(id, _x + x, _y + y, z);
+			debug.addPoint(info + " MinZ", Color.GREEN, true, _x + x, _y + y, z1);
+			debug.addPoint(info, Color.YELLOW, true, _x + x, _y + y, z);
+			debug.addPoint(info + " MaxZ", Color.RED, true, _x + x, _y + y, z2);
 		}
 	}
 }

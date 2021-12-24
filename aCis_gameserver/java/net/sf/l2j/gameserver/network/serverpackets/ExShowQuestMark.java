@@ -1,8 +1,5 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
-/**
- * @author Luca Baldi
- */
 public class ExShowQuestMark extends L2GameServerPacket
 {
 	private final int _questId;

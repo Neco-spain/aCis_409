@@ -2,12 +2,15 @@
 <!-- Shadow Weapon Exchange D Grade - by BiTi -->
 <list>
 	<npcs>
+		<npc>30026</npc> <!-- Bitz -->
+		<npc>30031</npc> <!-- Biotin -->
 		<npc>30037</npc> <!-- Levian -->
 		<npc>30066</npc> <!-- Pabris -->
 		<npc>30070</npc> <!-- Sylvain -->
 		<npc>30109</npc> <!-- Hannavalt -->
 		<npc>30115</npc> <!-- Jurek -->
 		<npc>30120</npc> <!-- Maximilian -->
+		<npc>30154</npc> <!-- Asterios -->
 		<npc>30174</npc> <!-- Arkenias -->
 		<npc>30175</npc> <!-- Fairen -->
 		<npc>30176</npc> <!-- Valleria -->
@@ -18,6 +21,7 @@
 		<npc>30289</npc> <!-- Raymond -->
 		<npc>30290</npc> <!-- Xenos -->
 		<npc>30297</npc> <!-- Tobias -->
+		<npc>30358</npc> <!-- Thifiell -->
 		<npc>30373</npc> <!-- Ramos -->
 		<npc>30462</npc> <!-- Tronix -->
 		<npc>30474</npc> <!-- Angus -->
@@ -31,6 +35,10 @@
 		<npc>30511</npc> <!-- Gesto -->
 		<npc>30512</npc> <!-- Kusto -->
 		<npc>30513</npc> <!-- Penatus -->
+		<npc>30520</npc> <!-- Reed -->
+		<npc>30525</npc> <!-- Bronk -->
+		<npc>30565</npc> <!-- Kakai -->
+		<npc>30594</npc> <!-- Ranspo -->
 		<npc>30595</npc> <!-- Opix -->
 		<npc>30676</npc> <!-- Croop -->
 		<npc>30677</npc> <!-- Flutter -->
@@ -57,6 +65,7 @@
 		<npc>31269</npc> <!-- Mona -->
 		<npc>31272</npc> <!-- Noel -->
 		<npc>31276</npc> <!-- Bernhard -->
+		<npc>31279</npc> <!-- Gregory -->
 		<npc>31285</npc> <!-- Samael -->
 		<npc>31288</npc> <!-- Aklan -->
 		<npc>31314</npc> <!-- Donal -->
@@ -68,6 +77,7 @@
 		<npc>31331</npc> <!-- Valdis -->
 		<npc>31334</npc> <!-- Tifaren -->
 		<npc>31336</npc> <!-- Rahorakti -->
+		<npc>31755</npc> <!-- Halaster -->
 		<npc>31958</npc> <!-- Yasheni -->
 		<npc>31961</npc> <!-- Newyear -->
 		<npc>31965</npc> <!-- Hector -->

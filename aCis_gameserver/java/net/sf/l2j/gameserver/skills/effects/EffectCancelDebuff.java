@@ -2,35 +2,31 @@ package net.sf.l2j.gameserver.skills.effects;
 
 import net.sf.l2j.commons.random.Rnd;
 
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
-import net.sf.l2j.gameserver.enums.skills.L2SkillType;
-import net.sf.l2j.gameserver.model.L2Effect;
-import net.sf.l2j.gameserver.model.L2Skill;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.enums.skills.SkillType;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
 import net.sf.l2j.gameserver.skills.Formulas;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
-/**
- * @author UnAfraid
- */
-public class EffectCancelDebuff extends L2Effect
+public class EffectCancelDebuff extends AbstractEffect
 {
-	public EffectCancelDebuff(Env env, EffectTemplate template)
+	public EffectCancelDebuff(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
 	{
-		super(env, template);
+		super(template, skill, effected, effector);
 	}
 	
 	@Override
-	public L2EffectType getEffectType()
+	public EffectType getEffectType()
 	{
-		return L2EffectType.CANCEL_DEBUFF;
+		return EffectType.CANCEL_DEBUFF;
 	}
 	
 	@Override
 	public boolean onStart()
 	{
-		return cancel(getEffector(), getEffected(), getSkill(), getEffectTemplate().effectType);
+		return cancel(getEffector(), getEffected(), getSkill(), getTemplate().getEffectType());
 	}
 	
 	@Override
@@ -39,7 +35,7 @@ public class EffectCancelDebuff extends L2Effect
 		return false;
 	}
 	
-	private static boolean cancel(Creature caster, Creature target, L2Skill skill, L2SkillType effectType)
+	private static boolean cancel(Creature caster, Creature target, L2Skill skill, SkillType effectType)
 	{
 		if (!(target instanceof Player) || target.isDead())
 			return false;
@@ -48,9 +44,9 @@ public class EffectCancelDebuff extends L2Effect
 		int count = skill.getMaxNegatedEffects();
 		double baseRate = Formulas.calcSkillVulnerability(caster, target, skill, effectType);
 		
-		L2Effect effect;
+		AbstractEffect effect;
 		int lastCanceledSkillId = 0;
-		final L2Effect[] effects = target.getAllEffects();
+		final AbstractEffect[] effects = target.getAllEffects();
 		for (int i = effects.length; --i >= 0;)
 		{
 			effect = effects[i];
@@ -115,7 +111,7 @@ public class EffectCancelDebuff extends L2Effect
 		return true;
 	}
 	
-	private static boolean calcCancelSuccess(L2Effect effect, int cancelLvl, int baseRate)
+	private static boolean calcCancelSuccess(AbstractEffect effect, int cancelLvl, int baseRate)
 	{
 		int rate = 2 * (cancelLvl - effect.getSkill().getMagicLevel());
 		rate += (effect.getPeriod() - effect.getTime()) / 1200;

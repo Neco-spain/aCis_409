@@ -1,20 +1,32 @@
 package net.sf.l2j.gameserver.model.craft;
 
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 
 /**
  * A datacontainer used by private workshop system. It retains a List of {@link ManufactureItem}s, the store name and the shop state.
  */
-public class ManufactureList
+public class ManufactureList extends ArrayList<ManufactureItem>
 {
-	private final List<ManufactureItem> _list = new ArrayList<>();
+	private static final long serialVersionUID = 1L;
 	
 	private boolean _confirmed;
+	private boolean _isDwarven;
+	
 	private String _storeName;
 	
 	public ManufactureList()
 	{
+	}
+	
+	public void set(ManufactureItem[] items)
+	{
+		addAll(Arrays.asList(items));
+	}
+	
+	public boolean hasConfirmed()
+	{
+		return _confirmed;
 	}
 	
 	public void setConfirmedTrade(boolean confirmed)
@@ -22,9 +34,14 @@ public class ManufactureList
 		_confirmed = confirmed;
 	}
 	
-	public boolean hasConfirmed()
+	public boolean isDwarven()
 	{
-		return _confirmed;
+		return _isDwarven;
+	}
+	
+	public void setState(boolean isDwarven)
+	{
+		_isDwarven = isDwarven;
 	}
 	
 	public String getStoreName()
@@ -35,15 +52,5 @@ public class ManufactureList
 	public void setStoreName(String storeName)
 	{
 		_storeName = storeName;
-	}
-	
-	public void add(ManufactureItem item)
-	{
-		_list.add(item);
-	}
-	
-	public List<ManufactureItem> getList()
-	{
-		return _list;
 	}
 }

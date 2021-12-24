@@ -4,7 +4,7 @@ import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.HennaEquipList;
-import net.sf.l2j.gameserver.network.serverpackets.HennaRemoveList;
+import net.sf.l2j.gameserver.network.serverpackets.HennaUnequipList;
 
 public class SymbolMaker extends Folk
 {
@@ -26,7 +26,7 @@ public class SymbolMaker extends Folk
 				return;
 			}
 			
-			player.sendPacket(new HennaRemoveList(player));
+			player.sendPacket(new HennaUnequipList(player));
 		}
 		else
 			super.onBypassFeedback(player, command);

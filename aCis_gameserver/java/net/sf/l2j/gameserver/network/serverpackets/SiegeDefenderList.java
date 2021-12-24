@@ -20,9 +20,9 @@ public class SiegeDefenderList extends L2GameServerPacket
 	{
 		writeC(0xcb);
 		writeD(_castle.getCastleId());
-		writeD(0x00); // 0
-		writeD(0x01); // 1
-		writeD(0x00); // 0
+		writeD(0x00);
+		writeD(0x01);
+		writeD(0x00);
 		
 		final List<Clan> defenders = _castle.getSiege().getDefenderClans();
 		final List<Clan> pendingDefenders = _castle.getSiege().getPendingClans();
@@ -39,7 +39,7 @@ public class SiegeDefenderList extends L2GameServerPacket
 				writeS(clan.getName());
 				writeS(clan.getLeaderName());
 				writeD(clan.getCrestId());
-				writeD(0x00); // signed time (seconds) (not storated by L2J)
+				writeD(0x00);
 				
 				final SiegeSide side = _castle.getSiege().getSide(clan);
 				if (side == SiegeSide.OWNER)
@@ -53,7 +53,7 @@ public class SiegeDefenderList extends L2GameServerPacket
 				
 				writeD(clan.getAllyId());
 				writeS(clan.getAllyName());
-				writeS(""); // AllyLeaderName
+				writeS("");
 				writeD(clan.getAllyCrestId());
 			}
 			
@@ -63,11 +63,11 @@ public class SiegeDefenderList extends L2GameServerPacket
 				writeS(clan.getName());
 				writeS(clan.getLeaderName());
 				writeD(clan.getCrestId());
-				writeD(0x00); // signed time (seconds) (not storated by L2J)
-				writeD(0x02); // waiting approval
+				writeD(0x00);
+				writeD(0x02);
 				writeD(clan.getAllyId());
 				writeS(clan.getAllyName());
-				writeS(""); // AllyLeaderName
+				writeS("");
 				writeD(clan.getAllyCrestId());
 			}
 		}

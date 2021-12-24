@@ -10,58 +10,72 @@ import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.handler.IAdminCommandHandler;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.zone.ZoneType;
+import net.sf.l2j.gameserver.model.zone.type.subtype.ZoneType;
+import net.sf.l2j.gameserver.network.serverpackets.ExServerPrimitive;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
 
 public class AdminZone implements IAdminCommandHandler
 {
 	private static final String[] ADMIN_COMMANDS =
 	{
-		"admin_zone_check",
-		"admin_zone_visual"
+		"admin_zone"
 	};
 	
 	@Override
-	public boolean useAdminCommand(String command, Player activeChar)
+	public void useAdminCommand(String command, Player player)
 	{
-		if (activeChar == null)
-			return false;
+		final StringTokenizer st = new StringTokenizer(command, " ");
+		st.nextToken();
 		
-		StringTokenizer st = new StringTokenizer(command, " ");
-		String actualCommand = st.nextToken(); // Get actual command
-		
-		if (actualCommand.equalsIgnoreCase("admin_zone_check"))
-			showHtml(activeChar);
-		else if (actualCommand.equalsIgnoreCase("admin_zone_visual"))
+		if (!st.hasMoreTokens())
 		{
-			try
-			{
-				String next = st.nextToken();
-				if (next.equalsIgnoreCase("all"))
-				{
-					for (ZoneType zone : ZoneManager.getInstance().getZones(activeChar))
-						zone.visualizeZone(activeChar.getZ());
-					
-					showHtml(activeChar);
-				}
-				else if (next.equalsIgnoreCase("clear"))
-				{
-					ZoneManager.getInstance().clearDebugItems();
-					showHtml(activeChar);
-				}
-				else
-				{
-					int zoneId = Integer.parseInt(next);
-					ZoneManager.getInstance().getZoneById(zoneId).visualizeZone(activeChar.getZ());
-				}
-			}
-			catch (Exception e)
-			{
-				activeChar.sendMessage("Invalid parameter for //zone_visual.");
-			}
+			showHtml(player);
+			return;
 		}
 		
-		return true;
+		switch (st.nextToken().toLowerCase())
+		{
+			case "show":
+				try
+				{
+					final ExServerPrimitive debug = player.getDebugPacket("ZONE");
+					debug.reset();
+					
+					final String param = st.nextToken().toLowerCase();
+					switch (param)
+					{
+						case "all":
+							for (ZoneType zone : player.getZones(false))
+								zone.visualizeZone(debug, player.getZ());
+							
+							debug.sendTo(player);
+							
+							showHtml(player);
+							break;
+						
+						case "clear":
+							debug.sendTo(player);
+							
+							showHtml(player);
+							break;
+						
+						default:
+							ZoneManager.getInstance().getZoneById(Integer.parseInt(param)).visualizeZone(debug, player.getZ());
+							
+							debug.sendTo(player);
+							break;
+					}
+				}
+				catch (Exception e)
+				{
+					player.sendMessage("Invalid parameter for //zone show.");
+				}
+				break;
+			
+			default:
+				showHtml(player);
+				break;
+		}
 	}
 	
 	private static void showHtml(Player player)
@@ -81,20 +95,20 @@ public class AdminZone implements IAdminCommandHandler
 		
 		final StringBuilder sb = new StringBuilder(100);
 		
-		for (ZoneId zone : ZoneId.VALUES)
+		for (ZoneId zoneId : ZoneId.VALUES)
 		{
-			if (player.isInsideZone(zone))
-				StringUtil.append(sb, zone, "<br1>");
+			if (player.isInsideZone(zoneId))
+				StringUtil.append(sb, zoneId, "<br1>");
 		}
 		html.replace("%ZONES%", sb.toString());
 		
 		// Reset the StringBuilder for another use.
 		sb.setLength(0);
 		
-		for (ZoneType zone : World.getInstance().getRegion(x, y).getZones())
+		for (ZoneType zoneType : World.getInstance().getRegion(x, y).getZones())
 		{
-			if (zone.isCharacterInZone(player))
-				StringUtil.append(sb, zone.getId(), " ");
+			if (zoneType.isCharacterInZone(player))
+				StringUtil.append(sb, zoneType.getId(), " ");
 		}
 		html.replace("%ZLIST%", sb.toString());
 		player.sendPacket(html);

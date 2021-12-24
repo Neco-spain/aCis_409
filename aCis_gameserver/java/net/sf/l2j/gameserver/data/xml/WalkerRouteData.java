@@ -53,6 +53,11 @@ public class WalkerRouteData implements IXmlReader
 		load();
 	}
 	
+	public Map<Integer, List<WalkerLocation>> getWalkerRoutes()
+	{
+		return _routes;
+	}
+	
 	public List<WalkerLocation> getWalkerRoute(int npcId)
 	{
 		return _routes.get(npcId);

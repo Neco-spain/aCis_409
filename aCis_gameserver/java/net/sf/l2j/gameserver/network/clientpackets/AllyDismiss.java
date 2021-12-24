@@ -8,18 +8,18 @@ import net.sf.l2j.gameserver.network.SystemMessageId;
 
 public final class AllyDismiss extends L2GameClientPacket
 {
-	private String _clanName;
+	private String _pledgeName;
 	
 	@Override
 	protected void readImpl()
 	{
-		_clanName = readS();
+		_pledgeName = readS();
 	}
 	
 	@Override
 	protected void runImpl()
 	{
-		if (_clanName == null)
+		if (_pledgeName == null)
 			return;
 		
 		final Player player = getClient().getPlayer();
@@ -45,7 +45,7 @@ public final class AllyDismiss extends L2GameClientPacket
 			return;
 		}
 		
-		Clan clan = ClanTable.getInstance().getClanByName(_clanName);
+		Clan clan = ClanTable.getInstance().getClanByName(_pledgeName);
 		if (clan == null)
 		{
 			player.sendPacket(SystemMessageId.CLAN_DOESNT_EXISTS);
@@ -65,13 +65,13 @@ public final class AllyDismiss extends L2GameClientPacket
 		}
 		
 		long currentTime = System.currentTimeMillis();
-		leaderClan.setAllyPenaltyExpiryTime(currentTime + Config.ALT_ACCEPT_CLAN_DAYS_WHEN_DISMISSED * 86400000L, Clan.PENALTY_TYPE_DISMISS_CLAN);
+		leaderClan.setAllyPenaltyExpiryTime(currentTime + Config.ACCEPT_CLAN_DAYS_WHEN_DISMISSED * 86400000L, Clan.PENALTY_TYPE_DISMISS_CLAN);
 		leaderClan.updateClanInDB();
 		
 		clan.setAllyId(0);
 		clan.setAllyName(null);
 		clan.changeAllyCrest(0, true);
-		clan.setAllyPenaltyExpiryTime(currentTime + Config.ALT_ALLY_JOIN_DAYS_WHEN_DISMISSED * 86400000L, Clan.PENALTY_TYPE_CLAN_DISMISSED);
+		clan.setAllyPenaltyExpiryTime(currentTime + Config.ALLY_JOIN_DAYS_WHEN_DISMISSED * 86400000L, Clan.PENALTY_TYPE_CLAN_DISMISSED);
 		clan.updateClanInDB();
 		
 		player.sendPacket(SystemMessageId.YOU_HAVE_EXPELED_A_CLAN);

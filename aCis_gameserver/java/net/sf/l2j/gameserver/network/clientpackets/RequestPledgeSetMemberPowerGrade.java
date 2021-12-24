@@ -7,34 +7,30 @@ import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.PledgeShowMemberListUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
-/**
- * Format: (ch) Sd
- * @author -Wooden-
- */
 public final class RequestPledgeSetMemberPowerGrade extends L2GameClientPacket
 {
+	private String _memberName;
 	private int _powerGrade;
-	private String _member;
 	
 	@Override
 	protected void readImpl()
 	{
-		_member = readS();
+		_memberName = readS();
 		_powerGrade = readD();
 	}
 	
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		final Clan clan = activeChar.getClan();
+		final Clan clan = player.getClan();
 		if (clan == null)
 			return;
 		
-		final ClanMember member = clan.getClanMember(_member);
+		final ClanMember member = clan.getClanMember(_memberName);
 		if (member == null)
 			return;
 		
@@ -42,6 +38,7 @@ public final class RequestPledgeSetMemberPowerGrade extends L2GameClientPacket
 			return;
 		
 		member.setPowerGrade(_powerGrade);
-		clan.broadcastToOnlineMembers(new PledgeShowMemberListUpdate(member), SystemMessage.getSystemMessage(SystemMessageId.CLAN_MEMBER_S1_PRIVILEGE_CHANGED_TO_S2).addString(member.getName()).addNumber(_powerGrade));
+		
+		clan.broadcastToMembers(new PledgeShowMemberListUpdate(member), SystemMessage.getSystemMessage(SystemMessageId.CLAN_MEMBER_S1_PRIVILEGE_CHANGED_TO_S2).addString(member.getName()).addNumber(_powerGrade));
 	}
 }

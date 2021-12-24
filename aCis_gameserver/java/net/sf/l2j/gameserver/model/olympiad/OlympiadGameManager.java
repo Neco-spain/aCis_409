@@ -6,8 +6,10 @@ import java.util.List;
 import net.sf.l2j.commons.logging.CLogger;
 
 import net.sf.l2j.gameserver.data.manager.ZoneManager;
+import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.zone.type.OlympiadStadiumZone;
+import net.sf.l2j.gameserver.network.SystemMessageId;
 
 public class OlympiadGameManager implements Runnable
 {
@@ -38,54 +40,75 @@ public class OlympiadGameManager implements Runnable
 		
 		if (Olympiad.getInstance().isInCompPeriod())
 		{
-			OlympiadGameTask task;
-			AbstractOlympiadGame newGame;
+			List<List<Integer>> readyClassed = OlympiadManager.getInstance().hasEnoughClassBasedParticipants();
+			boolean readyNonClassed = OlympiadManager.getInstance().hasEnoughNonClassBasedParticipants();
 			
-			List<List<Integer>> readyClassed = OlympiadManager.getInstance().hasEnoughRegisteredClassed();
-			boolean readyNonClassed = OlympiadManager.getInstance().hasEnoughRegisteredNonClassed();
-			
-			if (readyClassed != null || readyNonClassed)
+			// Broadcast to registered Players there isn't enough participants.
+			if (readyClassed == null && !readyNonClassed)
 			{
-				// set up the games queue
-				for (int i = 0; i < _tasks.length; i++)
+				// Broadcast to registered class based Players.
+				for (List<Integer> classList : OlympiadManager.getInstance().getClassBasedParticipants().values())
 				{
-					task = _tasks[i];
-					synchronized (task)
+					for (int objectId : classList)
 					{
-						if (!task.isRunning())
+						final Player player = World.getInstance().getPlayer(objectId);
+						if (player != null)
+							player.sendPacket(SystemMessageId.GAMES_DELAYED);
+					}
+				}
+				
+				// Broadcast to registered non class based Players.
+				for (int objectId : OlympiadManager.getInstance().getNonClassBasedParticipants())
+				{
+					final Player player = World.getInstance().getPlayer(objectId);
+					if (player != null)
+						player.sendPacket(SystemMessageId.GAMES_DELAYED);
+				}
+				return;
+			}
+			
+			// set up the games queue
+			for (int i = 0; i < _tasks.length; i++)
+			{
+				OlympiadGameTask task = _tasks[i];
+				synchronized (task)
+				{
+					// Fair arena distribution
+					if (!task.isRunning())
+					{
+						// 0,2,4,6,8.. arenas checked for classed or teams first
+						if (readyClassed != null && (i % 2) == 0)
 						{
-							// Fair arena distribution
-							// 0,2,4,6,8.. arenas checked for classed or teams first
-							if ((readyClassed != null) && (i % 2) == 0)
+							// if no ready teams found check for classed
+							final AbstractOlympiadGame newGame = OlympiadGameClassed.createGame(i, readyClassed);
+							if (newGame != null)
 							{
-								// if no ready teams found check for classed
-								newGame = OlympiadGameClassed.createGame(i, readyClassed);
-								if (newGame != null)
-								{
-									task.attachGame(newGame);
-									continue;
-								}
-								readyClassed = null;
+								task.attachGame(newGame);
+								continue;
 							}
-							// 1,3,5,7,9.. arenas used for non-classed
-							// also other arenas will be used for non-classed if no classed or teams available
-							if (readyNonClassed)
+							
+							readyClassed = null;
+						}
+						
+						// 1,3,5,7,9.. arenas used for non-classed
+						// also other arenas will be used for non-classed if no classed or teams available
+						if (readyNonClassed)
+						{
+							final AbstractOlympiadGame newGame = OlympiadGameNonClassed.createGame(i, OlympiadManager.getInstance().getNonClassBasedParticipants());
+							if (newGame != null)
 							{
-								newGame = OlympiadGameNonClassed.createGame(i, OlympiadManager.getInstance().getRegisteredNonClassBased());
-								if (newGame != null)
-								{
-									task.attachGame(newGame);
-									continue;
-								}
-								readyNonClassed = false;
+								task.attachGame(newGame);
+								continue;
 							}
+							
+							readyNonClassed = false;
 						}
 					}
-					
-					// stop generating games if no more participants
-					if (readyClassed == null && !readyNonClassed)
-						break;
 				}
+				
+				// stop generating games if no more participants
+				if (readyClassed == null && !readyNonClassed)
+					break;
 			}
 		}
 		else
@@ -93,8 +116,10 @@ public class OlympiadGameManager implements Runnable
 			// not in competition period
 			if (isAllTasksFinished())
 			{
-				OlympiadManager.getInstance().clearRegistered();
+				OlympiadManager.getInstance().clearParticipants();
+				
 				_battleStarted = false;
+				
 				LOGGER.info("All current Olympiad games finished.");
 			}
 		}

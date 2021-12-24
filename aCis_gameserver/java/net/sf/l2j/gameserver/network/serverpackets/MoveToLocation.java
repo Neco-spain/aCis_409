@@ -1,38 +1,34 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
 import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.model.location.Location;
 
-/**
- * ddddddd
- */
 public final class MoveToLocation extends L2GameServerPacket
 {
-	private final int _charObjId, _x, _y, _z, _xDst, _yDst, _zDst;
+	private final int _objectId;
+	private final Location _currentPosition;
+	private final Location _destination;
 	
-	public MoveToLocation(Creature cha)
+	public MoveToLocation(Creature creature)
 	{
-		_charObjId = cha.getObjectId();
-		_x = cha.getX();
-		_y = cha.getY();
-		_z = cha.getZ();
-		_xDst = cha.getXdestination();
-		_yDst = cha.getYdestination();
-		_zDst = cha.getZdestination();
+		_objectId = creature.getObjectId();
+		_currentPosition = creature.getPosition().clone();
+		_destination = creature.getMove().getDestination().clone();
+	}
+	
+	public MoveToLocation(Creature creature, Location destination)
+	{
+		_objectId = creature.getObjectId();
+		_currentPosition = creature.getPosition().clone();
+		_destination = destination;
 	}
 	
 	@Override
 	protected final void writeImpl()
 	{
 		writeC(0x01);
-		
-		writeD(_charObjId);
-		
-		writeD(_xDst);
-		writeD(_yDst);
-		writeD(_zDst);
-		
-		writeD(_x);
-		writeD(_y);
-		writeD(_z);
+		writeD(_objectId);
+		writeLoc(_destination);
+		writeLoc(_currentPosition);
 	}
 }

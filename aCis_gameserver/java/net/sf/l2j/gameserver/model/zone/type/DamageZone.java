@@ -2,17 +2,17 @@ package net.sf.l2j.gameserver.model.zone.type;
 
 import java.util.concurrent.Future;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 
+import net.sf.l2j.gameserver.enums.SiegeSide;
 import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.enums.skills.Stats;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.zone.CastleZoneType;
+import net.sf.l2j.gameserver.model.zone.type.subtype.CastleZoneType;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.EtcStatusUpdate;
-import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 /**
  * A zone extending {@link CastleZoneType}, which fires a task on the first character entrance, notably used by castle damage traps.<br>
@@ -21,7 +21,7 @@ import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
  */
 public class DamageZone extends CastleZoneType
 {
-	private Future<?> _task;
+	private volatile Future<?> _task;
 	
 	private int _hpDamage = 200;
 	private int _initialDelay = 1000;
@@ -54,35 +54,38 @@ public class DamageZone extends CastleZoneType
 	@Override
 	protected void onEnter(Creature character)
 	{
-		if (_task == null && _hpDamage > 0)
+		if (_hpDamage > 0)
 		{
 			// Castle traps are active only during siege, or if they're activated.
 			if (getCastle() != null && (!isEnabled() || !getCastle().getSiege().isInProgress()))
 				return;
 			
-			synchronized (this)
+			Future<?> task = _task;
+			if (task == null)
 			{
-				if (_task == null)
+				synchronized (this)
 				{
-					_task = ThreadPool.scheduleAtFixedRate(() ->
-					{
-						if (_characters.isEmpty() || _hpDamage <= 0 || (getCastle() != null && (!isEnabled() || !getCastle().getSiege().isInProgress())))
+					task = _task;
+					if (task == null)
+						_task = task = ThreadPool.scheduleAtFixedRate(() ->
 						{
-							stopTask();
-							return;
-						}
-						
-						// Effect all people inside the zone.
-						for (Creature temp : _characters.values())
-						{
-							if (!temp.isDead())
-								temp.reduceCurrentHp(_hpDamage * (1 + (temp.calcStat(Stats.DAMAGE_ZONE_VULN, 0, null, null) / 100)), null, null);
-						}
-					}, _initialDelay, _reuseDelay);
+							if (_characters.isEmpty() || _hpDamage <= 0 || (getCastle() != null && (!isEnabled() || !getCastle().getSiege().isInProgress())))
+							{
+								stopTask();
+								return;
+							}
+							
+							// Effect all people inside the zone.
+							for (Creature temp : _characters.values())
+							{
+								if (!temp.isDead())
+									temp.reduceCurrentHp(_hpDamage * (1 + (temp.getStatus().calcStat(Stats.DAMAGE_ZONE_VULN, 0, null, null) / 100)), null, null);
+							}
+						}, _initialDelay, _reuseDelay);
 					
 					// Message for castle traps.
 					if (getCastle() != null)
-						getCastle().getSiege().announceToPlayers(SystemMessage.getSystemMessage(SystemMessageId.A_TRAP_DEVICE_HAS_BEEN_TRIPPED), false);
+						getCastle().getSiege().announce(SystemMessageId.A_TRAP_DEVICE_HAS_BEEN_TRIPPED, SiegeSide.DEFENDER);
 				}
 			}
 		}

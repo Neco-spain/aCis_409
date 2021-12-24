@@ -5,21 +5,21 @@ import net.sf.l2j.gameserver.network.serverpackets.RecipeItemMakeInfo;
 
 public final class RequestRecipeItemMakeInfo extends L2GameClientPacket
 {
-	private int _id;
+	private int _recipeId;
 	
 	@Override
 	protected void readImpl()
 	{
-		_id = readD();
+		_recipeId = readD();
 	}
 	
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		activeChar.sendPacket(new RecipeItemMakeInfo(_id, activeChar));
+		player.sendPacket(new RecipeItemMakeInfo(_recipeId, player));
 	}
 }

@@ -3,12 +3,12 @@ package net.sf.l2j.gameserver.taskmanager;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 
 import net.sf.l2j.gameserver.model.actor.Player;
 
 /**
- * Updates and clears PvP flag of {@link Player} after specified time.
+ * Update and clear PvP flag of {@link Player}s after specified time.
  */
 public final class PvpFlagTaskManager implements Runnable
 {
@@ -39,10 +39,7 @@ public final class PvpFlagTaskManager implements Runnable
 			
 			// Time is running out, clear PvP flag and remove from list.
 			if (currentTime > timeLeft)
-			{
-				player.updatePvPFlag(0);
-				_players.remove(player);
-			}
+				remove(player, true);
 			// Time almost runned out, update to blinking PvP flag.
 			else if (currentTime > (timeLeft - 5000))
 				player.updatePvPFlag(2);
@@ -53,9 +50,9 @@ public final class PvpFlagTaskManager implements Runnable
 	}
 	
 	/**
-	 * Adds {@link Player} to the PvpFlagTask.
-	 * @param player : Player to be added and checked.
-	 * @param time : Time in ms, after which the PvP flag is removed.
+	 * Add the {@link Player} set as parameter to the {@link PvpFlagTaskManager}.
+	 * @param player : The {@link Player} to add.
+	 * @param time : The time in ms, after which the PvP flag is removed.
 	 */
 	public final void add(Player player, long time)
 	{
@@ -63,12 +60,16 @@ public final class PvpFlagTaskManager implements Runnable
 	}
 	
 	/**
-	 * Removes {@link Player} from the PvpFlagTask.
-	 * @param player : {@link Player} to be removed.
+	 * Remove the {@link Player} set as parameter from the {@link PvpFlagTaskManager}.
+	 * @param player : The {@link Player} to remove.
+	 * @param resetFlag : If true, the PvP flag is reset.
 	 */
-	public final void remove(Player player)
+	public final void remove(Player player, boolean resetFlag)
 	{
 		_players.remove(player);
+		
+		if (resetFlag)
+			player.updatePvPFlag(0);
 	}
 	
 	public static final PvpFlagTaskManager getInstance()

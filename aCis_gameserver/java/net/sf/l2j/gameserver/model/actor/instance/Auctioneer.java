@@ -116,11 +116,11 @@ public final class Auctioneer extends Folk
 			showChatWindow(player);
 			return;
 		}
-		// Commands allowed for clan members with priviledges.
+		// Commands allowed for clan members with privileges.
 		else
 		{
 			final Clan clan = player.getClan();
-			if (clan == null || !((player.getClanPrivileges() & Clan.CP_CH_AUCTION) == Clan.CP_CH_AUCTION))
+			if (clan == null || !player.hasClanPrivileges(Clan.CP_CH_AUCTION))
 			{
 				showAuctionsList("1", player);
 				player.sendPacket(SystemMessageId.CANNOT_PARTICIPATE_IN_AUCTION);
@@ -266,7 +266,7 @@ public final class Auctioneer extends Folk
 				final Auction auction = ClanHallManager.getInstance().getAuction(clan.getAuctionBiddedAt());
 				if (auction != null)
 				{
-					auction.cancelBid(player.getClanId());
+					auction.cancelBid(clan);
 					player.sendPacket(SystemMessageId.CANCELED_BID);
 				}
 				return;
@@ -476,7 +476,6 @@ public final class Auctioneer extends Folk
 		html.replace("%AGIT_LIST%", sb.toString());
 		html.replace("%AGIT_LINK_BACK%", "bypass -h npc_" + getObjectId() + "_start");
 		player.sendPacket(html);
-		return;
 	}
 	
 	private void showSelectedItems(Player player)
@@ -579,6 +578,5 @@ public final class Auctioneer extends Folk
 		
 		showAuctionsList("1", player); // Force to display page 1.
 		player.sendPacket(SystemMessageId.NO_OFFERINGS_OWN_OR_MADE_BID_FOR);
-		return;
 	}
 }

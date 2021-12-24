@@ -4,7 +4,7 @@ import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.zone.SpawnZoneType;
+import net.sf.l2j.gameserver.model.zone.type.subtype.SpawnZoneType;
 
 /**
  * A zone extending {@link SpawnZoneType}, used by towns. A town zone is generally associated to a castle for taxes.

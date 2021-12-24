@@ -1,21 +1,21 @@
 package net.sf.l2j.gameserver.handler.skillhandlers;
 
-import net.sf.l2j.gameserver.enums.skills.L2SkillType;
+import net.sf.l2j.gameserver.enums.skills.SkillType;
 import net.sf.l2j.gameserver.handler.ISkillHandler;
-import net.sf.l2j.gameserver.model.L2Skill;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Monster;
 import net.sf.l2j.gameserver.scripting.QuestState;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class DrainSoul implements ISkillHandler
 {
 	private static final String qn = "Q350_EnhanceYourWeapon";
 	
-	private static final L2SkillType[] SKILL_IDS =
+	private static final SkillType[] SKILL_IDS =
 	{
-		L2SkillType.DRAIN_SOUL
+		SkillType.DRAIN_SOUL
 	};
 	
 	@Override
@@ -27,13 +27,13 @@ public class DrainSoul implements ISkillHandler
 		
 		// Check quest condition.
 		final Player player = (Player) activeChar;
-		QuestState st = player.getQuestState(qn);
+		QuestState st = player.getQuestList().getQuestState(qn);
 		if (st == null || !st.isStarted())
 			return;
 		
 		// Get target.
 		WorldObject target = targets[0];
-		if (target == null || !(target instanceof Monster))
+		if (!(target instanceof Monster))
 			return;
 		
 		// Check monster.
@@ -42,7 +42,7 @@ public class DrainSoul implements ISkillHandler
 			return;
 		
 		// Range condition, cannot be higher than skill's effectRange.
-		if (!player.isInsideRadius(mob, skill.getEffectRange(), true, true))
+		if (!player.isIn3DRadius(mob, skill.getEffectRange()))
 			return;
 		
 		// Register.
@@ -50,7 +50,7 @@ public class DrainSoul implements ISkillHandler
 	}
 	
 	@Override
-	public L2SkillType[] getSkillIds()
+	public SkillType[] getSkillIds()
 	{
 		return SKILL_IDS;
 	}

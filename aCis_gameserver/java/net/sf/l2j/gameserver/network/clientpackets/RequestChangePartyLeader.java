@@ -6,12 +6,12 @@ import net.sf.l2j.gameserver.network.SystemMessageId;
 
 public final class RequestChangePartyLeader extends L2GameClientPacket
 {
-	private String _name;
+	private String _targetName;
 	
 	@Override
 	protected void readImpl()
 	{
-		_name = readS();
+		_targetName = readS();
 	}
 	
 	@Override
@@ -28,6 +28,6 @@ public final class RequestChangePartyLeader extends L2GameClientPacket
 			return;
 		}
 		
-		party.changePartyLeader(_name);
+		party.changePartyLeader(_targetName);
 	}
 }

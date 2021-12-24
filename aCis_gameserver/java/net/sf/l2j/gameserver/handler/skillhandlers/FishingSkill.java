@@ -2,22 +2,22 @@ package net.sf.l2j.gameserver.handler.skillhandlers;
 
 import net.sf.l2j.gameserver.enums.items.ShotType;
 import net.sf.l2j.gameserver.enums.items.WeaponType;
-import net.sf.l2j.gameserver.enums.skills.L2SkillType;
+import net.sf.l2j.gameserver.enums.skills.SkillType;
 import net.sf.l2j.gameserver.handler.ISkillHandler;
-import net.sf.l2j.gameserver.model.L2Skill;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class FishingSkill implements ISkillHandler
 {
-	private static final L2SkillType[] SKILL_IDS =
+	private static final SkillType[] SKILL_IDS =
 	{
-		L2SkillType.PUMPING,
-		L2SkillType.REELING
+		SkillType.PUMPING,
+		SkillType.REELING
 	};
 	
 	@Override
@@ -27,7 +27,7 @@ public class FishingSkill implements ISkillHandler
 			return;
 		
 		final Player player = (Player) activeChar;
-		final boolean isReelingSkill = skill.getSkillType() == L2SkillType.REELING;
+		final boolean isReelingSkill = skill.getSkillType() == SkillType.REELING;
 		
 		if (!player.getFishingStance().isUnderFishCombat())
 		{
@@ -65,7 +65,7 @@ public class FishingSkill implements ISkillHandler
 	}
 	
 	@Override
-	public L2SkillType[] getSkillIds()
+	public SkillType[] getSkillIds()
 	{
 		return SKILL_IDS;
 	}

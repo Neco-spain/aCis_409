@@ -8,12 +8,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
+import net.sf.l2j.commons.data.StatSet;
 import net.sf.l2j.commons.logging.CLogger;
-import net.sf.l2j.commons.util.StatsSet;
+import net.sf.l2j.commons.pool.ConnectionPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.L2DatabaseFactory;
 import net.sf.l2j.gameserver.data.SkillTable;
 import net.sf.l2j.gameserver.data.sql.AutoSpawnTable;
 import net.sf.l2j.gameserver.data.xml.MapRegionData.TeleportType;
@@ -24,6 +24,7 @@ import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.spawn.AutoSpawn;
 import net.sf.l2j.gameserver.network.SystemMessageId;
+import net.sf.l2j.gameserver.network.serverpackets.PlaySound;
 import net.sf.l2j.gameserver.network.serverpackets.SSQInfo;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
@@ -86,7 +87,7 @@ public class SevenSignsManager
 	protected int _duskFestivalScore;
 	protected CabalType _previousWinner;
 	
-	private final Map<Integer, StatsSet> _playersData = new HashMap<>();
+	private final Map<Integer, StatSet> _playersData = new HashMap<>();
 	private final Map<SealType, CabalType> _sealOwners = new HashMap<>();
 	private final Map<SealType, Integer> _duskScores = new HashMap<>();
 	private final Map<SealType, Integer> _dawnScores = new HashMap<>();
@@ -109,7 +110,7 @@ public class SevenSignsManager
 		LOGGER.info("Currently on {} period.", _activePeriod.getName());
 		initializeSeals();
 		
-		final CabalType winningCabal = getCabalHighestScore();
+		final CabalType winningCabal = getWinningCabal();
 		if (isSealValidationPeriod())
 		{
 			if (winningCabal == CabalType.NORMAL)
@@ -194,7 +195,7 @@ public class SevenSignsManager
 			for (AutoSpawn spawnInst : _marketeerSpawns.values())
 				AutoSpawnTable.getInstance().setSpawnActive(spawnInst, true);
 			
-			final CabalType winningCabal = getCabalHighestScore();
+			final CabalType winningCabal = getWinningCabal();
 			
 			final CabalType gnosisSealOwner = getSealOwner(SealType.GNOSIS);
 			if (gnosisSealOwner == winningCabal && gnosisSealOwner != CabalType.NORMAL)
@@ -444,7 +445,7 @@ public class SevenSignsManager
 		return 0;
 	}
 	
-	public final CabalType getCabalHighestScore()
+	public final CabalType getWinningCabal()
 	{
 		final int duskScore = getCurrentScore(CabalType.DUSK);
 		final int dawnScore = getCurrentScore(CabalType.DAWN);
@@ -456,6 +457,20 @@ public class SevenSignsManager
 			return CabalType.DUSK;
 		
 		return CabalType.DAWN;
+	}
+	
+	public final CabalType getLosingCabal()
+	{
+		final int duskScore = getCurrentScore(CabalType.DUSK);
+		final int dawnScore = getCurrentScore(CabalType.DAWN);
+		
+		if (duskScore == dawnScore)
+			return CabalType.NORMAL;
+		
+		if (duskScore > dawnScore)
+			return CabalType.DAWN;
+		
+		return CabalType.DUSK;
 	}
 	
 	public final CabalType getSealOwner(SealType seal)
@@ -486,7 +501,7 @@ public class SevenSignsManager
 	{
 		int cabalMembers = 0;
 		
-		for (StatsSet set : _playersData.values())
+		for (StatSet set : _playersData.values())
 			if (set.getEnum("cabal", CabalType.class) == cabal)
 				cabalMembers++;
 			
@@ -495,7 +510,7 @@ public class SevenSignsManager
 	
 	public int getPlayerStoneContrib(int objectId)
 	{
-		final StatsSet set = _playersData.get(objectId);
+		final StatSet set = _playersData.get(objectId);
 		if (set == null)
 			return 0;
 		
@@ -504,7 +519,7 @@ public class SevenSignsManager
 	
 	public int getPlayerContribScore(int objectId)
 	{
-		final StatsSet set = _playersData.get(objectId);
+		final StatSet set = _playersData.get(objectId);
 		if (set == null)
 			return 0;
 		
@@ -513,7 +528,7 @@ public class SevenSignsManager
 	
 	public int getPlayerAdenaCollect(int objectId)
 	{
-		final StatsSet set = _playersData.get(objectId);
+		final StatSet set = _playersData.get(objectId);
 		if (set == null)
 			return 0;
 		
@@ -522,7 +537,7 @@ public class SevenSignsManager
 	
 	public SealType getPlayerSeal(int objectId)
 	{
-		final StatsSet set = _playersData.get(objectId);
+		final StatSet set = _playersData.get(objectId);
 		if (set == null)
 			return SealType.NONE;
 		
@@ -531,7 +546,7 @@ public class SevenSignsManager
 	
 	public CabalType getPlayerCabal(int objectId)
 	{
-		final StatsSet set = _playersData.get(objectId);
+		final StatSet set = _playersData.get(objectId);
 		if (set == null)
 			return CabalType.NORMAL;
 		
@@ -543,7 +558,7 @@ public class SevenSignsManager
 	 */
 	protected void restoreSevenSignsData()
 	{
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection())
+		try (Connection con = ConnectionPool.getConnection())
 		{
 			try (PreparedStatement ps = con.prepareStatement(LOAD_DATA);
 				ResultSet rs = ps.executeQuery())
@@ -552,7 +567,7 @@ public class SevenSignsManager
 				{
 					final int objectId = rs.getInt("char_obj_id");
 					
-					final StatsSet set = new StatsSet();
+					final StatSet set = new StatSet();
 					set.set("char_obj_id", objectId);
 					set.set("cabal", Enum.valueOf(CabalType.class, rs.getString("cabal")));
 					set.set("seal", Enum.valueOf(SealType.class, rs.getString("seal")));
@@ -608,10 +623,10 @@ public class SevenSignsManager
 	 */
 	public void saveSevenSignsData()
 	{
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(UPDATE_PLAYER))
 		{
-			for (StatsSet set : _playersData.values())
+			for (StatSet set : _playersData.values())
 			{
 				ps.setString(1, set.getString("cabal"));
 				ps.setString(2, set.getString("seal"));
@@ -633,7 +648,7 @@ public class SevenSignsManager
 	
 	public final void saveSevenSignsStatus()
 	{
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(UPDATE_STATUS))
 		{
 			ps.setInt(1, _currentCycle);
@@ -673,7 +688,7 @@ public class SevenSignsManager
 	 */
 	protected void resetPlayerData()
 	{
-		for (StatsSet set : _playersData.values())
+		for (StatSet set : _playersData.values())
 		{
 			set.set("cabal", CabalType.NORMAL);
 			set.set("seal", SealType.NONE);
@@ -691,7 +706,7 @@ public class SevenSignsManager
 	 */
 	public CabalType setPlayerInfo(int objectId, CabalType cabal, SealType seal)
 	{
-		StatsSet set = _playersData.get(objectId);
+		StatSet set = _playersData.get(objectId);
 		if (set != null)
 		{
 			set.set("cabal", cabal);
@@ -699,7 +714,7 @@ public class SevenSignsManager
 		}
 		else
 		{
-			set = new StatsSet();
+			set = new StatSet();
 			set.set("char_obj_id", objectId);
 			set.set("cabal", cabal);
 			set.set("seal", seal);
@@ -712,7 +727,7 @@ public class SevenSignsManager
 			_playersData.put(objectId, set);
 			
 			// Update data in database, as we have a new player signing up.
-			try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+			try (Connection con = ConnectionPool.getConnection();
 				PreparedStatement ps = con.prepareStatement(INSERT_PLAYER))
 			{
 				ps.setInt(1, objectId);
@@ -741,7 +756,7 @@ public class SevenSignsManager
 	 */
 	public int getAncientAdenaReward(int objectId)
 	{
-		StatsSet set = _playersData.get(objectId);
+		StatSet set = _playersData.get(objectId);
 		int rewardAmount = set.getInteger("ancient_adena_amount");
 		
 		set.set("red_stones", 0);
@@ -763,13 +778,13 @@ public class SevenSignsManager
 	 */
 	public int addPlayerStoneContrib(int objectId, int blueCount, int greenCount, int redCount)
 	{
-		StatsSet set = _playersData.get(objectId);
+		StatSet set = _playersData.get(objectId);
 		
 		int contribScore = calcScore(blueCount, greenCount, redCount);
 		int totalAncientAdena = set.getInteger("ancient_adena_amount") + contribScore;
 		int totalContribScore = set.getInteger("contribution_score") + contribScore;
 		
-		if (totalContribScore > Config.ALT_MAXIMUM_PLAYER_CONTRIB)
+		if (totalContribScore > Config.MAXIMUM_PLAYER_CONTRIB)
 			return -1;
 		
 		set.set("red_stones", set.getInteger("red_stones") + redCount);
@@ -877,7 +892,7 @@ public class SevenSignsManager
 			switch (prevSealOwner)
 			{
 				case NORMAL:
-					switch (getCabalHighestScore())
+					switch (getWinningCabal())
 					{
 						case DAWN:
 							if (dawnPercent >= 35)
@@ -892,7 +907,7 @@ public class SevenSignsManager
 					break;
 				
 				case DAWN:
-					switch (getCabalHighestScore())
+					switch (getWinningCabal())
 					{
 						case NORMAL:
 							if (dawnPercent >= 10)
@@ -914,7 +929,7 @@ public class SevenSignsManager
 					break;
 				
 				case DUSK:
-					switch (getCabalHighestScore())
+					switch (getWinningCabal())
 					{
 						case NORMAL:
 							if (duskPercent >= 10)
@@ -979,7 +994,7 @@ public class SevenSignsManager
 			if (player.isGM() || !player.isIn7sDungeon())
 				continue;
 			
-			final StatsSet set = _playersData.get(player.getObjectId());
+			final StatSet set = _playersData.get(player.getObjectId());
 			if (set != null)
 			{
 				final CabalType playerCabal = set.getEnum("cabal", CabalType.class);
@@ -1020,15 +1035,21 @@ public class SevenSignsManager
 					// Reset castles certificates count.
 					CastleManager.getInstance().resetCertificates();
 					
+					// Send sound for all online players.
+					World.toAllOnlinePlayers(new PlaySound(0, "SSQ_Neutral_01"));
+					
 					// Send message that Competition has begun.
 					World.toAllOnlinePlayers(SystemMessage.getSystemMessage(SystemMessageId.QUEST_EVENT_PERIOD_BEGUN));
 					break;
 				
 				case COMPETITION: // Results Calculation
+					// Send sound for all online players.
+					World.toAllOnlinePlayers(new PlaySound(0, "SSQ_Neutral_01"));
+					
 					// Send message that Competition has ended.
 					World.toAllOnlinePlayers(SystemMessage.getSystemMessage(SystemMessageId.QUEST_EVENT_PERIOD_ENDED));
 					
-					final CabalType winningCabal = getCabalHighestScore();
+					final CabalType winningCabal = getWinningCabal();
 					
 					// Schedule a stop of the festival engine and reward highest ranking members from cycle
 					FestivalOfDarknessManager.getInstance().getFestivalManagerSchedule().cancel(false);
@@ -1057,6 +1078,9 @@ public class SevenSignsManager
 					// Buff/Debuff members of the event when Seal of Strife captured.
 					giveSosEffect(getSealOwner(SealType.STRIFE));
 					
+					// Send sound for all online players.
+					World.toAllOnlinePlayers(new PlaySound(0, _previousWinner == CabalType.DAWN ? "SSQ_Dawn_01" : "SSQ_Dusk_01"));
+					
 					// Send message that Seal Validation has begun.
 					World.toAllOnlinePlayers(SystemMessage.getSystemMessage(SystemMessageId.SEAL_VALIDATION_PERIOD_BEGUN));
 					
@@ -1066,6 +1090,9 @@ public class SevenSignsManager
 				case SEAL_VALIDATION: // Reset for New Cycle
 					// Ensure a cycle restart when this period ends.
 					_activePeriod = PeriodType.RECRUITING;
+					
+					// Send sound for all online players.
+					World.toAllOnlinePlayers(new PlaySound(0, "SSQ_Neutral_01"));
 					
 					// Send message that Seal Validation has ended.
 					World.toAllOnlinePlayers(SystemMessage.getSystemMessage(SystemMessageId.SEAL_VALIDATION_PERIOD_ENDED));
@@ -1095,7 +1122,7 @@ public class SevenSignsManager
 			saveSevenSignsData();
 			saveSevenSignsStatus();
 			
-			teleLosingCabalFromDungeons(getCabalHighestScore());
+			teleLosingCabalFromDungeons(getWinningCabal());
 			
 			// Spawns NPCs and change sky color.
 			World.toAllOnlinePlayers(SSQInfo.sendSky());

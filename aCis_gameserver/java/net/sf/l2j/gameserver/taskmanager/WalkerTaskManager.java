@@ -3,7 +3,7 @@ package net.sf.l2j.gameserver.taskmanager;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 
 import net.sf.l2j.gameserver.model.actor.instance.Walker;
 
@@ -37,8 +37,12 @@ public final class WalkerTaskManager implements Runnable
 			if (time < entry.getValue())
 				continue;
 			
-			// Get character.
+			// Retrieve the Walker.
 			final Walker walker = entry.getKey();
+			
+			// Walker is still moving ; delay the acquisition of next point.
+			if (walker.isMoving())
+				continue;
 			
 			// Order the Walker to move to next point.
 			walker.getAI().moveToNextPoint();

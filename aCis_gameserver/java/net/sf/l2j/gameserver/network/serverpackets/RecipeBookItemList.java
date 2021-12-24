@@ -13,9 +13,9 @@ public class RecipeBookItemList extends L2GameServerPacket
 	
 	public RecipeBookItemList(Player player, boolean isDwarven)
 	{
-		_recipes = (isDwarven) ? player.getDwarvenRecipeBook() : player.getCommonRecipeBook();
+		_recipes = player.getRecipeBook().get(isDwarven);
 		_isDwarven = isDwarven;
-		_maxMp = player.getMaxMp();
+		_maxMp = player.getStatus().getMaxMp();
 	}
 	
 	@Override

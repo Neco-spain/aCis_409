@@ -1,24 +1,23 @@
 package net.sf.l2j.gameserver.handler.skillhandlers;
 
 import net.sf.l2j.gameserver.enums.items.ShotType;
-import net.sf.l2j.gameserver.enums.skills.L2SkillType;
+import net.sf.l2j.gameserver.enums.skills.SkillType;
 import net.sf.l2j.gameserver.enums.skills.Stats;
 import net.sf.l2j.gameserver.handler.ISkillHandler;
-import net.sf.l2j.gameserver.model.L2Effect;
-import net.sf.l2j.gameserver.model.L2Skill;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.StatusUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class ManaHeal implements ISkillHandler
 {
-	private static final L2SkillType[] SKILL_IDS =
+	private static final SkillType[] SKILL_IDS =
 	{
-		L2SkillType.MANAHEAL,
-		L2SkillType.MANARECHARGE
+		SkillType.MANAHEAL,
+		SkillType.MANARECHARGE
 	};
 	
 	@Override
@@ -30,24 +29,17 @@ public class ManaHeal implements ISkillHandler
 				continue;
 			
 			final Creature target = ((Creature) obj);
-			if (target.isInvul())
+			if (!target.canBeHealed())
 				continue;
 			
 			double mp = skill.getPower();
 			
-			if (skill.getSkillType() == L2SkillType.MANAHEAL_PERCENT)
-				mp = target.getMaxMp() * mp / 100.0;
+			if (skill.getSkillType() == SkillType.MANAHEAL_PERCENT)
+				mp = target.getStatus().getMaxMp() * mp / 100.0;
 			else
-				mp = (skill.getSkillType() == L2SkillType.MANARECHARGE) ? target.calcStat(Stats.RECHARGE_MP_RATE, mp, null, null) : mp;
+				mp = (skill.getSkillType() == SkillType.MANARECHARGE) ? target.getStatus().calcStat(Stats.RECHARGE_MP_RATE, mp, null, null) : mp;
 			
-			// It's not to be the IL retail way, but it make the message more logical
-			if ((target.getCurrentMp() + mp) >= target.getMaxMp())
-				mp = target.getMaxMp() - target.getCurrentMp();
-			
-			target.setCurrentMp(mp + target.getCurrentMp());
-			StatusUpdate sump = new StatusUpdate(target);
-			sump.addAttribute(StatusUpdate.CUR_MP, (int) target.getCurrentMp());
-			target.sendPacket(sump);
+			mp = target.getStatus().addMp(mp);
 			
 			if (activeChar instanceof Player && activeChar != target)
 				target.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S2_MP_RESTORED_BY_S1).addCharName(activeChar).addNumber((int) mp));
@@ -57,7 +49,7 @@ public class ManaHeal implements ISkillHandler
 		
 		if (skill.hasSelfEffects())
 		{
-			final L2Effect effect = activeChar.getFirstEffect(skill.getId());
+			final AbstractEffect effect = activeChar.getFirstEffect(skill.getId());
 			if (effect != null && effect.isSelfEffect())
 				effect.exit();
 			
@@ -69,7 +61,7 @@ public class ManaHeal implements ISkillHandler
 	}
 	
 	@Override
-	public L2SkillType[] getSkillIds()
+	public SkillType[] getSkillIds()
 	{
 		return SKILL_IDS;
 	}

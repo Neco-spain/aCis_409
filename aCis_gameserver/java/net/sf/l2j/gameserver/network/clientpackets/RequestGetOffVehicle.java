@@ -1,8 +1,13 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
+import net.sf.l2j.commons.math.MathUtil;
+
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.location.Location;
+import net.sf.l2j.gameserver.model.location.Point2D;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 import net.sf.l2j.gameserver.network.serverpackets.GetOffVehicle;
+import net.sf.l2j.gameserver.network.serverpackets.MoveToLocation;
 import net.sf.l2j.gameserver.network.serverpackets.StopMoveInVehicle;
 
 public final class RequestGetOffVehicle extends L2GameClientPacket
@@ -24,21 +29,26 @@ public final class RequestGetOffVehicle extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		if (!activeChar.isInBoat() || activeChar.getBoat().getObjectId() != _boatId || activeChar.getBoat().isMoving() || !activeChar.isInsideRadius(_x, _y, _z, 1000, true, false))
+		if (!player.isInBoat() || player.getBoat().getObjectId() != _boatId)
 		{
 			sendPacket(ActionFailed.STATIC_PACKET);
 			return;
 		}
 		
-		activeChar.broadcastPacket(new StopMoveInVehicle(activeChar, _boatId));
-		activeChar.setBoat(null);
-		sendPacket(ActionFailed.STATIC_PACKET);
-		activeChar.broadcastPacket(new GetOffVehicle(activeChar.getObjectId(), _boatId, _x, _y, _z));
-		activeChar.setXYZ(_x, _y, _z + 50);
-		activeChar.revalidateZone(true);
+		player.broadcastPacket(new StopMoveInVehicle(player, _boatId));
+		player.setBoat(null);
+		player.broadcastPacket(new GetOffVehicle(player.getObjectId(), _boatId, _x, _y, _z));
+		
+		// Proper heading has been set when we clicked outside of the ship, just move player forward.
+		final Point2D outsidePoint = MathUtil.getNewLocationByDistanceAndHeading(_x, _y, player.getPosition().getHeading(), 60);
+		
+		player.setXYZ(outsidePoint.getX(), outsidePoint.getY(), _z);
+		player.revalidateZone(true);
+		
+		player.broadcastPacket(new MoveToLocation(player, new Location(outsidePoint.getX(), outsidePoint.getY(), _z)));
 	}
 }

@@ -3,7 +3,7 @@
 	<npc id="13001" name="Heart of Warding" title="">
 		<set name="level" val="70"/>
 		<set name="radius" val="17"/>
-		<set name="height" val="120"/>
+		<set name="height" val="75"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
 		<set name="type" val="Folk"/>
@@ -37,8 +37,8 @@
 	</npc>
 	<npc id="13002" name="Life Control Tower" title="">
 		<set name="level" val="20"/>
-		<set name="radius" val="7"/>
-		<set name="height" val="35"/>
+		<set name="radius" val="13"/>
+		<set name="height" val="54"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
 		<set name="type" val="ControlTower"/>
@@ -107,8 +107,8 @@
 	</npc>
 	<npc id="13004" name="Flame Control Tower" title="">
 		<set name="level" val="20"/>
-		<set name="radius" val="7"/>
-		<set name="height" val="35"/>
+		<set name="radius" val="13"/>
+		<set name="height" val="54"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
 		<set name="type" val="FlameTower"/>
@@ -177,8 +177,8 @@
 	</npc>
 	<npc id="13006" name="Christmas Tree" title="">
 		<set name="level" val="70"/>
-		<set name="radius" val="0.01"/>
-		<set name="height" val="0.01"/>
+		<set name="radius" val="0"/>
+		<set name="height" val="0"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
 		<set name="type" val="ChristmasTree"/>
@@ -212,8 +212,8 @@
 	</npc>
 	<npc id="13007" name="Special Christmas Tree" title="">
 		<set name="level" val="70"/>
-		<set name="radius" val="0.01"/>
-		<set name="height" val="0.01"/>
+		<set name="radius" val="0"/>
+		<set name="height" val="0"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
 		<set name="type" val="ChristmasTree"/>
@@ -281,9 +281,9 @@
 		</skills>
 	</npc>
 	<npc id="13015" name="Effects For Valakas" title="">
-		<set name="level" val="70"/>
-		<set name="radius" val="0.1"/>
-		<set name="height" val="0.1"/>
+		<set name="level" val="85"/>
+		<set name="radius" val="16"/>
+		<set name="height" val="18.5"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
 		<set name="type" val="Folk"/>
@@ -304,7 +304,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="10"/>
+		<set name="men" val="20"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="1"/>
 		<set name="runSpd" val="160"/>
@@ -351,7 +351,7 @@
 	</npc>
 	<npc id="13017" name="Emperor Squash" title="">
 		<set name="level" val="1"/>
-		<set name="radius" val="34"/>
+		<set name="radius" val="24"/>
 		<set name="height" val="40"/>
 		<set name="rHand" val="0"/>
 		<set name="lHand" val="0"/>
@@ -384,7 +384,7 @@
 		</skills>
 	</npc>
 	<npc id="13018" name="Symbol of Defense" title="">
-		<set name="level" val="70"/>
+		<set name="level" val="80"/>
 		<set name="radius" val="5"/>
 		<set name="height" val="10"/>
 		<set name="rHand" val="0"/>
@@ -407,7 +407,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="1"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="20"/>
@@ -420,7 +420,7 @@
 		</skills>
 	</npc>
 	<npc id="13019" name="Symbol of Noise" title="">
-		<set name="level" val="70"/>
+		<set name="level" val="80"/>
 		<set name="radius" val="5"/>
 		<set name="height" val="10"/>
 		<set name="rHand" val="0"/>
@@ -443,7 +443,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="1"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="20"/>
@@ -456,7 +456,7 @@
 		</skills>
 	</npc>
 	<npc id="13020" name="Symbol of Resistance" title="">
-		<set name="level" val="70"/>
+		<set name="level" val="80"/>
 		<set name="radius" val="5"/>
 		<set name="height" val="10"/>
 		<set name="rHand" val="0"/>
@@ -479,7 +479,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="1"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="20"/>
@@ -492,7 +492,7 @@
 		</skills>
 	</npc>
 	<npc id="13021" name="Symbol of Honor" title="">
-		<set name="level" val="70"/>
+		<set name="level" val="80"/>
 		<set name="radius" val="5"/>
 		<set name="height" val="10"/>
 		<set name="rHand" val="0"/>
@@ -515,7 +515,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="1"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="20"/>
@@ -528,7 +528,7 @@
 		</skills>
 	</npc>
 	<npc id="13022" name="Symbol of Energy" title="">
-		<set name="level" val="70"/>
+		<set name="level" val="80"/>
 		<set name="radius" val="5"/>
 		<set name="height" val="10"/>
 		<set name="rHand" val="0"/>
@@ -551,7 +551,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="1"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="20"/>
@@ -564,7 +564,7 @@
 		</skills>
 	</npc>
 	<npc id="13023" name="Symbol of Sniper" title="">
-		<set name="level" val="70"/>
+		<set name="level" val="80"/>
 		<set name="radius" val="5"/>
 		<set name="height" val="10"/>
 		<set name="rHand" val="0"/>
@@ -587,7 +587,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="1"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="20"/>
@@ -600,7 +600,7 @@
 		</skills>
 	</npc>
 	<npc id="13024" name="Symbol of Assasin" title="">
-		<set name="level" val="70"/>
+		<set name="level" val="80"/>
 		<set name="radius" val="5"/>
 		<set name="height" val="10"/>
 		<set name="rHand" val="0"/>
@@ -623,7 +623,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="1"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="20"/>
@@ -636,7 +636,7 @@
 		</skills>
 	</npc>
 	<npc id="13025" name="Symbol of Day of Doom" title="">
-		<set name="level" val="70"/>
+		<set name="level" val="80"/>
 		<set name="radius" val="5"/>
 		<set name="height" val="10"/>
 		<set name="rHand" val="0"/>
@@ -659,7 +659,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="1"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="20"/>
@@ -672,7 +672,7 @@
 		</skills>
 	</npc>
 	<npc id="13026" name="Symbol of Antisummoning Field" title="">
-		<set name="level" val="70"/>
+		<set name="level" val="80"/>
 		<set name="radius" val="5"/>
 		<set name="height" val="10"/>
 		<set name="rHand" val="0"/>
@@ -695,7 +695,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="1"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="20"/>
@@ -708,7 +708,7 @@
 		</skills>
 	</npc>
 	<npc id="13027" name="Symbol of Volcano" title="">
-		<set name="level" val="70"/>
+		<set name="level" val="80"/>
 		<set name="radius" val="5"/>
 		<set name="height" val="10"/>
 		<set name="rHand" val="0"/>
@@ -731,7 +731,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="1"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="20"/>
@@ -744,7 +744,7 @@
 		</skills>
 	</npc>
 	<npc id="13028" name="Symbol of Cyclone" title="">
-		<set name="level" val="70"/>
+		<set name="level" val="80"/>
 		<set name="radius" val="5"/>
 		<set name="height" val="10"/>
 		<set name="rHand" val="0"/>
@@ -767,7 +767,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="1"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="20"/>
@@ -780,7 +780,7 @@
 		</skills>
 	</npc>
 	<npc id="13029" name="Symbol of Raging Waves" title="">
-		<set name="level" val="70"/>
+		<set name="level" val="80"/>
 		<set name="radius" val="5"/>
 		<set name="height" val="10"/>
 		<set name="rHand" val="0"/>
@@ -803,7 +803,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="1"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="20"/>
@@ -816,7 +816,7 @@
 		</skills>
 	</npc>
 	<npc id="13030" name="Symbol of Gehena" title="">
-		<set name="level" val="70"/>
+		<set name="level" val="80"/>
 		<set name="radius" val="5"/>
 		<set name="height" val="10"/>
 		<set name="rHand" val="0"/>
@@ -839,7 +839,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="1"/>
 		<set name="walkSpd" val="50"/>
 		<set name="runSpd" val="20"/>
@@ -875,7 +875,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="60"/>
 		<set name="runSpd" val="160"/>
@@ -909,7 +909,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="60"/>
 		<set name="runSpd" val="160"/>
@@ -943,7 +943,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="60"/>
 		<set name="runSpd" val="160"/>
@@ -977,7 +977,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="60"/>
 		<set name="runSpd" val="160"/>
@@ -1011,7 +1011,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="60"/>
 		<set name="runSpd" val="160"/>
@@ -1022,7 +1022,7 @@
 		</skills>
 	</npc>
 	<npc id="13036" name="Alchemist's Chest" title="">
-		<set name="level" val="70"/>
+		<set name="level" val="21"/>
 		<set name="radius" val="8.5"/>
 		<set name="height" val="8.5"/>
 		<set name="rHand" val="0"/>
@@ -1045,7 +1045,7 @@
 		<set name="dex" val="30"/>
 		<set name="wit" val="20"/>
 		<set name="con" val="43"/>
-		<set name="men" val="20"/>
+		<set name="men" val="10"/>
 		<set name="corpseTime" val="7"/>
 		<set name="walkSpd" val="80"/>
 		<set name="runSpd" val="1"/>

@@ -1,8 +1,8 @@
 package net.sf.l2j.gameserver.model.multisell;
 
-import net.sf.l2j.commons.util.StatsSet;
+import net.sf.l2j.commons.data.StatSet;
 
-import net.sf.l2j.gameserver.data.ItemTable;
+import net.sf.l2j.gameserver.data.xml.ItemData;
 import net.sf.l2j.gameserver.model.item.kind.Armor;
 import net.sf.l2j.gameserver.model.item.kind.Item;
 import net.sf.l2j.gameserver.model.item.kind.Weapon;
@@ -21,7 +21,7 @@ public class Ingredient
 	
 	private Item _template = null;
 	
-	public Ingredient(StatsSet set)
+	public Ingredient(StatSet set)
 	{
 		this(set.getInteger("id"), set.getInteger("count"), set.getBool("isTaxIngredient", false), set.getBool("maintainIngredient", false));
 	}
@@ -34,7 +34,7 @@ public class Ingredient
 		_maintainIngredient = maintainIngredient;
 		
 		if (_itemId > 0)
-			_template = ItemTable.getInstance().getTemplate(_itemId);
+			_template = ItemData.getInstance().getTemplate(_itemId);
 	}
 	
 	/**
@@ -102,12 +102,12 @@ public class Ingredient
 	
 	public final boolean isStackable()
 	{
-		return (_template == null) ? true : _template.isStackable();
+		return _template == null || _template.isStackable();
 	}
 	
 	public final boolean isArmorOrWeapon()
 	{
-		return (_template == null) ? false : (_template instanceof Armor) || (_template instanceof Weapon);
+		return _template instanceof Armor || _template instanceof Weapon;
 	}
 	
 	public final int getWeight()

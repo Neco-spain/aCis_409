@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 import net.sf.l2j.commons.random.Rnd;
 
 import net.sf.l2j.Config;
@@ -123,13 +123,13 @@ public class DimensionalRift
 		
 		long jumpTime = Rnd.get(Config.RIFT_AUTO_JUMPS_TIME_MIN, Config.RIFT_AUTO_JUMPS_TIME_MAX) * 1000;
 		if (_room.isBossRoom())
-			jumpTime *= Config.RIFT_BOSS_ROOM_TIME_MUTIPLY;
+			jumpTime *= Config.RIFT_BOSS_ROOM_TIME_MULTIPLY;
 		
 		_earthQuakeTask = ThreadPool.schedule(() ->
 		{
 			for (Player member : getAvailablePlayers(_party))
-				member.sendPacket(new Earthquake(member.getX(), member.getY(), member.getZ(), 65, 9));
-		}, jumpTime - 7000);
+				member.sendPacket(new Earthquake(member, (_room.isBossRoom()) ? 10 : 20, 10));
+		}, jumpTime - 5000);
 		
 		_teleporterTimerTask = ThreadPool.schedule(() ->
 		{

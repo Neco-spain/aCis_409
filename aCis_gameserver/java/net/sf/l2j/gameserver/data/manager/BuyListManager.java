@@ -10,8 +10,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import net.sf.l2j.commons.data.xml.IXmlReader;
+import net.sf.l2j.commons.pool.ConnectionPool;
 
-import net.sf.l2j.L2DatabaseFactory;
 import net.sf.l2j.gameserver.model.buylist.NpcBuyList;
 import net.sf.l2j.gameserver.model.buylist.Product;
 import net.sf.l2j.gameserver.taskmanager.BuyListTaskManager;
@@ -39,26 +39,21 @@ public class BuyListManager implements IXmlReader
 		parseFile("./data/xml/buyLists.xml");
 		LOGGER.info("Loaded {} buyLists.", _buyLists.size());
 		
-		try (Connection con = L2DatabaseFactory.getInstance().getConnection();
+		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement("SELECT * FROM `buylists`");
 			ResultSet rs = ps.executeQuery())
 		{
 			while (rs.next())
 			{
-				final int buyListId = rs.getInt("buylist_id");
-				final int itemId = rs.getInt("item_id");
-				final int count = rs.getInt("count");
-				final long nextRestockTime = rs.getLong("next_restock_time");
-				
-				final NpcBuyList buyList = _buyLists.get(buyListId);
+				final NpcBuyList buyList = _buyLists.get(rs.getInt("buylist_id"));
 				if (buyList == null)
 					continue;
 				
-				final Product product = buyList.getProductByItemId(itemId);
+				final Product product = buyList.get(rs.getInt("item_id"));
 				if (product == null)
 					continue;
 				
-				BuyListTaskManager.getInstance().test(product, count, nextRestockTime);
+				BuyListTaskManager.getInstance().test(product, rs.getInt("count"), rs.getLong("next_restock_time"));
 			}
 		}
 		catch (Exception e)
@@ -79,6 +74,12 @@ public class BuyListManager implements IXmlReader
 			forEach(buyListNode, "product", productNode -> buyList.addProduct(new Product(buyListId, parseAttributes(productNode))));
 			_buyLists.put(buyListId, buyList);
 		}));
+	}
+	
+	public void reload()
+	{
+		_buyLists.clear();
+		load();
 	}
 	
 	public NpcBuyList getBuyList(int listId)

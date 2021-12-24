@@ -1,9 +1,5 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
-/**
- * Format: ch - Trigger packet
- * @author KenM
- */
 public class ExShowVariationMakeWindow extends L2GameServerPacket
 {
 	public static final ExShowVariationMakeWindow STATIC_PACKET = new ExShowVariationMakeWindow();

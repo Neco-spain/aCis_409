@@ -2,21 +2,22 @@ package net.sf.l2j.gameserver.model.actor.instance;
 
 import java.util.concurrent.Future;
 
-import net.sf.l2j.commons.concurrent.ThreadPool;
+import net.sf.l2j.commons.math.MathUtil;
+import net.sf.l2j.commons.pool.ThreadPool;
 import net.sf.l2j.commons.random.Rnd;
 
-import net.sf.l2j.gameserver.enums.IntentionType;
-import net.sf.l2j.gameserver.enums.skills.L2SkillType;
-import net.sf.l2j.gameserver.model.L2Skill;
-import net.sf.l2j.gameserver.model.L2Skill.SkillTargetType;
+import net.sf.l2j.gameserver.data.SkillTable;
+import net.sf.l2j.gameserver.enums.actors.NpcSkillType;
+import net.sf.l2j.gameserver.enums.skills.SkillTargetType;
+import net.sf.l2j.gameserver.enums.skills.SkillType;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
-import net.sf.l2j.gameserver.model.actor.template.NpcTemplate.SkillType;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 /**
  * A BabyPet can heal his owner. It got 2 heal power, weak or strong.
@@ -45,9 +46,10 @@ public final class BabyPet extends Pet
 		
 		double healPower = 0;
 		int skillLevel;
-		for (L2Skill skill : getTemplate().getSkills(SkillType.HEAL))
+		
+		for (L2Skill skill : getTemplate().getSkills(NpcSkillType.HEAL))
 		{
-			if (skill.getTargetType() != SkillTargetType.TARGET_OWNER_PET || skill.getSkillType() != L2SkillType.HEAL)
+			if (skill.getTargetType() != SkillTargetType.OWNER_PET || skill.getSkillType() != SkillType.HEAL)
 				continue;
 			
 			// The skill level is calculated on the fly. Template got an skill level of 1.
@@ -60,6 +62,7 @@ public final class BabyPet extends Pet
 				// set both heal types to the same skill
 				_majorHeal = new IntIntHolder(skill.getId(), skillLevel);
 				_minorHeal = _majorHeal;
+				
 				healPower = skill.getPower();
 			}
 			else
@@ -81,7 +84,7 @@ public final class BabyPet extends Pet
 			return false;
 		
 		stopCastTask();
-		abortCast();
+		
 		return true;
 	}
 	
@@ -89,7 +92,6 @@ public final class BabyPet extends Pet
 	public synchronized void unSummon(Player owner)
 	{
 		stopCastTask();
-		abortCast();
 		
 		super.unSummon(owner);
 	}
@@ -98,13 +100,28 @@ public final class BabyPet extends Pet
 	public void doRevive()
 	{
 		super.doRevive();
+		
 		startCastTask();
+	}
+	
+	@Override
+	public final int getSkillLevel(int skillId)
+	{
+		// Unknown skill. Return 0.
+		if (getSkill(skillId) == null)
+			return 0;
+		
+		// Baby pet levels increase the skill level by 1 per 6 levels.
+		final int level = 1 + getStatus().getLevel() / 6;
+		
+		// Validate skill level.
+		return MathUtil.limit(level, 1, SkillTable.getInstance().getMaxLevel(skillId));
 	}
 	
 	private final void startCastTask()
 	{
-		if (_majorHeal != null && _castTask == null && !isDead()) // cast task is not yet started and not dead (will start on revive)
-			_castTask = ThreadPool.scheduleAtFixedRate(new CastTask(this), 3000, 1000);
+		if (_majorHeal != null && _castTask == null && !isDead())
+			_castTask = ThreadPool.scheduleAtFixedRate(this::castSkill, 3000, 1000);
 	}
 	
 	private final void stopCastTask()
@@ -116,83 +133,37 @@ public final class BabyPet extends Pet
 		}
 	}
 	
-	protected void castSkill(L2Skill skill)
+	private void castSkill()
 	{
-		// casting automatically stops any other action (such as autofollow or a move-to).
-		// We need to gather the necessary info to restore the previous state.
-		final boolean previousFollowStatus = getFollowStatus();
-		
-		// pet not following and owner outside cast range
-		if (!previousFollowStatus && !isInsideRadius(getOwner(), skill.getCastRange(), true, true))
+		final Player owner = getOwner();
+		if (owner == null || owner.isDead() || owner.isInvul())
 			return;
 		
-		setTarget(getOwner());
-		useMagic(skill, false, false);
+		L2Skill skill = null;
 		
-		getOwner().sendPacket(SystemMessage.getSystemMessage(SystemMessageId.PET_USES_S1).addSkillName(skill));
-		
-		// calling useMagic changes the follow status, if the babypet actually casts
-		// (as opposed to failing due some factors, such as too low MP, etc).
-		// if the status has actually been changed, revert it. Else, allow the pet to
-		// continue whatever it was trying to do.
-		// NOTE: This is important since the pet may have been told to attack a target.
-		// reverting the follow status will abort this attack! While aborting the attack
-		// in order to heal is natural, it is not acceptable to abort the attack on its own,
-		// merely because the timer stroke and without taking any other action...
-		if (previousFollowStatus != getFollowStatus())
-			setFollowStatus(previousFollowStatus);
-	}
-	
-	private class CastTask implements Runnable
-	{
-		private final BabyPet _baby;
-		
-		public CastTask(BabyPet baby)
+		final double hpRatio = owner.getStatus().getHpRatio();
+		if (hpRatio < 0.15)
 		{
-			_baby = baby;
+			skill = _majorHeal.getSkill();
+			if (isSkillDisabled(skill) || getStatus().getMp() < skill.getMpConsume() || Rnd.get(100) > 75)
+				skill = null;
+		}
+		else if (_majorHeal.getSkill() != _minorHeal.getSkill() && hpRatio < 0.8)
+		{
+			skill = _minorHeal.getSkill();
+			if (isSkillDisabled(skill) || getStatus().getMp() < skill.getMpConsume() || Rnd.get(100) > 25)
+				skill = null;
 		}
 		
-		@Override
-		public void run()
+		if (skill != null)
 		{
-			Player owner = _baby.getOwner();
+			// pet not following and owner outside cast range
+			if (!getAI().getFollowStatus() && !isIn3DRadius(getOwner(), skill.getCastRange()))
+				return;
 			
-			// if the owner is dead, merely wait for the owner to be resurrected
-			// if the pet is still casting from the previous iteration, allow the cast to complete...
-			if (owner != null && !owner.isDead() && !owner.isInvul() && !_baby.isCastingNow() && !_baby.isBetrayed() && !_baby.isMuted() && !_baby.isOutOfControl() && _baby.getAI().getDesire().getIntention() != IntentionType.CAST)
-			{
-				L2Skill skill = null;
-				
-				if (_majorHeal != null)
-				{
-					final double hpPercent = owner.getCurrentHp() / owner.getMaxHp();
-					if (hpPercent < 0.15)
-					{
-						skill = _majorHeal.getSkill();
-						if (!_baby.isSkillDisabled(skill) && Rnd.get(100) <= 75)
-						{
-							if (_baby.getCurrentMp() >= skill.getMpConsume())
-							{
-								castSkill(skill);
-								return;
-							}
-						}
-					}
-					else if ((_majorHeal.getSkill() != _minorHeal.getSkill()) && hpPercent < 0.8)
-					{
-						// Cast _minorHeal only if it's different than _majorHeal, then pet has two heals available.
-						skill = _minorHeal.getSkill();
-						if (!_baby.isSkillDisabled(skill) && Rnd.get(100) <= 25)
-						{
-							if (_baby.getCurrentMp() >= skill.getMpConsume())
-							{
-								castSkill(skill);
-								return;
-							}
-						}
-					}
-				}
-			}
+			getAI().tryToCast(getOwner(), skill);
+			
+			getOwner().sendPacket(SystemMessage.getSystemMessage(SystemMessageId.PET_USES_S1).addSkillName(skill));
 		}
 	}
 }

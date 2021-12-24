@@ -1,30 +1,26 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import net.sf.l2j.gameserver.enums.AiEventType;
-import net.sf.l2j.gameserver.enums.skills.L2EffectType;
-import net.sf.l2j.gameserver.model.L2Effect;
+import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Monster;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
-import net.sf.l2j.gameserver.skills.Env;
+import net.sf.l2j.gameserver.skills.AbstractEffect;
 import net.sf.l2j.gameserver.skills.Formulas;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
-/**
- * This is the Effect support for spoil, originally done by _drunk_
- * @author Ahmed
- */
-public class EffectSpoil extends L2Effect
+public class EffectSpoil extends AbstractEffect
 {
-	public EffectSpoil(Env env, EffectTemplate template)
+	public EffectSpoil(EffectTemplate template, L2Skill skill, Creature effected, Creature effector)
 	{
-		super(env, template);
+		super(template, skill, effected, effector);
 	}
 	
 	@Override
-	public L2EffectType getEffectType()
+	public EffectType getEffectType()
 	{
-		return L2EffectType.SPOIL;
+		return EffectType.SPOIL;
 	}
 	
 	@Override
@@ -40,7 +36,7 @@ public class EffectSpoil extends L2Effect
 		if (target.isDead())
 			return false;
 		
-		if (target.getSpoilerId() != 0)
+		if (target.getSpoilState().isSpoiled())
 		{
 			getEffector().sendPacket(SystemMessage.getSystemMessage(SystemMessageId.ALREADY_SPOILED));
 			return false;
@@ -48,10 +44,10 @@ public class EffectSpoil extends L2Effect
 		
 		if (Formulas.calcMagicSuccess(getEffector(), target, getSkill()))
 		{
-			target.setSpoilerId(getEffector().getObjectId());
+			target.getSpoilState().setSpoilerId(getEffector().getObjectId());
 			getEffector().sendPacket(SystemMessage.getSystemMessage(SystemMessageId.SPOIL_SUCCESS));
 		}
-		target.getAI().notifyEvent(AiEventType.ATTACKED, getEffector());
+		
 		return true;
 	}
 	

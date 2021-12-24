@@ -5,10 +5,6 @@ import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ExConfirmVariationGemstone;
 
-/**
- * Format:(ch) dddd
- * @author -Wooden-
- */
 public final class RequestConfirmGemStone extends AbstractRefinePacket
 {
 	private int _targetItemObjId;
@@ -28,26 +24,26 @@ public final class RequestConfirmGemStone extends AbstractRefinePacket
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		final ItemInstance targetItem = activeChar.getInventory().getItemByObjectId(_targetItemObjId);
+		final ItemInstance targetItem = player.getInventory().getItemByObjectId(_targetItemObjId);
 		if (targetItem == null)
 			return;
 		
-		final ItemInstance refinerItem = activeChar.getInventory().getItemByObjectId(_refinerItemObjId);
+		final ItemInstance refinerItem = player.getInventory().getItemByObjectId(_refinerItemObjId);
 		if (refinerItem == null)
 			return;
 		
-		final ItemInstance gemStoneItem = activeChar.getInventory().getItemByObjectId(_gemstoneItemObjId);
+		final ItemInstance gemStoneItem = player.getInventory().getItemByObjectId(_gemstoneItemObjId);
 		if (gemStoneItem == null)
 			return;
 		
 		// Make sure the item is a gemstone
-		if (!isValid(activeChar, targetItem, refinerItem, gemStoneItem))
+		if (!isValid(player, targetItem, refinerItem, gemStoneItem))
 		{
-			activeChar.sendPacket(SystemMessageId.THIS_IS_NOT_A_SUITABLE_ITEM);
+			player.sendPacket(SystemMessageId.THIS_IS_NOT_A_SUITABLE_ITEM);
 			return;
 		}
 		
@@ -58,10 +54,10 @@ public final class RequestConfirmGemStone extends AbstractRefinePacket
 		
 		if (_gemStoneCount != getGemStoneCount(targetItem.getItem().getCrystalType()))
 		{
-			activeChar.sendPacket(SystemMessageId.GEMSTONE_QUANTITY_IS_INCORRECT);
+			player.sendPacket(SystemMessageId.GEMSTONE_QUANTITY_IS_INCORRECT);
 			return;
 		}
 		
-		activeChar.sendPacket(new ExConfirmVariationGemstone(_gemstoneItemObjId, _gemStoneCount));
+		player.sendPacket(new ExConfirmVariationGemstone(_gemstoneItemObjId, _gemStoneCount));
 	}
 }

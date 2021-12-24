@@ -1,6 +1,6 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
-import net.sf.l2j.gameserver.enums.ZoneId;
+import net.sf.l2j.gameserver.enums.skills.AbnormalEffect;
 import net.sf.l2j.gameserver.model.actor.Summon;
 import net.sf.l2j.gameserver.model.actor.instance.Pet;
 import net.sf.l2j.gameserver.model.actor.instance.Servitor;
@@ -48,11 +48,11 @@ public class PetInfo extends L2GameServerPacket
 		writeD(_summon.getZ());
 		writeD(_summon.getHeading());
 		writeD(0);
-		writeD(_summon.getMAtkSpd());
-		writeD(_summon.getPAtkSpd());
+		writeD(_summon.getStatus().getMAtkSpd());
+		writeD(_summon.getStatus().getPAtkSpd());
 		
-		final int runSpd = _summon.getStat().getBaseRunSpeed();
-		final int walkSpd = _summon.getStat().getBaseWalkSpeed();
+		final int runSpd = _summon.getStatus().getBaseRunSpeed();
+		final int walkSpd = _summon.getStatus().getBaseWalkSpeed();
 		
 		writeD(runSpd);
 		writeD(walkSpd);
@@ -63,8 +63,8 @@ public class PetInfo extends L2GameServerPacket
 		writeD(runSpd);
 		writeD(walkSpd);
 		
-		writeF(_summon.getStat().getMovementSpeedMultiplier());
-		writeF(1);
+		writeF(_summon.getStatus().getMovementSpeedMultiplier());
+		writeF(_summon.getStatus().getAttackSpeedMultiplier());
 		writeF(_summon.getCollisionRadius());
 		writeF(_summon.getCollisionHeight());
 		writeD(_summon.getWeapon());
@@ -82,31 +82,31 @@ public class PetInfo extends L2GameServerPacket
 		writeD(_summon.getKarma());
 		writeD(_curFed);
 		writeD(_maxFed);
-		writeD((int) _summon.getCurrentHp());
-		writeD(_summon.getMaxHp());
-		writeD((int) _summon.getCurrentMp());
-		writeD(_summon.getMaxMp());
-		writeD(_summon.getStat().getSp());
-		writeD(_summon.getLevel());
-		writeQ(_summon.getStat().getExp());
-		writeQ(_summon.getExpForThisLevel());
-		writeQ(_summon.getExpForNextLevel());
+		writeD((int) _summon.getStatus().getHp());
+		writeD(_summon.getStatus().getMaxHp());
+		writeD((int) _summon.getStatus().getMp());
+		writeD(_summon.getStatus().getMaxMp());
+		writeD(_summon.getStatus().getSp());
+		writeD(_summon.getStatus().getLevel());
+		writeQ(_summon.getStatus().getExp());
+		writeQ(_summon.getStatus().getExpForThisLevel());
+		writeQ(_summon.getStatus().getExpForNextLevel());
 		writeD((_summon instanceof Pet) ? _summon.getInventory().getTotalWeight() : 0);
-		writeD(_summon.getMaxLoad());
-		writeD(_summon.getPAtk(null));
-		writeD(_summon.getPDef(null));
-		writeD(_summon.getMAtk(null, null));
-		writeD(_summon.getMDef(null, null));
-		writeD(_summon.getAccuracy());
-		writeD(_summon.getEvasionRate(null));
-		writeD(_summon.getCriticalHit(null, null));
-		writeD(_summon.getMoveSpeed());
-		writeD(_summon.getPAtkSpd());
-		writeD(_summon.getMAtkSpd());
+		writeD(_summon.getWeightLimit());
+		writeD(_summon.getStatus().getPAtk(null));
+		writeD(_summon.getStatus().getPDef(null));
+		writeD(_summon.getStatus().getMAtk(null, null));
+		writeD(_summon.getStatus().getMDef(null, null));
+		writeD(_summon.getStatus().getAccuracy());
+		writeD(_summon.getStatus().getEvasionRate(null));
+		writeD(_summon.getStatus().getCriticalHit(null, null));
+		writeD((int) _summon.getStatus().getMoveSpeed());
+		writeD(_summon.getStatus().getPAtkSpd());
+		writeD(_summon.getStatus().getMAtkSpd());
 		
-		writeD(_summon.getAbnormalEffect());
+		writeD((_summon.getOwner() != null && !_summon.getOwner().getAppearance().isVisible()) ? _summon.getAbnormalEffect() | AbnormalEffect.STEALTH.getMask() : _summon.getAbnormalEffect());
 		writeH((_summon.isMountable()) ? 1 : 0);
-		writeC((_summon.isInsideZone(ZoneId.WATER)) ? 1 : (_summon.isFlying()) ? 2 : 0);
+		writeC(_summon.getMove().getMoveType().getId());
 		
 		writeH(0); // ??
 		writeC(_summon.getTeam().getId());

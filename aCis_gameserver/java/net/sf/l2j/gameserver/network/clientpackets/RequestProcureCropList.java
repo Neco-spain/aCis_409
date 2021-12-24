@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.gameserver.data.ItemTable;
 import net.sf.l2j.gameserver.data.manager.CastleManorManager;
+import net.sf.l2j.gameserver.data.xml.ItemData;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Folk;
 import net.sf.l2j.gameserver.model.actor.instance.ManorManagerNpc;
@@ -66,7 +66,7 @@ public class RequestProcureCropList extends L2GameClientPacket
 		}
 		
 		final Folk folk = player.getCurrentFolk();
-		if (!(folk instanceof ManorManagerNpc) || !folk.canInteract(player))
+		if (!(folk instanceof ManorManagerNpc) || !player.getAI().canDoInteract(folk))
 		{
 			sendPacket(ActionFailed.STATIC_PACKET);
 			return;
@@ -94,7 +94,7 @@ public class RequestProcureCropList extends L2GameClientPacket
 				return;
 			}
 			
-			final Item template = ItemTable.getInstance().getTemplate(i.getRewardId());
+			final Item template = ItemData.getInstance().getTemplate(i.getRewardId());
 			weight += (i.getValue() * template.getWeight());
 			
 			if (!template.isStackable())
@@ -118,7 +118,7 @@ public class RequestProcureCropList extends L2GameClientPacket
 		// Proceed the purchase
 		for (CropHolder i : _items)
 		{
-			final int rewardPrice = ItemTable.getInstance().getTemplate(i.getRewardId()).getReferencePrice();
+			final int rewardPrice = ItemData.getInstance().getTemplate(i.getRewardId()).getReferencePrice();
 			if (rewardPrice == 0)
 				continue;
 			

@@ -1,6 +1,6 @@
 package net.sf.l2j.gameserver.model.item.instance;
 
-import net.sf.l2j.gameserver.model.item.instance.ItemInstance.ItemState;
+import net.sf.l2j.gameserver.enums.items.ItemState;
 import net.sf.l2j.gameserver.model.item.kind.Item;
 
 /**
@@ -59,7 +59,7 @@ public class ItemInfo
 		
 		// Get the augmentation boni
 		if (item.isAugmented())
-			_augmentation = item.getAugmentation().getAugmentationId();
+			_augmentation = item.getAugmentation().getId();
 		else
 			_augmentation = 0;
 		
@@ -96,7 +96,7 @@ public class ItemInfo
 		
 		// Get the augmentation boni
 		if (item.isAugmented())
-			_augmentation = item.getAugmentation().getAugmentationId();
+			_augmentation = item.getAugmentation().getId();
 		else
 			_augmentation = 0;
 		

@@ -1,13 +1,12 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.gameserver.enums.AiEventType;
-import net.sf.l2j.gameserver.enums.IntentionType;
-import net.sf.l2j.gameserver.enums.skills.L2SkillType;
-import net.sf.l2j.gameserver.model.L2Skill;
+import net.sf.l2j.gameserver.enums.skills.SkillType;
+import net.sf.l2j.gameserver.model.WorldObject;
+import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.actor.ai.NextAction;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public final class RequestMagicSkillUse extends L2GameClientPacket
 {
@@ -31,6 +30,12 @@ public final class RequestMagicSkillUse extends L2GameClientPacket
 		if (player == null)
 			return;
 		
+		if (player.isOutOfControl())
+		{
+			player.sendPacket(ActionFailed.STATIC_PACKET);
+			return;
+		}
+		
 		// Get the L2Skill template corresponding to the skillID received from the client
 		final L2Skill skill = player.getSkill(_skillId);
 		if (skill == null)
@@ -39,8 +44,15 @@ public final class RequestMagicSkillUse extends L2GameClientPacket
 			return;
 		}
 		
+		// Check if the skill is active
+		if (skill.isPassive())
+		{
+			player.sendPacket(ActionFailed.STATIC_PACKET);
+			return;
+		}
+		
 		// If Alternate rule Karma punishment is set to true, forbid skill Return to player with Karma
-		if (skill.getSkillType() == L2SkillType.RECALL && !Config.KARMA_PLAYER_CAN_TELEPORT && player.getKarma() > 0)
+		if (skill.getSkillType() == SkillType.RECALL && !Config.KARMA_PLAYER_CAN_TELEPORT && player.getKarma() > 0)
 		{
 			player.sendPacket(ActionFailed.STATIC_PACKET);
 			return;
@@ -53,15 +65,11 @@ public final class RequestMagicSkillUse extends L2GameClientPacket
 			return;
 		}
 		
-		if (player.isOutOfControl())
-		{
-			player.sendPacket(ActionFailed.STATIC_PACKET);
-			return;
-		}
+		final WorldObject target = player.getTarget();
+		Creature finalTarget = null;
+		if (target instanceof Creature)
+			finalTarget = (Creature) target;
 		
-		if (player.isAttackingNow())
-			player.getAI().setNextAction(new NextAction(AiEventType.READY_TO_ACT, IntentionType.CAST, () -> player.useMagic(skill, _ctrlPressed, _shiftPressed)));
-		else
-			player.useMagic(skill, _ctrlPressed, _shiftPressed);
+		player.getAI().tryToCast(finalTarget, skill, _ctrlPressed, _shiftPressed, 0);
 	}
 }

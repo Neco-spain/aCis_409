@@ -5,31 +5,25 @@ import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.model.pledge.ClanMember;
 import net.sf.l2j.gameserver.network.serverpackets.PledgeReceivePowerInfo;
 
-/**
- * Format: (ch) dS
- * @author -Wooden-
- */
 public final class RequestPledgeMemberPowerInfo extends L2GameClientPacket
 {
-	@SuppressWarnings("unused")
-	private int _pledgeType;
 	private String _player;
 	
 	@Override
 	protected void readImpl()
 	{
-		_pledgeType = readD();
+		readD(); // Not used for security reason. Pledge type.
 		_player = readS();
 	}
 	
 	@Override
 	protected void runImpl()
 	{
-		final Player activeChar = getClient().getPlayer();
-		if (activeChar == null)
+		final Player player = getClient().getPlayer();
+		if (player == null)
 			return;
 		
-		final Clan clan = activeChar.getClan();
+		final Clan clan = player.getClan();
 		if (clan == null)
 			return;
 		
@@ -37,6 +31,6 @@ public final class RequestPledgeMemberPowerInfo extends L2GameClientPacket
 		if (member == null)
 			return;
 		
-		activeChar.sendPacket(new PledgeReceivePowerInfo(member));
+		player.sendPacket(new PledgeReceivePowerInfo(member));
 	}
 }
