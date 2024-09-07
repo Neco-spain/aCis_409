@@ -25,8 +25,6 @@ public class Folk extends Npc
 	public Folk(int objectId, NpcTemplate template)
 	{
 		super(objectId, template);
-		
-		setMortal(false);
 	}
 	
 	@Override

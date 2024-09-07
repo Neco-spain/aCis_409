@@ -3,7 +3,6 @@ package net.sf.l2j.gameserver.scripting.quest;
 import net.sf.l2j.gameserver.enums.QuestStatus;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.location.Location;
 import net.sf.l2j.gameserver.network.NpcStringId;
 import net.sf.l2j.gameserver.scripting.Quest;
 import net.sf.l2j.gameserver.scripting.QuestState;
@@ -27,13 +26,6 @@ public class Q021_HiddenTruth extends Quest
 	private static final int CROSS_OF_EINHASAD = 7140;
 	private static final int CROSS_OF_EINHASAD_NEXT_QUEST = 7141;
 	
-	private static final Location[] PAGE_LOCS =
-	{
-		new Location(51992, -54424, -3160),
-		new Location(52328, -53400, -3160),
-		new Location(51928, -51656, -3096)
-	};
-	
 	// Sounds
 	private static final String SOUND_HORROR = "SkillSound5.horror_02";
 	private static final String SOUND_ITEM_DROP = "ItemSound.item_drop_equip_armor_cloth";
@@ -47,9 +39,10 @@ public class Q021_HiddenTruth extends Quest
 		
 		setItemsIds(CROSS_OF_EINHASAD);
 		
-		addStartNpc(MYSTERIOUS_WIZARD);
+		addQuestStart(MYSTERIOUS_WIZARD);
 		addTalkId(MYSTERIOUS_WIZARD, TOMBSTONE, VON_HELLMAN_DUKE, VON_HELLMAN_PAGE, BROKEN_BOOKSHELF, AGRIPEL, DOMINIC, BENEDICT, INNOCENTIN);
-		addDecayId(VON_HELLMAN_DUKE, VON_HELLMAN_PAGE);
+		
+		addDecayed(VON_HELLMAN_DUKE, VON_HELLMAN_PAGE);
 	}
 	
 	@Override
@@ -118,7 +111,7 @@ public class Q021_HiddenTruth extends Quest
 		}
 		else if (event.equalsIgnoreCase("31328-05.htm"))
 		{
-			if (player.getInventory().hasItems(CROSS_OF_EINHASAD))
+			if (player.getInventory().hasItem(CROSS_OF_EINHASAD))
 			{
 				takeItems(player, CROSS_OF_EINHASAD, 1);
 				giveItems(player, CROSS_OF_EINHASAD_NEXT_QUEST, 1);
@@ -133,32 +126,19 @@ public class Q021_HiddenTruth extends Quest
 	@Override
 	public String onTimer(String name, Npc npc, Player player)
 	{
-		if (name.equalsIgnoreCase("1"))
+		if (name.equalsIgnoreCase("2102"))
 		{
-			npc.getAI().tryToMoveTo(PAGE_LOCS[0], null);
-			npc.broadcastNpcSay("Follow me...");
+			npc.broadcastNpcSay(NpcStringId.ID_2151, player.getName());
 			
-			startQuestTimer("2", npc, player, 5000);
+			startQuestTimer("2103", npc, player, 9000);
 		}
-		else if (name.equalsIgnoreCase("2"))
+		else if (name.equalsIgnoreCase("2103"))
 		{
-			npc.getAI().tryToMoveTo(PAGE_LOCS[1], null);
+			npc.broadcastNpcSay(NpcStringId.ID_2152, player.getName());
 			
-			startQuestTimer("3", npc, player, 12000);
-		}
-		else if (name.equalsIgnoreCase("3"))
-		{
-			npc.getAI().tryToMoveTo(PAGE_LOCS[2], null);
-			
-			startQuestTimer("4", npc, player, 18000);
-		}
-		else if (name.equalsIgnoreCase("4"))
-		{
 			QuestState st = player.getQuestList().getQuestState(QUEST_NAME);
 			if (st != null)
 				st.set("end_walk", 1);
-			
-			npc.broadcastNpcSay(NpcStringId.ID_2152, player.getName());
 		}
 		
 		return null;
@@ -262,10 +242,8 @@ public class Q021_HiddenTruth extends Quest
 							htmltext = "31526-15.htm";
 						break;
 					
-					case AGRIPEL:
-					case BENEDICT:
-					case DOMINIC:
-						if ((cond == 6 || cond == 7) && player.getInventory().hasItems(CROSS_OF_EINHASAD))
+					case AGRIPEL, BENEDICT, DOMINIC:
+						if ((cond == 6 || cond == 7) && player.getInventory().hasItem(CROSS_OF_EINHASAD))
 						{
 							int npcId = npc.getNpcId();
 							
@@ -305,7 +283,7 @@ public class Q021_HiddenTruth extends Quest
 						break;
 					
 					case INNOCENTIN:
-						if (cond == 7 && player.getInventory().hasItems(CROSS_OF_EINHASAD))
+						if (cond == 7 && player.getInventory().hasItem(CROSS_OF_EINHASAD))
 							htmltext = "31328-01.htm";
 						break;
 				}
@@ -323,7 +301,7 @@ public class Q021_HiddenTruth extends Quest
 	}
 	
 	@Override
-	public String onDecay(Npc npc)
+	public void onDecayed(Npc npc)
 	{
 		if (npc == _duke)
 		{
@@ -334,8 +312,6 @@ public class Q021_HiddenTruth extends Quest
 			cancelQuestTimers(_page);
 			_page = null;
 		}
-		
-		return null;
 	}
 	
 	private boolean spawnThePage(Player player)
@@ -343,9 +319,8 @@ public class Q021_HiddenTruth extends Quest
 		if (_page == null)
 		{
 			_page = addSpawn(VON_HELLMAN_PAGE, 51608, -54520, -3168, 0, false, 90000, true);
-			_page.broadcastNpcSay(NpcStringId.ID_2151, player.getName());
 			
-			startQuestTimer("1", _page, player, 4000);
+			startQuestTimer("2102", _page, player, 500);
 			return true;
 		}
 		

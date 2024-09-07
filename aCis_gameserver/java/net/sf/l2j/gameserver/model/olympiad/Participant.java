@@ -1,7 +1,5 @@
 package net.sf.l2j.gameserver.model.olympiad;
 
-import net.sf.l2j.commons.data.StatSet;
-
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
 
@@ -14,7 +12,7 @@ public final class Participant
 	private final String _name;
 	private final int _side;
 	private final int _baseClass;
-	private final StatSet _set;
+	private final OlympiadNoble _noble;
 	
 	private boolean _isDisconnected = false;
 	private boolean _isDefecting = false;
@@ -27,7 +25,7 @@ public final class Participant
 		_name = player.getName();
 		_side = side;
 		_baseClass = player.getBaseClass();
-		_set = Olympiad.getInstance().getNobleStats(_objectId);
+		_noble = Olympiad.getInstance().getNoble(_objectId);
 	}
 	
 	public Participant(int objectId, int side)
@@ -37,7 +35,7 @@ public final class Participant
 		_name = "-";
 		_side = side;
 		_baseClass = 0;
-		_set = null;
+		_noble = null;
 	}
 	
 	public int getObjectId()
@@ -60,9 +58,9 @@ public final class Participant
 		return _baseClass;
 	}
 	
-	public StatSet getStatSet()
+	public OlympiadNoble getNoble()
 	{
-		return _set;
+		return _noble;
 	}
 	
 	public boolean isDisconnected()
@@ -99,10 +97,5 @@ public final class Participant
 	{
 		if (_player == null || !_player.isOnline())
 			_player = World.getInstance().getPlayer(_objectId);
-	}
-	
-	public final void updateStat(String statName, int increment)
-	{
-		_set.set(statName, Math.max(_set.getInteger(statName) + increment, 0));
 	}
 }

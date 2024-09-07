@@ -24,5 +24,6 @@ public final class SevenSignsUpdate extends ScheduledQuest
 	@Override
 	public final void onEnd()
 	{
+		// Do nothing.
 	}
 }

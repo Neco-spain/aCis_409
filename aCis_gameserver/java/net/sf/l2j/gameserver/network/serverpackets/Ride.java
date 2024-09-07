@@ -18,9 +18,7 @@ public class Ride extends L2GameServerPacket
 		
 		switch (rideClassId)
 		{
-			case 12526:
-			case 12527: // Striders
-			case 12528:
+			case 12526, 12527, 12528: // Striders
 				_rideType = 1;
 				break;
 			

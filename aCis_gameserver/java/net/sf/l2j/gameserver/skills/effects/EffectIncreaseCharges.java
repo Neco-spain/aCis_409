@@ -22,10 +22,10 @@ public class EffectIncreaseCharges extends AbstractEffect
 	@Override
 	public boolean onStart()
 	{
-		if (!(getEffected() instanceof Player))
+		if (!(getEffected() instanceof Player targetPlayer))
 			return false;
 		
-		((Player) getEffected()).increaseCharges((int) getTemplate().getValue(), getCount());
+		targetPlayer.increaseCharges((int) getTemplate().getValue(), getCount());
 		return true;
 	}
 	

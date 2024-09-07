@@ -14,11 +14,10 @@ public class BeastSpices implements IItemHandler
 	@Override
 	public void useItem(Playable playable, ItemInstance item, boolean forceUse)
 	{
-		if (!(playable instanceof Player))
+		if (!(playable instanceof Player player))
 			return;
 		
-		final Player player = (Player) playable;
-		final Creature target = playable.getTarget() instanceof Creature ? (Creature) playable.getTarget() : null;
+		final Creature target = (playable.getTarget() instanceof Creature targetCreature) ? targetCreature : null;
 		
 		if (!(target instanceof FeedableBeast))
 		{

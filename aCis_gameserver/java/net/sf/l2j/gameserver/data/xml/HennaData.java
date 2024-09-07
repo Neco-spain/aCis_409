@@ -5,13 +5,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import net.sf.l2j.commons.data.StatSet;
 import net.sf.l2j.commons.data.xml.IXmlReader;
 
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.item.Henna;
+import net.sf.l2j.gameserver.model.records.Henna;
 
 import org.w3c.dom.Document;
 
@@ -61,7 +60,7 @@ public class HennaData implements IXmlReader
 	 */
 	public List<Henna> getAvailableHennasFor(Player player)
 	{
-		return _hennas.values().stream().filter(h -> h.canBeUsedBy(player)).collect(Collectors.toList());
+		return _hennas.values().stream().filter(h -> h.canBeUsedBy(player)).toList();
 	}
 	
 	public static HennaData getInstance()

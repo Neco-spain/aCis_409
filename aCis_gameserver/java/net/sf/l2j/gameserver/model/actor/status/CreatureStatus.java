@@ -759,7 +759,7 @@ public class CreatureStatus<T extends Creature>
 	 */
 	public int getBaseRunSpeed()
 	{
-		return _actor.getTemplate().getBaseRunSpeed();
+		return (int) _actor.getTemplate().getBaseRunSpeed();
 	}
 	
 	/**
@@ -767,7 +767,7 @@ public class CreatureStatus<T extends Creature>
 	 */
 	public int getBaseWalkSpeed()
 	{
-		return _actor.getTemplate().getBaseWalkSpeed();
+		return (int) _actor.getTemplate().getBaseWalkSpeed();
 	}
 	
 	/**
@@ -775,7 +775,7 @@ public class CreatureStatus<T extends Creature>
 	 */
 	protected final int getBaseMoveSpeed()
 	{
-		return _actor.isRunning() ? getBaseRunSpeed() : getBaseWalkSpeed();
+		return (_actor.isRunning()) ? getBaseRunSpeed() : getBaseWalkSpeed();
 	}
 	
 	/**
@@ -783,6 +783,9 @@ public class CreatureStatus<T extends Creature>
 	 */
 	public final float getMovementSpeedMultiplier()
 	{
+		if (getBaseMoveSpeed() == 0)
+			return 0;
+		
 		return getMoveSpeed() / getBaseMoveSpeed();
 	}
 	
@@ -791,6 +794,9 @@ public class CreatureStatus<T extends Creature>
 	 */
 	public final float getAttackSpeedMultiplier()
 	{
+		if (_actor.getTemplate().getBasePAtkSpd() == 0)
+			return 0;
+		
 		return (float) ((1.1) * getPAtkSpd() / _actor.getTemplate().getBasePAtkSpd());
 	}
 	

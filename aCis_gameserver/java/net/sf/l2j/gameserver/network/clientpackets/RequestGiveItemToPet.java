@@ -7,7 +7,6 @@ import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Pet;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.EnchantResult;
 
 public final class RequestGiveItemToPet extends L2GameClientPacket
 {
@@ -85,13 +84,8 @@ public final class RequestGiveItemToPet extends L2GameClientPacket
 			return;
 		}
 		
-		if (player.getActiveEnchantItem() != null)
-		{
-			player.setActiveEnchantItem(null);
-			player.sendPacket(EnchantResult.CANCELLED);
-			player.sendPacket(SystemMessageId.ENCHANT_SCROLL_CANCELLED);
-		}
+		player.cancelActiveEnchant();
 		
-		player.transferItem("Transfer", _objectId, _amount, pet.getInventory(), pet);
+		player.transferItem(_objectId, _amount, pet);
 	}
 }

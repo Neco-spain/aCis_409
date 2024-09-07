@@ -17,17 +17,18 @@ import net.sf.l2j.gameserver.enums.skills.AcquireSkillType;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.container.player.SubClass;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
-import net.sf.l2j.gameserver.model.entity.Castle;
 import net.sf.l2j.gameserver.model.holder.skillnode.ClanSkillNode;
 import net.sf.l2j.gameserver.model.olympiad.OlympiadManager;
 import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.model.pledge.ClanMember;
 import net.sf.l2j.gameserver.model.pledge.SubPledge;
+import net.sf.l2j.gameserver.model.residence.castle.Castle;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.AcquireSkillList;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 import net.sf.l2j.gameserver.network.serverpackets.MagicSkillUse;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
+import net.sf.l2j.gameserver.network.serverpackets.PledgeShowInfoUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.PledgeShowMemberListAll;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.network.serverpackets.UserInfo;
@@ -201,6 +202,7 @@ public class VillageMaster extends Folk
 			if (Config.CLAN_DISSOLVE_DAYS > 0)
 			{
 				clan.setDissolvingExpiryTime(System.currentTimeMillis() + Config.CLAN_DISSOLVE_DAYS * 86400000L);
+				clan.broadcastToMembers(new PledgeShowInfoUpdate(clan));
 				clan.updateClanInDB();
 				
 				ClanTable.getInstance().scheduleRemoveClan(clan);
@@ -293,6 +295,7 @@ public class VillageMaster extends Folk
 			}
 			
 			clan.setDissolvingExpiryTime(0);
+			clan.broadcastToMembers(new PledgeShowInfoUpdate(clan));
 			clan.updateClanInDB();
 		}
 		else if (actualCommand.equalsIgnoreCase("increase_clan_level"))
@@ -336,8 +339,9 @@ public class VillageMaster extends Folk
 				if (command.length() > endIndex)
 					paramTwo = Integer.parseInt(command.substring(endIndex).trim());
 			}
-			catch (Exception NumberFormatException)
+			catch (Exception e)
 			{
+				// Do nothing.
 			}
 			
 			StringBuilder sb;
@@ -358,7 +362,7 @@ public class VillageMaster extends Folk
 					}
 					
 					// Subclasses may not be added while you are over your weight limit.
-					if (player.getStatus().isOverburden() || player.getWeightPenalty().ordinal() > 2)
+					if (player.isOverweight())
 					{
 						player.sendPacket(SystemMessageId.NOT_SUBCLASS_WHILE_OVERWEIGHT);
 						return;
@@ -372,7 +376,7 @@ public class VillageMaster extends Folk
 					}
 					
 					subsAvailable = getAvailableSubClasses(player);
-					if (subsAvailable == null || subsAvailable.isEmpty())
+					if (subsAvailable.isEmpty())
 					{
 						player.sendMessage("There are no sub classes available at this time.");
 						return;
@@ -395,7 +399,7 @@ public class VillageMaster extends Folk
 					}
 					
 					// Subclasses may not be changed while a you are over your weight limit.
-					if (player.getStatus().isOverburden() || player.getWeightPenalty().ordinal() > 2)
+					if (player.isOverweight())
 					{
 						player.sendPacket(SystemMessageId.NOT_SUBCLASS_WHILE_OVERWEIGHT);
 						return;
@@ -521,9 +525,9 @@ public class VillageMaster extends Folk
 						}
 					}
 					
+					player.stopAllEffects();
 					player.setActiveClass(paramOne);
-					
-					player.sendPacket(SystemMessageId.SUBCLASS_TRANSFER_COMPLETED); // Transfer completed.
+					player.sendPacket(SystemMessageId.SUBCLASS_TRANSFER_COMPLETED);
 					return;
 				
 				case 6: // Change/Cancel Subclass - Choice
@@ -534,7 +538,7 @@ public class VillageMaster extends Folk
 					subsAvailable = getAvailableSubClasses(player);
 					
 					// another validity check
-					if (subsAvailable == null || subsAvailable.isEmpty())
+					if (subsAvailable.isEmpty())
 					{
 						player.sendMessage("There are no sub classes available at this time.");
 						return;
@@ -619,7 +623,7 @@ public class VillageMaster extends Folk
 	{
 		Set<ClassId> availSubs = ClassId.getAvailableSubclasses(player);
 		
-		if (availSubs != null && !availSubs.isEmpty())
+		if (!availSubs.isEmpty())
 		{
 			for (Iterator<ClassId> availSub = availSubs.iterator(); availSub.hasNext();)
 			{
@@ -666,7 +670,7 @@ public class VillageMaster extends Folk
 		}
 		
 		final Set<ClassId> availSubs = ClassId.getAvailableSubclasses(player);
-		if (availSubs == null || availSubs.isEmpty())
+		if (availSubs.isEmpty())
 			return false;
 		
 		boolean found = false;

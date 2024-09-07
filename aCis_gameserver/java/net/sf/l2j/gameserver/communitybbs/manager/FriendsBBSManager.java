@@ -1,30 +1,21 @@
 package net.sf.l2j.gameserver.communitybbs.manager;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Set;
 import java.util.StringTokenizer;
 
 import net.sf.l2j.commons.lang.StringUtil;
-import net.sf.l2j.commons.pool.ConnectionPool;
 
 import net.sf.l2j.gameserver.data.cache.HtmCache;
+import net.sf.l2j.gameserver.data.manager.RelationManager;
 import net.sf.l2j.gameserver.data.sql.PlayerInfoTable;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.actor.container.player.BlockList;
-import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.FriendList;
-import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public class FriendsBBSManager extends BaseBBSManager
 {
 	private static final String FRIENDLIST_DELETE_BUTTON = "<br>\n<table><tr><td width=10></td><td>Are you sure you want to delete all friends from your Friends List?</td><td width=20></td><td><button value=\"OK\" action=\"bypass _friend;delall\" back=\"l2ui_ch3.smallbutton2_down\" width=65 height=20 fore=\"l2ui_ch3.smallbutton2\"></td></tr></table>";
 	private static final String BLOCKLIST_DELETE_BUTTON = "<br>\n<table><tr><td width=10></td><td>Are you sure you want to delete all players from your Block List?</td><td width=20></td><td><button value=\"OK\" action=\"bypass _block;delall\" back=\"l2ui_ch3.smallbutton2_down\" width=65 height=20 fore=\"l2ui_ch3.smallbutton2\"></td></tr></table>";
-	
-	private static final String DELETE_ALL_FRIENDS = "DELETE FROM character_friends WHERE char_id = ? OR friend_id = ?";
-	private static final String DELETE_FRIEND = "DELETE FROM character_friends WHERE (char_id = ? AND friend_id = ?) OR (char_id = ? AND friend_id = ?)";
 	
 	protected FriendsBBSManager()
 	{
@@ -55,33 +46,9 @@ public class FriendsBBSManager extends BaseBBSManager
 			}
 			else if (action.equals("delall"))
 			{
-				try (Connection con = ConnectionPool.getConnection();
-					PreparedStatement ps = con.prepareStatement(DELETE_ALL_FRIENDS))
-				{
-					ps.setInt(1, player.getObjectId());
-					ps.setInt(2, player.getObjectId());
-					ps.execute();
-				}
-				catch (Exception e)
-				{
-					LOGGER.error("Couldn't delete friends.", e);
-				}
-				
-				for (int friendId : player.getFriendList())
-				{
-					// Update friend's friendlist.
-					final Player friend = World.getInstance().getPlayer(friendId);
-					if (friend != null)
-					{
-						friend.getFriendList().remove(Integer.valueOf(player.getObjectId()));
-						friend.getSelectedFriendList().remove(Integer.valueOf(player.getObjectId()));
-						
-						friend.sendPacket(new FriendList(friend));
-					}
-				}
-				
-				player.getFriendList().clear();
+				RelationManager.getInstance().removeAllFromFriendList(player);
 				player.getSelectedFriendList().clear();
+				
 				showFriendsList(player, false);
 				
 				player.sendMessage("You have cleared your friends list.");
@@ -91,35 +58,18 @@ public class FriendsBBSManager extends BaseBBSManager
 				showFriendsList(player, true);
 			else if (action.equals("del"))
 			{
-				try (Connection con = ConnectionPool.getConnection();
-					PreparedStatement ps = con.prepareStatement(DELETE_FRIEND))
+				for (int friendId : player.getSelectedFriendList())
 				{
-					ps.setInt(1, player.getObjectId());
-					ps.setInt(4, player.getObjectId());
-					
-					for (int friendId : player.getSelectedFriendList())
+					// Update friend's friendlist.
+					final Player friend = World.getInstance().getPlayer(friendId);
+					if (friend != null)
 					{
-						ps.setInt(2, friendId);
-						ps.setInt(3, friendId);
-						ps.addBatch();
-						
-						// Update friend's friendlist.
-						final Player friend = World.getInstance().getPlayer(friendId);
-						if (friend != null)
-						{
-							friend.getFriendList().remove(Integer.valueOf(player.getObjectId()));
-							friend.sendPacket(new FriendList(friend));
-						}
-						
-						// The friend is deleted from your friendlist.
-						player.getFriendList().remove(Integer.valueOf(friendId));
-						player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_HAS_BEEN_DELETED_FROM_YOUR_FRIENDS_LIST).addString(PlayerInfoTable.getInstance().getPlayerName(friendId)));
+						RelationManager.getInstance().removeFromFriendList(friend, player.getObjectId());
+						friend.sendPacket(new FriendList(friend));
 					}
-					ps.executeBatch();
-				}
-				catch (Exception e)
-				{
-					LOGGER.error("Couldn't delete friend.", e);
+					
+					// The friend is deleted from your friendlist.
+					RelationManager.getInstance().removeFromFriendList(player, friendId);
 				}
 				
 				player.getSelectedFriendList().clear();
@@ -139,37 +89,27 @@ public class FriendsBBSManager extends BaseBBSManager
 			st.nextToken();
 			String action = st.nextToken();
 			
+			boolean delMsg = false;
+			
 			if (action.equals("select"))
-			{
 				player.selectBlock((st.hasMoreTokens()) ? Integer.valueOf(st.nextToken()) : 0);
-				showBlockList(player, false);
-			}
 			else if (action.equals("deselect"))
-			{
 				player.deselectBlock((st.hasMoreTokens()) ? Integer.valueOf(st.nextToken()) : 0);
-				showBlockList(player, false);
-			}
 			else if (action.equals("delall"))
 			{
-				List<Integer> list = new ArrayList<>();
-				list.addAll(player.getBlockList().getBlockList());
-				
-				for (Integer blockId : list)
-					BlockList.removeFromBlockList(player, blockId);
-				
+				RelationManager.getInstance().removeAllFromBlockList(player);
 				player.getSelectedBlocksList().clear();
-				showBlockList(player, false);
 			}
 			else if (action.equals("delconfirm"))
-				showBlockList(player, true);
+				delMsg = true;
 			else if (action.equals("del"))
 			{
-				for (Integer blockId : player.getSelectedBlocksList())
-					BlockList.removeFromBlockList(player, blockId);
+				for (int blockId : player.getSelectedBlocksList())
+					RelationManager.getInstance().removeFromBlockList(player, blockId);
 				
 				player.getSelectedBlocksList().clear();
-				showBlockList(player, false);
 			}
+			showBlockList(player, delMsg);
 		}
 		else
 			super.parseCmd(command, player);
@@ -200,8 +140,8 @@ public class FriendsBBSManager extends BaseBBSManager
 			return;
 		
 		// Retrieve player's friendlist and selected
-		final List<Integer> list = player.getFriendList();
-		final List<Integer> selectedList = player.getSelectedFriendList();
+		final Set<Integer> list = RelationManager.getInstance().getFriendList(player.getObjectId());
+		final Set<Integer> selectedList = player.getSelectedFriendList();
 		
 		final StringBuilder sb = new StringBuilder();
 		
@@ -218,7 +158,7 @@ public class FriendsBBSManager extends BaseBBSManager
 			final Player friend = World.getInstance().getPlayer(id);
 			StringUtil.append(sb, "<a action=\"bypass _friend;select;", id, "\">[Select]</a>&nbsp;", friendName, " ", ((friend != null && friend.isOnline()) ? "(on)" : "(off)"), "<br1>");
 		}
-		content = content.replaceAll("%friendslist%", sb.toString());
+		content = content.replace("%friendslist%", sb.toString());
 		
 		// Cleanup sb.
 		sb.setLength(0);
@@ -233,10 +173,10 @@ public class FriendsBBSManager extends BaseBBSManager
 			final Player friend = World.getInstance().getPlayer(id);
 			StringUtil.append(sb, "<a action=\"bypass _friend;deselect;", id, "\">[Deselect]</a>&nbsp;", friendName, " ", ((friend != null && friend.isOnline()) ? "(on)" : "(off)"), "<br1>");
 		}
-		content = content.replaceAll("%selectedFriendsList%", sb.toString());
+		content = content.replace("%selectedFriendsList%", sb.toString());
 		
 		// Delete button.
-		content = content.replaceAll("%deleteMSG%", (delMsg) ? FRIENDLIST_DELETE_BUTTON : "");
+		content = content.replace("%deleteMSG%", (delMsg) ? FRIENDLIST_DELETE_BUTTON : "");
 		
 		separateAndSend(content, player);
 	}
@@ -248,8 +188,8 @@ public class FriendsBBSManager extends BaseBBSManager
 			return;
 		
 		// Retrieve player's blocklist and selected
-		final List<Integer> list = player.getBlockList().getBlockList();
-		final List<Integer> selectedList = player.getSelectedBlocksList();
+		final Set<Integer> list = RelationManager.getInstance().getBlockList(player.getObjectId());
+		final Set<Integer> selectedList = player.getSelectedBlocksList();
 		
 		final StringBuilder sb = new StringBuilder();
 		
@@ -266,7 +206,7 @@ public class FriendsBBSManager extends BaseBBSManager
 			final Player block = World.getInstance().getPlayer(id);
 			StringUtil.append(sb, "<a action=\"bypass _block;select;", id, "\">[Select]</a>&nbsp;", blockName, " ", ((block != null && block.isOnline()) ? "(on)" : "(off)"), "<br1>");
 		}
-		content = content.replaceAll("%blocklist%", sb.toString());
+		content = content.replace("%blocklist%", sb.toString());
 		
 		// Cleanup sb.
 		sb.setLength(0);
@@ -281,10 +221,10 @@ public class FriendsBBSManager extends BaseBBSManager
 			final Player block = World.getInstance().getPlayer(id);
 			StringUtil.append(sb, "<a action=\"bypass _block;deselect;", id, "\">[Deselect]</a>&nbsp;", blockName, " ", ((block != null && block.isOnline()) ? "(on)" : "(off)"), "<br1>");
 		}
-		content = content.replaceAll("%selectedBlocksList%", sb.toString());
+		content = content.replace("%selectedBlocksList%", sb.toString());
 		
 		// Delete button.
-		content = content.replaceAll("%deleteMSG%", (delMsg) ? BLOCKLIST_DELETE_BUTTON : "");
+		content = content.replace("%deleteMSG%", (delMsg) ? BLOCKLIST_DELETE_BUTTON : "");
 		
 		separateAndSend(content, player);
 	}
@@ -308,7 +248,7 @@ public class FriendsBBSManager extends BaseBBSManager
 			sb.append(friendName);
 		}
 		
-		content = content.replaceAll("%list%", sb.toString());
+		content = content.replace("%list%", sb.toString());
 		
 		separateAndSend(content, player);
 	}

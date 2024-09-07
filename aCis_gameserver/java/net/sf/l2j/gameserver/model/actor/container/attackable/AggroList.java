@@ -5,23 +5,19 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.enums.IntentionType;
-import net.sf.l2j.gameserver.enums.ScriptEventType;
 import net.sf.l2j.gameserver.model.actor.Attackable;
 import net.sf.l2j.gameserver.model.actor.Creature;
-import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.actor.Summon;
-import net.sf.l2j.gameserver.model.actor.ai.type.AttackableAI;
+import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.container.npc.AggroInfo;
 import net.sf.l2j.gameserver.model.actor.instance.SiegeGuard;
-import net.sf.l2j.gameserver.scripting.Quest;
 
 public class AggroList extends ConcurrentHashMap<Creature, AggroInfo>
 {
 	private static final long serialVersionUID = 1L;
 	
-	private final Attackable _owner;
+	private final Npc _owner;
 	
-	public AggroList(Attackable owner)
+	public AggroList(Npc owner)
 	{
 		super();
 		
@@ -34,7 +30,7 @@ public class AggroList extends ConcurrentHashMap<Creature, AggroInfo>
 	 * @param damage : The amount of damages done.
 	 * @param aggro : The hate to add.
 	 */
-	public void addDamageHate(Creature attacker, int damage, int aggro)
+	public void addDamageHate(Creature attacker, double damage, double aggro)
 	{
 		if (attacker == null)
 			return;
@@ -47,20 +43,7 @@ public class AggroList extends ConcurrentHashMap<Creature, AggroInfo>
 		final AggroInfo ai = computeIfAbsent(attacker, AggroInfo::new);
 		ai.addDamage(damage);
 		ai.addHate(aggro);
-		
-		if (aggro == 0)
-		{
-			final Player targetPlayer = attacker.getActingPlayer();
-			if (targetPlayer != null)
-			{
-				for (Quest quest : _owner.getTemplate().getEventQuests(ScriptEventType.ON_AGGRO))
-					quest.notifyAggro(_owner, targetPlayer, (attacker instanceof Summon));
-			}
-			else
-				ai.addHate(1);
-		}
-		else if (aggro > 0 && _owner.getAI().getCurrentIntention().getType() == IntentionType.IDLE)
-			_owner.getAI().tryToActive();
+		ai.setTimestamp(System.currentTimeMillis());
 	}
 	
 	/**
@@ -87,12 +70,8 @@ public class AggroList extends ConcurrentHashMap<Creature, AggroInfo>
 	 * @param target : The {@link Creature} whose hate level must be returned.
 	 * @return The hate level of the {@link Attackable} owner against the {@link Creature} set as target.
 	 */
-	public int getHate(Creature target)
+	public double getHate(Creature target)
 	{
-		// If empty or no target, return 0.
-		if (target == null || isEmpty())
-			return 0;
-		
 		final AggroInfo ai = get(target);
 		return (ai == null) ? 0 : ai.getHate();
 	}
@@ -115,8 +94,10 @@ public class AggroList extends ConcurrentHashMap<Creature, AggroInfo>
 			ai.stopHate();
 		
 		// Retrieve the most hated target. If null, return the owner back to peace.
-		if (getMostHated() == null)
-			((AttackableAI) _owner.getAI()).setBackToPeace(-25);
+		if (getMostHated() == null && _owner.getAI().getHateList().getMostHatedCreature() == null)
+			_owner.getAI().setBackToPeace();
+		
+		_owner.getAI().getDesireQueue().removeIf(d -> d.getType() == IntentionType.ATTACK && d.getFinalTarget() == target);
 	}
 	
 	/**
@@ -125,7 +106,7 @@ public class AggroList extends ConcurrentHashMap<Creature, AggroInfo>
 	 * If none most hated {@link Creature} is found anymore, return the {@link Attackable} owner back to peace.
 	 * @param amount : The amount of hate to remove.
 	 */
-	public void reduceAllHate(int amount)
+	public void reduceAllHate(double amount)
 	{
 		// If empty, return doing nothing.
 		if (isEmpty())
@@ -136,8 +117,8 @@ public class AggroList extends ConcurrentHashMap<Creature, AggroInfo>
 			ai.addHate(-amount);
 		
 		// Retrieve the most hated target. If null, return the owner back to peace.
-		if (getMostHated() == null)
-			((AttackableAI) _owner.getAI()).setBackToPeace(-25);
+		if (getMostHated() == null && _owner.getAI().getHateList().getMostHatedCreature() == null)
+			_owner.getAI().setBackToPeace();
 	}
 	
 	/**
@@ -147,6 +128,8 @@ public class AggroList extends ConcurrentHashMap<Creature, AggroInfo>
 	{
 		for (AggroInfo ai : values())
 			ai.stopHate();
+		
+		_owner.getAI().getDesireQueue().removeIf(d -> d.getType() == IntentionType.ATTACK);
 	}
 	
 	/**
@@ -189,6 +172,7 @@ public class AggroList extends ConcurrentHashMap<Creature, AggroInfo>
 				// Stop to hate the most hated and add previous most hated aggro to that new victim.
 				else
 				{
+					_owner.getAI().getDesireQueue().removeIf(d -> d.getType() == IntentionType.ATTACK && d.getFinalTarget() == mostHated.getAttacker());
 					mostHated.stopHate();
 					addDamageHate(ai.getAttacker(), 0, mostHated.getHate());
 				}
@@ -236,6 +220,11 @@ public class AggroList extends ConcurrentHashMap<Creature, AggroInfo>
 			return;
 		
 		addDamageHate(ai.getAttacker(), 0, (mostHated.getHate() - ai.getHate()) + 200);
+		
+		_owner.getAI().getDesireQueue().removeIf(d -> d.getType() == IntentionType.ATTACK);
+		
+		for (AggroInfo aggroInfo : values())
+			_owner.getAI().addAttackDesire(aggroInfo.getAttacker(), (int) aggroInfo.getDamage(), (int) aggroInfo.getHate(), false);
 	}
 	
 	/**
@@ -248,16 +237,25 @@ public class AggroList extends ConcurrentHashMap<Creature, AggroInfo>
 	public void refresh()
 	{
 		if (isEmpty())
+		{
+			_owner.getAI().getDesireQueue().removeIf(d -> d.getType() == IntentionType.ATTACK);
 			return;
+		}
 		
 		for (AggroInfo ai : values())
 		{
 			final Creature creature = ai.getAttacker();
 			
 			if (creature.isAlikeDead())
+			{
+				_owner.getAI().getDesireQueue().removeIf(d -> d.getType() == IntentionType.ATTACK && d.getFinalTarget() == creature);
 				ai.stopHate();
-			else if (!creature.isVisible() || !_owner.knows(creature) || (creature instanceof Player && !((Player) creature).getAppearance().isVisible()))
+			}
+			else if (!creature.isVisible() || !_owner.knows(creature) || (creature.getActingPlayer() != null && !creature.getActingPlayer().getAppearance().isVisible()))
+			{
+				_owner.getAI().getDesireQueue().removeIf(d -> d.getType() == IntentionType.ATTACK && d.getFinalTarget() == creature);
 				remove(creature);
+			}
 		}
 	}
 }

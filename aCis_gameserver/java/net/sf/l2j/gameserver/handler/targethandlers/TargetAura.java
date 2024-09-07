@@ -10,6 +10,7 @@ import net.sf.l2j.gameserver.handler.ITargetHandler;
 import net.sf.l2j.gameserver.model.actor.Attackable;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Playable;
+import net.sf.l2j.gameserver.model.actor.instance.Folk;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.skills.L2Skill;
 
@@ -30,15 +31,19 @@ public class TargetAura implements ITargetHandler
 			if (creature.isDead() || !GeoEngine.getInstance().canSeeTarget(caster, creature))
 				continue;
 			
-			if (caster instanceof Playable && (creature instanceof Attackable || creature instanceof Playable))
+			if (caster instanceof Playable playable && (creature instanceof Attackable || creature instanceof Playable))
 			{
-				if (creature.isAttackableWithoutForceBy((Playable) caster))
+				if (creature.isAttackableWithoutForceBy(playable))
 					list.add(creature);
 			}
 			else if (caster instanceof Attackable && creature instanceof Playable)
 			{
 				if (creature.isAttackableBy(caster))
 					list.add(creature);
+			}
+			else if (caster instanceof Folk && creature instanceof Playable)
+			{
+				list.add(creature);
 			}
 		}
 		

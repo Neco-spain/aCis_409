@@ -2,14 +2,12 @@ package net.sf.l2j.gameserver.network.clientpackets;
 
 import net.sf.l2j.gameserver.data.xml.AugmentationData;
 import net.sf.l2j.gameserver.enums.ShortcutType;
-import net.sf.l2j.gameserver.enums.StatusType;
 import net.sf.l2j.gameserver.model.Augmentation;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.item.LifeStone;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ExVariationResult;
-import net.sf.l2j.gameserver.network.serverpackets.InventoryUpdate;
-import net.sf.l2j.gameserver.network.serverpackets.StatusUpdate;
 
 public final class RequestRefine extends AbstractRefinePacket
 {
@@ -73,7 +71,7 @@ public final class RequestRefine extends AbstractRefinePacket
 			return;
 		}
 		
-		if (_gemStoneCount != getGemStoneCount(targetItem.getItem().getCrystalType()))
+		if (_gemStoneCount != targetItem.getItem().getCrystalType().getGemstoneCount())
 		{
 			player.sendPacket(ExVariationResult.RESULT_FAILED);
 			player.sendPacket(SystemMessageId.AUGMENTATION_FAILED_DUE_TO_INAPPROPRIATE_CONDITIONS);
@@ -83,18 +81,12 @@ public final class RequestRefine extends AbstractRefinePacket
 		// unequip item
 		if (targetItem.isEquipped())
 		{
-			ItemInstance[] unequipped = player.getInventory().unequipItemInSlotAndRecord(targetItem.getLocationSlot());
-			InventoryUpdate iu = new InventoryUpdate();
-			
-			for (ItemInstance itm : unequipped)
-				iu.addModifiedItem(itm);
-			
-			player.sendPacket(iu);
+			player.getInventory().unequipItemInSlotAndRecord(targetItem.getLocationSlot());
 			player.broadcastUserInfo();
 		}
 		
 		// Consume the life stone
-		if (!player.destroyItem("RequestRefine", refinerItem, 1, null, false))
+		if (!player.destroyItem(refinerItem, 1, false))
 		{
 			player.sendPacket(ExVariationResult.RESULT_FAILED);
 			player.sendPacket(SystemMessageId.AUGMENTATION_FAILED_DUE_TO_INAPPROPRIATE_CONDITIONS);
@@ -102,29 +94,21 @@ public final class RequestRefine extends AbstractRefinePacket
 		}
 		
 		// Consume gemstones
-		if (!player.destroyItem("RequestRefine", gemStoneItem, _gemStoneCount, null, false))
+		if (!player.destroyItem(gemStoneItem, _gemStoneCount, false))
 		{
 			player.sendPacket(ExVariationResult.RESULT_FAILED);
 			player.sendPacket(SystemMessageId.AUGMENTATION_FAILED_DUE_TO_INAPPROPRIATE_CONDITIONS);
 			return;
 		}
 		
-		final Augmentation aug = AugmentationData.getInstance().generateRandomAugmentation(ls.getLevel(), ls.getGrade());
-		targetItem.setAugmentation(aug);
+		final Augmentation aug = AugmentationData.getInstance().generateRandomAugmentation(ls.level(), ls.grade());
+		targetItem.setAugmentation(aug, player);
 		
 		final int stat12 = 0x0000FFFF & aug.getId();
 		final int stat34 = aug.getId() >> 16;
 		player.sendPacket(new ExVariationResult(stat12, stat34, 1));
 		
-		InventoryUpdate iu = new InventoryUpdate();
-		iu.addModifiedItem(targetItem);
-		player.sendPacket(iu);
-		
 		// Refresh shortcuts.
 		player.getShortcutList().refreshShortcuts(s -> targetItem.getObjectId() == s.getId() && s.getType() == ShortcutType.ITEM);
-		
-		StatusUpdate su = new StatusUpdate(player);
-		su.addAttribute(StatusType.CUR_LOAD, player.getCurrentWeight());
-		player.sendPacket(su);
 	}
 }

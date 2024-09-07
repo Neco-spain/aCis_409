@@ -38,10 +38,10 @@ public class Q357_WarehouseKeepersAmbition extends Quest
 		
 		setItemsIds(JADE_CRYSTAL);
 		
-		addStartNpc(30686); // Silva
+		addQuestStart(30686); // Silva
 		addTalkId(30686);
 		
-		addKillId(FOREST_RUNNER, FLINE_ELDER, LIELE_ELDER, VALLEY_TREANT_ELDER);
+		addMyDying(FOREST_RUNNER, FLINE_ELDER, LIELE_ELDER, VALLEY_TREANT_ELDER);
 	}
 	
 	@Override
@@ -97,7 +97,7 @@ public class Q357_WarehouseKeepersAmbition extends Quest
 				break;
 			
 			case STARTED:
-				htmltext = (!player.getInventory().hasItems(JADE_CRYSTAL)) ? "30686-4.htm" : "30686-6.htm";
+				htmltext = (!player.getInventory().hasItem(JADE_CRYSTAL)) ? "30686-4.htm" : "30686-6.htm";
 				break;
 		}
 		
@@ -105,16 +105,14 @@ public class Q357_WarehouseKeepersAmbition extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMemberState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		dropItems(st.getPlayer(), JADE_CRYSTAL, 1, 0, CHANCES.get(npc.getNpcId()));
-		
-		return null;
 	}
 }

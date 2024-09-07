@@ -27,10 +27,10 @@ public class EffectDistrust extends AbstractEffect
 	@Override
 	public boolean onStart()
 	{
-		if (!(getEffected() instanceof Monster))
+		if (!(getEffected() instanceof Monster targetMonster))
 			return false;
 		
-		final List<Monster> targetList = getEffected().getKnownTypeInRadius(Monster.class, 600, a -> !(a instanceof Chest));
+		final List<Monster> targetList = targetMonster.getKnownTypeInRadius(Monster.class, 600, a -> !(a instanceof Chest));
 		if (targetList.isEmpty())
 			return true;
 		
@@ -41,13 +41,14 @@ public class EffectDistrust extends AbstractEffect
 		
 		// Add aggro to that target aswell. The aggro power is random.
 		final int aggro = (5 + Rnd.get(5)) * getEffector().getStatus().getLevel();
-		((Monster) getEffected()).getAggroList().addDamageHate(target, 0, aggro);
+		targetMonster.getAI().getAggroList().addDamageHate(target, 0, aggro);
 		return true;
 	}
 	
 	@Override
 	public void onExit()
 	{
+		// Do nothing.
 	}
 	
 	@Override

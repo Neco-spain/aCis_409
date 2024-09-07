@@ -22,8 +22,12 @@ public class Q629_CleanUpTheSwampOfScreams extends Quest
 	private static final int GOLDEN_RAM_COIN = 7251;
 	
 	// Drop chances
-	private static final Map<Integer, Integer> CHANCES = new HashMap<>();
+	private static final Map<Integer, Integer> CHANCES = HashMap.newHashMap(10);
+	
+	public Q629_CleanUpTheSwampOfScreams()
 	{
+		super(629, "Clean up the Swamp of Screams");
+		
 		CHANCES.put(21508, 500000);
 		CHANCES.put(21509, 431000);
 		CHANCES.put(21510, 521000);
@@ -34,19 +38,14 @@ public class Q629_CleanUpTheSwampOfScreams extends Quest
 		CHANCES.put(21515, 545000);
 		CHANCES.put(21516, 553000);
 		CHANCES.put(21517, 560000);
-	}
-	
-	public Q629_CleanUpTheSwampOfScreams()
-	{
-		super(629, "Clean up the Swamp of Screams");
 		
 		setItemsIds(TALON_OF_STAKATO, GOLDEN_RAM_COIN);
 		
-		addStartNpc(PIERCE);
+		addQuestStart(PIERCE);
 		addTalkId(PIERCE);
 		
 		for (int npcId : CHANCES.keySet())
-			addKillId(npcId);
+			addMyDying(npcId);
 	}
 	
 	@Override
@@ -116,16 +115,14 @@ public class Q629_CleanUpTheSwampOfScreams extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMemberState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		dropItems(st.getPlayer(), TALON_OF_STAKATO, 1, 100, CHANCES.get(npc.getNpcId()));
-		
-		return null;
 	}
 }

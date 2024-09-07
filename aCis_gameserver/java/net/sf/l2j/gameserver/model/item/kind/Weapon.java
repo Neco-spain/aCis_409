@@ -2,8 +2,9 @@ package net.sf.l2j.gameserver.model.item.kind;
 
 import net.sf.l2j.commons.data.StatSet;
 import net.sf.l2j.commons.random.Rnd;
+import net.sf.l2j.commons.util.ArraysUtil;
 
-import net.sf.l2j.gameserver.enums.ScriptEventType;
+import net.sf.l2j.gameserver.enums.EventHandler;
 import net.sf.l2j.gameserver.enums.items.WeaponType;
 import net.sf.l2j.gameserver.enums.skills.ShieldDefense;
 import net.sf.l2j.gameserver.handler.ISkillHandler;
@@ -161,6 +162,22 @@ public final class Weapon extends Item
 	}
 	
 	/**
+	 * @return true if the {@link Weapon} is an Apprentice's weapon, false otherwise.
+	 */
+	public final boolean isApprenticeWeapon()
+	{
+		return getItemId() >= 7816 && getItemId() <= 7821;
+	}
+	
+	/**
+	 * @return true if the {@link Weapon} is a Traveler's weapon, false otherwise.
+	 */
+	public final boolean isTravelerWeapon()
+	{
+		return getItemId() >= 7822 && getItemId() <= 7831;
+	}
+	
+	/**
 	 * @return the MP consumption of the {@link Weapon}.
 	 */
 	public int getMpConsume()
@@ -238,8 +255,8 @@ public final class Weapon extends Item
 			return;
 		
 		// Send message before resist attempt.
-		if (caster instanceof Player)
-			caster.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_HAS_BEEN_ACTIVATED).addSkillName(skillOnMagic));
+		if (caster instanceof Player player)
+			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_HAS_BEEN_ACTIVATED).addSkillName(skillOnMagic));
 		
 		final Creature[] targets = new Creature[]
 		{
@@ -249,17 +266,27 @@ public final class Weapon extends Item
 		// Get the skill handler corresponding to the skill type - Launch the magic skill and calculate its effects.
 		final ISkillHandler handler = SkillHandler.getInstance().getHandler(skillOnMagic.getSkillType());
 		if (handler != null)
-			handler.useSkill(caster, skillOnMagic, targets);
+			handler.useSkill(caster, skillOnMagic, targets, null);
 		else
 			skillOnMagic.useSkill(caster, targets);
 		
 		// Notify NPCs in a 1000 range of a skill use.
-		if (caster instanceof Player)
+		if (caster instanceof Player player)
 		{
-			for (Npc npc : caster.getKnownTypeInRadius(Npc.class, 1000))
+			caster.forEachKnownTypeInRadius(Npc.class, 1000, npc ->
 			{
-				for (Quest quest : npc.getTemplate().getEventQuests(ScriptEventType.ON_SKILL_SEE))
-					quest.notifySkillSee(npc, (Player) caster, skillOnMagic, targets, false);
+				// TODO Enhance the behavior based on L2OFF tests. Do not trigger if the skill is a solo target skill, and if the target is player summon OR if the target is the npc and the skill was a positive effect.
+				if (targets.length == 1 && ((player.getSummon() != null && ArraysUtil.contains(targets, player.getSummon())) || (!skillOnMagic.isOffensive() && !skillOnMagic.isDebuff() && ArraysUtil.contains(targets, npc))))
+					return;
+				
+				for (Quest quest : npc.getTemplate().getEventQuests(EventHandler.SEE_SPELL))
+					quest.onSeeSpell(npc, (Player) caster, skillOnMagic, targets, false);
+			});
+			
+			if (!skillOnMagic.isOffensive() && target instanceof Npc targetNpc)
+			{
+				for (Quest quest : targetNpc.getTemplate().getEventQuests(EventHandler.SPELLED))
+					quest.onSpelled(targetNpc, player, skillOnMagic);
 			}
 		}
 	}

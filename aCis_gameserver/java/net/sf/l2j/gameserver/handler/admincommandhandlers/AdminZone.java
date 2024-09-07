@@ -5,11 +5,12 @@ import java.util.StringTokenizer;
 import net.sf.l2j.commons.lang.StringUtil;
 
 import net.sf.l2j.gameserver.data.manager.ZoneManager;
-import net.sf.l2j.gameserver.data.xml.MapRegionData;
+import net.sf.l2j.gameserver.data.xml.RestartPointData;
 import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.handler.IAdminCommandHandler;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.restart.RestartPoint;
 import net.sf.l2j.gameserver.model.zone.type.subtype.ZoneType;
 import net.sf.l2j.gameserver.network.serverpackets.ExServerPrimitive;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
@@ -46,7 +47,7 @@ public class AdminZone implements IAdminCommandHandler
 					{
 						case "all":
 							for (ZoneType zone : player.getZones(false))
-								zone.visualizeZone(debug, player.getZ());
+								zone.visualizeZone(debug);
 							
 							debug.sendTo(player);
 							
@@ -60,7 +61,7 @@ public class AdminZone implements IAdminCommandHandler
 							break;
 						
 						default:
-							ZoneManager.getInstance().getZoneById(Integer.parseInt(param)).visualizeZone(debug, player.getZ());
+							ZoneManager.getInstance().getZoneById(Integer.parseInt(param)).visualizeZone(debug);
 							
 							debug.sendTo(player);
 							break;
@@ -85,12 +86,14 @@ public class AdminZone implements IAdminCommandHandler
 		int rx = (x - World.WORLD_X_MIN) / World.TILE_SIZE + World.TILE_X_MIN;
 		int ry = (y - World.WORLD_Y_MIN) / World.TILE_SIZE + World.TILE_Y_MIN;
 		
+		final RestartPoint currentRp = RestartPointData.getInstance().getRestartPoint(player);
+		
 		final NpcHtmlMessage html = new NpcHtmlMessage(0);
 		html.setFile("data/html/admin/zone.htm");
-		
-		html.replace("%MAPREGION%", "[x:" + MapRegionData.getMapRegionX(x) + " y:" + MapRegionData.getMapRegionY(y) + "]");
 		html.replace("%GEOREGION%", rx + "_" + ry);
-		html.replace("%CLOSESTTOWN%", MapRegionData.getInstance().getClosestTownName(x, y));
+		html.replace("%RA%", RestartPointData.getInstance().getRestartArea(player) != null);
+		html.replace("%CALCULATED_RP%", RestartPointData.getInstance().getCalculatedRestartPoint(player).getName());
+		html.replace("%CURRENT_RP%", (currentRp == null) ? "N/A" : currentRp.getName());
 		html.replace("%CURRENTLOC%", x + ", " + y + ", " + player.getZ());
 		
 		final StringBuilder sb = new StringBuilder(100);
@@ -107,7 +110,7 @@ public class AdminZone implements IAdminCommandHandler
 		
 		for (ZoneType zoneType : World.getInstance().getRegion(x, y).getZones())
 		{
-			if (zoneType.isCharacterInZone(player))
+			if (zoneType.isInZone(player))
 				StringUtil.append(sb, zoneType.getId(), " ");
 		}
 		html.replace("%ZLIST%", sb.toString());

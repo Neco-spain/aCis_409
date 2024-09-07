@@ -15,9 +15,9 @@ import net.sf.l2j.gameserver.enums.StatusType;
 import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.enums.actors.ClassRace;
 import net.sf.l2j.gameserver.enums.actors.WeightPenalty;
+import net.sf.l2j.gameserver.enums.duels.DuelState;
 import net.sf.l2j.gameserver.enums.skills.EffectType;
 import net.sf.l2j.gameserver.enums.skills.Stats;
-import net.sf.l2j.gameserver.model.PlayerLevel;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Playable;
@@ -26,19 +26,18 @@ import net.sf.l2j.gameserver.model.actor.Summon;
 import net.sf.l2j.gameserver.model.actor.container.npc.RewardInfo;
 import net.sf.l2j.gameserver.model.actor.instance.Pet;
 import net.sf.l2j.gameserver.model.actor.instance.Servitor;
-import net.sf.l2j.gameserver.model.clanhall.ClanHall;
-import net.sf.l2j.gameserver.model.clanhall.ClanHallFunction;
-import net.sf.l2j.gameserver.model.entity.Duel.DuelState;
-import net.sf.l2j.gameserver.model.entity.Siege;
 import net.sf.l2j.gameserver.model.group.Party;
 import net.sf.l2j.gameserver.model.olympiad.OlympiadGameManager;
 import net.sf.l2j.gameserver.model.olympiad.OlympiadGameTask;
 import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.model.pledge.ClanMember;
+import net.sf.l2j.gameserver.model.records.PlayerLevel;
+import net.sf.l2j.gameserver.model.residence.castle.Siege;
+import net.sf.l2j.gameserver.model.residence.clanhall.ClanHall;
+import net.sf.l2j.gameserver.model.residence.clanhall.ClanHallFunction;
 import net.sf.l2j.gameserver.model.zone.type.MotherTreeZone;
 import net.sf.l2j.gameserver.model.zone.type.SwampZone;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 import net.sf.l2j.gameserver.network.serverpackets.ExDuelUpdateUserInfo;
 import net.sf.l2j.gameserver.network.serverpackets.PartySmallWindowUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.PledgeShowMemberListUpdate;
@@ -204,13 +203,8 @@ public class PlayerStatus extends PlayableStatus<Player>
 					if (_actor.getDuelState() == DuelState.DUELLING)
 					{
 						_actor.disableAllSkills();
-						stopHpMpRegeneration();
 						
-						if (attacker != null)
-						{
-							attacker.getAI().tryToActive();
-							attacker.sendPacket(ActionFailed.STATIC_PACKET);
-						}
+						stopHpMpRegeneration();
 						
 						// let the DuelManager know of his defeat
 						DuelManager.getInstance().onPlayerDefeat(_actor);
@@ -544,19 +538,20 @@ public class PlayerStatus extends PlayableStatus<Player>
 		if (_actor.hasPet())
 		{
 			final Pet pet = (Pet) _actor.getSummon();
-			if (pet.getStatus().getExp() <= (pet.getTemplate().getPetDataEntry(81).getMaxExp() + 10000) && !pet.isDead() && pet.isIn3DRadius(_actor, Config.PARTY_RANGE))
+			if (pet.getStatus().getExp() <= (pet.getTemplate().getPetDataEntry(81).maxExp() + 10000) && !pet.isDead() && pet.isIn3DRadius(_actor, Config.PARTY_RANGE))
 			{
 				long petExp = 0;
 				int petSp = 0;
 				
-				int ratio = pet.getPetData().getExpType();
+				int ratio = pet.getPetData().expType();
 				if (ratio == -1)
 				{
 					RewardInfo r = rewards.get(pet);
 					RewardInfo reward = rewards.get(_actor);
 					if (r != null && reward != null)
 					{
-						double damageDoneByPet = ((double) (r.getDamage())) / reward.getDamage();
+						final double damageDoneByPet = r.getDamage() / reward.getDamage();
+						
 						petExp = (long) (addToExp * damageDoneByPet);
 						petSp = (int) (addToSp * damageDoneByPet);
 					}
@@ -900,9 +895,9 @@ public class PlayerStatus extends PlayableStatus<Player>
 	{
 		if (_actor.isMounted())
 		{
-			int base = (_actor.isFlying()) ? _actor.getPetDataEntry().getMountFlySpeed() : _actor.getPetDataEntry().getMountBaseSpeed();
+			int base = (_actor.isFlying()) ? _actor.getPetDataEntry().mountFlySpeed() : _actor.getPetDataEntry().mountBaseSpeed();
 			
-			if (getLevel() < _actor.getMountLevel())
+			if (_actor.getMountLevel() - getLevel() > 9)
 				base /= 2;
 			
 			if (_actor.checkFoodState(_actor.getPetTemplate().getHungryLimit()))
@@ -918,9 +913,9 @@ public class PlayerStatus extends PlayableStatus<Player>
 	{
 		if (_actor.isMounted())
 		{
-			int base = _actor.getPetDataEntry().getMountSwimSpeed();
+			int base = _actor.getPetDataEntry().mountWaterSpeed();
 			
-			if (getLevel() < _actor.getMountLevel())
+			if (_actor.getMountLevel() - getLevel() > 9)
 				base /= 2;
 			
 			if (_actor.checkFoodState(_actor.getPetTemplate().getHungryLimit()))
@@ -991,10 +986,11 @@ public class PlayerStatus extends PlayableStatus<Player>
 	{
 		if (_actor.isMounted())
 		{
-			double base = _actor.getPetDataEntry().getMountMAtk();
+			double base = _actor.getPetDataEntry().mountMatk();
 			
-			if (getLevel() < _actor.getMountLevel())
-				base /= 2;
+			final int diffLevel = _actor.getMountLevel() - getLevel();
+			if (diffLevel > 4)
+				base *= 0.5 - ((Math.min(diffLevel, 10) - 5) * 0.05);
 			
 			return (int) calcStat(Stats.MAGIC_ATTACK, base, null, null);
 		}
@@ -1007,11 +1003,8 @@ public class PlayerStatus extends PlayableStatus<Player>
 	{
 		double base = 333;
 		
-		if (_actor.isMounted())
-		{
-			if (_actor.checkFoodState(_actor.getPetTemplate().getHungryLimit()))
-				base /= 2;
-		}
+		if (_actor.isMounted() && _actor.checkFoodState(_actor.getPetTemplate().getHungryLimit()))
+			base /= 2;
 		
 		final int penalty = _actor.getArmorGradePenalty();
 		if (penalty > 0)
@@ -1025,10 +1018,11 @@ public class PlayerStatus extends PlayableStatus<Player>
 	{
 		if (_actor.isMounted())
 		{
-			double base = _actor.getPetDataEntry().getMountPAtk();
+			double base = _actor.getPetDataEntry().mountPatk();
 			
-			if (getLevel() < _actor.getMountLevel())
-				base /= 2;
+			final int diffLevel = _actor.getMountLevel() - getLevel();
+			if (diffLevel > 4)
+				base *= 0.5 - ((Math.min(diffLevel, 10) - 5) * 0.05);
 			
 			return (int) calcStat(Stats.POWER_ATTACK, base, null, null);
 		}
@@ -1044,7 +1038,7 @@ public class PlayerStatus extends PlayableStatus<Player>
 		
 		if (_actor.isRiding())
 		{
-			int base = _actor.getPetDataEntry().getMountAtkSpd();
+			double base = _actor.getPetDataEntry().mountAtkSpd();
 			
 			if (_actor.checkFoodState(_actor.getPetTemplate().getHungryLimit()))
 				base /= 2;
@@ -1091,7 +1085,7 @@ public class PlayerStatus extends PlayableStatus<Player>
 		if (pl == null)
 			return 0;
 		
-		return pl.getRequiredExpToLevelUp();
+		return pl.requiredExpToLevelUp();
 	}
 	
 	@Override
@@ -1101,7 +1095,7 @@ public class PlayerStatus extends PlayableStatus<Player>
 		if (pl == null)
 			return 0;
 		
-		return pl.getRequiredExpToLevelUp();
+		return pl.requiredExpToLevelUp();
 	}
 	
 	@Override
@@ -1111,7 +1105,7 @@ public class PlayerStatus extends PlayableStatus<Player>
 		if (pl == null)
 			return 0;
 		
-		return pl.getRequiredExpToLevelUp();
+		return pl.requiredExpToLevelUp();
 	}
 	
 	/**

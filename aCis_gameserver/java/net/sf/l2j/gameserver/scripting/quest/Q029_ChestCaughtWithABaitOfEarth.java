@@ -25,7 +25,7 @@ public class Q029_ChestCaughtWithABaitOfEarth extends Quest
 		
 		setItemsIds(SMALL_GLASS_BOX);
 		
-		addStartNpc(WILLIE);
+		addQuestStart(WILLIE);
 		addTalkId(WILLIE, ANABEL);
 	}
 	
@@ -45,7 +45,7 @@ public class Q029_ChestCaughtWithABaitOfEarth extends Quest
 		}
 		else if (event.equalsIgnoreCase("31574-07.htm"))
 		{
-			if (player.getInventory().hasItems(SMALL_PURPLE_TREASURE_CHEST))
+			if (player.getInventory().hasItem(SMALL_PURPLE_TREASURE_CHEST))
 			{
 				st.setCond(2);
 				takeItems(player, SMALL_PURPLE_TREASURE_CHEST, 1);
@@ -56,7 +56,7 @@ public class Q029_ChestCaughtWithABaitOfEarth extends Quest
 		}
 		else if (event.equalsIgnoreCase("30909-02.htm"))
 		{
-			if (player.getInventory().hasItems(SMALL_GLASS_BOX))
+			if (player.getInventory().hasItem(SMALL_GLASS_BOX))
 			{
 				htmltext = "30909-02.htm";
 				takeItems(player, SMALL_GLASS_BOX, 1);
@@ -100,7 +100,7 @@ public class Q029_ChestCaughtWithABaitOfEarth extends Quest
 				{
 					case WILLIE:
 						if (cond == 1)
-							htmltext = (!player.getInventory().hasItems(SMALL_PURPLE_TREASURE_CHEST)) ? "31574-06.htm" : "31574-05.htm";
+							htmltext = (!player.getInventory().hasItem(SMALL_PURPLE_TREASURE_CHEST)) ? "31574-06.htm" : "31574-05.htm";
 						else if (cond == 2)
 							htmltext = "31574-09.htm";
 						break;

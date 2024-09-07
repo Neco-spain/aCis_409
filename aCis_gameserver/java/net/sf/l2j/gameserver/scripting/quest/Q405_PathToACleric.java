@@ -42,10 +42,10 @@ public class Q405_PathToACleric extends Quest
 		
 		setItemsIds(LETTER_OF_ORDER_1, BOOK_OF_SIMPLON, BOOK_OF_PRAGA, BOOK_OF_VIVYAN, NECKLACE_OF_MOTHER, PENDANT_OF_MOTHER, LETTER_OF_ORDER_2, LIONEL_BOOK, CERTIFICATE_OF_GALLINT, LIONEL_COVENANT);
 		
-		addStartNpc(ZIGAUNT);
+		addQuestStart(ZIGAUNT);
 		addTalkId(ZIGAUNT, SIMPLON, PRAGA, VIVYAN, LIONEL, GALLINT);
 		
-		addKillId(20029, 20026);
+		addMyDying(20029, 20026);
 	}
 	
 	@Override
@@ -82,7 +82,7 @@ public class Q405_PathToACleric extends Quest
 					htmltext = (player.getClassId() == ClassId.CLERIC) ? "30022-02a.htm" : "30022-02.htm";
 				else if (player.getStatus().getLevel() < 19)
 					htmltext = "30022-03.htm";
-				else if (player.getInventory().hasItems(MARK_OF_FATE))
+				else if (player.getInventory().hasItem(MARK_OF_FATE))
 					htmltext = "30022-04.htm";
 				else
 					htmltext = "30022-01.htm";
@@ -122,35 +122,35 @@ public class Q405_PathToACleric extends Quest
 						break;
 					
 					case SIMPLON:
-						if (cond == 1 && !player.getInventory().hasItems(BOOK_OF_SIMPLON))
+						if (cond == 1 && !player.getInventory().hasItem(BOOK_OF_SIMPLON))
 						{
 							htmltext = "30253-01.htm";
 							playSound(player, SOUND_ITEMGET);
 							giveItems(player, BOOK_OF_SIMPLON, 3);
 						}
-						else if (cond > 1 || player.getInventory().hasItems(BOOK_OF_SIMPLON))
+						else if (cond > 1 || player.getInventory().hasItem(BOOK_OF_SIMPLON))
 							htmltext = "30253-02.htm";
 						break;
 					
 					case PRAGA:
 						if (cond == 1)
 						{
-							if (!player.getInventory().hasItems(BOOK_OF_PRAGA) && !player.getInventory().hasItems(NECKLACE_OF_MOTHER) && player.getInventory().hasItems(BOOK_OF_SIMPLON))
+							if (!player.getInventory().hasItem(BOOK_OF_PRAGA) && !player.getInventory().hasItem(NECKLACE_OF_MOTHER) && player.getInventory().hasItem(BOOK_OF_SIMPLON))
 							{
 								htmltext = "30333-01.htm";
 								playSound(player, SOUND_ITEMGET);
 								giveItems(player, NECKLACE_OF_MOTHER, 1);
 							}
-							else if (!player.getInventory().hasItems(PENDANT_OF_MOTHER))
+							else if (!player.getInventory().hasItem(PENDANT_OF_MOTHER))
 								htmltext = "30333-02.htm";
-							else if (player.getInventory().hasItems(PENDANT_OF_MOTHER))
+							else if (player.getInventory().hasItem(PENDANT_OF_MOTHER))
 							{
 								htmltext = "30333-03.htm";
 								takeItems(player, NECKLACE_OF_MOTHER, 1);
 								takeItems(player, PENDANT_OF_MOTHER, 1);
 								giveItems(player, BOOK_OF_PRAGA, 1);
 								
-								if (player.getInventory().hasItems(BOOK_OF_VIVYAN))
+								if (player.getInventory().hasItem(BOOK_OF_VIVYAN))
 								{
 									st.setCond(2);
 									playSound(player, SOUND_MIDDLE);
@@ -159,17 +159,17 @@ public class Q405_PathToACleric extends Quest
 									playSound(player, SOUND_ITEMGET);
 							}
 						}
-						else if (cond > 1 || (player.getInventory().hasItems(BOOK_OF_PRAGA)))
+						else if (cond > 1 || (player.getInventory().hasItem(BOOK_OF_PRAGA)))
 							htmltext = "30333-04.htm";
 						break;
 					
 					case VIVYAN:
-						if (cond == 1 && !player.getInventory().hasItems(BOOK_OF_VIVYAN) && player.getInventory().hasItems(BOOK_OF_SIMPLON))
+						if (cond == 1 && !player.getInventory().hasItem(BOOK_OF_VIVYAN) && player.getInventory().hasItem(BOOK_OF_SIMPLON))
 						{
 							htmltext = "30030-01.htm";
 							giveItems(player, BOOK_OF_VIVYAN, 1);
 							
-							if (player.getInventory().hasItems(BOOK_OF_PRAGA))
+							if (player.getInventory().hasItem(BOOK_OF_PRAGA))
 							{
 								st.setCond(2);
 								playSound(player, SOUND_MIDDLE);
@@ -177,7 +177,7 @@ public class Q405_PathToACleric extends Quest
 							else
 								playSound(player, SOUND_ITEMGET);
 						}
-						else if (cond > 1 || player.getInventory().hasItems(BOOK_OF_VIVYAN))
+						else if (cond > 1 || player.getInventory().hasItem(BOOK_OF_VIVYAN))
 							htmltext = "30030-02.htm";
 						break;
 					
@@ -225,20 +225,18 @@ public class Q405_PathToACleric extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerCondition(player, npc, 1);
 		if (st == null)
-			return null;
+			return;
 		
-		if (player.getInventory().hasItems(NECKLACE_OF_MOTHER) && !player.getInventory().hasItems(PENDANT_OF_MOTHER))
+		if (player.getInventory().hasItem(NECKLACE_OF_MOTHER) && !player.getInventory().hasItem(PENDANT_OF_MOTHER))
 		{
 			playSound(player, SOUND_MIDDLE);
 			giveItems(player, PENDANT_OF_MOTHER, 1);
 		}
-		
-		return null;
 	}
 }

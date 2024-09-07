@@ -2,11 +2,11 @@ package net.sf.l2j.gameserver.model.trade;
 
 public class ItemRequest
 {
-	private int _objectId;
-	private int _itemId;
-	private int _count;
-	private int _price;
-	private int _enchant;
+	protected int _objectId;
+	protected int _itemId;
+	protected int _count;
+	protected int _price;
+	protected int _enchant;
 	
 	public ItemRequest(int objectId, int count, int price)
 	{
@@ -24,9 +24,20 @@ public class ItemRequest
 		_enchant = enchant;
 	}
 	
+	@Override
+	public String toString()
+	{
+		return "ItemRequest [objectId=" + _objectId + ", itemId=" + _itemId + ", count=" + _count + ", price=" + _price + ", enchant=" + _enchant + "]";
+	}
+	
 	public int getObjectId()
 	{
 		return _objectId;
+	}
+	
+	public void setObjectId(int objectId)
+	{
+		_objectId = objectId;
 	}
 	
 	public int getItemId()
@@ -34,14 +45,14 @@ public class ItemRequest
 		return _itemId;
 	}
 	
-	public void setCount(int count)
-	{
-		_count = count;
-	}
-	
 	public int getCount()
 	{
 		return _count;
+	}
+	
+	public void setCount(int count)
+	{
+		_count = count;
 	}
 	
 	public int getPrice()
@@ -49,8 +60,18 @@ public class ItemRequest
 		return _price;
 	}
 	
-	public int getEnchantLevel()
+	public void setPrice(int price)
+	{
+		_price = price;
+	}
+	
+	public int getEnchant()
 	{
 		return _enchant;
+	}
+	
+	public void setEnchant(int enchant)
+	{
+		_enchant = enchant;
 	}
 }

@@ -20,42 +20,42 @@ public class WaterZone extends ZoneType
 	}
 	
 	@Override
-	protected void onEnter(Creature character)
+	protected void onEnter(Creature creature)
 	{
-		character.setInsideZone(ZoneId.WATER, true);
-		character.getMove().addMoveType(MoveType.SWIM);
+		creature.setInsideZone(ZoneId.WATER, true);
+		creature.getMove().addMoveType(MoveType.SWIM);
 		
-		if (character instanceof Player)
-			((Player) character).broadcastUserInfo();
-		else if (character instanceof Npc)
+		if (creature instanceof Player player)
+			player.broadcastUserInfo();
+		else if (creature instanceof Npc npc)
 		{
-			for (Player player : character.getKnownType(Player.class))
+			npc.forEachKnownType(Player.class, player ->
 			{
-				if (character.getStatus().getMoveSpeed() == 0)
-					player.sendPacket(new ServerObjectInfo((Npc) character, player));
+				if (npc.getStatus().getMoveSpeed() == 0)
+					player.sendPacket(new ServerObjectInfo(npc, player));
 				else
-					player.sendPacket(new NpcInfo((Npc) character, player));
-			}
+					player.sendPacket(new NpcInfo(npc, player));
+			});
 		}
 	}
 	
 	@Override
-	protected void onExit(Creature character)
+	protected void onExit(Creature creature)
 	{
-		character.setInsideZone(ZoneId.WATER, false);
-		character.getMove().removeMoveType(MoveType.SWIM);
+		creature.setInsideZone(ZoneId.WATER, false);
+		creature.getMove().removeMoveType(MoveType.SWIM);
 		
-		if (character instanceof Player)
-			((Player) character).broadcastUserInfo();
-		else if (character instanceof Npc)
+		if (creature instanceof Player player)
+			player.broadcastUserInfo();
+		else if (creature instanceof Npc npc)
 		{
-			for (Player player : character.getKnownType(Player.class))
+			npc.forEachKnownType(Player.class, player ->
 			{
-				if (character.getStatus().getMoveSpeed() == 0)
-					player.sendPacket(new ServerObjectInfo((Npc) character, player));
+				if (npc.getStatus().getMoveSpeed() == 0)
+					player.sendPacket(new ServerObjectInfo(npc, player));
 				else
-					player.sendPacket(new NpcInfo((Npc) character, player));
-			}
+					player.sendPacket(new NpcInfo(npc, player));
+			});
 		}
 	}
 	

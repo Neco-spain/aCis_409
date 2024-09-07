@@ -7,6 +7,7 @@ import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Pet;
+import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.skills.Formulas;
 import net.sf.l2j.gameserver.skills.L2Skill;
 import net.sf.l2j.gameserver.taskmanager.DecayTaskManager;
@@ -19,32 +20,37 @@ public class Resurrect implements ISkillHandler
 	};
 	
 	@Override
-	public void useSkill(Creature activeChar, L2Skill skill, WorldObject[] targets)
+	public void useSkill(Creature creature, L2Skill skill, WorldObject[] targets, ItemInstance item)
 	{
-		for (WorldObject cha : targets)
+		if (creature instanceof Player player)
 		{
-			final Creature target = (Creature) cha;
-			if (activeChar instanceof Player)
+			for (WorldObject target : targets)
 			{
-				if (cha instanceof Player)
-					((Player) cha).reviveRequest((Player) activeChar, skill, false);
-				else if (cha instanceof Pet)
+				if (target instanceof Player targetPlayer)
+					targetPlayer.reviveRequest(player, skill, false);
+				else if (target instanceof Pet targetPet)
 				{
-					if (((Pet) cha).getOwner() == activeChar)
-						target.doRevive(Formulas.calculateSkillResurrectRestorePercent(skill.getPower(), activeChar));
+					if (targetPet.getOwner() == player)
+						targetPet.doRevive(Formulas.calcRevivePower(player, skill.getPower()));
 					else
-						((Pet) cha).getOwner().reviveRequest((Player) activeChar, skill, true);
+						targetPet.getOwner().reviveRequest(player, skill, true);
 				}
-				else
-					target.doRevive(Formulas.calculateSkillResurrectRestorePercent(skill.getPower(), activeChar));
-			}
-			else
-			{
-				DecayTaskManager.getInstance().cancel(target);
-				target.doRevive(Formulas.calculateSkillResurrectRestorePercent(skill.getPower(), activeChar));
+				else if (target instanceof Creature targetCreature)
+					targetCreature.doRevive(Formulas.calcRevivePower(player, skill.getPower()));
 			}
 		}
-		activeChar.setChargedShot(activeChar.isChargedShot(ShotType.BLESSED_SPIRITSHOT) ? ShotType.BLESSED_SPIRITSHOT : ShotType.SPIRITSHOT, skill.isStaticReuse());
+		else
+		{
+			for (WorldObject target : targets)
+			{
+				if (target instanceof Creature targetCreature)
+				{
+					DecayTaskManager.getInstance().cancel(targetCreature);
+					targetCreature.doRevive(Formulas.calcRevivePower(creature, skill.getPower()));
+				}
+			}
+		}
+		creature.setChargedShot(creature.isChargedShot(ShotType.BLESSED_SPIRITSHOT) ? ShotType.BLESSED_SPIRITSHOT : ShotType.SPIRITSHOT, skill.isStaticReuse());
 	}
 	
 	@Override

@@ -1,10 +1,9 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import net.sf.l2j.gameserver.enums.AiEventType;
 import net.sf.l2j.gameserver.enums.skills.EffectFlag;
 import net.sf.l2j.gameserver.enums.skills.EffectType;
 import net.sf.l2j.gameserver.model.actor.Creature;
-import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.skills.AbstractEffect;
 import net.sf.l2j.gameserver.skills.L2Skill;
 
@@ -27,7 +26,8 @@ public class EffectStun extends AbstractEffect
 		// Abort attack, cast and move.
 		getEffected().abortAll(false);
 		
-		getEffected().getAI().tryToIdle();
+		if (getEffected() instanceof Playable targetPlayable)
+			targetPlayable.getAI().tryToIdle();
 		
 		// Refresh abnormal effects.
 		getEffected().updateAbnormalEffect();
@@ -38,9 +38,6 @@ public class EffectStun extends AbstractEffect
 	@Override
 	public void onExit()
 	{
-		if (!(getEffected() instanceof Player))
-			getEffected().getAI().notifyEvent(AiEventType.THINK, null, null);
-		
 		// Refresh abnormal effects.
 		getEffected().updateAbnormalEffect();
 	}

@@ -9,15 +9,18 @@ import net.sf.l2j.commons.pool.ThreadPool;
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.manager.BufferManager;
 import net.sf.l2j.gameserver.data.manager.CastleManorManager;
+import net.sf.l2j.gameserver.data.manager.ClanHallManager;
 import net.sf.l2j.gameserver.data.manager.CoupleManager;
 import net.sf.l2j.gameserver.data.manager.FestivalOfDarknessManager;
 import net.sf.l2j.gameserver.data.manager.FishingChampionshipManager;
-import net.sf.l2j.gameserver.data.manager.GrandBossManager;
 import net.sf.l2j.gameserver.data.manager.HeroManager;
 import net.sf.l2j.gameserver.data.manager.PetitionManager;
-import net.sf.l2j.gameserver.data.manager.RaidBossManager;
+import net.sf.l2j.gameserver.data.manager.RelationManager;
 import net.sf.l2j.gameserver.data.manager.SevenSignsManager;
+import net.sf.l2j.gameserver.data.manager.SpawnManager;
 import net.sf.l2j.gameserver.data.manager.ZoneManager;
+import net.sf.l2j.gameserver.data.sql.ServerMemoTable;
+import net.sf.l2j.gameserver.data.xml.ScriptData;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.olympiad.Olympiad;
@@ -26,6 +29,7 @@ import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.gameserverpackets.ServerStatus;
 import net.sf.l2j.gameserver.network.serverpackets.ServerClose;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
+import net.sf.l2j.gameserver.taskmanager.ItemInstanceTaskManager;
 import net.sf.l2j.gameserver.taskmanager.ItemsOnGroundTaskManager;
 
 /**
@@ -78,20 +82,18 @@ public class Shutdown extends Thread
 		{
 			StringUtil.printSection("Under " + MODE_TEXT[_shutdownMode] + " process");
 			
-			// disconnect players
+			// Disconnect players.
 			try
 			{
 				disconnectAllPlayers();
-				LOGGER.info("All players have been disconnected.");
+				LOGGER.info("Players have been disconnected.");
 			}
 			catch (Exception e)
 			{
 				// Silent catch.
 			}
 			
-			// stop all threadpolls
-			ThreadPool.shutdown();
-			
+			// Close communication with LoginServerThread.
 			try
 			{
 				LoginServerThread.getInstance().interrupt();
@@ -101,59 +103,76 @@ public class Shutdown extends Thread
 				// Silent catch.
 			}
 			
-			// Seven Signs data is now saved along with Festival data.
+			// Save Festival of Darkness.
 			if (!SevenSignsManager.getInstance().isSealValidationPeriod())
-				FestivalOfDarknessManager.getInstance().saveFestivalData(false);
-			
-			// Save Seven Signs data && status.
-			SevenSignsManager.getInstance().saveSevenSignsData();
-			SevenSignsManager.getInstance().saveSevenSignsStatus();
-			LOGGER.info("Seven Signs Festival, general data && status have been saved.");
-			
-			// Save zones (grandbosses status)
-			ZoneManager.getInstance().save();
-			
-			// Save raidbosses status
-			RaidBossManager.getInstance().cleanUp(true);
-			LOGGER.info("Raid Bosses data has been saved.");
-			
-			// Save grandbosses status
-			GrandBossManager.getInstance().cleanUp();
-			LOGGER.info("World Bosses data has been saved.");
-			
-			// Save olympiads
-			Olympiad.getInstance().saveOlympiadStatus();
-			LOGGER.info("Olympiad data has been saved.");
-			
-			// Save Hero data
-			HeroManager.getInstance().shutdown();
-			LOGGER.info("Hero data has been saved.");
-			
-			// Save all manor data
-			CastleManorManager.getInstance().storeMe();
-			LOGGER.info("Manors data has been saved.");
-			
-			// Save Fishing tournament data
-			FishingChampionshipManager.getInstance().shutdown();
-			LOGGER.info("Fishing Championship data has been saved.");
-			
-			// Schemes save.
-			BufferManager.getInstance().saveSchemes();
-			LOGGER.info("BufferTable data has been saved.");
-			
-			// Petitions save.
-			PetitionManager.getInstance().store();
-			LOGGER.info("Petitions data has been saved.");
-			
-			// Couples save.
-			if (Config.ALLOW_WEDDING)
 			{
-				CoupleManager.getInstance().save();
-				LOGGER.info("CoupleManager data has been saved.");
+				FestivalOfDarknessManager.getInstance().saveFestivalData(false);
+				LOGGER.info("FestivalOfDarknessManager has been saved.");
 			}
 			
-			// Save items on ground before closing
+			// Save Seven Signs.
+			SevenSignsManager.getInstance().saveSevenSignsData();
+			SevenSignsManager.getInstance().saveSevenSignsStatus();
+			LOGGER.info("SevenSignsManager has been saved.");
+			
+			// Stop all running scripts.
+			ScriptData.getInstance().stopAllScripts();
+			LOGGER.info("Running scripts have been stopped.");
+			
+			// Save allowed Players on BossZone.
+			ZoneManager.getInstance().save();
+			LOGGER.info("ZoneManager has been saved.");
+			
+			// Save SpawnDatas.
+			SpawnManager.getInstance().save();
+			LOGGER.info("SpawnManager has been saved.");
+			
+			// Save Olympiads.
+			Olympiad.getInstance().saveOlympiadStatus();
+			LOGGER.info("Olympiad has been saved.");
+			
+			// Save Hero data.
+			HeroManager.getInstance().shutdown();
+			LOGGER.info("HeroManager has been saved.");
+			
+			// Save manor data.
+			CastleManorManager.getInstance().storeMe();
+			LOGGER.info("CastleManorManager has been saved.");
+			
+			// Save Fishing tournament data.
+			FishingChampionshipManager.getInstance().shutdown();
+			LOGGER.info("FishingChampionshipManager has been saved.");
+			
+			// Save schemes.
+			BufferManager.getInstance().saveSchemes();
+			LOGGER.info("BufferManager has been saved.");
+			
+			// Save Petitions.
+			PetitionManager.getInstance().store();
+			LOGGER.info("PetitionManager has been saved.");
+			
+			// Save ClanHall attackers.
+			ClanHallManager.getInstance().save();
+			LOGGER.info("ClanHallManager has been saved.");
+			
+			// Save Relations.
+			RelationManager.getInstance().save();
+			LOGGER.info("RelationManager has been saved.");
+			
+			// Save Couples.
+			CoupleManager.getInstance().save();
+			LOGGER.info("CoupleManager has been saved.");
+			
+			// Enforce ItemInstanceTaskManager update.
+			ItemInstanceTaskManager.getInstance().save();
+			LOGGER.info("ItemInstanceTaskManager has been saved.");
+			
+			// Save items on ground.
 			ItemsOnGroundTaskManager.getInstance().save();
+			LOGGER.info("ItemsOnGroundTaskManager has been saved.");
+			
+			// Store the actual server state.
+			ServerMemoTable.getInstance().set("server_crash", false);
 			
 			try
 			{
@@ -163,6 +182,9 @@ public class Shutdown extends Thread
 			{
 				// Silent catch.
 			}
+			
+			// Stop the ThreadPool.
+			ThreadPool.shutdown();
 			
 			try
 			{
@@ -225,23 +247,9 @@ public class Shutdown extends Thread
 		{
 			switch (seconds)
 			{
-				case 540:
-				case 480:
-				case 420:
-				case 360:
-				case 300:
-				case 240:
-				case 180:
-				case 120:
-				case 60:
-				case 30:
-				case 10:
-				case 5:
-				case 4:
-				case 3:
-				case 2:
-				case 1:
+				case 540, 480, 420, 360, 300, 240, 180, 120, 60, 30, 10, 5, 4, 3, 2, 1:
 					break;
+				
 				default:
 					sendServerQuit(seconds);
 			}
@@ -299,22 +307,7 @@ public class Shutdown extends Thread
 				
 				switch (_secondsShut)
 				{
-					case 540:
-					case 480:
-					case 420:
-					case 360:
-					case 300:
-					case 240:
-					case 180:
-					case 120:
-					case 60:
-					case 30:
-					case 10:
-					case 5:
-					case 4:
-					case 3:
-					case 2:
-					case 1:
+					case 540, 480, 420, 360, 300, 240, 180, 120, 60, 30, 10, 5, 4, 3, 2, 1:
 						sendServerQuit(_secondsShut);
 						break;
 				}
@@ -328,8 +321,9 @@ public class Shutdown extends Thread
 				Thread.sleep(1000);
 			}
 		}
-		catch (InterruptedException e)
+		catch (InterruptedException ie)
 		{
+			// Do nothing.
 		}
 	}
 	

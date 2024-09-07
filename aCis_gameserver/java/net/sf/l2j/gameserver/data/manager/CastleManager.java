@@ -9,19 +9,21 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import net.sf.l2j.commons.data.StatSet;
 import net.sf.l2j.commons.data.xml.IXmlReader;
 import net.sf.l2j.commons.pool.ConnectionPool;
 
 import net.sf.l2j.gameserver.data.sql.ClanTable;
 import net.sf.l2j.gameserver.enums.CabalType;
 import net.sf.l2j.gameserver.enums.SpawnType;
+import net.sf.l2j.gameserver.enums.actors.TowerType;
 import net.sf.l2j.gameserver.model.WorldObject;
-import net.sf.l2j.gameserver.model.entity.Castle;
-import net.sf.l2j.gameserver.model.entity.Siege;
-import net.sf.l2j.gameserver.model.item.MercenaryTicket;
+import net.sf.l2j.gameserver.model.location.ArtifactSpawnLocation;
 import net.sf.l2j.gameserver.model.location.SpawnLocation;
 import net.sf.l2j.gameserver.model.location.TowerSpawnLocation;
 import net.sf.l2j.gameserver.model.pledge.Clan;
+import net.sf.l2j.gameserver.model.residence.castle.Castle;
+import net.sf.l2j.gameserver.model.residence.castle.Siege;
 import net.sf.l2j.gameserver.model.zone.type.SiegeZone;
 
 import org.w3c.dom.Document;
@@ -34,32 +36,45 @@ public final class CastleManager implements IXmlReader
 {
 	private static final String LOAD_CASTLES = "SELECT * FROM castle ORDER BY id";
 	private static final String LOAD_OWNER = "SELECT clan_id FROM clan_data WHERE hasCastle=?";
+	private static final String LOAD_TRAPS = "SELECT * FROM castle_trapupgrade WHERE castleId=?";
+	private static final String LOAD_DOORS = "SELECT * FROM castle_doorupgrade WHERE castleId=?";
+	
 	private static final String RESET_CERTIFICATES = "UPDATE castle SET certificates=300";
 	
 	private final Map<Integer, Castle> _castles = new HashMap<>();
 	
 	protected CastleManager()
 	{
-		// Generate Castle objects with dynamic data.
+		// Build Castle objects with static data.
+		load();
+		
+		// Add dynamic data.
 		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement(LOAD_CASTLES);
 			ResultSet rs = ps.executeQuery())
 		{
 			while (rs.next())
 			{
-				final int id = rs.getInt("id");
-				final Castle castle = new Castle(id, rs.getString("name"));
+				final Castle castle = _castles.get(rs.getInt("id"));
+				if (castle == null)
+					continue;
 				
 				castle.setSiegeDate(Calendar.getInstance());
 				castle.getSiegeDate().setTimeInMillis(rs.getLong("siegeDate"));
 				castle.setTimeRegistrationOver(rs.getBoolean("regTimeOver"));
-				castle.setTaxPercent(rs.getInt("taxPercent"), false);
+				castle.setCurrentTaxPercent(rs.getInt("currentTaxPercent"), false);
+				castle.setNextTaxPercent(rs.getInt("nextTaxPercent"), false);
 				castle.setTreasury(rs.getLong("treasury"));
+				castle.setTaxRevenue(rs.getLong("taxRevenue"));
+				castle.setSeedIncome(rs.getLong("seedIncome"));
 				castle.setLeftCertificates(rs.getInt("certificates"), false);
 				
-				try (PreparedStatement ps1 = con.prepareStatement(LOAD_OWNER))
+				try (PreparedStatement ps1 = con.prepareStatement(LOAD_OWNER);
+					PreparedStatement ps2 = con.prepareStatement(LOAD_TRAPS);
+					PreparedStatement ps3 = con.prepareStatement(LOAD_DOORS))
 				{
-					ps1.setInt(1, id);
+					ps1.setInt(1, castle.getId());
+					
 					try (ResultSet rs1 = ps1.executeQuery())
 					{
 						while (rs1.next())
@@ -73,24 +88,31 @@ public final class CastleManager implements IXmlReader
 							}
 						}
 					}
+					
+					ps2.setInt(1, castle.getId());
+					
+					try (ResultSet rs2 = ps2.executeQuery())
+					{
+						while (rs2.next())
+							castle.getControlTowers().get(rs2.getInt("towerIndex")).setUpgradeLevel(rs2.getInt("level"));
+					}
+					
+					// Generate siege entity. Launch it before door upgrade to avoid NPE.
+					castle.launchSiege();
+					
+					ps3.setInt(1, castle.getId());
+					
+					try (ResultSet rs3 = ps3.executeQuery())
+					{
+						while (rs3.next())
+							castle.upgradeDoor(rs3.getInt("doorId"), rs3.getInt("hp"), false);
+					}
 				}
-				
-				_castles.put(id, castle);
 			}
 		}
 		catch (Exception e)
 		{
 			LOGGER.error("Failed to load castles.", e);
-		}
-		
-		// Feed Castle objects with static data.
-		load();
-		
-		// Load traps informations. Generate siege entities for every castle (if not handled, it's only processed during player login).
-		for (Castle castle : _castles.values())
-		{
-			castle.loadTrapUpgrade();
-			castle.setSiege(new Siege(castle));
 		}
 	}
 	
@@ -106,27 +128,51 @@ public final class CastleManager implements IXmlReader
 	{
 		forEach(doc, "list", listNode -> forEach(listNode, "castle", castleNode ->
 		{
-			final NamedNodeMap attrs = castleNode.getAttributes();
-			final Castle castle = _castles.get(parseInteger(attrs, "id"));
-			if (castle != null)
+			final StatSet set = parseAttributes(castleNode);
+			forEach(castleNode, "tax", taxNode -> addAttributes(set, taxNode.getAttributes()));
+			
+			final Castle castle = new Castle(set);
+			
+			forEach(castleNode, "artifacts", artifactsNode -> forEach(artifactsNode, "artifact", artifactNode ->
 			{
-				castle.setCircletId(parseInteger(attrs, "circletId"));
-				forEach(castleNode, "artifact", artifactNode -> castle.setArtifacts(parseString(artifactNode.getAttributes(), "val")));
-				forEach(castleNode, "controlTowers", controlTowersNode -> forEach(controlTowersNode, "tower", towerNode ->
+				final NamedNodeMap artifactAttrs = artifactNode.getAttributes();
+				final int npcId = parseInteger(artifactAttrs, "id");
+				final SpawnLocation pos = parseSpawnLocation(artifactAttrs, "pos");
+				
+				final ArtifactSpawnLocation asl = new ArtifactSpawnLocation(npcId, castle);
+				asl.set(pos);
+				
+				castle.getArtifacts().add(asl);
+			}));
+			forEach(castleNode, "controlTowers", controlTowersNode -> forEach(controlTowersNode, "controlTower", towerNode ->
+			{
+				final NamedNodeMap towerAttrs = towerNode.getAttributes();
+				final String alias = parseString(towerAttrs, "alias");
+				final TowerType type = parseEnum(towerAttrs, TowerType.class, "type");
+				
+				final TowerSpawnLocation tsl = new TowerSpawnLocation(type, alias, castle);
+				
+				forEach(towerNode, "position", positionNode ->
 				{
-					final String[] location = parseString(towerNode.getAttributes(), "loc").split(",");
-					castle.getControlTowers().add(new TowerSpawnLocation(13002, new SpawnLocation(Integer.parseInt(location[0]), Integer.parseInt(location[1]), Integer.parseInt(location[2]), -1)));
-				}));
-				forEach(castleNode, "flameTowers", flameTowersNode -> forEach(flameTowersNode, "tower", towerNode ->
+					final NamedNodeMap attrs = positionNode.getAttributes();
+					tsl.set(parseInteger(attrs, "x"), parseInteger(attrs, "y"), parseInteger(attrs, "z"));
+				});
+				forEach(towerNode, "stats", statNode ->
 				{
-					final NamedNodeMap towerAttrs = towerNode.getAttributes();
-					final String[] location = parseString(towerAttrs, "loc").split(",");
-					castle.getFlameTowers().add(new TowerSpawnLocation(13004, new SpawnLocation(Integer.parseInt(location[0]), Integer.parseInt(location[1]), Integer.parseInt(location[2]), -1), parseString(towerAttrs, "zones").split(",")));
-				}));
-				forEach(castleNode, "relatedNpcIds", relatedNpcIdsNode -> castle.setRelatedNpcIds(parseString(relatedNpcIdsNode.getAttributes(), "val")));
-				forEach(castleNode, "spawns", spawnsNode -> forEach(spawnsNode, "spawn", spawnNode -> castle.addSpawn(parseEnum(spawnNode.getAttributes(), SpawnType.class, "type"), parseLocation(spawnNode))));
-				forEach(castleNode, "tickets", ticketsNode -> forEach(ticketsNode, "ticket", ticketNode -> castle.getTickets().add(new MercenaryTicket(parseAttributes(ticketNode)))));
-			}
+					final NamedNodeMap attrs = statNode.getAttributes();
+					tsl.setStats(parseDouble(attrs, "hp"), parseDouble(attrs, "pDef"), parseDouble(attrs, "mDef"));
+				});
+				forEach(towerNode, "zones", zoneNode -> tsl.setZones(parseString(zoneNode.getAttributes(), "val").split(";")));
+				
+				castle.getControlTowers().add(tsl);
+			}));
+			forEach(castleNode, "gates", gatesNode -> castle.setDoors(parseString(gatesNode.getAttributes(), "val")));
+			forEach(castleNode, "npcs", npcsNode -> castle.setNpcs(parseString(npcsNode.getAttributes(), "val")));
+			forEach(castleNode, "spawns", spawnsNode -> forEach(spawnsNode, "spawn", spawnNode -> castle.addSpawn(parseEnum(spawnNode.getAttributes(), SpawnType.class, "type"), parseLocation(spawnNode))));
+			forEach(castleNode, "tickets", ticketsNode -> forEach(ticketsNode, "ticket", ticketNode -> castle.addTicket(parseAttributes(ticketNode))));
+			
+			// Feed castles Map.
+			_castles.put(castle.getId(), castle);
 		}));
 	}
 	
@@ -140,9 +186,9 @@ public final class CastleManager implements IXmlReader
 		return _castles.values().stream().filter(c -> c.getOwnerId() == clan.getClanId()).findFirst().orElse(null);
 	}
 	
-	public Castle getCastleByName(String name)
+	public Castle getCastleByAlias(String alias)
 	{
-		return _castles.values().stream().filter(c -> c.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
+		return _castles.values().stream().filter(c -> c.getAlias().equalsIgnoreCase(alias)).findFirst().orElse(null);
 	}
 	
 	public Castle getCastle(int x, int y, int z)
@@ -178,7 +224,7 @@ public final class CastleManager implements IXmlReader
 				break;
 		}
 		
-		_castles.values().stream().filter(c -> c.getTaxPercent() > maxTax).forEach(c -> c.setTaxPercent(maxTax, true));
+		_castles.values().stream().filter(c -> c.getCurrentTaxPercent() > maxTax).forEach(c -> c.setCurrentTaxPercent(maxTax, true));
 	}
 	
 	/**
@@ -226,6 +272,38 @@ public final class CastleManager implements IXmlReader
 		{
 			LOGGER.error("Failed to reset certificates.", e);
 		}
+	}
+	
+	public void spawnEntities()
+	{
+		_castles.values().forEach(castle ->
+		{
+			// Spawn control towers.
+			castle.getControlTowers().forEach(TowerSpawnLocation::spawnMe);
+			
+			// Spawn artifacts.
+			castle.getArtifacts().forEach(ArtifactSpawnLocation::spawnMe);
+		});
+	}
+	
+	/**
+	 * Update taxes for all {@link Castle}s.<br>
+	 * <br>
+	 * For none owned castle :
+	 * <ul>
+	 * <li>Reset all vars as default.</li>
+	 * <li>Use default tax rate for both current and next vars.</li>
+	 * </ul>
+	 * For owned castle :
+	 * <ul>
+	 * <li>Increase treasury based on tax revenue and seed income.</li>
+	 * <li>Reset tax revenue and seed income vars.</li>
+	 * <li>Set current tax using next tax rate.</li>
+	 * </ul>
+	 */
+	public void updateTaxes()
+	{
+		_castles.values().forEach(Castle::updateTaxes);
 	}
 	
 	public static final CastleManager getInstance()

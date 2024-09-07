@@ -76,14 +76,13 @@ public class Q348_AnArrogantSearch extends Quest
 		
 		setItemsIds(TITAN_POWERSTONE, HANELLIN_FIRST_LETTER, HANELLIN_SECOND_LETTER, HANELLIN_THIRD_LETTER, FIRST_KEY_OF_ARK, SECOND_KEY_OF_ARK, THIRD_KEY_OF_ARK, BOOK_OF_SAINT, BLOOD_OF_SAINT, BOUGH_OF_SAINT, WHITE_FABRIC);
 		
-		addStartNpc(HANELLIN);
+		addQuestStart(HANELLIN);
 		addTalkId(HANELLIN, CLAUDIA_ATHEBALDT, MARTIEN, HARNE, HOLY_ARK_OF_SECRECY_1, HOLY_ARK_OF_SECRECY_2, HOLY_ARK_OF_SECRECY_3, ARK_GUARDIAN_CORPSE, GUSTAV_ATHEBALDT, HARDIN, IASON_HEINE);
 		
-		addSpawnId(ARK_GUARDIAN_ELBEROTH, ARK_GUARDIAN_SHADOW_FANG, ANGEL_KILLER);
-		addAttackId(ARK_GUARDIAN_ELBEROTH, ARK_GUARDIAN_SHADOW_FANG, ANGEL_KILLER, PLATINUM_TRIBE_SHAMAN, PLATINUM_TRIBE_OVERLORD);
-		
-		addKillId(LESSER_GIANT_MAGE, LESSER_GIANT_ELDER, ARK_GUARDIAN_ELBEROTH, ARK_GUARDIAN_SHADOW_FANG, PLATINUM_TRIBE_SHAMAN, PLATINUM_TRIBE_OVERLORD, GUARDIAN_ANGEL, SEAL_ANGEL);
-		addDecayId(ARK_GUARDIAN_ELBEROTH, ARK_GUARDIAN_SHADOW_FANG, ANGEL_KILLER);
+		addAttacked(ARK_GUARDIAN_ELBEROTH, ARK_GUARDIAN_SHADOW_FANG, ANGEL_KILLER, PLATINUM_TRIBE_SHAMAN, PLATINUM_TRIBE_OVERLORD);
+		addCreated(ARK_GUARDIAN_ELBEROTH, ARK_GUARDIAN_SHADOW_FANG, ANGEL_KILLER);
+		addDecayed(ARK_GUARDIAN_ELBEROTH, ARK_GUARDIAN_SHADOW_FANG, ANGEL_KILLER);
+		addMyDying(LESSER_GIANT_MAGE, LESSER_GIANT_ELDER, ARK_GUARDIAN_ELBEROTH, ARK_GUARDIAN_SHADOW_FANG, PLATINUM_TRIBE_SHAMAN, PLATINUM_TRIBE_OVERLORD, GUARDIAN_ANGEL, SEAL_ANGEL);
 	}
 	
 	@Override
@@ -131,7 +130,7 @@ public class Q348_AnArrogantSearch extends Quest
 		{
 			st.setCond(26);
 			playSound(player, SOUND_MIDDLE);
-			giveItems(player, WHITE_FABRIC, (player.getInventory().hasItems(BLOODED_FABRIC)) ? 9 : 10);
+			giveItems(player, WHITE_FABRIC, (player.getInventory().hasItem(BLOODED_FABRIC)) ? 9 : 10);
 		}
 		else if (event.equalsIgnoreCase("30864-58.htm"))
 		{
@@ -167,7 +166,7 @@ public class Q348_AnArrogantSearch extends Quest
 		switch (st.getState())
 		{
 			case CREATED:
-				if (player.getInventory().hasItems(BLOODED_FABRIC))
+				if (player.getInventory().hasItem(BLOODED_FABRIC))
 					htmltext = "30864-00.htm";
 				else if (player.getStatus().getLevel() < 60)
 					htmltext = "30864-01.htm";
@@ -183,7 +182,7 @@ public class Q348_AnArrogantSearch extends Quest
 						if (cond == 1)
 							htmltext = "30864-02.htm";
 						else if (cond == 2)
-							htmltext = (!player.getInventory().hasItems(TITAN_POWERSTONE)) ? "30864-06.htm" : "30864-07.htm";
+							htmltext = (!player.getInventory().hasItem(TITAN_POWERSTONE)) ? "30864-06.htm" : "30864-07.htm";
 						else if (cond == 4)
 							htmltext = "30864-09.htm";
 						else if (cond > 4 && cond < 21)
@@ -199,9 +198,9 @@ public class Q348_AnArrogantSearch extends Quest
 						}
 						else if (cond == 22)
 						{
-							if (player.getInventory().hasItems(WHITE_FABRIC))
+							if (player.getInventory().hasItem(WHITE_FABRIC))
 								htmltext = "30864-31.htm";
-							else if (player.getInventory().getItemCount(ANTIDOTE) < 5 || !player.getInventory().hasItems(HEALING_POTION))
+							else if (player.getInventory().getItemCount(ANTIDOTE) < 5 || !player.getInventory().hasItem(HEALING_POTION))
 								htmltext = "30864-30.htm";
 							else
 							{
@@ -216,9 +215,9 @@ public class Q348_AnArrogantSearch extends Quest
 							htmltext = "30864-38.htm";
 						else if (cond == 25)
 						{
-							if (player.getInventory().hasItems(WHITE_FABRIC))
+							if (player.getInventory().hasItem(WHITE_FABRIC))
 								htmltext = "30864-39.htm";
-							else if (player.getInventory().hasItems(BLOODED_FABRIC))
+							else if (player.getInventory().hasItem(BLOODED_FABRIC))
 								htmltext = "30864-49.htm";
 							// Use the only fabric on Baium, drop the quest.
 							else
@@ -252,7 +251,7 @@ public class Q348_AnArrogantSearch extends Quest
 								rewardItems(player, 57, 49000);
 								playSound(player, SOUND_MIDDLE);
 							}
-							else if (player.getInventory().hasItems(BLOODED_FABRIC) && st.getInteger("usedonbaium") != 1)
+							else if (player.getInventory().hasItem(BLOODED_FABRIC) && st.getInteger("usedonbaium") != 1)
 								htmltext = "30864-59.htm";
 							else
 							{
@@ -304,7 +303,7 @@ public class Q348_AnArrogantSearch extends Quest
 					case HARDIN:
 						if (cond == 27)
 						{
-							if (player.getInventory().hasItems(BLOODED_FABRIC) && st.getInteger("hardin") == 0)
+							if (player.getInventory().hasItem(BLOODED_FABRIC) && st.getInteger("hardin") == 0)
 							{
 								st.set("hardin", 1);
 								htmltext = "30832-01.htm";
@@ -342,9 +341,9 @@ public class Q348_AnArrogantSearch extends Quest
 					case HARNE:
 						if (cond >= 5 && cond <= 22)
 						{
-							if (!player.getInventory().hasItems(BLOOD_OF_SAINT))
+							if (!player.getInventory().hasItem(BLOOD_OF_SAINT))
 							{
-								if (player.getInventory().hasItems(HANELLIN_FIRST_LETTER))
+								if (player.getInventory().hasItem(HANELLIN_FIRST_LETTER))
 								{
 									htmltext = "30144-01.htm";
 									st.setCond(17);
@@ -352,7 +351,7 @@ public class Q348_AnArrogantSearch extends Quest
 									takeItems(player, HANELLIN_FIRST_LETTER, 1);
 									player.getRadarList().addMarker(GUARDIAN_CORPSE_LOC);
 								}
-								else if (!player.getInventory().hasItems(FIRST_KEY_OF_ARK))
+								else if (!player.getInventory().hasItem(FIRST_KEY_OF_ARK))
 								{
 									htmltext = "30144-03.htm";
 									player.getRadarList().addMarker(GUARDIAN_CORPSE_LOC);
@@ -368,9 +367,9 @@ public class Q348_AnArrogantSearch extends Quest
 					case CLAUDIA_ATHEBALDT:
 						if (cond >= 5 && cond <= 22)
 						{
-							if (!player.getInventory().hasItems(BOOK_OF_SAINT))
+							if (!player.getInventory().hasItem(BOOK_OF_SAINT))
 							{
-								if (player.getInventory().hasItems(HANELLIN_SECOND_LETTER))
+								if (player.getInventory().hasItem(HANELLIN_SECOND_LETTER))
 								{
 									htmltext = "31001-01.htm";
 									st.setCond(9);
@@ -378,7 +377,7 @@ public class Q348_AnArrogantSearch extends Quest
 									takeItems(player, HANELLIN_SECOND_LETTER, 1);
 									player.getRadarList().addMarker(HOLY_ARK_2_LOC);
 								}
-								else if (!player.getInventory().hasItems(SECOND_KEY_OF_ARK))
+								else if (!player.getInventory().hasItem(SECOND_KEY_OF_ARK))
 								{
 									htmltext = "31001-03.htm";
 									player.getRadarList().addMarker(HOLY_ARK_2_LOC);
@@ -394,9 +393,9 @@ public class Q348_AnArrogantSearch extends Quest
 					case MARTIEN:
 						if (cond >= 5 && cond <= 22)
 						{
-							if (!player.getInventory().hasItems(BOUGH_OF_SAINT))
+							if (!player.getInventory().hasItem(BOUGH_OF_SAINT))
 							{
-								if (player.getInventory().hasItems(HANELLIN_THIRD_LETTER))
+								if (player.getInventory().hasItem(HANELLIN_THIRD_LETTER))
 								{
 									htmltext = "30645-01.htm";
 									st.setCond(13);
@@ -404,7 +403,7 @@ public class Q348_AnArrogantSearch extends Quest
 									takeItems(player, HANELLIN_THIRD_LETTER, 1);
 									player.getRadarList().addMarker(HOLY_ARK_3_LOC);
 								}
-								else if (!player.getInventory().hasItems(THIRD_KEY_OF_ARK))
+								else if (!player.getInventory().hasItem(THIRD_KEY_OF_ARK))
 								{
 									htmltext = "30645-03.htm";
 									player.getRadarList().addMarker(HOLY_ARK_3_LOC);
@@ -418,9 +417,9 @@ public class Q348_AnArrogantSearch extends Quest
 						break;
 					
 					case ARK_GUARDIAN_CORPSE:
-						if (!player.getInventory().hasItems(HANELLIN_FIRST_LETTER) && cond >= 5 && cond <= 22)
+						if (!player.getInventory().hasItem(HANELLIN_FIRST_LETTER) && cond >= 5 && cond <= 22)
 						{
-							if (!player.getInventory().hasItems(FIRST_KEY_OF_ARK) && !player.getInventory().hasItems(BLOOD_OF_SAINT))
+							if (!player.getInventory().hasItem(FIRST_KEY_OF_ARK) && !player.getInventory().hasItem(BLOOD_OF_SAINT))
 							{
 								if (st.getInteger("angelkiller") == 0)
 								{
@@ -451,11 +450,11 @@ public class Q348_AnArrogantSearch extends Quest
 						break;
 					
 					case HOLY_ARK_OF_SECRECY_1:
-						if (!player.getInventory().hasItems(HANELLIN_FIRST_LETTER) && cond >= 5 && cond <= 22)
+						if (!player.getInventory().hasItem(HANELLIN_FIRST_LETTER) && cond >= 5 && cond <= 22)
 						{
-							if (!player.getInventory().hasItems(BLOOD_OF_SAINT))
+							if (!player.getInventory().hasItem(BLOOD_OF_SAINT))
 							{
-								if (player.getInventory().hasItems(FIRST_KEY_OF_ARK))
+								if (player.getInventory().hasItem(FIRST_KEY_OF_ARK))
 								{
 									htmltext = "30977-02.htm";
 									st.setCond(20);
@@ -476,11 +475,11 @@ public class Q348_AnArrogantSearch extends Quest
 						break;
 					
 					case HOLY_ARK_OF_SECRECY_2:
-						if (!player.getInventory().hasItems(HANELLIN_SECOND_LETTER) && cond >= 5 && cond <= 22)
+						if (!player.getInventory().hasItem(HANELLIN_SECOND_LETTER) && cond >= 5 && cond <= 22)
 						{
-							if (!player.getInventory().hasItems(BOOK_OF_SAINT))
+							if (!player.getInventory().hasItem(BOOK_OF_SAINT))
 							{
-								if (!player.getInventory().hasItems(SECOND_KEY_OF_ARK))
+								if (!player.getInventory().hasItem(SECOND_KEY_OF_ARK))
 								{
 									htmltext = "30978-01.htm";
 									if (_elberoth == null)
@@ -505,11 +504,11 @@ public class Q348_AnArrogantSearch extends Quest
 						break;
 					
 					case HOLY_ARK_OF_SECRECY_3:
-						if (!player.getInventory().hasItems(HANELLIN_THIRD_LETTER) && cond >= 5 && cond <= 22)
+						if (!player.getInventory().hasItem(HANELLIN_THIRD_LETTER) && cond >= 5 && cond <= 22)
 						{
-							if (!player.getInventory().hasItems(BOUGH_OF_SAINT))
+							if (!player.getInventory().hasItem(BOUGH_OF_SAINT))
 							{
-								if (!player.getInventory().hasItems(THIRD_KEY_OF_ARK))
+								if (!player.getInventory().hasItem(THIRD_KEY_OF_ARK))
 								{
 									htmltext = "30979-01.htm";
 									if (_shadowFang == null)
@@ -540,34 +539,13 @@ public class Q348_AnArrogantSearch extends Quest
 	}
 	
 	@Override
-	public String onSpawn(Npc npc)
-	{
-		switch (npc.getNpcId())
-		{
-			case ARK_GUARDIAN_ELBEROTH:
-				npc.broadcastNpcSay(NpcStringId.ID_34837);
-				break;
-			
-			case ARK_GUARDIAN_SHADOW_FANG:
-				npc.broadcastNpcSay(NpcStringId.ID_34838);
-				break;
-			
-			case ANGEL_KILLER:
-				npc.broadcastNpcSay(NpcStringId.ID_34831);
-				break;
-		}
-		
-		return null;
-	}
-	
-	@Override
-	public String onAttack(Npc npc, Creature attacker, int damage, L2Skill skill)
+	public void onAttacked(Npc npc, Creature attacker, int damage, L2Skill skill)
 	{
 		final Player player = attacker.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
@@ -608,10 +586,9 @@ public class Q348_AnArrogantSearch extends Quest
 				}
 				break;
 			
-			case PLATINUM_TRIBE_OVERLORD:
-			case PLATINUM_TRIBE_SHAMAN:
+			case PLATINUM_TRIBE_OVERLORD, PLATINUM_TRIBE_SHAMAN:
 				final int cond = st.getCond();
-				if ((cond == 24 || cond == 25) && player.getInventory().hasItems(WHITE_FABRIC))
+				if ((cond == 24 || cond == 25) && player.getInventory().hasItem(WHITE_FABRIC))
 				{
 					final int points = st.getInteger("points") + ((npc.getNpcId() == PLATINUM_TRIBE_SHAMAN) ? 60 : 70);
 					if (points > ((cond == 24) ? 80000 : 100000))
@@ -634,31 +611,64 @@ public class Q348_AnArrogantSearch extends Quest
 				}
 				break;
 		}
-		
-		return null;
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onCreated(Npc npc)
+	{
+		switch (npc.getNpcId())
+		{
+			case ARK_GUARDIAN_ELBEROTH:
+				npc.broadcastNpcSay(NpcStringId.ID_34837);
+				break;
+			
+			case ARK_GUARDIAN_SHADOW_FANG:
+				npc.broadcastNpcSay(NpcStringId.ID_34838);
+				break;
+			
+			case ANGEL_KILLER:
+				npc.broadcastNpcSay(NpcStringId.ID_34831);
+				break;
+		}
+	}
+	
+	@Override
+	public void onDecayed(Npc npc)
+	{
+		if (npc == _elberoth)
+		{
+			_elberoth = null;
+		}
+		else if (npc == _shadowFang)
+		{
+			_shadowFang = null;
+		}
+		else if (npc == _angelKiller)
+		{
+			_angelKiller = null;
+		}
+	}
+	
+	@Override
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
-		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
+		final QuestState st = getRandomPartyMemberState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final int cond = st.getCond();
 		
 		switch (npc.getNpcId())
 		{
-			case LESSER_GIANT_ELDER:
-			case LESSER_GIANT_MAGE:
+			case LESSER_GIANT_ELDER, LESSER_GIANT_MAGE:
 				if (cond == 2)
 					dropItems(player, TITAN_POWERSTONE, 1, 1, 100000);
 				break;
 			
 			case ARK_GUARDIAN_ELBEROTH:
-				if (cond >= 5 && cond <= 22 && !player.getInventory().hasItems(SECOND_KEY_OF_ARK))
+				if (cond >= 5 && cond <= 22 && !player.getInventory().hasItem(SECOND_KEY_OF_ARK))
 				{
 					st.setCond(11);
 					playSound(player, SOUND_MIDDLE);
@@ -668,7 +678,7 @@ public class Q348_AnArrogantSearch extends Quest
 				break;
 			
 			case ARK_GUARDIAN_SHADOW_FANG:
-				if (cond >= 5 && cond <= 22 && !player.getInventory().hasItems(THIRD_KEY_OF_ARK))
+				if (cond >= 5 && cond <= 22 && !player.getInventory().hasItem(THIRD_KEY_OF_ARK))
 				{
 					st.setCond(15);
 					playSound(player, SOUND_MIDDLE);
@@ -677,9 +687,8 @@ public class Q348_AnArrogantSearch extends Quest
 				}
 				break;
 			
-			case PLATINUM_TRIBE_OVERLORD:
-			case PLATINUM_TRIBE_SHAMAN:
-				if ((cond == 24 || cond == 25) && player.getInventory().hasItems(WHITE_FABRIC))
+			case PLATINUM_TRIBE_OVERLORD, PLATINUM_TRIBE_SHAMAN:
+				if ((cond == 24 || cond == 25) && player.getInventory().hasItem(WHITE_FABRIC))
 				{
 					final int points = st.getInteger("points") + ((npc.getNpcId() == PLATINUM_TRIBE_SHAMAN) ? 600 : 700);
 					if (points > ((cond == 24) ? 80000 : 100000))
@@ -702,9 +711,8 @@ public class Q348_AnArrogantSearch extends Quest
 				}
 				break;
 			
-			case SEAL_ANGEL:
-			case GUARDIAN_ANGEL:
-				if ((cond == 26 || cond == 29) && Rnd.get(4) < 1 && player.getInventory().hasItems(WHITE_FABRIC))
+			case SEAL_ANGEL, GUARDIAN_ANGEL:
+				if ((cond == 26 || cond == 29) && Rnd.get(4) < 1 && player.getInventory().hasItem(WHITE_FABRIC))
 				{
 					playSound(player, SOUND_ITEMGET);
 					takeItems(player, WHITE_FABRIC, 1);
@@ -712,26 +720,5 @@ public class Q348_AnArrogantSearch extends Quest
 				}
 				break;
 		}
-		
-		return null;
-	}
-	
-	@Override
-	public String onDecay(Npc npc)
-	{
-		if (npc == _elberoth)
-		{
-			_elberoth = null;
-		}
-		else if (npc == _shadowFang)
-		{
-			_shadowFang = null;
-		}
-		else if (npc == _angelKiller)
-		{
-			_angelKiller = null;
-		}
-		
-		return null;
 	}
 }

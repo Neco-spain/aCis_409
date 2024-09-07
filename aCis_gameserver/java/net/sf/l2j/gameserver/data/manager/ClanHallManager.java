@@ -9,7 +9,6 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import net.sf.l2j.commons.data.StatSet;
 import net.sf.l2j.commons.data.xml.IXmlReader;
@@ -18,12 +17,12 @@ import net.sf.l2j.commons.pool.ConnectionPool;
 import net.sf.l2j.gameserver.data.sql.ClanTable;
 import net.sf.l2j.gameserver.enums.SpawnType;
 import net.sf.l2j.gameserver.model.actor.Creature;
-import net.sf.l2j.gameserver.model.clanhall.Auction;
-import net.sf.l2j.gameserver.model.clanhall.ClanHall;
-import net.sf.l2j.gameserver.model.clanhall.ClanHallFunction;
-import net.sf.l2j.gameserver.model.clanhall.SiegableHall;
-import net.sf.l2j.gameserver.model.entity.ClanHallSiege;
 import net.sf.l2j.gameserver.model.pledge.Clan;
+import net.sf.l2j.gameserver.model.residence.clanhall.Auction;
+import net.sf.l2j.gameserver.model.residence.clanhall.ClanHall;
+import net.sf.l2j.gameserver.model.residence.clanhall.ClanHallFunction;
+import net.sf.l2j.gameserver.model.residence.clanhall.ClanHallSiege;
+import net.sf.l2j.gameserver.model.residence.clanhall.SiegableHall;
 import net.sf.l2j.gameserver.model.zone.type.ClanHallZone;
 
 import org.w3c.dom.Document;
@@ -63,7 +62,7 @@ public class ClanHallManager implements IXmlReader
 					LOGGER.warn("No existing ClanHallZone for ClanHall {}.", id);
 				
 				// A default bid exists, it means it's a regular Clan Hall. Generate an Auction.
-				if (ch.getDefaultBid() > 0)
+				if (ch.getAuctionMin() > 0)
 					ch.setAuction(new Auction(ch, rs.getInt("sellerBid"), rs.getString("sellerName"), rs.getString("sellerClanName"), rs.getLong("endDate")));
 				// No default bid ; it's actually a Siegable Hall.
 				else
@@ -133,11 +132,16 @@ public class ClanHallManager implements IXmlReader
 	@Override
 	public void parseDocument(Document doc, Path path)
 	{
-		forEach(doc, "list", listNode -> forEach(listNode, "clanhall", chNode ->
+		forEach(doc, "list", listNode -> forEach(listNode, "clanHall", chNode ->
 		{
 			final StatSet set = parseAttributes(chNode);
+			forEach(chNode, "agit", agitNode -> addAttributes(set, agitNode.getAttributes()));
+			forEach(chNode, "tax", taxNode -> addAttributes(set, taxNode.getAttributes()));
+			
 			final ClanHall ch = (set.containsKey("siegeLength")) ? new SiegableHall(set) : new ClanHall(set);
 			
+			forEach(chNode, "gates", gatesNode -> ch.setDoors(parseString(gatesNode.getAttributes(), "val")));
+			forEach(chNode, "npcs", npcsNode -> ch.setNpcs(parseString(npcsNode.getAttributes(), "val")));
 			forEach(chNode, "spawns", spawnsNode -> forEach(spawnsNode, "spawn", spawnNode -> ch.addSpawn(parseEnum(spawnNode.getAttributes(), SpawnType.class, "type"), parseLocation(spawnNode))));
 			
 			_clanHalls.put(set.getInteger("id"), ch);
@@ -160,7 +164,7 @@ public class ClanHallManager implements IXmlReader
 	public SiegableHall getSiegableHall(int id)
 	{
 		final ClanHall ch = _clanHalls.get(id);
-		return (ch instanceof SiegableHall) ? (SiegableHall) ch : null;
+		return (ch instanceof SiegableHall sh) ? sh : null;
 	}
 	
 	/**
@@ -176,7 +180,7 @@ public class ClanHallManager implements IXmlReader
 	 */
 	public List<SiegableHall> getSiegableHalls()
 	{
-		return _clanHalls.values().stream().filter(SiegableHall.class::isInstance).map(SiegableHall.class::cast).collect(Collectors.toList());
+		return _clanHalls.values().stream().filter(SiegableHall.class::isInstance).map(SiegableHall.class::cast).toList();
 	}
 	
 	/**
@@ -207,7 +211,7 @@ public class ClanHallManager implements IXmlReader
 	 */
 	public final List<ClanHall> getClanHallsByLocation(String location)
 	{
-		return _clanHalls.values().stream().filter(ch -> ch.getLocation().equalsIgnoreCase(location)).collect(Collectors.toList());
+		return _clanHalls.values().stream().filter(ch -> ch.getTownName().equalsIgnoreCase(location)).toList();
 	}
 	
 	/**
@@ -233,10 +237,9 @@ public class ClanHallManager implements IXmlReader
 	{
 		for (ClanHall ch : _clanHalls.values())
 		{
-			if (!(ch instanceof SiegableHall))
+			if (!(ch instanceof SiegableHall sh))
 				continue;
 			
-			final SiegableHall sh = (SiegableHall) ch;
 			if (sh.getSiegeZone().isActive() && sh.getSiegeZone().isInsideZone(creature))
 				return sh.getSiege();
 		}
@@ -253,7 +256,7 @@ public class ClanHallManager implements IXmlReader
 		return false;
 	}
 	
-	public final void onServerShutDown()
+	public final void save()
 	{
 		for (SiegableHall hall : getSiegableHalls())
 		{

@@ -7,6 +7,8 @@ import net.sf.l2j.gameserver.enums.actors.MoveType;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.WorldRegion;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.actor.container.player.BoatInfo;
+import net.sf.l2j.gameserver.model.location.SpawnLocation;
 import net.sf.l2j.gameserver.network.serverpackets.ExServerPrimitive;
 import net.sf.l2j.gameserver.network.serverpackets.GetOnVehicle;
 import net.sf.l2j.gameserver.network.serverpackets.ValidateLocation;
@@ -56,14 +58,16 @@ public class ValidatePosition extends L2GameClientPacket
 		final float actualSpeed;
 		final double dist;
 		
+		final BoatInfo info = player.getBoatInfo();
 		// Send back position if client<>server desync is too big. For boats, send back if the desync is bigger than 500.
-		if (player.isInBoat())
+		if (info.isInBoat())
 		{
+			final SpawnLocation pos = info.getBoatPosition();
 			actualSpeed = 500;
-			dist = player.getBoatPosition().distance2D(_x, _y);
+			dist = pos.distance2D(_x, _y);
 			
 			if (dist > actualSpeed)
-				sendPacket(new GetOnVehicle(player.getObjectId(), _boatId, player.getBoatPosition()));
+				sendPacket(new GetOnVehicle(player.getObjectId(), _boatId, pos));
 		}
 		// For regular movement, send back if the desync is bigger than actual speed.
 		else
@@ -71,7 +75,7 @@ public class ValidatePosition extends L2GameClientPacket
 			actualSpeed = player.getStatus().getMoveSpeed();
 			dist = (player.getMove().getMoveType() == MoveType.GROUND) ? player.getPosition().distance2D(_x, _y) : player.getPosition().distance3D(_x, _y, _z);
 			
-			if (dist > actualSpeed)
+			if (dist > actualSpeed && !info.isBoatMovement())
 				sendPacket(new ValidateLocation(player));
 		}
 		
@@ -81,13 +85,13 @@ public class ValidatePosition extends L2GameClientPacket
 			final String desc = "speed=" + actualSpeed + " desync=" + dist;
 			
 			// Draw debug packet to all players.
-			for (Player p : player.getSurroundingGMs())
+			player.forEachKnownGM(p ->
 			{
 				// Get debug packet.
 				final ExServerPrimitive debug = p.getDebugPacket("MOVE" + player.getObjectId());
 				debug.addPoint(desc, Color.GREEN, true, _x, _y, _z);
 				debug.sendTo(p);
-			}
+			});
 		}
 	}
 }

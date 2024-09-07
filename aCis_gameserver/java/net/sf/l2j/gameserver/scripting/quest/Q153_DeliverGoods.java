@@ -35,7 +35,7 @@ public class Q153_DeliverGoods extends Quest
 		
 		setItemsIds(DELIVERY_LIST, HEAVY_WOOD_BOX, CLOTH_BUNDLE, CLAY_POT, JACKSON_RECEIPT, SILVIA_RECEIPT, RANT_RECEIPT);
 		
-		addStartNpc(ARNOLD);
+		addQuestStart(ARNOLD);
 		addTalkId(JACKSON, SILVIA, ARNOLD, RANT);
 	}
 	
@@ -97,7 +97,7 @@ public class Q153_DeliverGoods extends Quest
 						break;
 					
 					case JACKSON:
-						if (player.getInventory().hasItems(HEAVY_WOOD_BOX))
+						if (player.getInventory().hasItem(HEAVY_WOOD_BOX))
 						{
 							htmltext = "30002-01.htm";
 							takeItems(player, HEAVY_WOOD_BOX, 1);
@@ -116,7 +116,7 @@ public class Q153_DeliverGoods extends Quest
 						break;
 					
 					case SILVIA:
-						if (player.getInventory().hasItems(CLOTH_BUNDLE))
+						if (player.getInventory().hasItem(CLOTH_BUNDLE))
 						{
 							htmltext = "30003-01.htm";
 							takeItems(player, CLOTH_BUNDLE, 1);
@@ -136,7 +136,7 @@ public class Q153_DeliverGoods extends Quest
 						break;
 					
 					case RANT:
-						if (player.getInventory().hasItems(CLAY_POT))
+						if (player.getInventory().hasItem(CLAY_POT))
 						{
 							htmltext = "30054-01.htm";
 							takeItems(player, CLAY_POT, 1);

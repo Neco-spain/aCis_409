@@ -120,7 +120,7 @@ public class AdminGeoEngine implements IAdminCommandHandler
 						debug.addLine("target", Color.BLUE, true, tx, ty, tz, tx, ty, tz + th);
 						th = (th * Config.PART_OF_CHARACTER_HEIGHT) / 100;
 						
-						IGeoObject ignore = (targetCreature instanceof IGeoObject) ? (IGeoObject) targetCreature : null;
+						IGeoObject ignore = (targetCreature instanceof IGeoObject igo) ? igo : null;
 						
 						boolean canSee = GeoEngine.getInstance().canSee(tx, ty, tz, th, ox, oy, oz, oh, ignore, debug);
 						canSee &= GeoEngine.getInstance().canSee(ox, oy, oz, oh, tx, ty, tz, th, ignore, debug);
@@ -237,21 +237,6 @@ public class AdminGeoEngine implements IAdminCommandHandler
 							player.sendMessage("x:" + loc.getX() + " y:" + loc.getY() + " z:" + loc.getZ());
 						
 						debug.sendTo(player);
-						break;
-					
-					case "info":
-						final List<String> info = GeoEngine.getInstance().getStat();
-						if (info == null)
-						{
-							player.sendMessage("Pathfinding is disabled.");
-							return;
-						}
-						
-						for (String msg : info)
-						{
-							LOGGER.info(msg);
-							player.sendMessage(msg);
-						}
 						break;
 				}
 			}

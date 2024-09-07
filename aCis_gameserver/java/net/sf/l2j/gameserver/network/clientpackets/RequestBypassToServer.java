@@ -56,7 +56,6 @@ public final class RequestBypassToServer extends L2GameClientPacket
 				if (player.isGM())
 					player.sendMessage("The command " + command.substring(6) + " doesn't exist.");
 				
-				LOGGER.warn("No handler registered for admin command '{}'.", command);
 				return;
 			}
 			
@@ -113,22 +112,22 @@ public final class RequestBypassToServer extends L2GameClientPacket
 			try
 			{
 				final WorldObject object = World.getInstance().getObject(Integer.parseInt(id));
-				
-				if (object instanceof Npc && endOfId > 0 && player.getAI().canDoInteract(object))
-					((Npc) object).onBypassFeedback(player, _command.substring(endOfId + 1));
+				if (object instanceof Npc npc && endOfId > 0 && player.getAI().canDoInteract(npc))
+					npc.onBypassFeedback(player, _command.substring(endOfId + 1));
 				
 				player.sendPacket(ActionFailed.STATIC_PACKET);
 			}
 			catch (NumberFormatException nfe)
 			{
+				// Do nothing.
 			}
 		}
 		// Navigate throught Manor windows
 		else if (_command.startsWith("manor_menu_select?"))
 		{
 			WorldObject object = player.getTarget();
-			if (object instanceof Npc)
-				((Npc) object).onBypassFeedback(player, _command);
+			if (object instanceof Npc targetNpc)
+				targetNpc.onBypassFeedback(player, _command);
 		}
 		else if (_command.startsWith("bbs_") || _command.startsWith("_bbs") || _command.startsWith("_friend") || _command.startsWith("_mail") || _command.startsWith("_block"))
 		{
@@ -165,15 +164,13 @@ public final class RequestBypassToServer extends L2GameClientPacket
 			if (heroid > 0)
 				HeroManager.getInstance().showHeroDiary(player, heroclass, heroid, heropage);
 		}
-		else if (_command.startsWith("arenachange")) // change
+		else if (_command.startsWith("arenachange"))
 		{
 			final boolean isManager = player.getCurrentFolk() instanceof OlympiadManagerNpc;
-			if (!isManager)
-			{
-				// Without npc, command can be used only in observer mode on arena
-				if (!player.isInObserverMode() || player.isInOlympiadMode() || player.getOlympiadGameId() < 0)
-					return;
-			}
+			
+			// Without npc, command can only be used in observer mode on arena.
+			if (!isManager && (!player.isInObserverMode() || player.isInOlympiadMode() || player.getOlympiadGameId() < 0))
+				return;
 			
 			// Olympiad registration check.
 			if (OlympiadManager.getInstance().isRegisteredInComp(player))

@@ -1,10 +1,9 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import net.sf.l2j.gameserver.enums.AiEventType;
 import net.sf.l2j.gameserver.enums.skills.EffectFlag;
 import net.sf.l2j.gameserver.enums.skills.EffectType;
 import net.sf.l2j.gameserver.model.actor.Creature;
-import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.skills.AbstractEffect;
 import net.sf.l2j.gameserver.skills.L2Skill;
 
@@ -24,10 +23,8 @@ public class EffectStunSelf extends AbstractEffect
 	@Override
 	public boolean onStart()
 	{
-		// Trigger onAttacked event.
-		getEffector().getAI().notifyEvent(AiEventType.ATTACKED, getEffector(), null);
-		
-		getEffector().getAI().tryToIdle();
+		if (getEffected() instanceof Playable targetPlayable)
+			targetPlayable.getAI().tryToIdle();
 		
 		// Refresh abnormal effects.
 		getEffector().updateAbnormalEffect();
@@ -38,10 +35,6 @@ public class EffectStunSelf extends AbstractEffect
 	@Override
 	public void onExit()
 	{
-		// TODO This never occurs in interlude. Besides punch of doom (a player skill), in IL there is no other skill. this is here for <skill id="5183" levels="1" name="Production: Dimensional Stun">
-		if (!(getEffector() instanceof Player))
-			getEffector().getAI().notifyEvent(AiEventType.THINK, null, null);
-		
 		// Refresh abnormal effects.
 		getEffector().updateAbnormalEffect();
 	}

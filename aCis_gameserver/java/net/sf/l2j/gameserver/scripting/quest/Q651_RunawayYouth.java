@@ -6,7 +6,6 @@ import net.sf.l2j.gameserver.enums.QuestStatus;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.location.SpawnLocation;
-import net.sf.l2j.gameserver.network.serverpackets.MagicSkillUse;
 import net.sf.l2j.gameserver.scripting.Quest;
 import net.sf.l2j.gameserver.scripting.QuestState;
 
@@ -36,10 +35,8 @@ public class Q651_RunawayYouth extends Quest
 	{
 		super(651, "Runaway Youth");
 		
-		addStartNpc(IVAN);
+		addQuestStart(IVAN);
 		addTalkId(IVAN, BATIDAE);
-		
-		addSpawn(IVAN, 118600, -161235, -1119, 0, false, 0, false);
 	}
 	
 	@Override
@@ -52,7 +49,7 @@ public class Q651_RunawayYouth extends Quest
 		
 		if (event.equalsIgnoreCase("32014-04.htm"))
 		{
-			if (player.getInventory().hasItems(SCROLL_OF_ESCAPE))
+			if (player.getInventory().hasItem(SCROLL_OF_ESCAPE))
 			{
 				htmltext = "32014-03.htm";
 				st.setState(QuestStatus.STARTED);
@@ -60,8 +57,7 @@ public class Q651_RunawayYouth extends Quest
 				playSound(player, SOUND_ACCEPT);
 				takeItems(player, SCROLL_OF_ESCAPE, 1);
 				
-				npc.broadcastPacket(new MagicSkillUse(npc, npc, 2013, 1, 3500, 0));
-				startQuestTimer("apparition_npc", npc, null, 4000);
+				startQuestTimer("65101", npc, null, 3000);
 			}
 			else
 				st.exitQuest(true);
@@ -73,7 +69,7 @@ public class Q651_RunawayYouth extends Quest
 	@Override
 	public String onTimer(String name, Npc npc, Player player)
 	{
-		if (name.equalsIgnoreCase("apparition_npc"))
+		if (name.equalsIgnoreCase("65101"))
 		{
 			int chance = Rnd.get(3);
 			

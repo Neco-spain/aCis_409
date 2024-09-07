@@ -66,10 +66,10 @@ public class Q503_PursuitOfClanAmbition extends Quest
 		
 		setItemsIds(MIST_DRAKE_EGG, BLITZ_WYRM_EGG, DRAKE_EGG, THUNDER_WYRM_EGG, BROOCH_OF_THE_MAGPIE, NEBULITE_CRYSTALS, TITAN_POWERSTONE, IMPERIAL_KEY, GUSTAV_1ST_LETTER, GUSTAV_2ND_LETTER, GUSTAV_3RD_LETTER, SCEPTER_OF_JUDGMENT, BLACK_ANVIL_COIN);
 		
-		addStartNpc(SIR_GUSTAV_ATHEBALDT, MARTIEN, CORPSE_OF_FRITZ, CORPSE_OF_LUTZ, CORPSE_OF_KURTZ, KUSTO, BALTHAZAR, SIR_ERIC_RODEMAI, WITCH_CLEO, WITCH_ATHREA, WITCH_KALIS, IMPERIAL_COFFER);
+		addQuestStart(SIR_GUSTAV_ATHEBALDT, MARTIEN, CORPSE_OF_FRITZ, CORPSE_OF_LUTZ, CORPSE_OF_KURTZ, KUSTO, BALTHAZAR, SIR_ERIC_RODEMAI, WITCH_CLEO, WITCH_ATHREA, WITCH_KALIS, IMPERIAL_COFFER);
 		addTalkId(SIR_GUSTAV_ATHEBALDT, MARTIEN, CORPSE_OF_FRITZ, CORPSE_OF_LUTZ, CORPSE_OF_KURTZ, KUSTO, BALTHAZAR, SIR_ERIC_RODEMAI, WITCH_CLEO, WITCH_ATHREA, WITCH_KALIS, IMPERIAL_COFFER);
 		
-		addKillId(BLITZ_WYRM, DRAKE, DRAKE_HOLD, GRAVE_GUARD, GRAVE_KEYMASTER, LESSER_GIANT_SCOUT, LESSER_GIANT_SOLDIER, THUNDER_WYRM, THUNDER_WYRM_HOLD, IMPERIAL_GRAVEKEEPER);
+		addMyDying(BLITZ_WYRM, DRAKE, DRAKE_HOLD, GRAVE_GUARD, GRAVE_KEYMASTER, LESSER_GIANT_SCOUT, LESSER_GIANT_SOLDIER, THUNDER_WYRM, THUNDER_WYRM_HOLD, IMPERIAL_GRAVEKEEPER);
 	}
 	
 	@Override
@@ -102,7 +102,7 @@ public class Q503_PursuitOfClanAmbition extends Quest
 		}
 		else if (event.equalsIgnoreCase("30760-20.htm"))
 		{
-			if (player.getInventory().hasItems(SCEPTER_OF_JUDGMENT))
+			if (player.getInventory().hasItem(SCEPTER_OF_JUDGMENT))
 			{
 				takeItems(player, SCEPTER_OF_JUDGMENT, -1);
 				giveItems(player, SEAL_OF_ASPIRATION, 1);
@@ -124,7 +124,7 @@ public class Q503_PursuitOfClanAmbition extends Quest
 		}
 		else if (event.equalsIgnoreCase("30760-23.htm"))
 		{
-			if (player.getInventory().hasItems(SCEPTER_OF_JUDGMENT))
+			if (player.getInventory().hasItem(SCEPTER_OF_JUDGMENT))
 			{
 				takeItems(player, SCEPTER_OF_JUDGMENT, -1);
 				giveItems(player, SEAL_OF_ASPIRATION, 1);
@@ -161,11 +161,8 @@ public class Q503_PursuitOfClanAmbition extends Quest
 				htmltext = "30761-03.htm";
 			
 			// Spawn two Blitz Wyrms
-			Npc wyrm = addSpawn(BLITZ_WYRM, npc, true, 180000, false);
-			wyrm.forceAttack(player, 200);
-			
-			wyrm = addSpawn(BLITZ_WYRM, npc, true, 180000, false);
-			wyrm.forceAttack(player, 200);
+			createOnePrivate(npc, BLITZ_WYRM, 180000, true);
+			createOnePrivate(npc, BLITZ_WYRM, 180000, true);
 			
 			// Despawn NPC (respawn timer is started)
 			startQuestTimer("despawn", npc, null, 10000);
@@ -185,11 +182,8 @@ public class Q503_PursuitOfClanAmbition extends Quest
 				htmltext = "30761-03.htm";
 			
 			// Spawn two Blitz Wyrms
-			Npc wyrm = addSpawn(BLITZ_WYRM, npc, true, 180000, false);
-			wyrm.forceAttack(player, 200);
-			
-			wyrm = addSpawn(BLITZ_WYRM, npc, true, 180000, false);
-			wyrm.forceAttack(player, 200);
+			createOnePrivate(npc, BLITZ_WYRM, 180000, true);
+			createOnePrivate(npc, BLITZ_WYRM, 180000, true);
 			
 			// Despawn NPC (respawn timer is started)
 			startQuestTimer("despawn", npc, null, 10000);
@@ -207,7 +201,7 @@ public class Q503_PursuitOfClanAmbition extends Quest
 		// Kusto
 		else if (event.equalsIgnoreCase("30512-03.htm"))
 		{
-			if (player.getInventory().hasItems(BROOCH_OF_THE_MAGPIE))
+			if (player.getInventory().hasItem(BROOCH_OF_THE_MAGPIE))
 			{
 				takeItems(player, BROOCH_OF_THE_MAGPIE, -1);
 				giveItems(player, BLACK_ANVIL_COIN, 1);
@@ -240,15 +234,15 @@ public class Q503_PursuitOfClanAmbition extends Quest
 			st.setCond(11);
 			playSound(player, SOUND_MIDDLE);
 		}
-		// Whitch Cleo
+		// Witch Cleo
 		else if (event.equalsIgnoreCase("30766-04.htm"))
 		{
 			npc.broadcastNpcSay(NpcStringId.ID_50338);
 			
-			Npc witch = addSpawn(WITCH_ATHREA, 160688, 21296, -3714, 32768, false, 5000, false);
+			Npc witch = createOnePrivateEx(npc, WITCH_ATHREA, 160688, 21296, -3714, 32768, 5000, false);
 			witch.broadcastNpcSay(NpcStringId.ID_50340);
 			
-			witch = addSpawn(WITCH_KALIS, 160690, 21176, -3712, 32768, false, 5000, false);
+			witch = createOnePrivateEx(npc, WITCH_KALIS, 160690, 21176, -3712, 32768, 5000, false);
 			witch.broadcastNpcSay(NpcStringId.ID_50341);
 			
 			st.setCond(9);
@@ -256,7 +250,7 @@ public class Q503_PursuitOfClanAmbition extends Quest
 		}
 		else if (event.equalsIgnoreCase("30766-08.htm"))
 		{
-			if (player.getInventory().hasItems(SCEPTER_OF_JUDGMENT))
+			if (player.getInventory().hasItem(SCEPTER_OF_JUDGMENT))
 			{
 				takeItems(player, SCEPTER_OF_JUDGMENT, -1);
 				giveItems(player, SEAL_OF_ASPIRATION, 1);
@@ -316,7 +310,7 @@ public class Q503_PursuitOfClanAmbition extends Quest
 							if (level < 4)
 								htmltext = "30760-01.htm";
 							else if (level == 4)
-								htmltext = player.getInventory().hasItems(SEAL_OF_ASPIRATION) ? "30760-03.htm" : "30760-04.htm";
+								htmltext = player.getInventory().hasItem(SEAL_OF_ASPIRATION) ? "30760-03.htm" : "30760-04.htm";
 							else
 								htmltext = "30760-02.htm";
 						}
@@ -351,7 +345,7 @@ public class Q503_PursuitOfClanAmbition extends Quest
 							else if (cond == 8 || cond == 9)
 								htmltext = "30760-18.htm";
 							else if (cond == 10)
-								htmltext = player.getInventory().hasItems(SCEPTER_OF_JUDGMENT) ? "30760-19.htm" : "30760-18.htm";
+								htmltext = player.getInventory().hasItem(SCEPTER_OF_JUDGMENT) ? "30760-19.htm" : "30760-18.htm";
 							else if (cond == 11)
 								htmltext = "30760-19.htm";
 							else if (cond == 12)
@@ -434,11 +428,11 @@ public class Q503_PursuitOfClanAmbition extends Quest
 						{
 							if (cond <= 4)
 							{
-								if (!player.getInventory().hasItems(BROOCH_OF_THE_MAGPIE) && !player.getInventory().hasItems(BLACK_ANVIL_COIN))
+								if (!player.getInventory().hasItem(BROOCH_OF_THE_MAGPIE) && !player.getInventory().hasItem(BLACK_ANVIL_COIN))
 									htmltext = "30512-01.htm";
-								else if (player.getInventory().hasItems(BROOCH_OF_THE_MAGPIE))
+								else if (player.getInventory().hasItem(BROOCH_OF_THE_MAGPIE))
 									htmltext = "30512-02.htm";
-								else if (player.getInventory().hasItems(BLACK_ANVIL_COIN) && !player.getInventory().hasItems(BROOCH_OF_THE_MAGPIE))
+								else if (player.getInventory().hasItem(BLACK_ANVIL_COIN) && !player.getInventory().hasItem(BROOCH_OF_THE_MAGPIE))
 									htmltext = "30512-04.htm";
 							}
 						}
@@ -454,7 +448,7 @@ public class Q503_PursuitOfClanAmbition extends Quest
 						if (player.isClanLeader())
 						{
 							if (cond == 4)
-								htmltext = player.getInventory().hasItems(BLACK_ANVIL_COIN) ? "30764-04.htm" : "30764-02.htm";
+								htmltext = player.getInventory().hasItem(BLACK_ANVIL_COIN) ? "30764-04.htm" : "30764-02.htm";
 							else if (cond == 5)
 							{
 								if (player.getInventory().getItemCount(NEBULITE_CRYSTALS) > 9 && player.getInventory().getItemCount(TITAN_POWERSTONE) > 9)
@@ -494,7 +488,7 @@ public class Q503_PursuitOfClanAmbition extends Quest
 								playSound(player, SOUND_MIDDLE);
 							}
 							else if (cond == 10)
-								htmltext = player.getInventory().hasItems(SCEPTER_OF_JUDGMENT) ? "30868-09.htm" : "30868-08.htm";
+								htmltext = player.getInventory().hasItem(SCEPTER_OF_JUDGMENT) ? "30868-09.htm" : "30868-08.htm";
 							else if (cond >= 11)
 								htmltext = "30868-11.htm";
 						}
@@ -543,7 +537,7 @@ public class Q503_PursuitOfClanAmbition extends Quest
 						{
 							// Clan leader talks.
 							if (player.isClanLeader())
-								htmltext = player.getInventory().hasItems(SCEPTER_OF_JUDGMENT) ? "30765-05.htm" : "30765-03.htm";
+								htmltext = player.getInventory().hasItem(SCEPTER_OF_JUDGMENT) ? "30765-05.htm" : "30765-03.htm";
 							// Clan member talks.
 							else
 								htmltext = "30765-01.htm";
@@ -557,26 +551,24 @@ public class Q503_PursuitOfClanAmbition extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		QuestState lst = getClanLeaderQuestState(player, npc);
 		if (lst == null)
-			return null;
+			return;
 		
 		final Player leader = lst.getPlayer();
 		
 		switch (npc.getNpcId())
 		{
-			case THUNDER_WYRM:
-			case THUNDER_WYRM_HOLD:
+			case THUNDER_WYRM, THUNDER_WYRM_HOLD:
 				if (lst.getCond() == 2)
 					dropItems(leader, THUNDER_WYRM_EGG, 1, 10, 500000);
 				break;
 			
-			case DRAKE:
-			case DRAKE_HOLD:
+			case DRAKE, DRAKE_HOLD:
 				if (lst.getCond() == 2)
 				{
 					dropItems(leader, MIST_DRAKE_EGG, 1, 10, 100000);
@@ -589,8 +581,7 @@ public class Q503_PursuitOfClanAmbition extends Quest
 					dropItemsAlways(leader, BLITZ_WYRM_EGG, 1, 10);
 				break;
 			
-			case LESSER_GIANT_SCOUT:
-			case LESSER_GIANT_SOLDIER:
+			case LESSER_GIANT_SCOUT, LESSER_GIANT_SOLDIER:
 				if (lst.getCond() == 5)
 				{
 					final int chance = Rnd.get(100);
@@ -604,14 +595,14 @@ public class Q503_PursuitOfClanAmbition extends Quest
 				break;
 			
 			case GRAVE_GUARD:
-				if (lst.getCond() == 10 && !leader.getInventory().hasItems(SCEPTER_OF_JUDGMENT))
+				if (lst.getCond() == 10 && !leader.getInventory().hasItem(SCEPTER_OF_JUDGMENT))
 				{
 					// Get killed count of Grave Guards.
 					int killed = lst.getInteger("killed");
 					killed++;
 					
 					// Chance to spawn Grave Keymaster by killed count: 1-4 = 0% chance, 5-9 = 50% chance, 10+ = 100%
-					if (Rnd.get(100) < 50 && killed > 4 || killed > 9)
+					if ((Rnd.get(100) < 50 && killed > 4) || killed > 9)
 					{
 						killed = 0;
 						addSpawn(GRAVE_KEYMASTER, npc, false, 0, false);
@@ -623,19 +614,17 @@ public class Q503_PursuitOfClanAmbition extends Quest
 				break;
 			
 			case GRAVE_KEYMASTER:
-				if (lst.getCond() == 10 && !leader.getInventory().hasItems(SCEPTER_OF_JUDGMENT))
+				if (lst.getCond() == 10 && !leader.getInventory().hasItem(SCEPTER_OF_JUDGMENT))
 					dropItemsAlways(leader, IMPERIAL_KEY, 1, 6);
 				break;
 			
 			case IMPERIAL_GRAVEKEEPER:
-				if (lst.getCond() == 10 && !leader.getInventory().hasItems(SCEPTER_OF_JUDGMENT))
+				if (lst.getCond() == 10 && !leader.getInventory().hasItem(SCEPTER_OF_JUDGMENT))
 				{
 					Npc coffer = addSpawn(IMPERIAL_COFFER, npc, false, 180000, false);
 					coffer.broadcastNpcSay(NpcStringId.ID_50339);
 				}
 				break;
 		}
-		
-		return null;
 	}
 }

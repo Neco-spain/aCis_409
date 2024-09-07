@@ -22,9 +22,9 @@ public class EffectRecovery extends AbstractEffect
 	@Override
 	public boolean onStart()
 	{
-		if (getEffected() instanceof Player)
+		if (getEffected() instanceof Player targetPlayer)
 		{
-			((Player) getEffected()).reduceDeathPenaltyBuffLevel();
+			targetPlayer.reduceDeathPenaltyBuffLevel();
 			return true;
 		}
 		return false;
@@ -33,6 +33,7 @@ public class EffectRecovery extends AbstractEffect
 	@Override
 	public void onExit()
 	{
+		// Do nothing.
 	}
 	
 	@Override

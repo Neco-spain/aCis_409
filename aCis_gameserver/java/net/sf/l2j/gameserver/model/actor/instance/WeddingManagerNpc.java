@@ -7,6 +7,8 @@ import net.sf.l2j.commons.lang.StringUtil;
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.manager.CastleManager;
 import net.sf.l2j.gameserver.data.manager.CoupleManager;
+import net.sf.l2j.gameserver.data.manager.RelationManager;
+import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
@@ -24,21 +26,15 @@ public class WeddingManagerNpc extends Folk
 	@Override
 	public void onInteract(Player player)
 	{
-		// Shouldn't be able to see wedding content if the mod isn't activated on configs
-		if (!Config.ALLOW_WEDDING)
-			sendHtmlMessage(player, "data/html/mods/wedding/disabled.htm");
+		// Married people got access to another menu
+		if (player.getCoupleId() > 0)
+			sendHtmlMessage(player, "data/html/mods/wedding/start2.htm");
+		// "Under marriage acceptance" people go to this one
+		else if (player.isUnderMarryRequest())
+			sendHtmlMessage(player, "data/html/mods/wedding/waitforpartner.htm");
+		// And normal players go here :)
 		else
-		{
-			// Married people got access to another menu
-			if (player.getCoupleId() > 0)
-				sendHtmlMessage(player, "data/html/mods/wedding/start2.htm");
-			// "Under marriage acceptance" people go to this one
-			else if (player.isUnderMarryRequest())
-				sendHtmlMessage(player, "data/html/mods/wedding/waitforpartner.htm");
-			// And normal players go here :)
-			else
-				sendHtmlMessage(player, "data/html/mods/wedding/start.htm");
-		}
+			sendHtmlMessage(player, "data/html/mods/wedding/start.htm");
 	}
 	
 	@Override
@@ -93,7 +89,7 @@ public class WeddingManagerNpc extends Folk
 			}
 			
 			// Simple checks to avoid exploits
-			if (partner.isInJail() || partner.isInOlympiadMode() || partner.isInDuel() || partner.isFestivalParticipant() || (partner.isInParty() && partner.getParty().isInDimensionalRift()) || partner.isInObserverMode())
+			if (partner.isInsideZone(ZoneId.NO_SUMMON_FRIEND) || partner.isInJail() || partner.isInOlympiadMode() || partner.isInDuel() || partner.isFestivalParticipant() || partner.isInObserverMode())
 			{
 				player.sendMessage("Due to the current partner's status, the teleportation failed.");
 				return;
@@ -127,7 +123,7 @@ public class WeddingManagerNpc extends Folk
 		}
 		
 		// Check if player has the target on friendlist
-		if (!requester.getFriendList().contains(partner.getObjectId()))
+		if (!RelationManager.getInstance().areFriends(requester.getObjectId(), partner.getObjectId()))
 		{
 			sendHtmlMessage(requester, "data/html/mods/wedding/error_friendlist.htm");
 			return false;
@@ -159,23 +155,23 @@ public class WeddingManagerNpc extends Folk
 	
 	public static void justMarried(Player requester, Player partner)
 	{
-		// Unlock the wedding manager for both users, and set them as married
+		// Unlock the wedding manager for both users, and set them as married.
 		requester.setUnderMarryRequest(false);
 		partner.setUnderMarryRequest(false);
 		
-		// reduce adenas amount according to configs
-		requester.reduceAdena("Wedding", Config.WEDDING_PRICE, requester.getCurrentFolk(), true);
-		partner.reduceAdena("Wedding", Config.WEDDING_PRICE, requester.getCurrentFolk(), true);
+		// Reduce Adena amount according to configs.
+		requester.reduceAdena(Config.WEDDING_PRICE, true);
+		partner.reduceAdena(Config.WEDDING_PRICE, true);
 		
-		// Messages to the couple
+		// Messages to the couple.
 		requester.sendMessage("Congratulations, you are now married with " + partner.getName() + " !");
 		partner.sendMessage("Congratulations, you are now married with " + requester.getName() + " !");
 		
-		// Wedding march
+		// Wedding march.
 		requester.broadcastPacket(new MagicSkillUse(requester, requester, 2230, 1, 1, 0));
 		partner.broadcastPacket(new MagicSkillUse(partner, partner, 2230, 1, 1, 0));
 		
-		// Fireworks
+		// Fireworks.
 		requester.broadcastPacket(new MagicSkillUse(requester, requester, 2025, 1, 1, 0));
 		partner.broadcastPacket(new MagicSkillUse(partner, partner, 2025, 1, 1, 0));
 		
@@ -187,7 +183,7 @@ public class WeddingManagerNpc extends Folk
 		final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
 		html.setFile(file);
 		html.replace("%objectId%", getObjectId());
-		html.replace("%adenasCost%", StringUtil.formatNumber(Config.WEDDING_PRICE));
+		html.replace("%adenaCost%", StringUtil.formatNumber(Config.WEDDING_PRICE));
 		html.replace("%needOrNot%", Config.WEDDING_FORMALWEAR ? "will" : "won't");
 		player.sendPacket(html);
 	}

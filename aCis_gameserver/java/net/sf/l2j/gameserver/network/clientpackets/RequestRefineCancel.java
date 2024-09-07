@@ -5,7 +5,6 @@ import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ExVariationCancelResult;
-import net.sf.l2j.gameserver.network.serverpackets.InventoryUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public final class RequestRefineCancel extends L2GameClientPacket
@@ -83,7 +82,7 @@ public final class RequestRefineCancel extends L2GameClientPacket
 		}
 		
 		// try to reduce the players adena
-		if (!player.reduceAdena("RequestRefineCancel", price, null, true))
+		if (!player.reduceAdena(price, true))
 		{
 			player.sendPacket(new ExVariationCancelResult(0));
 			return;
@@ -94,15 +93,10 @@ public final class RequestRefineCancel extends L2GameClientPacket
 			player.disarmWeapon(false);
 		
 		// remove the augmentation
-		item.removeAugmentation();
+		item.removeAugmentation(player);
 		
 		// send ExVariationCancelResult
 		player.sendPacket(new ExVariationCancelResult(1));
-		
-		// send inventory update
-		InventoryUpdate iu = new InventoryUpdate();
-		iu.addModifiedItem(item);
-		player.sendPacket(iu);
 		
 		// Refresh shortcuts.
 		player.getShortcutList().refreshShortcuts(s -> item.getObjectId() == s.getId() && s.getType() == ShortcutType.ITEM);

@@ -11,6 +11,7 @@ import net.sf.l2j.gameserver.data.manager.CursedWeaponManager;
 import net.sf.l2j.gameserver.data.manager.ZoneManager;
 import net.sf.l2j.gameserver.data.xml.AdminData;
 import net.sf.l2j.gameserver.data.xml.AnnouncementData;
+import net.sf.l2j.gameserver.data.xml.BoatData;
 import net.sf.l2j.gameserver.data.xml.DoorData;
 import net.sf.l2j.gameserver.data.xml.InstantTeleportData;
 import net.sf.l2j.gameserver.data.xml.ItemData;
@@ -49,6 +50,11 @@ public class AdminReload implements IAdminCommandHandler
 				{
 					AnnouncementData.getInstance().reload();
 					player.sendMessage("The content of announcements.xml has been reloaded.");
+				}
+				else if (type.startsWith("boat"))
+				{
+					BoatData.getInstance().reload();
+					player.sendMessage("Boat have been reloaded.");
 				}
 				else if (type.startsWith("buylist"))
 				{
@@ -99,7 +105,7 @@ public class AdminReload implements IAdminCommandHandler
 				else if (type.startsWith("npcwalker"))
 				{
 					WalkerRouteData.getInstance().reload();
-					player.sendMessage("Walker routes have been reloaded.");
+					player.sendMessage("Walking routes have been reloaded.");
 				}
 				else if (type.equals("script"))
 				{

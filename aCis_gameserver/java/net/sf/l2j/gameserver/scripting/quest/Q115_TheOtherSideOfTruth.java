@@ -82,7 +82,7 @@ public class Q115_TheOtherSideOfTruth extends Quest
 		
 		setItemsIds(MISA_LETTER, RAFFORTY_LETTER, PIECE_OF_TABLET, REPORT_PIECE);
 		
-		addStartNpc(RAFFORTY);
+		addQuestStart(RAFFORTY);
 		addTalkId(RAFFORTY, MISA, KIERRE, SCULPTURE_1, SCULPTURE_2, SCULPTURE_3, SCULPTURE_4);
 	}
 	
@@ -132,7 +132,7 @@ public class Q115_TheOtherSideOfTruth extends Quest
 		}
 		else if (event.equalsIgnoreCase("32020-27.htm"))
 		{
-			if (!player.getInventory().hasItems(PIECE_OF_TABLET))
+			if (!player.getInventory().hasItem(PIECE_OF_TABLET))
 			{
 				st.setCond(11);
 				playSound(player, SOUND_MIDDLE);
@@ -148,7 +148,7 @@ public class Q115_TheOtherSideOfTruth extends Quest
 		}
 		else if (event.equalsIgnoreCase("32020-28.htm"))
 		{
-			if (!player.getInventory().hasItems(PIECE_OF_TABLET))
+			if (!player.getInventory().hasItem(PIECE_OF_TABLET))
 			{
 				st.setCond(11);
 				playSound(player, SOUND_MIDDLE);
@@ -268,7 +268,7 @@ public class Q115_TheOtherSideOfTruth extends Quest
 						}
 						else if (cond == 6)
 						{
-							if (!player.getInventory().hasItems(RAFFORTY_LETTER))
+							if (!player.getInventory().hasItem(RAFFORTY_LETTER))
 							{
 								htmltext = "32020-20.htm";
 								giveItems(player, RAFFORTY_LETTER, 1);
@@ -320,7 +320,7 @@ public class Q115_TheOtherSideOfTruth extends Quest
 							htmltext = "32022-01.htm";
 						else if (cond == 9)
 						{
-							if (!player.getInventory().hasItems(REPORT_PIECE))
+							if (!player.getInventory().hasItem(REPORT_PIECE))
 							{
 								htmltext = "32022-04.htm";
 								giveItems(player, REPORT_PIECE, 1);
@@ -333,10 +333,7 @@ public class Q115_TheOtherSideOfTruth extends Quest
 							htmltext = "32022-05.htm";
 						break;
 					
-					case SCULPTURE_1:
-					case SCULPTURE_2:
-					case SCULPTURE_3:
-					case SCULPTURE_4:
+					case SCULPTURE_1, SCULPTURE_2, SCULPTURE_3, SCULPTURE_4:
 						if (cond == 7)
 						{
 							final int[] infos = NPC_VALUES.get(npc.getNpcId());
@@ -362,7 +359,7 @@ public class Q115_TheOtherSideOfTruth extends Quest
 							htmltext = "sculpture-07.htm";
 						else if (cond == 11)
 						{
-							if (!player.getInventory().hasItems(PIECE_OF_TABLET))
+							if (!player.getInventory().hasItem(PIECE_OF_TABLET))
 							{
 								htmltext = "sculpture-08.htm";
 								st.setCond(12);

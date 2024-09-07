@@ -6,11 +6,16 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import net.sf.l2j.commons.pool.ConnectionPool;
 
+import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.manager.HeroManager;
 import net.sf.l2j.gameserver.enums.Paperdoll;
 import net.sf.l2j.gameserver.enums.items.ArmorType;
@@ -20,68 +25,83 @@ import net.sf.l2j.gameserver.enums.items.ItemState;
 import net.sf.l2j.gameserver.enums.items.ItemType;
 import net.sf.l2j.gameserver.enums.items.WeaponType;
 import net.sf.l2j.gameserver.model.World;
-import net.sf.l2j.gameserver.model.WorldObject;
-import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.item.instance.ItemInfo;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.item.kind.Item;
 import net.sf.l2j.gameserver.model.itemcontainer.listeners.ChangeRecorderListener;
 import net.sf.l2j.gameserver.model.itemcontainer.listeners.OnEquipListener;
 import net.sf.l2j.gameserver.model.itemcontainer.listeners.StatsListener;
+import net.sf.l2j.gameserver.taskmanager.InventoryUpdateTaskManager;
+import net.sf.l2j.gameserver.taskmanager.ItemInstanceTaskManager;
 
 /**
- * This class manages a {@link Creature}'s inventory.<br>
+ * This class manages a {@link Playable}'s inventory.<br>
  * <br>
  * It extends {@link ItemContainer}.
  */
 public abstract class Inventory extends ItemContainer
 {
-	private static final String RESTORE_INVENTORY = "SELECT object_id, item_id, count, enchant_level, loc, loc_data, custom_type1, custom_type2, mana_left, time FROM items WHERE owner_id=? AND (loc=? OR loc=?) ORDER BY loc_data";
+	private static final Logger ITEM_LOG = Logger.getLogger("item");
+	
+	private static final String RESTORE_INVENTORY = "SELECT * FROM items WHERE owner_id=? AND (loc=? OR loc=?) ORDER BY loc_data";
+	
+	protected Playable _owner;
 	
 	private final ItemInstance[] _paperdoll = new ItemInstance[Paperdoll.TOTAL_SLOTS];
 	
 	protected final List<OnEquipListener> _paperdollListeners = new ArrayList<>();
+	protected final Queue<ItemInfo> _updateList = new ConcurrentLinkedQueue<>();
 	
 	protected int _totalWeight;
 	private int _wornMask;
 	
-	protected Inventory()
+	protected Inventory(Playable owner)
 	{
+		_owner = owner;
+		
 		addPaperdollListener(StatsListener.getInstance());
 	}
 	
 	protected abstract ItemLocation getEquipLocation();
 	
 	@Override
-	protected void refreshWeight()
+	public Playable getOwner()
 	{
-		int weight = 0;
-		for (ItemInstance item : _items)
-			weight += item.getItem().getWeight() * item.getCount();
-		
-		_totalWeight = weight;
+		return _owner;
 	}
 	
 	@Override
-	protected void addItem(ItemInstance item)
+	protected void addBasicItem(ItemInstance item)
 	{
-		super.addItem(item);
+		super.addBasicItem(item);
 		
-		if (item.isEquipped())
-			equipItem(item);
+		addUpdate(item, ItemState.ADDED);
 	}
 	
 	@Override
-	protected boolean removeItem(ItemInstance item)
+	protected boolean removeItem(ItemInstance item, boolean isDrop)
 	{
-		// Unequip item if equipped
+		if (!super.removeItem(item, isDrop))
+			return false;
+		
+		// Unequip item if equipped.
 		for (int i = 0; i < _paperdoll.length; i++)
 		{
 			if (_paperdoll[i] == item)
 				unequipItemInSlot(i);
 		}
-		return super.removeItem(item);
+		
+		// Reset item's ownership and location if parameter isDrop is set.
+		if (isDrop)
+		{
+			item.setOwnerId(0);
+			item.setLocation(ItemLocation.VOID);
+		}
+		
+		addUpdate(item, ItemState.REMOVED);
+		return true;
 	}
 	
 	@Override
@@ -99,8 +119,12 @@ public abstract class Inventory extends ItemContainer
 				while (rs.next())
 				{
 					// Restore the item.
-					final ItemInstance item = ItemInstance.restoreFromDb(getOwnerId(), rs);
+					final ItemInstance item = ItemInstance.restoreFromDb(rs);
 					if (item == null)
+						continue;
+					
+					// ItemInstanceTaskManager didn't yet process the item, which means the item wasn't anymore part of this ItemContainer - don't reload it.
+					if (ItemInstanceTaskManager.getInstance().contains(item))
 						continue;
 					
 					// If the item is an hero item and inventory's owner is a player who isn't an hero, then set it to inventory.
@@ -112,9 +136,14 @@ public abstract class Inventory extends ItemContainer
 					
 					// If stackable item is found in inventory just add to current quantity
 					if (item.isStackable() && getItemByItemId(item.getItemId()) != null)
-						addItem("Restore", item, getOwner().getActingPlayer(), null);
-					else
 						addItem(item);
+					// Don't trigger IU.
+					else
+						super.addBasicItem(item);
+					
+					// Equip the item.
+					if (item.isEquipped())
+						equipItem(item);
 				}
 			}
 		}
@@ -122,12 +151,27 @@ public abstract class Inventory extends ItemContainer
 		{
 			LOGGER.error("Couldn't restore inventory for {}.", e, getOwnerId());
 		}
-		refreshWeight();
 	}
 	
 	public int getTotalWeight()
 	{
 		return _totalWeight;
+	}
+	
+	public boolean updateWeight()
+	{
+		// Calculate weight.
+		int weight = 0;
+		for (ItemInstance item : _items)
+			weight += item.getItem().getWeight() * item.getCount();
+		
+		// Calculated value is identical, don't send any update.
+		if (_totalWeight == weight)
+			return false;
+		
+		// Keep value for further usage.
+		_totalWeight = weight;
+		return true;
 	}
 	
 	/**
@@ -150,43 +194,21 @@ public abstract class Inventory extends ItemContainer
 	
 	/**
 	 * Drop an item from this {@link Inventory} and update database.
-	 * @param process : The {@link String} process triggering this action.
 	 * @param item : The {@link ItemInstance} to drop.
-	 * @param actor : The {@link Player} requesting the item drop.
-	 * @param reference : The {@link WorldObject} referencing current action.
 	 * @return The {@link ItemInstance} corresponding to the destroyed item or the updated item in {@link Inventory}.
 	 */
-	public ItemInstance dropItem(String process, ItemInstance item, Player actor, WorldObject reference)
+	public ItemInstance dropItem(ItemInstance item)
 	{
-		if (item == null)
-			return null;
-		
-		synchronized (item)
-		{
-			if (!_items.contains(item))
-				return null;
-			
-			removeItem(item);
-			item.setOwnerId(process, 0, actor, reference);
-			item.setLocation(ItemLocation.VOID);
-			item.setLastChange(ItemState.REMOVED);
-			
-			item.updateDatabase();
-			refreshWeight();
-		}
-		return item;
+		return (removeItem(item, true)) ? item : null;
 	}
 	
 	/**
 	 * Drop an item using its objectIdfrom this {@link Inventory} and update database.
-	 * @param process : The {@link String} process triggering this action.
 	 * @param objectId : The {@link ItemInstance} objectId to drop.
 	 * @param count : The amount to drop.
-	 * @param actor : The {@link Player} requesting the item drop.
-	 * @param reference : The {@link WorldObject} referencing current action.
 	 * @return The {@link ItemInstance} corresponding to the destroyed item or the updated item in {@link Inventory}.
 	 */
-	public ItemInstance dropItem(String process, int objectId, int count, Player actor, WorldObject reference)
+	public ItemInstance dropItem(int objectId, int count)
 	{
 		ItemInstance item = getItemByObjectId(objectId);
 		if (item == null)
@@ -199,17 +221,13 @@ public abstract class Inventory extends ItemContainer
 			
 			if (item.getCount() > count)
 			{
-				item.changeCount(process, -count, actor, reference);
-				item.setLastChange(ItemState.MODIFIED);
-				item.updateDatabase();
+				item.changeCount(-count, getOwner());
 				
-				item = ItemInstance.create(item.getItemId(), count, actor, reference);
-				item.updateDatabase();
-				refreshWeight();
+				item = ItemInstance.create(item.getItemId(), count);
 				return item;
 			}
 		}
-		return dropItem(process, item, actor, reference);
+		return dropItem(item);
 	}
 	
 	/**
@@ -274,7 +292,7 @@ public abstract class Inventory extends ItemContainer
 	 */
 	public List<ItemInstance> getPaperdollItems()
 	{
-		return Stream.of(_paperdoll).filter(Objects::nonNull).collect(Collectors.toList());
+		return Stream.of(_paperdoll).filter(Objects::nonNull).toList();
 	}
 	
 	/**
@@ -306,8 +324,7 @@ public abstract class Inventory extends ItemContainer
 			case Item.SLOT_HEAD:
 				return Paperdoll.HEAD;
 			
-			case Item.SLOT_R_HAND:
-			case Item.SLOT_LR_HAND:
+			case Item.SLOT_R_HAND, Item.SLOT_LR_HAND:
 				return Paperdoll.RHAND;
 			
 			case Item.SLOT_L_HAND:
@@ -316,9 +333,7 @@ public abstract class Inventory extends ItemContainer
 			case Item.SLOT_GLOVES:
 				return Paperdoll.GLOVES;
 			
-			case Item.SLOT_CHEST:
-			case Item.SLOT_FULL_ARMOR:
-			case Item.SLOT_ALLDRESS:
+			case Item.SLOT_CHEST, Item.SLOT_FULL_ARMOR, Item.SLOT_ALLDRESS:
 				return Paperdoll.CHEST;
 			
 			case Item.SLOT_LEGS:
@@ -330,8 +345,7 @@ public abstract class Inventory extends ItemContainer
 			case Item.SLOT_BACK:
 				return Paperdoll.CLOAK;
 			
-			case Item.SLOT_FACE:
-			case Item.SLOT_HAIRALL:
+			case Item.SLOT_FACE, Item.SLOT_HAIRALL:
 				return Paperdoll.FACE;
 			
 			case Item.SLOT_HAIR:
@@ -375,16 +389,14 @@ public abstract class Inventory extends ItemContainer
 				
 				// Put old item from paperdoll slot to base location.
 				old.setLocation(getBaseLocation());
-				old.setLastChange(ItemState.MODIFIED);
+				addUpdate(old, ItemState.MODIFIED);
 				
 				// Delete armor mask flag (in case of two-piece armor it does not matter, we need to deactivate mask too).
 				_wornMask &= ~old.getItem().getItemMask();
 				
 				// Notify all paperdoll listener in order to unequip old item in slot.
 				for (OnEquipListener listener : _paperdollListeners)
-					listener.onUnequip(slot, old, (Playable) getOwner());
-				
-				old.updateDatabase();
+					listener.onUnequip(slot, old, getOwner());
 			}
 			
 			if (item != null)
@@ -393,7 +405,7 @@ public abstract class Inventory extends ItemContainer
 				
 				// Add new item in slot of paperdoll.
 				item.setLocation(getEquipLocation(), slot.getId());
-				item.setLastChange(ItemState.MODIFIED);
+				addUpdate(item, ItemState.MODIFIED);
 				
 				// Activate mask (check 2nd armor part for two-piece armors).
 				final Item itm = item.getItem();
@@ -413,9 +425,7 @@ public abstract class Inventory extends ItemContainer
 					_wornMask |= itm.getItemMask();
 				
 				for (OnEquipListener listener : _paperdollListeners)
-					listener.onEquip(slot, item, (Playable) getOwner());
-				
-				item.updateDatabase();
+					listener.onEquip(slot, item, getOwner());
 			}
 		}
 		return old;
@@ -507,9 +517,7 @@ public abstract class Inventory extends ItemContainer
 				setPaperdollItem(Paperdoll.RHAND, item);
 				break;
 			
-			case Item.SLOT_L_EAR:
-			case Item.SLOT_R_EAR:
-			case Item.SLOT_L_EAR | Item.SLOT_R_EAR:
+			case Item.SLOT_L_EAR, Item.SLOT_R_EAR, Item.SLOT_L_EAR | Item.SLOT_R_EAR:
 				if (getItemFrom(Paperdoll.LEAR) == null)
 					setPaperdollItem(Paperdoll.LEAR, item);
 				else if (getItemFrom(Paperdoll.REAR) == null)
@@ -525,9 +533,7 @@ public abstract class Inventory extends ItemContainer
 				}
 				break;
 			
-			case Item.SLOT_L_FINGER:
-			case Item.SLOT_R_FINGER:
-			case Item.SLOT_L_FINGER | Item.SLOT_R_FINGER:
+			case Item.SLOT_L_FINGER, Item.SLOT_R_FINGER, Item.SLOT_L_FINGER | Item.SLOT_R_FINGER:
 				if (getItemFrom(Paperdoll.LFINGER) == null)
 					setPaperdollItem(Paperdoll.LFINGER, item);
 				else if (getItemFrom(Paperdoll.RFINGER) == null)
@@ -724,8 +730,8 @@ public abstract class Inventory extends ItemContainer
 		try
 		{
 			unequipItemInSlot(slot);
-			if (getOwner() instanceof Player)
-				((Player) getOwner()).refreshExpertisePenalty();
+			if (getOwner() instanceof Player player)
+				player.refreshExpertisePenalty();
 		}
 		finally
 		{
@@ -782,8 +788,7 @@ public abstract class Inventory extends ItemContainer
 				slot = Paperdoll.HEAD;
 				break;
 			
-			case Item.SLOT_R_HAND:
-			case Item.SLOT_LR_HAND:
+			case Item.SLOT_R_HAND, Item.SLOT_LR_HAND:
 				slot = Paperdoll.RHAND;
 				break;
 			
@@ -795,9 +800,7 @@ public abstract class Inventory extends ItemContainer
 				slot = Paperdoll.GLOVES;
 				break;
 			
-			case Item.SLOT_CHEST:
-			case Item.SLOT_FULL_ARMOR:
-			case Item.SLOT_ALLDRESS:
+			case Item.SLOT_CHEST, Item.SLOT_FULL_ARMOR, Item.SLOT_ALLDRESS:
 				slot = Paperdoll.CHEST;
 				break;
 			
@@ -822,6 +825,53 @@ public abstract class Inventory extends ItemContainer
 		}
 		
 		return (slot == Paperdoll.NULL) ? null : setPaperdollItem(slot, null);
+	}
+	
+	public void addUpdate(ItemInstance item, ItemState state)
+	{
+		if (item == null)
+			return;
+		
+		// Only log worthy items.
+		if (Config.LOG_ITEMS && !item.isStackable())
+		{
+			final LogRecord logRecord = new LogRecord(Level.INFO, state.toString());
+			logRecord.setLoggerName("item");
+			logRecord.setParameters(new Object[]
+			{
+				getOwner(),
+				item
+			});
+			ITEM_LOG.log(logRecord);
+		}
+		
+		// Check if _updateList is filled and if item is stackable.
+		if (!_updateList.isEmpty() && item.isStackable())
+		{
+			// Verify if an ItemInfo holding the exact same ItemState and objectId exists ; if yes, edit the existing count to avoid to generate garbage.
+			final ItemInfo info = _updateList.stream().filter(i -> i.getObjectId() == item.getObjectId() && i.getState() == state).findAny().orElse(null);
+			if (info != null)
+			{
+				info.setCount(item.getCount());
+				return;
+			}
+		}
+		
+		// Generate a new ItemInfo to reflect Inventory change.
+		_updateList.add(new ItemInfo(item, state));
+		
+		// List this inventory as IU-friendly.
+		InventoryUpdateTaskManager.getInstance().add(this);
+	}
+	
+	public Queue<ItemInfo> getUpdateList()
+	{
+		return _updateList;
+	}
+	
+	public void clearUpdateList()
+	{
+		_updateList.clear();
 	}
 	
 	/**

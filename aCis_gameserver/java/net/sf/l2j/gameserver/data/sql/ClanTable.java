@@ -8,7 +8,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 import net.sf.l2j.commons.lang.StringUtil;
 import net.sf.l2j.commons.logging.CLogger;
@@ -20,10 +19,10 @@ import net.sf.l2j.gameserver.data.manager.CastleManager;
 import net.sf.l2j.gameserver.data.manager.ClanHallManager;
 import net.sf.l2j.gameserver.idfactory.IdFactory;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.clanhall.SiegableHall;
-import net.sf.l2j.gameserver.model.entity.Castle;
 import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.model.pledge.ClanMember;
+import net.sf.l2j.gameserver.model.residence.castle.Castle;
+import net.sf.l2j.gameserver.model.residence.clanhall.SiegableHall;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.PledgeShowInfoUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.PledgeShowMemberListAll;
@@ -42,7 +41,7 @@ public class ClanTable
 	private static final String DELETE_CLAN_SUBPLEDGES = "DELETE FROM clan_subpledges WHERE clan_id=?";
 	private static final String DELETE_CLAN_WARS = "DELETE FROM clan_wars WHERE clan1=? OR clan2=?";
 	private static final String DELETE_CLAN_SIEGES = "DELETE FROM siege_clans WHERE clan_id=?";
-	private static final String RESET_CASTLE_TAX = "UPDATE castle SET taxPercent = 0 WHERE id = ?";
+	private static final String RESET_CASTLE_TAX = "UPDATE castle SET currentTaxPercent=0, nextTaxPercent=0 WHERE id=?";
 	
 	private static final String INSERT_WAR = "REPLACE INTO clan_wars (clan1, clan2) VALUES(?,?)";
 	private static final String UPDATE_WAR_TIME = "UPDATE clan_wars SET expiry_time=? WHERE clan1=? AND clan2=?";
@@ -199,7 +198,6 @@ public class ClanTable
 		clan.store();
 		player.setClan(clan);
 		player.setPledgeClass(ClanMember.calculatePledgeClass(player));
-		player.setClanPrivileges(Clan.CP_ALL);
 		
 		_clans.put(clan.getClanId(), clan);
 		
@@ -248,7 +246,7 @@ public class ClanTable
 		}
 		
 		// Drop all items from clan warehouse.
-		clan.getWarehouse().destroyAllItems("ClanRemove", (clan.getLeader() == null) ? null : clan.getLeader().getPlayerInstance(), null);
+		clan.getWarehouse().destroyAllItems();
 		
 		for (ClanMember member : clan.getMembers())
 			clan.removeClanMember(member.getObjectId(), 0);
@@ -507,7 +505,7 @@ public class ClanTable
 		if (allianceId == 0)
 			return Collections.emptyList();
 		
-		return _clans.values().stream().filter(c -> c.getAllyId() == allianceId).collect(Collectors.toList());
+		return _clans.values().stream().filter(c -> c.getAllyId() == allianceId).toList();
 	}
 	
 	/**

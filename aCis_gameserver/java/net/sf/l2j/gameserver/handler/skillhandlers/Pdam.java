@@ -1,20 +1,28 @@
 package net.sf.l2j.gameserver.handler.skillhandlers;
 
+import net.sf.l2j.commons.math.MathUtil;
 import net.sf.l2j.commons.util.ArraysUtil;
 
 import net.sf.l2j.gameserver.enums.items.ShotType;
 import net.sf.l2j.gameserver.enums.items.WeaponType;
 import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.enums.skills.FlyType;
 import net.sf.l2j.gameserver.enums.skills.ShieldDefense;
 import net.sf.l2j.gameserver.enums.skills.SkillType;
+import net.sf.l2j.gameserver.enums.skills.Stats;
+import net.sf.l2j.gameserver.geoengine.GeoEngine;
 import net.sf.l2j.gameserver.handler.ISkillHandler;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
+import net.sf.l2j.gameserver.model.location.Location;
+import net.sf.l2j.gameserver.model.location.Point2D;
 import net.sf.l2j.gameserver.network.SystemMessageId;
+import net.sf.l2j.gameserver.network.serverpackets.FlyToLocation;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
+import net.sf.l2j.gameserver.network.serverpackets.ValidateLocation;
 import net.sf.l2j.gameserver.skills.AbstractEffect;
 import net.sf.l2j.gameserver.skills.Formulas;
 import net.sf.l2j.gameserver.skills.L2Skill;
@@ -29,100 +37,129 @@ public class Pdam implements ISkillHandler
 	};
 	
 	@Override
-	public void useSkill(Creature activeChar, L2Skill skill, WorldObject[] targets)
+	public void useSkill(Creature creature, L2Skill skill, WorldObject[] targets, ItemInstance item)
 	{
-		if (activeChar.isAlikeDead())
+		if (creature.isAlikeDead())
 			return;
 		
-		final boolean ss = activeChar.isChargedShot(ShotType.SOULSHOT);
+		final boolean ss = creature.isChargedShot(ShotType.SOULSHOT);
+		final ItemInstance weapon = creature.getActiveWeaponInstance();
 		
-		final ItemInstance weapon = activeChar.getActiveWeaponInstance();
-		
-		for (WorldObject obj : targets)
+		for (WorldObject target : targets)
 		{
-			if (!(obj instanceof Creature))
+			if (!(target instanceof Creature targetCreature))
 				continue;
 			
-			final Creature target = ((Creature) obj);
-			if (target.isDead())
+			if (targetCreature.isDead())
 				continue;
 			
 			if (target instanceof Playable && ArraysUtil.contains(EffectFear.DOESNT_AFFECT_PLAYABLE, skill.getId()))
 				continue;
 			
 			// Calculate skill evasion. As Dodge blocks only melee skills, make an exception with bow weapons.
-			if (weapon != null && weapon.getItemType() != WeaponType.BOW && Formulas.calcPhysicalSkillEvasion(target, skill))
+			if (weapon != null && weapon.getItemType() != WeaponType.BOW && Formulas.calcPhysicalSkillEvasion(targetCreature, skill))
 			{
-				if (activeChar instanceof Player)
-					activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_DODGES_ATTACK).addCharName(target));
+				if (creature instanceof Player player)
+					player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_DODGES_ATTACK).addCharName(targetCreature));
 				
-				if (target instanceof Player)
-					target.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.AVOIDED_S1_ATTACK).addCharName(activeChar));
+				if (target instanceof Player targetPlayer)
+					targetPlayer.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.AVOIDED_S1_ATTACK).addCharName(creature));
 				
 				// no futher calculations needed.
 				continue;
 			}
 			
-			final boolean isCrit = skill.getBaseCritRate() > 0 && Formulas.calcCrit(skill.getBaseCritRate() * 10 * Formulas.getSTRBonus(activeChar));
-			final ShieldDefense sDef = Formulas.calcShldUse(activeChar, target, skill, isCrit);
-			final byte reflect = Formulas.calcSkillReflect(target, skill);
+			final boolean isCrit = skill.getBaseCritRate() > 0 && Formulas.calcCrit(skill.getBaseCritRate() * 10 * Formulas.getSTRBonus(creature));
+			final ShieldDefense sDef = Formulas.calcShldUse(creature, targetCreature, skill, isCrit);
+			final byte reflect = Formulas.calcSkillReflect(targetCreature, skill);
 			
-			if (skill.hasEffects() && target.getFirstEffect(EffectType.BLOCK_DEBUFF) == null)
+			if (skill.hasEffects() && targetCreature.getFirstEffect(EffectType.BLOCK_DEBUFF) == null)
 			{
 				if ((reflect & Formulas.SKILL_REFLECT_SUCCEED) != 0)
 				{
-					activeChar.stopSkillEffects(skill.getId());
+					creature.stopSkillEffects(skill.getId());
 					
-					skill.getEffects(target, activeChar);
+					skill.getEffects(targetCreature, creature);
 				}
 				else
 				{
-					target.stopSkillEffects(skill.getId());
+					targetCreature.stopSkillEffects(skill.getId());
 					
-					skill.getEffects(activeChar, target, sDef, false);
+					skill.getEffects(creature, targetCreature, sDef, false);
 				}
 			}
 			
-			final int damage = (int) Formulas.calcPhysicalSkillDamage(activeChar, target, skill, sDef, isCrit, ss);
+			double damage = Formulas.calcPhysicalSkillDamage(creature, targetCreature, skill, sDef, isCrit, ss);
+			
 			if (damage > 0)
 			{
-				activeChar.sendDamageMessage(target, damage, false, isCrit, false);
-				
-				// Possibility of a lethal strike
-				Formulas.calcLethalHit(activeChar, target, skill);
-				
-				target.reduceCurrentHp(damage, activeChar, skill);
-				
-				// vengeance reflected damage
-				if ((reflect & Formulas.SKILL_REFLECT_VENGEANCE) != 0)
+				// Skill counter.
+				if ((reflect & Formulas.SKILL_COUNTER) != 0)
 				{
-					if (target instanceof Player)
-						target.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.COUNTERED_S1_ATTACK).addCharName(activeChar));
+					if (target instanceof Player targetPlayer)
+						targetPlayer.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.COUNTERED_S1_ATTACK).addCharName(creature));
 					
-					if (activeChar instanceof Player)
-						activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_PERFORMING_COUNTERATTACK).addCharName(target));
+					if (creature instanceof Player player)
+						player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_PERFORMING_COUNTERATTACK).addCharName(targetCreature));
 					
-					double vegdamage = (700 * target.getStatus().getPAtk(activeChar) / activeChar.getStatus().getPDef(target));
-					activeChar.reduceCurrentHp(vegdamage, target, skill);
+					// Calculate the counter percent.
+					damage *= targetCreature.getStatus().calcStat(Stats.COUNTER_SKILL_PHYSICAL, 0, targetCreature, null) / 100.;
+					
+					// Reduce caster HPs.
+					creature.reduceCurrentHp(damage, targetCreature, skill);
+					
+					// Send damage message.
+					targetCreature.sendDamageMessage(creature, (int) damage, false, false, false);
 				}
+				else
+				{
+					// Manage cast break of the target (calculating rate, sending message...)
+					Formulas.calcCastBreak(targetCreature, damage);
+					
+					// Reduce target HPs.
+					targetCreature.reduceCurrentHp(damage, creature, skill);
+					
+					// Send damage message.
+					creature.sendDamageMessage(targetCreature, (int) damage, false, false, false);
+				}
+				
+				// Possibility of a lethal strike.
+				Formulas.calcLethalHit(creature, targetCreature, skill);
 			}
 			else
-				activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.ATTACK_FAILED));
+				creature.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.ATTACK_FAILED));
 		}
 		
 		if (skill.hasSelfEffects())
 		{
-			final AbstractEffect effect = activeChar.getFirstEffect(skill.getId());
+			final AbstractEffect effect = creature.getFirstEffect(skill.getId());
 			if (effect != null && effect.isSelfEffect())
 				effect.exit();
 			
-			skill.getEffectsSelf(activeChar);
+			skill.getEffectsSelf(creature);
+		}
+		
+		if (skill.getFlyType() == FlyType.CHARGE)
+		{
+			int heading = creature.getHeading();
+			if (targets.length > 0)
+				heading = MathUtil.calculateHeadingFrom(creature.getX(), creature.getY(), targets[0].getX(), targets[0].getY());
+			
+			final Point2D chargePoint = MathUtil.getNewLocationByDistanceAndHeading(creature.getX(), creature.getY(), heading, skill.getFlyRadius());
+			
+			final Location chargeLoc = GeoEngine.getInstance().getValidLocation(creature, chargePoint.getX(), chargePoint.getY(), creature.getZ());
+			
+			creature.broadcastPacket(new FlyToLocation(creature, chargeLoc.getX(), chargeLoc.getY(), chargeLoc.getZ(), FlyType.CHARGE));
+			
+			creature.setXYZ(chargeLoc.getX(), chargeLoc.getY(), chargeLoc.getZ());
+			
+			creature.broadcastPacket(new ValidateLocation(creature));
 		}
 		
 		if (skill.isSuicideAttack())
-			activeChar.doDie(activeChar);
+			creature.doDie(creature);
 		
-		activeChar.setChargedShot(ShotType.SOULSHOT, skill.isStaticReuse());
+		creature.setChargedShot(ShotType.SOULSHOT, skill.isStaticReuse());
 	}
 	
 	@Override

@@ -43,7 +43,7 @@ public final class RequestCharacterDelete extends L2GameClientPacket
 				break;
 		}
 		
-		final CharSelectInfo csi = new CharSelectInfo(getClient().getAccountName(), getClient().getSessionId().playOkID1, 0);
+		final CharSelectInfo csi = new CharSelectInfo(getClient().getAccountName(), getClient().getSessionId().playOkId1(), 0);
 		sendPacket(csi);
 		getClient().setCharSelectSlot(csi.getCharacterSlots());
 	}

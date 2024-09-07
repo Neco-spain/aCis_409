@@ -16,24 +16,24 @@ public class JailZone extends ZoneType
 	}
 	
 	@Override
-	protected void onEnter(Creature character)
+	protected void onEnter(Creature creature)
 	{
-		if (character instanceof Player)
+		if (creature instanceof Player player)
 		{
-			character.setInsideZone(ZoneId.JAIL, true);
-			character.setInsideZone(ZoneId.NO_SUMMON_FRIEND, true);
-			character.setInsideZone(ZoneId.NO_STORE, true);
+			player.setInsideZone(ZoneId.JAIL, true);
+			player.setInsideZone(ZoneId.NO_SUMMON_FRIEND, true);
+			player.setInsideZone(ZoneId.NO_STORE, true);
 		}
 	}
 	
 	@Override
-	protected void onExit(Creature character)
+	protected void onExit(Creature creature)
 	{
-		if (character instanceof Player)
+		if (creature instanceof Player player)
 		{
-			character.setInsideZone(ZoneId.JAIL, false);
-			character.setInsideZone(ZoneId.NO_SUMMON_FRIEND, false);
-			character.setInsideZone(ZoneId.NO_STORE, false);
+			player.setInsideZone(ZoneId.JAIL, false);
+			player.setInsideZone(ZoneId.NO_SUMMON_FRIEND, false);
+			player.setInsideZone(ZoneId.NO_STORE, false);
 		}
 	}
 }

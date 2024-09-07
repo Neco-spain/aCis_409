@@ -18,24 +18,24 @@ public class DerbyTrackZone extends ZoneType
 	}
 	
 	@Override
-	protected void onEnter(Creature character)
+	protected void onEnter(Creature creature)
 	{
-		if (character instanceof Playable)
+		if (creature instanceof Playable playable)
 		{
-			character.setInsideZone(ZoneId.MONSTER_TRACK, true);
-			character.setInsideZone(ZoneId.PEACE, true);
-			character.setInsideZone(ZoneId.NO_SUMMON_FRIEND, true);
+			playable.setInsideZone(ZoneId.MONSTER_TRACK, true);
+			playable.setInsideZone(ZoneId.PEACE, true);
+			playable.setInsideZone(ZoneId.NO_SUMMON_FRIEND, true);
 		}
 	}
 	
 	@Override
-	protected void onExit(Creature character)
+	protected void onExit(Creature creature)
 	{
-		if (character instanceof Playable)
+		if (creature instanceof Playable playable)
 		{
-			character.setInsideZone(ZoneId.MONSTER_TRACK, false);
-			character.setInsideZone(ZoneId.PEACE, false);
-			character.setInsideZone(ZoneId.NO_SUMMON_FRIEND, false);
+			playable.setInsideZone(ZoneId.MONSTER_TRACK, false);
+			playable.setInsideZone(ZoneId.PEACE, false);
+			playable.setInsideZone(ZoneId.NO_SUMMON_FRIEND, false);
 		}
 	}
 }

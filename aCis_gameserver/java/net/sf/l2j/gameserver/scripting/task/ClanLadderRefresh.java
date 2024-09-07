@@ -19,5 +19,6 @@ public final class ClanLadderRefresh extends ScheduledQuest
 	@Override
 	public final void onEnd()
 	{
+		// Do nothing.
 	}
 }

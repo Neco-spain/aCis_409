@@ -8,6 +8,7 @@ public final class RequestExitPartyMatchingWaitingRoom extends L2GameClientPacke
 	@Override
 	protected void readImpl()
 	{
+		// Do nothing.
 	}
 	
 	@Override

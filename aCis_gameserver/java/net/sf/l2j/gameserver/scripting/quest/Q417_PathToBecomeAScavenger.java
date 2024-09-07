@@ -58,10 +58,10 @@ public class Q417_PathToBecomeAScavenger extends Quest
 		
 		setItemsIds(PIPPI_LETTER, RAUT_TELEPORT_SCROLL, SUCCUBUS_UNDIES, MION_LETTER, BRONK_INGOT, SHARI_AXE, ZIMENF_POTION, BRONK_PAY, SHARI_PAY, ZIMENF_PAY, BEAR_PICTURE, TARANTULA_PICTURE, HONEY_JAR, BEAD, BEAD_PARCEL_1, BEAD_PARCEL_2);
 		
-		addStartNpc(PIPPI);
+		addQuestStart(PIPPI);
 		addTalkId(RAUT, SHARI, MION, PIPPI, BRONK, ZIMENF, TOMA, TORAI, YASHENI);
 		
-		addKillId(HUNTER_TARANTULA, PLUNDER_TARANTULA, HUNTER_BEAR, HONEY_BEAR);
+		addMyDying(HUNTER_TARANTULA, PLUNDER_TARANTULA, HUNTER_BEAR, HONEY_BEAR);
 	}
 	
 	@Override
@@ -79,7 +79,7 @@ public class Q417_PathToBecomeAScavenger extends Quest
 				htmltext = (player.getClassId() == ClassId.SCAVENGER) ? "30524-02a.htm" : "30524-08.htm";
 			else if (player.getStatus().getLevel() < 19)
 				htmltext = "30524-02.htm";
-			else if (player.getInventory().hasItems(RING_OF_RAVEN))
+			else if (player.getInventory().hasItem(RING_OF_RAVEN))
 				htmltext = "30524-04.htm";
 			else
 			{
@@ -208,7 +208,7 @@ public class Q417_PathToBecomeAScavenger extends Quest
 						break;
 					
 					case MION:
-						if (player.getInventory().hasItems(PIPPI_LETTER))
+						if (player.getInventory().hasItem(PIPPI_LETTER))
 							htmltext = "30519-01.htm";
 						else if (player.getInventory().hasAtLeastOneItem(BRONK_INGOT, SHARI_AXE, ZIMENF_POTION))
 						{
@@ -241,7 +241,7 @@ public class Q417_PathToBecomeAScavenger extends Quest
 						break;
 					
 					case SHARI:
-						if (player.getInventory().hasItems(SHARI_AXE))
+						if (player.getInventory().hasItem(SHARI_AXE))
 						{
 							int id = st.getInteger("id");
 							if (id < 20)
@@ -256,12 +256,12 @@ public class Q417_PathToBecomeAScavenger extends Quest
 							takeItems(player, SHARI_AXE, 1);
 							giveItems(player, SHARI_PAY, 1);
 						}
-						else if (player.getInventory().hasItems(SHARI_PAY))
+						else if (player.getInventory().hasItem(SHARI_PAY))
 							htmltext = "30517-03.htm";
 						break;
 					
 					case BRONK:
-						if (player.getInventory().hasItems(BRONK_INGOT))
+						if (player.getInventory().hasItem(BRONK_INGOT))
 						{
 							int id = st.getInteger("id");
 							if (id < 20)
@@ -276,12 +276,12 @@ public class Q417_PathToBecomeAScavenger extends Quest
 							takeItems(player, BRONK_INGOT, 1);
 							giveItems(player, BRONK_PAY, 1);
 						}
-						else if (player.getInventory().hasItems(BRONK_PAY))
+						else if (player.getInventory().hasItem(BRONK_PAY))
 							htmltext = "30525-03.htm";
 						break;
 					
 					case ZIMENF:
-						if (player.getInventory().hasItems(ZIMENF_POTION))
+						if (player.getInventory().hasItem(ZIMENF_POTION))
 						{
 							int id = st.getInteger("id");
 							if (id < 20)
@@ -296,7 +296,7 @@ public class Q417_PathToBecomeAScavenger extends Quest
 							takeItems(player, ZIMENF_POTION, 1);
 							giveItems(player, ZIMENF_PAY, 1);
 						}
-						else if (player.getInventory().hasItems(ZIMENF_PAY))
+						else if (player.getInventory().hasItem(ZIMENF_PAY))
 							htmltext = "30538-03.htm";
 						break;
 					
@@ -366,13 +366,13 @@ public class Q417_PathToBecomeAScavenger extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
@@ -400,13 +400,10 @@ public class Q417_PathToBecomeAScavenger extends Quest
 					st.setCond(6);
 				break;
 			
-			case HUNTER_TARANTULA:
-			case PLUNDER_TARANTULA:
+			case HUNTER_TARANTULA, PLUNDER_TARANTULA:
 				if (st.getCond() == 7 && ((Monster) npc).getSpoilState().isActualSpoiler(player) && dropItems(player, BEAD, 1, 20, (npc.getNpcId() == HUNTER_TARANTULA) ? 333333 : 600000))
 					st.setCond(8);
 				break;
 		}
-		
-		return null;
 	}
 }

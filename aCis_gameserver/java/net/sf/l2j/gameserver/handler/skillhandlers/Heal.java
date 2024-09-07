@@ -7,11 +7,11 @@ import net.sf.l2j.gameserver.handler.ISkillHandler;
 import net.sf.l2j.gameserver.handler.SkillHandler;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
-import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.actor.Summon;
+import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
+import net.sf.l2j.gameserver.skills.Formulas;
 import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class Heal implements ISkillHandler
@@ -23,78 +23,38 @@ public class Heal implements ISkillHandler
 	};
 	
 	@Override
-	public void useSkill(Creature activeChar, L2Skill skill, WorldObject[] targets)
+	public void useSkill(Creature creature, L2Skill skill, WorldObject[] targets, ItemInstance item)
 	{
+		final boolean sps = creature.isChargedShot(ShotType.SPIRITSHOT);
+		final boolean bsps = creature.isChargedShot(ShotType.BLESSED_SPIRITSHOT);
+		
 		final ISkillHandler handler = SkillHandler.getInstance().getHandler(SkillType.BUFF);
 		if (handler != null)
-			handler.useSkill(activeChar, skill, targets);
+			handler.useSkill(creature, skill, targets, item);
 		
-		double power = skill.getPower() + activeChar.getStatus().calcStat(Stats.HEAL_PROFICIENCY, 0, null, null);
+		final double healAmount = Formulas.calcHealAmount(creature, skill, sps, bsps);
 		
-		if (skill.getSkillType() != SkillType.HEAL_STATIC)
+		for (WorldObject target : targets)
 		{
-			final boolean sps = activeChar.isChargedShot(ShotType.SPIRITSHOT);
-			final boolean bsps = activeChar.isChargedShot(ShotType.BLESSED_SPIRITSHOT);
-			
-			double staticShotBonus = 0;
-			double mAtkMul = 1.;
-			
-			if ((sps || bsps) && (activeChar instanceof Player && activeChar.getActingPlayer().isMageClass()) || activeChar instanceof Summon)
-			{
-				staticShotBonus = skill.getMpConsume(); // static bonus for spiritshots
-				
-				if (bsps)
-				{
-					mAtkMul = 4.;
-					staticShotBonus *= 2.4;
-				}
-				else
-					mAtkMul = 2.;
-			}
-			else if ((sps || bsps) && activeChar instanceof Npc)
-			{
-				staticShotBonus = 2.4 * skill.getMpConsume(); // always blessed spiritshots
-				mAtkMul = 4.;
-			}
-			else
-			{
-				// shot dynamic bonus
-				if (bsps)
-					mAtkMul *= 4.;
-				else
-					mAtkMul += 1.;
-			}
-			
-			power += staticShotBonus + Math.sqrt(mAtkMul * activeChar.getStatus().getMAtk(activeChar, null));
-			
-			if (!skill.isPotion())
-				activeChar.setChargedShot(bsps ? ShotType.BLESSED_SPIRITSHOT : ShotType.SPIRITSHOT, skill.isStaticReuse());
-		}
-		
-		for (WorldObject obj : targets)
-		{
-			if (!(obj instanceof Creature))
+			if (!(target instanceof Creature targetCreature))
 				continue;
 			
-			final Creature target = ((Creature) obj);
-			if (!target.canBeHealed())
+			if (!targetCreature.canBeHealed())
 				continue;
 			
-			final double amount = target.getStatus().addHp(power * target.getStatus().calcStat(Stats.HEAL_EFFECTIVNESS, 100, null, null) / 100.);
+			final double amount = targetCreature.getStatus().addHp(healAmount * targetCreature.getStatus().calcStat(Stats.HEAL_EFFECTIVNESS, 100, null, null) / 100.);
 			
-			if (target instanceof Player)
+			if (target instanceof Player targetPlayer)
 			{
-				if (skill.getId() == 4051)
-					target.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.REJUVENATING_HP));
+				if (creature != targetPlayer)
+					targetPlayer.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S2_HP_RESTORED_BY_S1).addCharName(creature).addNumber((int) amount));
 				else
-				{
-					if (activeChar != target)
-						target.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S2_HP_RESTORED_BY_S1).addCharName(activeChar).addNumber((int) amount));
-					else
-						target.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_HP_RESTORED).addNumber((int) amount));
-				}
+					targetPlayer.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_HP_RESTORED).addNumber((int) amount));
 			}
 		}
+		
+		if (skill.getSkillType() != SkillType.HEAL_STATIC && !skill.isPotion())
+			creature.setChargedShot(bsps ? ShotType.BLESSED_SPIRITSHOT : ShotType.SPIRITSHOT, skill.isStaticReuse());
 	}
 	
 	@Override

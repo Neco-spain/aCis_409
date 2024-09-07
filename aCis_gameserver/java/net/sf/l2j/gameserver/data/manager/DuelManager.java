@@ -7,7 +7,6 @@ import net.sf.l2j.gameserver.idfactory.IdFactory;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.entity.Duel;
 import net.sf.l2j.gameserver.network.serverpackets.L2GameServerPacket;
-import net.sf.l2j.gameserver.skills.AbstractEffect;
 
 /**
  * Loads and stores {@link Duel}s for easier management.
@@ -26,9 +25,9 @@ public final class DuelManager
 	}
 	
 	/**
-	 * Add a Duel on the _duels Map. Both players must exist.
-	 * @param playerA : The first player to use.
-	 * @param playerB : The second player to use.
+	 * Add a Duel on the _duels Map. Both {@link Player}s must exist.
+	 * @param playerA : The first {@link Player} to use.
+	 * @param playerB : The second {@link Player} to use.
 	 * @param isPartyDuel : True if the duel is a party duel.
 	 */
 	public void addDuel(Player playerA, Player playerB, boolean isPartyDuel)
@@ -57,8 +56,8 @@ public final class DuelManager
 	}
 	
 	/**
-	 * Ends the duel by a surrender action.
-	 * @param player : The player used to retrieve the duelId. The player is then used as surrendered opponent.
+	 * End the duel by a surrender action.
+	 * @param player : The {@link Player} used to retrieve the duelId. The {@link Player} is then used as surrendered opponent.
 	 */
 	public void doSurrender(Player player)
 	{
@@ -71,8 +70,8 @@ public final class DuelManager
 	}
 	
 	/**
-	 * Ends the duel by a defeat action.
-	 * @param player : The player used to retrieve the duelId. The player is then used as defeated opponent.
+	 * End the duel by a defeat action.
+	 * @param player : The {@link Player} used to retrieve the duelId. The {@link Player} is then used as defeated opponent.
 	 */
 	public void onPlayerDefeat(Player player)
 	{
@@ -85,23 +84,8 @@ public final class DuelManager
 	}
 	
 	/**
-	 * Registers a buff which will be removed if the duel ends.
-	 * @param player : The player to buff.
-	 * @param buff : The effect to cast.
-	 */
-	public void onBuff(Player player, AbstractEffect buff)
-	{
-		if (player == null || !player.isInDuel() || buff == null)
-			return;
-		
-		final Duel duel = getDuel(player.getDuelId());
-		if (duel != null)
-			duel.onBuff(player, buff);
-	}
-	
-	/**
-	 * Removes player from duel, enforcing duel cancellation.
-	 * @param player : The player to check.
+	 * Remove the {@link Player} set as parameter from duel, enforcing duel cancellation.
+	 * @param player : The {@link Player} to check.
 	 */
 	public void onPartyEdit(Player player)
 	{
@@ -114,9 +98,9 @@ public final class DuelManager
 	}
 	
 	/**
-	 * Broadcasts a packet to the team (or the player) opposing the given player.
-	 * @param player : The player used to find the opponent.
-	 * @param packet : The packet to send.
+	 * Broadcast a packet to the team (or the {@link Player}) opposing the given {@link Player}.
+	 * @param player : The {@link Player} used to find the opponent.
+	 * @param packet : The {@link L2GameServerPacket} to send.
 	 */
 	public void broadcastToOppositeTeam(Player player, L2GameServerPacket packet)
 	{
@@ -127,17 +111,13 @@ public final class DuelManager
 		if (duel == null)
 			return;
 		
-		if (duel.getPlayerA() == player)
-			duel.broadcastToTeam2(packet);
-		else if (duel.getPlayerB() == player)
-			duel.broadcastToTeam1(packet);
-		else if (duel.isPartyDuel())
-		{
-			if (duel.getPlayerA().getParty() != null && duel.getPlayerA().getParty().containsPlayer(player))
-				duel.broadcastToTeam2(packet);
-			else if (duel.getPlayerB().getParty() != null && duel.getPlayerB().getParty().containsPlayer(player))
-				duel.broadcastToTeam1(packet);
-		}
+		final Player playerA = duel.getPlayerA();
+		final Player playerB = duel.getPlayerB();
+		
+		if (playerA == player || (duel.isPartyDuel() && playerA.isInSameParty(player)))
+			duel.broadcastTo(playerB, packet);
+		else if (playerB == player || (duel.isPartyDuel() && playerB.isInSameParty(player)))
+			duel.broadcastTo(playerA, packet);
 	}
 	
 	public static final DuelManager getInstance()

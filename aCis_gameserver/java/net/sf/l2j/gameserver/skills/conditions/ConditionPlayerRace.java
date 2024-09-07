@@ -18,6 +18,6 @@ public class ConditionPlayerRace extends Condition
 	@Override
 	public boolean testImpl(Creature effector, Creature effected, L2Skill skill, Item item)
 	{
-		return effector instanceof Player && ((Player) effector).getRace() == _race;
+		return effector instanceof Player player && player.getRace() == _race;
 	}
 }

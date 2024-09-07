@@ -255,10 +255,10 @@ public class Q373_SupplierOfReagents extends Quest
 		
 		setItemsIds(MIXING_STONE, MIXING_MANUAL);
 		
-		addStartNpc(WESLEY);
+		addQuestStart(WESLEY);
 		addTalkId(WESLEY, URN);
 		
-		addKillId(CRENDION, HALLATE_MAID, HALLATE_GUARDIAN, PLATINUM_TRIBE_SHAMAN, PLATINUM_GUARDIAN_SHAMAN, LAVA_WYRM, HAMES_ORC_SHAMAN);
+		addMyDying(CRENDION, HALLATE_MAID, HALLATE_GUARDIAN, PLATINUM_TRIBE_SHAMAN, PLATINUM_GUARDIAN_SHAMAN, LAVA_WYRM, HAMES_ORC_SHAMAN);
 	}
 	
 	@Override
@@ -287,7 +287,7 @@ public class Q373_SupplierOfReagents extends Quest
 		// Urn
 		else if (event.equalsIgnoreCase("31149-02.htm"))
 		{
-			if (!player.getInventory().hasItems(MIXING_STONE))
+			if (!player.getInventory().hasItem(MIXING_STONE))
 				htmltext = "31149-04.htm";
 		}
 		else if (event.startsWith("31149-03-"))
@@ -312,7 +312,7 @@ public class Q373_SupplierOfReagents extends Quest
 			int catalyst = Integer.parseInt(event.substring(9, 13));
 			
 			// Not enough items, cancel the operation.
-			if (!player.getInventory().hasItems(catalyst))
+			if (!player.getInventory().hasItem(catalyst))
 				return "31149-04.htm";
 			
 			st.set(CATALYST, catalyst);
@@ -332,7 +332,7 @@ public class Q373_SupplierOfReagents extends Quest
 					break;
 				
 				// Not enough catalysts.
-				if (!player.getInventory().hasItems(catalyst))
+				if (!player.getInventory().hasItem(catalyst))
 					break;
 				
 				takeItems(player, regent, formula[0]);
@@ -382,13 +382,13 @@ public class Q373_SupplierOfReagents extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMemberState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final int[] drop = DROPLIST.get(npc.getNpcId());
 		
@@ -400,7 +400,5 @@ public class Q373_SupplierOfReagents extends Quest
 			if (random < drop[3])
 				dropItemsAlways(st.getPlayer(), (random < drop[2]) ? drop[0] : drop[1], 1, 0);
 		}
-		
-		return null;
 	}
 }

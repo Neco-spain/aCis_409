@@ -8,6 +8,7 @@ import net.sf.l2j.gameserver.model.holder.IntIntHolder;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.item.kind.Item;
 import net.sf.l2j.gameserver.model.location.Location;
+import net.sf.l2j.gameserver.model.records.CnfDlgData;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.skills.AbstractEffect;
 import net.sf.l2j.gameserver.skills.L2Skill;
@@ -127,28 +128,26 @@ public class ConfirmDlg extends L2GameServerPacket
 			
 			for (CnfDlgData data : _info)
 			{
-				writeD(data.getType());
+				writeD(data.type());
 				
-				switch (data.getType())
+				switch (data.type())
 				{
 					case TYPE_TEXT:
-						writeS((String) data.getObject());
+						writeS((String) data.object());
 						break;
 					
-					case TYPE_NUMBER:
-					case TYPE_NPC_NAME:
-					case TYPE_ITEM_NAME:
-						writeD((Integer) data.getObject());
+					case TYPE_NUMBER, TYPE_NPC_NAME, TYPE_ITEM_NAME:
+						writeD((Integer) data.object());
 						break;
 					
 					case TYPE_SKILL_NAME:
-						final IntIntHolder info = (IntIntHolder) data.getObject();
+						final IntIntHolder info = (IntIntHolder) data.object();
 						writeD(info.getId());
 						writeD(info.getValue());
 						break;
 					
 					case TYPE_ZONE_NAME:
-						writeLoc((Location) data.getObject());
+						writeLoc((Location) data.object());
 						break;
 				}
 			}
@@ -156,28 +155,6 @@ public class ConfirmDlg extends L2GameServerPacket
 				writeD(_time);
 			if (_requesterId != 0)
 				writeD(_requesterId);
-		}
-	}
-	
-	private static final class CnfDlgData
-	{
-		private final int _type;
-		private final Object _value;
-		
-		protected CnfDlgData(int type, Object val)
-		{
-			_type = type;
-			_value = val;
-		}
-		
-		public int getType()
-		{
-			return _type;
-		}
-		
-		public Object getObject()
-		{
-			return _value;
 		}
 	}
 }

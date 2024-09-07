@@ -23,9 +23,9 @@ public class EffectImobilePetBuff extends AbstractEffect
 	@Override
 	public boolean onStart()
 	{
-		if (getEffected() instanceof Summon && getEffector() instanceof Player && ((Summon) getEffected()).getOwner() == getEffector())
+		if (getEffected() instanceof Summon targetSummon && getEffector() instanceof Player player && targetSummon.getOwner() == player)
 		{
-			getEffected().setIsImmobilized(true);
+			targetSummon.setIsImmobilized(true);
 			return true;
 		}
 		return false;

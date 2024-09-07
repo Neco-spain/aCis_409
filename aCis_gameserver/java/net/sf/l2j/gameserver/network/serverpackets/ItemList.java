@@ -11,9 +11,15 @@ public class ItemList extends L2GameServerPacket
 	private final Set<ItemInstance> _items;
 	private final boolean _showWindow;
 	
-	public ItemList(Player cha, boolean showWindow)
+	public ItemList(Player player, boolean showWindow)
 	{
-		_items = cha.getInventory().getItems();
+		// Enforce the clearance of update list upon a full ItemList send, which means no weight update will be done.
+		player.getInventory().clearUpdateList();
+		
+		// Manually calculate and set the weight, since we got no items manipulation to automatically call it.
+		player.getInventory().updateWeight();
+		
+		_items = player.getInventory().getItems();
 		_showWindow = showWindow;
 	}
 	
@@ -39,7 +45,7 @@ public class ItemList extends L2GameServerPacket
 			writeH(temp.getEnchantLevel());
 			writeH(temp.getCustomType2());
 			writeD((temp.isAugmented()) ? temp.getAugmentation().getId() : 0x00);
-			writeD(temp.getMana());
+			writeD(temp.getDisplayedManaLeft());
 		}
 	}
 }

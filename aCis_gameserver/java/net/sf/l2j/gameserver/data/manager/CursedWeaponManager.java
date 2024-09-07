@@ -14,9 +14,7 @@ import net.sf.l2j.gameserver.model.actor.Attackable;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.FeedableBeast;
-import net.sf.l2j.gameserver.model.actor.instance.FestivalMonster;
 import net.sf.l2j.gameserver.model.actor.instance.GrandBoss;
-import net.sf.l2j.gameserver.model.actor.instance.RiftInvader;
 import net.sf.l2j.gameserver.model.actor.instance.SiegeGuard;
 import net.sf.l2j.gameserver.model.entity.CursedWeapon;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
@@ -105,7 +103,7 @@ public class CursedWeaponManager implements IXmlReader
 	 */
 	public synchronized void checkDrop(Attackable attackable, Player player)
 	{
-		if (attackable instanceof SiegeGuard || attackable instanceof RiftInvader || attackable instanceof FestivalMonster || attackable instanceof GrandBoss || attackable instanceof FeedableBeast)
+		if (attackable instanceof SiegeGuard || attackable instanceof GrandBoss || attackable instanceof FeedableBeast)
 			return;
 		
 		for (CursedWeapon cw : _cursedWeapons.values())

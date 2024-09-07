@@ -29,6 +29,7 @@ import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.network.GameClient;
 import net.sf.l2j.gameserver.network.GameClient.GameClientState;
+import net.sf.l2j.gameserver.network.SessionKey;
 import net.sf.l2j.gameserver.network.gameserverpackets.AuthRequest;
 import net.sf.l2j.gameserver.network.gameserverpackets.BlowFishKey;
 import net.sf.l2j.gameserver.network.gameserverpackets.ChangeAccessLevel;
@@ -48,7 +49,7 @@ import net.sf.l2j.loginserver.crypt.NewCrypt;
 
 public class LoginServerThread extends Thread
 {
-	protected static final CLogger LOGGER = new CLogger(LoginServerThread.class.getName());
+	private static final CLogger LOGGER = new CLogger(LoginServerThread.class.getName());
 	
 	private static final int REVISION = 0x0102;
 	
@@ -111,7 +112,7 @@ public class LoginServerThread extends Thread
 					int lengthHi = _in.read();
 					int length = lengthHi * 256 + lengthLo;
 					
-					if (lengthHi < 0)
+					if (lengthHi < 0 || length < 2)
 						break;
 					
 					byte[] incoming = new byte[length - 2];
@@ -128,20 +129,14 @@ public class LoginServerThread extends Thread
 					}
 					
 					if (receivedBytes != length - 2)
-					{
-						LOGGER.warn("Incomplete packet is sent to the server, closing connection.");
 						break;
-					}
 					
 					// Decrypt if we have a key.
 					final byte[] decrypt = _blowfish.decrypt(incoming);
 					
 					// Verify the checksum.
 					if (!NewCrypt.verifyChecksum(decrypt))
-					{
-						LOGGER.warn("Incorrect packet checksum, ignoring packet.");
 						break;
-					}
 					
 					int packetType = decrypt[0] & 0xff;
 					switch (packetType)
@@ -224,7 +219,7 @@ public class LoginServerThread extends Thread
 									sendPacket(new PlayerInGame(par.getAccount()));
 									
 									client.setState(GameClientState.AUTHED);
-									client.sendPacket(new CharSelectInfo(par.getAccount(), client.getSessionId().playOkID1));
+									client.sendPacket(new CharSelectInfo(par.getAccount(), client.getSessionId().playOkId1()));
 								}
 								else
 								{
@@ -241,8 +236,9 @@ public class LoginServerThread extends Thread
 					}
 				}
 			}
-			catch (UnknownHostException e)
+			catch (UnknownHostException uhe)
 			{
+				// Do nothing.
 			}
 			catch (IOException e)
 			{
@@ -258,6 +254,7 @@ public class LoginServerThread extends Thread
 				}
 				catch (Exception e)
 				{
+					// Do nothing.
 				}
 			}
 			
@@ -292,24 +289,22 @@ public class LoginServerThread extends Thread
 		}
 	}
 	
-	public void addClient(String account, GameClient client)
+	public void addClient(String loginName, int loginKey1, int loginKey2, int playKey1, int playKey2, GameClient client)
 	{
-		final GameClient existingClient = _clients.putIfAbsent(account, client);
-		if (existingClient == null)
-		{
-			try
-			{
-				sendPacket(new PlayerAuthRequest(client.getAccountName(), client.getSessionId()));
-			}
-			catch (IOException e)
-			{
-				LOGGER.error("Error while sending player auth request.");
-			}
-		}
-		else
-		{
-			client.closeNow();
+		final GameClient existingClient = _clients.putIfAbsent(loginName, client);
+		if (existingClient != null)
 			existingClient.closeNow();
+		
+		try
+		{
+			client.setAccountName(loginName);
+			client.setSessionId(new SessionKey(loginKey1, loginKey2, playKey1, playKey2));
+			
+			sendPacket(new PlayerAuthRequest(client.getAccountName(), client.getSessionId()));
+		}
+		catch (IOException e)
+		{
+			LOGGER.error("Error while sending player auth request.");
 		}
 	}
 	
@@ -319,8 +314,9 @@ public class LoginServerThread extends Thread
 		{
 			sendPacket(new ChangeAccessLevel(account, level));
 		}
-		catch (IOException e)
+		catch (IOException ioe)
 		{
+			// Do nothing.
 		}
 	}
 	
@@ -376,8 +372,9 @@ public class LoginServerThread extends Thread
 			
 			sendPacket(ss);
 		}
-		catch (IOException e)
+		catch (IOException ioe)
 		{
+			// Do nothing.
 		}
 	}
 	

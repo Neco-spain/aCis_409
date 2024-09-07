@@ -107,5 +107,6 @@ public final class RaidPointReset extends ScheduledQuest
 	@Override
 	public final void onEnd()
 	{
+		// Do nothing.
 	}
 }

@@ -35,7 +35,7 @@ public abstract class Func
 	
 	private final Condition _condition;
 	
-	public Func(Object owner, Stats stat, int order, double value, Condition condition)
+	protected Func(Object owner, Stats stat, int order, double value, Condition condition)
 	{
 		_owner = owner;
 		

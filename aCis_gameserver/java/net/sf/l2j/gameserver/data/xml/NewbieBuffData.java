@@ -3,21 +3,20 @@ package net.sf.l2j.gameserver.data.xml;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import net.sf.l2j.commons.data.StatSet;
 import net.sf.l2j.commons.data.xml.IXmlReader;
 
-import net.sf.l2j.gameserver.model.holder.NewbieBuffHolder;
+import net.sf.l2j.gameserver.model.records.NewbieBuff;
 
 import org.w3c.dom.Document;
 
 /**
- * This class loads and store {@link NewbieBuffHolder} into a {@link List}.
+ * This class loads and store {@link NewbieBuff} into a {@link List}.
  */
 public class NewbieBuffData implements IXmlReader
 {
-	private final List<NewbieBuffHolder> _buffs = new ArrayList<>();
+	private final List<NewbieBuff> _buffs = new ArrayList<>();
 	
 	private int _magicLowestLevel = 100;
 	private int _physicLowestLevel = 100;
@@ -51,18 +50,18 @@ public class NewbieBuffData implements IXmlReader
 				if (lowerLevel < _physicLowestLevel)
 					_physicLowestLevel = lowerLevel;
 			}
-			_buffs.add(new NewbieBuffHolder(set));
+			_buffs.add(new NewbieBuff(set));
 		}));
 	}
 	
 	/**
 	 * @param isMage : If true, return buffs list associated to mage classes.
 	 * @param level : Filter the list by the given level.
-	 * @return The {@link List} of valid {@link NewbieBuffHolder}s for the given class type and level.
+	 * @return The {@link List} of valid {@link NewbieBuff}s for the given class type and level.
 	 */
-	public List<NewbieBuffHolder> getValidBuffs(boolean isMage, int level)
+	public List<NewbieBuff> getValidBuffs(boolean isMage, int level)
 	{
-		return _buffs.stream().filter(b -> b.isMagicClassBuff() == isMage && level >= b.getLowerLevel() && level <= b.getUpperLevel()).collect(Collectors.toList());
+		return _buffs.stream().filter(b -> b.isMagicClass() == isMage && level >= b.lowerLevel() && level <= b.upperLevel()).toList();
 	}
 	
 	public int getLowestBuffLevel(boolean isMage)

@@ -50,18 +50,19 @@ public final class AnswerJoinPartyRoom extends L2GameClientPacket
 				return;
 			}
 			
-			// Remove from waiting list
-			PartyMatchRoomManager.getInstance().removeWaitingPlayer(player);
-			
-			player.sendPacket(new PartyMatchDetail(room));
-			player.sendPacket(new ExPartyRoomMember(room, 0));
-			
-			for (Player member : room.getMembers())
+			// Remove Player from waiting list.
+			if (PartyMatchRoomManager.getInstance().removeWaitingPlayer(player))
 			{
-				member.sendPacket(new ExManagePartyRoomMember(player, room, 0));
-				member.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_ENTERED_PARTY_ROOM).addCharName(player));
+				player.sendPacket(new PartyMatchDetail(room));
+				player.sendPacket(new ExPartyRoomMember(room, 0));
+				
+				for (Player member : room.getMembers())
+				{
+					member.sendPacket(new ExManagePartyRoomMember(player, room, 0));
+					member.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_ENTERED_PARTY_ROOM).addCharName(player));
+				}
+				room.addMember(player, partner.getPartyRoom());
 			}
-			room.addMember(player, partner.getPartyRoom());
 		}
 		// Else, send a message to requester.
 		else

@@ -22,12 +22,12 @@ public class EffectTargetMe extends AbstractEffect
 	@Override
 	public boolean onStart()
 	{
-		if (getEffected() instanceof Player)
+		if (getEffected() instanceof Player targetPlayer)
 		{
-			if (getEffected().getTarget() == getEffector())
-				getEffected().getAI().tryToAttack(getEffector());
+			if (targetPlayer.getTarget() == getEffector())
+				targetPlayer.getAI().tryToAttack(getEffector());
 			else
-				getEffected().setTarget(getEffector());
+				targetPlayer.setTarget(getEffector());
 			
 			return true;
 		}
@@ -37,6 +37,7 @@ public class EffectTargetMe extends AbstractEffect
 	@Override
 	public void onExit()
 	{
+		// Do nothing.
 	}
 	
 	@Override

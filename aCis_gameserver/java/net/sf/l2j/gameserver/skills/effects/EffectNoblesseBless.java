@@ -28,6 +28,7 @@ public class EffectNoblesseBless extends AbstractEffect
 	@Override
 	public void onExit()
 	{
+		// Do nothing.
 	}
 	
 	@Override

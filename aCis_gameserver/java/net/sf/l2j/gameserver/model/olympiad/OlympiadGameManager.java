@@ -35,10 +35,7 @@ public class OlympiadGameManager implements Runnable
 	@Override
 	public final void run()
 	{
-		if (Olympiad.getInstance().isOlympiadEnd())
-			return;
-		
-		if (Olympiad.getInstance().isInCompPeriod())
+		if (Olympiad.getInstance().isInCompetitionPeriod())
 		{
 			List<List<Integer>> readyClassed = OlympiadManager.getInstance().hasEnoughClassBasedParticipants();
 			boolean readyNonClassed = OlympiadManager.getInstance().hasEnoughNonClassBasedParticipants();
@@ -47,23 +44,11 @@ public class OlympiadGameManager implements Runnable
 			if (readyClassed == null && !readyNonClassed)
 			{
 				// Broadcast to registered class based Players.
-				for (List<Integer> classList : OlympiadManager.getInstance().getClassBasedParticipants().values())
-				{
-					for (int objectId : classList)
-					{
-						final Player player = World.getInstance().getPlayer(objectId);
-						if (player != null)
-							player.sendPacket(SystemMessageId.GAMES_DELAYED);
-					}
-				}
+				OlympiadManager.getInstance().getClassBasedParticipants().values().stream().flatMap(Collection::stream).forEach(this::notifyPlayerOfGameDelay);
 				
 				// Broadcast to registered non class based Players.
-				for (int objectId : OlympiadManager.getInstance().getNonClassBasedParticipants())
-				{
-					final Player player = World.getInstance().getPlayer(objectId);
-					if (player != null)
-						player.sendPacket(SystemMessageId.GAMES_DELAYED);
-				}
+				OlympiadManager.getInstance().getNonClassBasedParticipants().stream().forEach(this::notifyPlayerOfGameDelay);
+				
 				return;
 			}
 			
@@ -111,18 +96,21 @@ public class OlympiadGameManager implements Runnable
 					break;
 			}
 		}
-		else
+		else if (isAllTasksFinished())
 		{
-			// not in competition period
-			if (isAllTasksFinished())
-			{
-				OlympiadManager.getInstance().clearParticipants();
-				
-				_battleStarted = false;
-				
-				LOGGER.info("All current Olympiad games finished.");
-			}
+			OlympiadManager.getInstance().clearParticipants();
+			
+			_battleStarted = false;
+			
+			LOGGER.info("All current Olympiad games finished.");
 		}
+	}
+	
+	private void notifyPlayerOfGameDelay(int objectId)
+	{
+		final Player player = World.getInstance().getPlayer(objectId);
+		if (player != null)
+			player.sendPacket(SystemMessageId.GAMES_DELAYED);
 	}
 	
 	protected final boolean isBattleStarted()

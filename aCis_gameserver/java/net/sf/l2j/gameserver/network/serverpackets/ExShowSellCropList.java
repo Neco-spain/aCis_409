@@ -52,13 +52,13 @@ public class ExShowSellCropList extends L2GameServerPacket
 			writeD(item.getItemId());
 			writeD(seed.getLevel());
 			writeC(1);
-			writeD(seed.getReward(1));
+			writeD(seed.getReward1());
 			writeC(1);
-			writeD(seed.getReward(2));
+			writeD(seed.getReward2());
 			
-			if (_castleCrops.containsKey(item.getItemId()))
+			final CropProcure crop = _castleCrops.get(item.getItemId());
+			if (crop != null)
 			{
-				final CropProcure crop = _castleCrops.get(item.getItemId());
 				writeD(_manorId);
 				writeD(crop.getAmount());
 				writeD(crop.getPrice());

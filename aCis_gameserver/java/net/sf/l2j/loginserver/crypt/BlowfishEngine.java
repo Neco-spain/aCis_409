@@ -1131,10 +1131,6 @@ public class BlowfishEngine
 		return BLOCK_SIZE;
 	}
 	
-	public void reset()
-	{
-	}
-	
 	public int getBlockSize()
 	{
 		return BLOCK_SIZE;

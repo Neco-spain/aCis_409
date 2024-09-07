@@ -1,10 +1,10 @@
 package net.sf.l2j.gameserver.model.actor.instance;
 
 import net.sf.l2j.Config;
+import net.sf.l2j.gameserver.enums.PrivilegeType;
 import net.sf.l2j.gameserver.enums.actors.NpcTalkCond;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
-import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
 
 public class CastleBlacksmith extends Folk
@@ -37,11 +37,9 @@ public class CastleBlacksmith extends Folk
 			{
 				val = Integer.parseInt(command.substring(5));
 			}
-			catch (IndexOutOfBoundsException ioobe)
+			catch (IndexOutOfBoundsException | NumberFormatException e)
 			{
-			}
-			catch (NumberFormatException nfe)
-			{
+				// Do nothing.
 			}
 			showChatWindow(player, val);
 		}
@@ -64,21 +62,26 @@ public class CastleBlacksmith extends Folk
 		
 		final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
 		
-		final NpcTalkCond condition = getNpcTalkCond(player);
-		if (condition == NpcTalkCond.NONE)
-			html.setFile("data/html/castleblacksmith/castleblacksmith-no.htm");
-		else if (condition == NpcTalkCond.UNDER_SIEGE)
-			html.setFile("data/html/castleblacksmith/castleblacksmith-busy.htm");
-		else
+		switch (getNpcTalkCond(player))
 		{
-			if (val == 0)
-				html.setFile("data/html/castleblacksmith/castleblacksmith.htm");
-			else
-				html.setFile("data/html/castleblacksmith/castleblacksmith-" + val + ".htm");
+			case NONE:
+				html.setFile("data/html/castleblacksmith/castleblacksmith-no.htm");
+				break;
+			
+			case UNDER_SIEGE:
+				html.setFile("data/html/castleblacksmith/castleblacksmith-busy.htm");
+				break;
+			
+			default:
+				if (val == 0)
+					html.setFile("data/html/castleblacksmith/castleblacksmith.htm");
+				else
+					html.setFile("data/html/castleblacksmith/castleblacksmith-" + val + ".htm");
+				break;
 		}
 		html.replace("%objectId%", getObjectId());
 		html.replace("%npcname%", getName());
-		html.replace("%castleid%", getCastle().getCastleId());
+		html.replace("%castleid%", getCastle().getId());
 		player.sendPacket(html);
 	}
 	
@@ -90,7 +93,7 @@ public class CastleBlacksmith extends Folk
 			if (getCastle().getSiege().isInProgress())
 				return NpcTalkCond.UNDER_SIEGE;
 			
-			if (getCastle().getOwnerId() == player.getClanId() && player.hasClanPrivileges(Clan.CP_CS_MANOR_ADMIN))
+			if (getCastle().getOwnerId() == player.getClanId() && player.hasClanPrivileges(PrivilegeType.CP_MANOR_ADMINISTRATION))
 				return NpcTalkCond.OWNER;
 		}
 		return NpcTalkCond.NONE;

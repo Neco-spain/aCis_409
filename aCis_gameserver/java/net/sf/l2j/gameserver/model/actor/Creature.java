@@ -5,16 +5,18 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import net.sf.l2j.commons.lang.StringUtil;
 import net.sf.l2j.commons.random.Rnd;
 
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.manager.ZoneManager;
-import net.sf.l2j.gameserver.data.xml.MapRegionData;
-import net.sf.l2j.gameserver.data.xml.MapRegionData.TeleportType;
 import net.sf.l2j.gameserver.data.xml.NpcData;
 import net.sf.l2j.gameserver.enums.AiEventType;
+import net.sf.l2j.gameserver.enums.EventHandler;
+import net.sf.l2j.gameserver.enums.RestartType;
 import net.sf.l2j.gameserver.enums.StatusType;
 import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.enums.actors.MoveType;
@@ -28,7 +30,6 @@ import net.sf.l2j.gameserver.geoengine.GeoEngine;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.WorldRegion;
-import net.sf.l2j.gameserver.model.actor.ai.type.AttackableAI;
 import net.sf.l2j.gameserver.model.actor.ai.type.CreatureAI;
 import net.sf.l2j.gameserver.model.actor.attack.CreatureAttack;
 import net.sf.l2j.gameserver.model.actor.cast.CreatureCast;
@@ -53,6 +54,7 @@ import net.sf.l2j.gameserver.network.serverpackets.Revive;
 import net.sf.l2j.gameserver.network.serverpackets.ServerObjectInfo;
 import net.sf.l2j.gameserver.network.serverpackets.StatusUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.TeleportToLocation;
+import net.sf.l2j.gameserver.scripting.Quest;
 import net.sf.l2j.gameserver.skills.AbstractEffect;
 import net.sf.l2j.gameserver.skills.Calculator;
 import net.sf.l2j.gameserver.skills.IChanceSkillTrigger;
@@ -75,6 +77,7 @@ import net.sf.l2j.gameserver.skills.funcs.FuncPDefMod;
 import net.sf.l2j.gameserver.skills.funcs.FuncRegenHpMul;
 import net.sf.l2j.gameserver.skills.funcs.FuncRegenMpMul;
 import net.sf.l2j.gameserver.taskmanager.AttackStanceTaskManager;
+import net.sf.l2j.gameserver.taskmanager.DecayTaskManager;
 
 /**
  * An instance type extending {@link WorldObject} which represents the mother class of all character objects of the world such as players, NPCs and monsters.
@@ -83,11 +86,10 @@ public abstract class Creature extends WorldObject
 {
 	protected String _title;
 	
-	protected volatile CreatureAI _ai;
-	
 	private CreatureTemplate _template;
 	private NpcTemplate _polymorphTemplate;
 	
+	protected CreatureAI<? extends Creature> _ai;
 	protected CreatureStatus<? extends Creature> _status;
 	protected CreatureMove<? extends Creature> _move;
 	protected CreatureAttack<? extends Creature> _attack;
@@ -99,8 +101,9 @@ public abstract class Creature extends WorldObject
 	private boolean _isParalyzed;
 	private boolean _isDead;
 	private boolean _isRunning;
-	private boolean _isTeleporting;
 	private boolean _showSummonAnimation;
+	
+	protected AtomicBoolean _isTeleporting = new AtomicBoolean();
 	
 	private boolean _isInvul;
 	private boolean _isMortal = true;
@@ -119,7 +122,7 @@ public abstract class Creature extends WorldObject
 	private final Map<Integer, Long> _disabledSkills = new ConcurrentHashMap<>();
 	private boolean _allSkillsDisabled;
 	
-	public Creature(int objectId, CreatureTemplate template)
+	protected Creature(int objectId, CreatureTemplate template)
 	{
 		super(objectId);
 		
@@ -128,6 +131,7 @@ public abstract class Creature extends WorldObject
 		
 		addFuncsToNewCharacter();
 		
+		setAI();
 		setStatus();
 		setMove();
 		setAttack();
@@ -160,9 +164,20 @@ public abstract class Creature extends WorldObject
 	public abstract Item getSecondaryWeaponItem();
 	
 	@Override
-	public String toString()
+	public boolean knows(WorldObject target)
 	{
-		return "[Creature objId=" + getObjectId() + "]";
+		if (!super.knows(target))
+			return false;
+		
+		// If current Creature isn't a GM, it can't see any invisible Players.
+		if (!isGM())
+		{
+			final Player player = target.getActingPlayer();
+			if (player != null && !player.getAppearance().isVisible())
+				return false;
+		}
+		
+		return true;
 	}
 	
 	/**
@@ -205,25 +220,26 @@ public abstract class Creature extends WorldObject
 	
 	public void onTeleported()
 	{
-		if (!isTeleporting())
+		if (!_isTeleporting.compareAndSet(true, false))
 			return;
-		
-		setTeleporting(false);
 		
 		setRegion(World.getInstance().getRegion(getPosition()));
 	}
 	
+	/**
+	 * @return The {@link Inventory} of this {@link Creature}.
+	 */
 	public Inventory getInventory()
 	{
 		return null;
 	}
 	
-	public boolean destroyItemByItemId(String process, int itemId, int count, WorldObject reference, boolean sendMessage)
+	public boolean destroyItemByItemId(int itemId, int count, boolean sendMessage)
 	{
 		return true;
 	}
 	
-	public boolean destroyItem(String process, int objectId, int count, WorldObject reference, boolean sendMessage)
+	public boolean destroyItem(int objectId, int count, boolean sendMessage)
 	{
 		return true;
 	}
@@ -247,7 +263,7 @@ public abstract class Creature extends WorldObject
 	}
 	
 	/**
-	 * @return true if the player is GM.
+	 * @return True if the {@link Creature} is a GM, false otherwise.
 	 */
 	public boolean isGM()
 	{
@@ -256,7 +272,7 @@ public abstract class Creature extends WorldObject
 	
 	/**
 	 * Send a {@link L2GameServerPacket} to all known {@link Player}s.
-	 * @param packet : The packet to send.
+	 * @param packet : The {@link L2GameServerPacket} to send.
 	 */
 	public void broadcastPacket(L2GameServerPacket packet)
 	{
@@ -265,18 +281,17 @@ public abstract class Creature extends WorldObject
 	
 	/**
 	 * Send a {@link L2GameServerPacket} to all known {@link Player}s. Overidden on Player, which uses selfToo boolean flag to send the packet to self.
-	 * @param packet : The packet to send.
+	 * @param packet : The {@link L2GameServerPacket} to send.
 	 * @param selfToo : If true, we also send it to self.
 	 */
 	public void broadcastPacket(L2GameServerPacket packet, boolean selfToo)
 	{
-		for (final Player player : getKnownType(Player.class))
-			player.sendPacket(packet);
+		forEachKnownType(Player.class, player -> player.sendPacket(packet));
 	}
 	
 	/**
 	 * Send a {@link L2GameServerPacket} to self and to all known {@link Player}s in a given radius. Overidden on Player, which also send the packet to self.
-	 * @param packet : The packet to send.
+	 * @param packet : The {@link L2GameServerPacket} to send.
 	 * @param radius : The radius to check.
 	 */
 	public void broadcastPacketInRadius(L2GameServerPacket packet, int radius)
@@ -284,28 +299,21 @@ public abstract class Creature extends WorldObject
 		if (radius < 0)
 			radius = 600;
 		
-		for (final Player player : getKnownTypeInRadius(Player.class, radius))
-			player.sendPacket(packet);
+		forEachKnownTypeInRadius(Player.class, radius, player -> player.sendPacket(packet));
 	}
 	
 	/**
-	 * <B><U> Overriden in </U> :</B><BR>
-	 * <BR>
-	 * <li>Player</li><BR>
-	 * <BR>
-	 * @param mov The packet to send.
+	 * Send a {@link L2GameServerPacket} to self.
+	 * @param packet : The {@link L2GameServerPacket} to send.
 	 */
-	public void sendPacket(L2GameServerPacket mov)
+	public void sendPacket(L2GameServerPacket packet)
 	{
 		// default implementation
 	}
 	
 	/**
-	 * <B><U> Overridden in </U> :</B><BR>
-	 * <BR>
-	 * <li>Player</li><BR>
-	 * <BR>
-	 * @param text The string to send.
+	 * Send a custom {@link String} text to self.
+	 * @param text : The {@link String} to send.
 	 */
 	public void sendMessage(String text)
 	{
@@ -349,6 +357,10 @@ public abstract class Creature extends WorldObject
 		
 		// Refresh knownlist.
 		refreshKnownlist();
+		
+		forceSeeCreature();
+		
+		getMove().resetGeoPathFailCount();
 	}
 	
 	/**
@@ -369,13 +381,16 @@ public abstract class Creature extends WorldObject
 	 * @param y : The Y coord to set.
 	 * @param z : The Z coord to set.
 	 * @param randomOffset : If > 0, we randomize the teleport location.
+	 * @return True if this teleport was successful, or false otherwise.
 	 */
-	public void teleportTo(int x, int y, int z, int randomOffset)
+	public boolean teleportTo(int x, int y, int z, int randomOffset)
 	{
+		// Don't teleport if previous teleporting is not finished yet
+		if (!_isTeleporting.compareAndSet(false, true))
+			return false;
+		
 		// Abort attack, cast and move.
 		abortAll(true);
-		
-		setTeleporting(true);
 		
 		if (randomOffset > 0)
 		{
@@ -403,10 +418,15 @@ public abstract class Creature extends WorldObject
 		getPosition().set(x, y, z);
 		
 		// Handle onTeleported behavior, but only if it's not a Player. Players are handled from Appearing packet.
-		if (!(this instanceof Player) || (((Player) this).getClient() != null && ((Player) this).getClient().isDetached()))
+		if (!(this instanceof Player player) || (player.getClient() != null && player.getClient().isDetached()))
 			onTeleported();
 		
 		getAI().notifyEvent(AiEventType.TELEPORTED, null, null);
+		
+		forceSeeCreature();
+		
+		getMove().resetGeoPathFailCount();
+		return true;
 	}
 	
 	/**
@@ -420,12 +440,11 @@ public abstract class Creature extends WorldObject
 	}
 	
 	/**
-	 * Teleport this {@link Creature} to a defined {@link TeleportType} (CASTLE, CLAN_HALL, SIEGE_FLAG, TOWN).
+	 * Teleport this {@link Creature} to a defined {@link RestartType} (CASTLE, CLAN_HALL, SIEGE_FLAG, TOWN).
 	 * @param type : The TeleportType to teleport to.
 	 */
-	public void teleportTo(TeleportType type)
+	public void teleportTo(RestartType type)
 	{
-		teleportTo(MapRegionData.getInstance().getLocationToTeleport(this, type), 20);
 	}
 	
 	/**
@@ -491,8 +510,7 @@ public abstract class Creature extends WorldObject
 		getStatus().broadcastStatusUpdate();
 		
 		// Notify Creature AI
-		if (hasAI())
-			getAI().notifyEvent(AiEventType.DEAD, null, null);
+		getAI().notifyEvent(AiEventType.DEAD, null, null);
 		
 		return true;
 	}
@@ -501,13 +519,7 @@ public abstract class Creature extends WorldObject
 	{
 		getStatus().stopHpMpRegeneration();
 		
-		if (hasAI())
-			getAI().stopAITask();
-	}
-	
-	public void detachAI()
-	{
-		_ai = null;
+		getAI().stopAITask();
 	}
 	
 	/**
@@ -542,41 +554,6 @@ public abstract class Creature extends WorldObject
 	}
 	
 	/**
-	 * @return the CreatureAI of the Creature and if its null create a new one.
-	 */
-	public CreatureAI getAI()
-	{
-		CreatureAI ai = _ai;
-		if (ai == null)
-		{
-			synchronized (this)
-			{
-				ai = _ai;
-				if (ai == null)
-					_ai = ai = new CreatureAI(this);
-			}
-		}
-		return ai;
-	}
-	
-	public void setAI(CreatureAI newAI)
-	{
-		final CreatureAI oldAI = getAI();
-		if (oldAI != null && oldAI != newAI && oldAI instanceof AttackableAI)
-			((AttackableAI) oldAI).stopAITask();
-		
-		_ai = newAI;
-	}
-	
-	/**
-	 * @return true if this object has a running AI.
-	 */
-	public boolean hasAI()
-	{
-		return _ai != null;
-	}
-	
-	/**
 	 * @return true if this object is a raid boss.
 	 */
 	public boolean isRaidBoss()
@@ -588,14 +565,6 @@ public abstract class Creature extends WorldObject
 	 * @return true if this object is either a raid minion or a raid boss.
 	 */
 	public boolean isRaidRelated()
-	{
-		return false;
-	}
-	
-	/**
-	 * @return true if this object is a minion.
-	 */
-	public boolean isMinion()
 	{
 		return false;
 	}
@@ -650,7 +619,7 @@ public abstract class Creature extends WorldObject
 	 */
 	public final boolean isAllSkillsDisabled()
 	{
-		return getAllSkillsDisabled() || isStunned() || isImmobileUntilAttacked() || isSleeping() || isParalyzed();
+		return getAllSkillsDisabled() || isStunned() || isImmobileUntilAttacked() || isSleeping() || isParalyzed() || isAfraid();
 	}
 	
 	/**
@@ -658,7 +627,7 @@ public abstract class Creature extends WorldObject
 	 */
 	public boolean isAttackingDisabled()
 	{
-		return isFlying() || isStunned() || isImmobileUntilAttacked() || isSleeping() || isParalyzed() || isAlikeDead();
+		return isFlying() || isStunned() || isImmobileUntilAttacked() || isSleeping() || isParalyzed() || isAlikeDead() || isAfraid();
 	}
 	
 	/**
@@ -666,7 +635,7 @@ public abstract class Creature extends WorldObject
 	 */
 	public boolean denyAiAction()
 	{
-		return isStunned() || isImmobileUntilAttacked() || isSleeping() || isParalyzed() || isTeleporting() || isDead();
+		return isStunned() || isImmobileUntilAttacked() || isSleeping() || isParalyzed() || isTeleporting() || isDead() || isAfraid();
 	}
 	
 	/**
@@ -837,12 +806,12 @@ public abstract class Creature extends WorldObject
 	 */
 	public final boolean isTeleporting()
 	{
-		return _isTeleporting;
+		return _isTeleporting.get();
 	}
 	
-	public final void setTeleporting(boolean value)
+	public final void setRunning(boolean value)
 	{
-		_isTeleporting = value;
+		_isRunning = value;
 	}
 	
 	/**
@@ -850,7 +819,7 @@ public abstract class Creature extends WorldObject
 	 */
 	public boolean isInvul()
 	{
-		return _isInvul || _isTeleporting;
+		return _isInvul || isTeleporting();
 	}
 	
 	public void setInvul(boolean value)
@@ -872,11 +841,29 @@ public abstract class Creature extends WorldObject
 	}
 	
 	/**
-	 * @return True if this {@link Creature} is undead. Overidden in {@link Npc}.
+	 * @return True if this {@link Creature} is subject to lethal strikes, false otherwise.
+	 */
+	public boolean isLethalable()
+	{
+		return true;
+	}
+	
+	/**
+	 * @return True if this {@link Creature} is undead, false otherwise.
 	 */
 	public boolean isUndead()
 	{
 		return false;
+	}
+	
+	public CreatureAI<? extends Creature> getAI()
+	{
+		return _ai;
+	}
+	
+	public void setAI()
+	{
+		_ai = new CreatureAI<>(this);
 	}
 	
 	public CreatureStatus<? extends Creature> getStatus()
@@ -1007,6 +994,11 @@ public abstract class Creature extends WorldObject
 	 */
 	public void addEffect(AbstractEffect effect)
 	{
+		if (effect.getEffected() instanceof Npc npc)
+		{
+			for (Quest quest : npc.getTemplate().getEventQuests(EventHandler.SEE_SPELL))
+				quest.onAbnormalStatusChanged(npc, effect.getEffector(), effect.getSkill());
+		}
 		_effects.queueEffect(effect, false);
 	}
 	
@@ -1203,9 +1195,9 @@ public abstract class Creature extends WorldObject
 				i++;
 			}
 			
-			if (owner instanceof AbstractEffect)
+			if (owner instanceof AbstractEffect ae)
 			{
-				if (!((AbstractEffect) owner).cantUpdateAnymore())
+				if (!ae.cantUpdateAnymore())
 					broadcastModifiedStats(modifiedStats);
 			}
 			else
@@ -1221,8 +1213,8 @@ public abstract class Creature extends WorldObject
 		boolean broadcastFull = false;
 		StatusUpdate su = null;
 		
-		if (this instanceof Summon && ((Summon) this).getOwner() != null)
-			((Summon) this).updateAndBroadcastStatusAndInfos(1);
+		if (this instanceof Summon summon && summon.getOwner() != null)
+			summon.updateAndBroadcastStatusAndInfos(1);
 		else
 		{
 			for (final Stats stat : stats)
@@ -1253,28 +1245,28 @@ public abstract class Creature extends WorldObject
 			}
 		}
 		
-		if (this instanceof Player)
+		if (this instanceof Player player)
 		{
 			if (broadcastFull)
-				((Player) this).updateAndBroadcastStatus(2);
+				player.updateAndBroadcastStatus(2);
 			else
 			{
-				((Player) this).updateAndBroadcastStatus(1);
+				player.updateAndBroadcastStatus(1);
 				if (su != null)
 					broadcastPacket(su);
 			}
 		}
-		else if (this instanceof Npc)
+		else if (this instanceof Npc npc)
 		{
 			if (broadcastFull)
 			{
-				for (final Player player : getKnownType(Player.class))
+				forEachKnownType(Player.class, player ->
 				{
 					if (_status.getMoveSpeed() == 0)
-						player.sendPacket(new ServerObjectInfo((Npc) this, player));
+						player.sendPacket(new ServerObjectInfo(npc, player));
 					else
-						player.sendPacket(new NpcInfo((Npc) this, player));
-				}
+						player.sendPacket(new NpcInfo(npc, player));
+				});
 			}
 			else if (su != null)
 				broadcastPacket(su);
@@ -1288,7 +1280,7 @@ public abstract class Creature extends WorldObject
 	 */
 	public boolean isInCombat()
 	{
-		return hasAI() && AttackStanceTaskManager.getInstance().isInAttackStance(this);
+		return AttackStanceTaskManager.getInstance().isInAttackStance(this);
 	}
 	
 	/**
@@ -1474,11 +1466,11 @@ public abstract class Creature extends WorldObject
 		
 		for (final IChanceSkillTrigger trigger : _chanceSkills.keySet())
 		{
-			if (!(trigger instanceof L2Skill))
+			if (!(trigger instanceof L2Skill skill))
 				continue;
 			
-			if (((L2Skill) trigger).getId() == id)
-				_chanceSkills.remove(trigger);
+			if (skill.getId() == id)
+				_chanceSkills.remove(skill);
 		}
 	}
 	
@@ -1496,30 +1488,6 @@ public abstract class Creature extends WorldObject
 			return;
 		
 		_chanceSkills.remove(effect);
-	}
-	
-	public void onStartChanceEffect()
-	{
-		if (_chanceSkills == null)
-			return;
-		
-		_chanceSkills.onStart();
-	}
-	
-	public void onActionTimeChanceEffect()
-	{
-		if (_chanceSkills == null)
-			return;
-		
-		_chanceSkills.onActionTime();
-	}
-	
-	public void onExitChanceEffect()
-	{
-		if (_chanceSkills == null)
-			return;
-		
-		_chanceSkills.onExit();
 	}
 	
 	/**
@@ -1572,11 +1540,6 @@ public abstract class Creature extends WorldObject
 	public int getDanceCount()
 	{
 		return _effects.getDanceCount();
-	}
-	
-	// Quest event ON_SPELL_FINISHED
-	public void notifyQuestEventSkillFinished(L2Skill skill, WorldObject target)
-	{
 	}
 	
 	public Map<Integer, Long> getDisabledSkills()
@@ -1774,7 +1737,7 @@ public abstract class Creature extends WorldObject
 	public void fleeFrom(Creature attacker, int distance)
 	{
 		// No attacker or distance isn't noticeable ; return instantly.
-		if (attacker == null || distance < 10)
+		if (attacker == null || attacker == this || distance < 10)
 			return;
 		
 		// Enforce running state.
@@ -1784,8 +1747,8 @@ public abstract class Creature extends WorldObject
 		final Location loc = getPosition().clone();
 		loc.setFleeing(attacker.getPosition(), distance);
 		
-		// Try to move to the position.
-		getAI().tryToMoveTo(loc, null);
+		// Move to the position.
+		getMove().maybeMoveToLocation(loc, 0, true, false);
 	}
 	
 	/**
@@ -1802,8 +1765,8 @@ public abstract class Creature extends WorldObject
 		final Location loc = getPosition().clone();
 		loc.addRandomOffset(offset);
 		
-		// Try to move to the position.
-		getAI().tryToMoveTo(loc, null);
+		// Move to the position.
+		getMove().maybeMoveToLocation(loc, 0, true, false);
 	}
 	
 	@Override
@@ -1836,11 +1799,12 @@ public abstract class Creature extends WorldObject
 	}
 	
 	/**
-	 * @return The {@link List} of GMs {@link Player}s in surrounding regions.
+	 * Run a {@link Consumer} upon surrounding GM {@link Player}s.
+	 * @param action : The {@link Consumer} to use.
 	 */
-	public List<Player> getSurroundingGMs()
+	public void forEachKnownGM(Consumer<Player> action)
 	{
-		return getKnownType(Player.class, Player::isGM);
+		forEachKnownType(Player.class, Player::isGM, action);
 	}
 	
 	/**
@@ -1943,5 +1907,50 @@ public abstract class Creature extends WorldObject
 	public boolean canBeHealed()
 	{
 		return !isDead() && !isInvul();
+	}
+	
+	/**
+	 * Enforce the decay behavior of this {@link Creature} if registered into {@link DecayTaskManager}.
+	 */
+	public void forceDecay()
+	{
+		if (DecayTaskManager.getInstance().cancel(this))
+			onDecay();
+	}
+	
+	public void forceSeeCreature()
+	{
+		if (!(this instanceof Playable))
+			return;
+		
+		// Do not trigger event if the player is spawn protected or is riding a wyvern
+		if (getActingPlayer() != null && (getActingPlayer().isSpawnProtected() || getActingPlayer().isFlying()))
+			return;
+		
+		forEachKnownType(Npc.class, obj ->
+		{
+			// Non-Boss type NPCs have fixed 400 Aggro Range
+			final boolean isInRange = obj.isIn3DRadius(this, obj.getSeeRange());
+			if (isInRange && Math.abs(obj.getZ() - getZ()) <= 500)
+				for (final Quest quest : obj.getTemplate().getEventQuests(EventHandler.SEE_CREATURE))
+					quest.onSeeCreature(obj, this);
+		});
+	}
+	
+	/**
+	 * @return True if the {@link Creature} can silent move. Overriden over {@link Playable}.
+	 */
+	public boolean isSilentMoving()
+	{
+		return false;
+	}
+	
+	public void sendIU()
+	{
+	}
+	
+	public boolean isInBoat()
+	{
+		return false;
 	}
 }

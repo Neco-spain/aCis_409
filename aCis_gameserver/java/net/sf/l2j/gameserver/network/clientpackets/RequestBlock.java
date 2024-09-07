@@ -1,11 +1,9 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
+import net.sf.l2j.gameserver.data.manager.RelationManager;
 import net.sf.l2j.gameserver.data.sql.PlayerInfoTable;
-import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.actor.container.player.BlockList;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public final class RequestBlock extends L2GameClientPacket
 {
@@ -36,25 +34,12 @@ public final class RequestBlock extends L2GameClientPacket
 		
 		switch (_type)
 		{
-			case BLOCK:
-			case UNBLOCK:
+			case BLOCK, UNBLOCK:
 				// Can't block/unblock inexisting or self.
 				final int targetId = PlayerInfoTable.getInstance().getPlayerObjectId(_targetName);
 				if (targetId <= 0 || player.getObjectId() == targetId)
 				{
 					player.sendPacket(SystemMessageId.FAILED_TO_REGISTER_TO_IGNORE_LIST);
-					return;
-				}
-				
-				// L2OFF GF strange behavior with sending message for all.
-				if (player.getBlockList().getBlockList().contains(targetId) && _type == BLOCK)
-				{
-					player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_WAS_ADDED_TO_YOUR_IGNORE_LIST).addString(_targetName));
-					
-					final Player targetPlayer = World.getInstance().getPlayer(targetId);
-					if (targetPlayer != null)
-						targetPlayer.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_HAS_ADDED_YOU_TO_IGNORE_LIST).addString(player.getName()));
-					
 					return;
 				}
 				
@@ -66,23 +51,23 @@ public final class RequestBlock extends L2GameClientPacket
 				}
 				
 				if (_type == BLOCK)
-					BlockList.addToBlockList(player, targetId);
+					RelationManager.getInstance().addToBlockList(player, targetId);
 				else
-					BlockList.removeFromBlockList(player, targetId);
+					RelationManager.getInstance().removeFromBlockList(player, targetId);
 				break;
 			
 			case BLOCKLIST:
-				BlockList.sendListToOwner(player);
+				RelationManager.getInstance().sendBlockList(player);
 				break;
 			
 			case ALLBLOCK:
 				player.sendPacket(SystemMessageId.BLOCKING_ALL);
-				player.getBlockList().setInBlockingAll(true);
+				player.setInBlockingAll(true);
 				break;
 			
 			case ALLUNBLOCK:
 				player.sendPacket(SystemMessageId.NOT_BLOCKING_ALL);
-				player.getBlockList().setInBlockingAll(false);
+				player.setInBlockingAll(false);
 				break;
 			
 			default:

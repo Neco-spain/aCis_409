@@ -42,10 +42,7 @@ public final class RequestShortCutReg extends L2GameClientPacket
 		
 		switch (type)
 		{
-			case ITEM:
-			case ACTION:
-			case MACRO:
-			case RECIPE:
+			case ITEM, ACTION, MACRO, RECIPE:
 				Shortcut shortcut = new Shortcut(_slot, _page, type, _id, -1, _characterType);
 				sendPacket(new ShortCutRegister(player, shortcut));
 				player.getShortcutList().addShortcut(shortcut);

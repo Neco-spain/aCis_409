@@ -2,30 +2,16 @@ package net.sf.l2j.gameserver.network.serverpackets;
 
 import java.util.ArrayList;
 
+import net.sf.l2j.gameserver.model.records.SkillRequirement;
+
 public class ExEnchantSkillInfo extends L2GameServerPacket
 {
-	private final ArrayList<Req> _reqs;
+	private final ArrayList<SkillRequirement> _reqs;
 	private final int _id;
 	private final int _level;
 	private final int _spCost;
 	private final int _xpCost;
 	private final int _rate;
-	
-	class Req
-	{
-		public int id;
-		public int count;
-		public int type;
-		public int unk;
-		
-		Req(int pType, int pId, int pCount, int pUnk)
-		{
-			id = pId;
-			type = pType;
-			count = pCount;
-			unk = pUnk;
-		}
-	}
 	
 	public ExEnchantSkillInfo(int id, int level, int spCost, int xpCost, int rate)
 	{
@@ -39,7 +25,7 @@ public class ExEnchantSkillInfo extends L2GameServerPacket
 	
 	public void addRequirement(int type, int id, int count, int unk)
 	{
-		_reqs.add(new Req(type, id, count, unk));
+		_reqs.add(new SkillRequirement(type, id, count, unk));
 	}
 	
 	@Override
@@ -56,12 +42,12 @@ public class ExEnchantSkillInfo extends L2GameServerPacket
 		
 		writeD(_reqs.size());
 		
-		for (Req temp : _reqs)
+		for (SkillRequirement temp : _reqs)
 		{
-			writeD(temp.type);
-			writeD(temp.id);
-			writeD(temp.count);
-			writeD(temp.unk);
+			writeD(temp.type());
+			writeD(temp.itemId());
+			writeD(temp.count());
+			writeD(temp.unk());
 		}
 	}
 }

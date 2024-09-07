@@ -24,20 +24,28 @@ public class EffectBetray extends AbstractEffect
 	@Override
 	public boolean onStart()
 	{
-		if (getEffector() instanceof Player && getEffected() instanceof Summon)
-		{
-			Player target = getEffected().getActingPlayer();
-			getEffected().getAI().tryToAttack(target, false, false);
-			return true;
-		}
-		return false;
+		if (!(getEffected() instanceof Summon summon))
+			return false;
+		
+		final Player player = summon.getOwner();
+		if (player == null)
+			return false;
+		
+		summon.getAI().tryToAttack(player, false, false);
+		return true;
 	}
 	
 	@Override
 	public void onExit()
 	{
-		Player target = getEffected().getActingPlayer();
-		getEffected().getAI().tryToFollow(target, false);
+		if (!(getEffected() instanceof Summon summon))
+			return;
+		
+		final Player player = summon.getOwner();
+		if (player == null)
+			return;
+		
+		summon.getAI().tryToFollow(player, false);
 	}
 	
 	@Override

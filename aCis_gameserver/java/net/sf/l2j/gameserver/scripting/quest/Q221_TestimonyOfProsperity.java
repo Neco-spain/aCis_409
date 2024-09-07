@@ -101,10 +101,10 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 		
 		setItemsIds(RING_OF_TESTIMONY_1, RING_OF_TESTIMONY_2, OLD_ACCOUNT_BOOK, BLESSED_SEED, EMILY_RECIPE, LILITH_ELVEN_WAFER, MAPHR_TABLET_FRAGMENT, COLLECTION_LICENSE, LOCKIRIN_NOTICE_1, LOCKIRIN_NOTICE_2, LOCKIRIN_NOTICE_3, LOCKIRIN_NOTICE_4, LOCKIRIN_NOTICE_5, CONTRIBUTION_OF_SHARI, CONTRIBUTION_OF_MION, CONTRIBUTION_OF_MARYSE, MARYSE_REQUEST, CONTRIBUTION_OF_TOMA, RECEIPT_OF_BOLTER, RECEIPT_OF_CONTRIBUTION_1, RECEIPT_OF_CONTRIBUTION_2, RECEIPT_OF_CONTRIBUTION_3, RECEIPT_OF_CONTRIBUTION_4, RECEIPT_OF_CONTRIBUTION_5, PROCURATION_OF_TOROCCO, BRIGHT_LIST, MANDRAGORA_PETAL, CRIMSON_MOSS, MANDRAGORA_BOUQUET, PARMAN_INSTRUCTIONS, PARMAN_LETTER, CLAY_DOUGH, PATTERN_OF_KEYHOLE, NIKOLAS_LIST, STAKATO_SHELL, TOAD_LORD_SAC, SPIDER_THORN, CRYSTAL_BROOCH);
 		
-		addStartNpc(PARMAN);
+		addQuestStart(PARMAN);
 		addTalkId(WILFORD, PARMAN, LILITH, BRIGHT, SHARI, MION, LOCKIRIN, SPIRON, BALANKI, KEEF, FILAUR, ARIN, MARYSE_REDBONNET, BOLTER, TOROCCO, TOMA, PIOTUR, EMILY, NIKOLA, BOX_OF_TITAN);
 		
-		addKillId(MANDRAGORA_SPROUT_1, MANDRAGORA_SAPLING, MANDRAGORA_BLOSSOM, MARSH_STAKATO, MANDRAGORA_SPROUT_2, GIANT_CRIMSON_ANT, MARSH_STAKATO_WORKER, TOAD_LORD, MARSH_STAKATO_SOLDIER, MARSH_SPIDER, MARSH_STAKATO_DRONE);
+		addMyDying(MANDRAGORA_SPROUT_1, MANDRAGORA_SAPLING, MANDRAGORA_BLOSSOM, MARSH_STAKATO, MANDRAGORA_SPROUT_2, GIANT_CRIMSON_ANT, MARSH_STAKATO_WORKER, TOAD_LORD, MARSH_STAKATO_SOLDIER, MARSH_SPIDER, MARSH_STAKATO_DRONE);
 	}
 	
 	@Override
@@ -149,7 +149,7 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 			}
 		}
 		// LOCKIRIN
-		else if (event.equalsIgnoreCase("30531-02.htm") && player.getInventory().hasItems(COLLECTION_LICENSE))
+		else if (event.equalsIgnoreCase("30531-02.htm") && player.getInventory().hasItem(COLLECTION_LICENSE))
 			htmltext = "30531-04.htm";
 		else if (event.equalsIgnoreCase("30531-03.htm"))
 		{
@@ -324,7 +324,7 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 					case LOCKIRIN:
 						if (cond == 1 || cond == 2)
 						{
-							if (player.getInventory().hasItems(COLLECTION_LICENSE))
+							if (player.getInventory().hasItem(COLLECTION_LICENSE))
 							{
 								if (player.getInventory().hasItems(RECEIPT_OF_CONTRIBUTION_1, RECEIPT_OF_CONTRIBUTION_2, RECEIPT_OF_CONTRIBUTION_3, RECEIPT_OF_CONTRIBUTION_4, RECEIPT_OF_CONTRIBUTION_5))
 								{
@@ -349,22 +349,22 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 									htmltext = "30531-04.htm";
 							}
 							else
-								htmltext = (player.getInventory().hasItems(OLD_ACCOUNT_BOOK)) ? "30531-06.htm" : "30531-01.htm";
+								htmltext = (player.getInventory().hasItem(OLD_ACCOUNT_BOOK)) ? "30531-06.htm" : "30531-01.htm";
 						}
 						else if (cond >= 4)
 							htmltext = "30531-07.htm";
 						break;
 					
 					case SPIRON:
-						if (cond == 1 && player.getInventory().hasItems(COLLECTION_LICENSE))
+						if (cond == 1 && player.getInventory().hasItem(COLLECTION_LICENSE))
 						{
-							if (player.getInventory().hasItems(LOCKIRIN_NOTICE_1))
+							if (player.getInventory().hasItem(LOCKIRIN_NOTICE_1))
 							{
 								htmltext = "30532-01.htm";
 								playSound(player, SOUND_ITEMGET);
 								takeItems(player, LOCKIRIN_NOTICE_1, 1);
 							}
-							else if (player.getInventory().hasItems(CONTRIBUTION_OF_SHARI))
+							else if (player.getInventory().hasItem(CONTRIBUTION_OF_SHARI))
 							{
 								htmltext = "30532-03.htm";
 								playSound(player, SOUND_ITEMGET);
@@ -372,14 +372,14 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 								giveItems(player, RECEIPT_OF_CONTRIBUTION_1, 1);
 							}
 							else
-								htmltext = (player.getInventory().hasItems(RECEIPT_OF_CONTRIBUTION_1)) ? "30532-04.htm" : "30532-02.htm";
+								htmltext = (player.getInventory().hasItem(RECEIPT_OF_CONTRIBUTION_1)) ? "30532-04.htm" : "30532-02.htm";
 						}
 						break;
 					
 					case BALANKI:
-						if (cond == 1 && player.getInventory().hasItems(COLLECTION_LICENSE))
+						if (cond == 1 && player.getInventory().hasItem(COLLECTION_LICENSE))
 						{
-							if (player.getInventory().hasItems(LOCKIRIN_NOTICE_2))
+							if (player.getInventory().hasItem(LOCKIRIN_NOTICE_2))
 							{
 								htmltext = "30533-01.htm";
 								playSound(player, SOUND_ITEMGET);
@@ -394,36 +394,36 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 								giveItems(player, RECEIPT_OF_CONTRIBUTION_2, 1);
 							}
 							else
-								htmltext = (player.getInventory().hasItems(RECEIPT_OF_CONTRIBUTION_2)) ? "30533-04.htm" : "30533-02.htm";
+								htmltext = (player.getInventory().hasItem(RECEIPT_OF_CONTRIBUTION_2)) ? "30533-04.htm" : "30533-02.htm";
 						}
 						break;
 					
 					case KEEF:
-						if (cond == 1 && player.getInventory().hasItems(COLLECTION_LICENSE))
+						if (cond == 1 && player.getInventory().hasItem(COLLECTION_LICENSE))
 						{
-							if (player.getInventory().hasItems(LOCKIRIN_NOTICE_3))
+							if (player.getInventory().hasItem(LOCKIRIN_NOTICE_3))
 							{
 								htmltext = "30534-01.htm";
 								playSound(player, SOUND_ITEMGET);
 								takeItems(player, LOCKIRIN_NOTICE_3, 1);
 							}
-							else if (player.getInventory().hasItems(PROCURATION_OF_TOROCCO))
+							else if (player.getInventory().hasItem(PROCURATION_OF_TOROCCO))
 								htmltext = "30534-03.htm";
 							else
-								htmltext = (player.getInventory().hasItems(RECEIPT_OF_CONTRIBUTION_3)) ? "30534-04.htm" : "30534-02.htm";
+								htmltext = (player.getInventory().hasItem(RECEIPT_OF_CONTRIBUTION_3)) ? "30534-04.htm" : "30534-02.htm";
 						}
 						break;
 					
 					case FILAUR:
-						if (cond == 1 && player.getInventory().hasItems(COLLECTION_LICENSE))
+						if (cond == 1 && player.getInventory().hasItem(COLLECTION_LICENSE))
 						{
-							if (player.getInventory().hasItems(LOCKIRIN_NOTICE_4))
+							if (player.getInventory().hasItem(LOCKIRIN_NOTICE_4))
 							{
 								htmltext = "30535-01.htm";
 								playSound(player, SOUND_ITEMGET);
 								takeItems(player, LOCKIRIN_NOTICE_4, 1);
 							}
-							else if (player.getInventory().hasItems(RECEIPT_OF_BOLTER))
+							else if (player.getInventory().hasItem(RECEIPT_OF_BOLTER))
 							{
 								htmltext = "30535-03.htm";
 								playSound(player, SOUND_ITEMGET);
@@ -431,20 +431,20 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 								giveItems(player, RECEIPT_OF_CONTRIBUTION_4, 1);
 							}
 							else
-								htmltext = (player.getInventory().hasItems(RECEIPT_OF_CONTRIBUTION_4)) ? "30535-04.htm" : "30535-02.htm";
+								htmltext = (player.getInventory().hasItem(RECEIPT_OF_CONTRIBUTION_4)) ? "30535-04.htm" : "30535-02.htm";
 						}
 						break;
 					
 					case ARIN:
-						if (cond == 1 && player.getInventory().hasItems(COLLECTION_LICENSE))
+						if (cond == 1 && player.getInventory().hasItem(COLLECTION_LICENSE))
 						{
-							if (player.getInventory().hasItems(LOCKIRIN_NOTICE_5))
+							if (player.getInventory().hasItem(LOCKIRIN_NOTICE_5))
 							{
 								htmltext = "30536-01.htm";
 								playSound(player, SOUND_ITEMGET);
 								takeItems(player, LOCKIRIN_NOTICE_5, 1);
 							}
-							else if (player.getInventory().hasItems(CONTRIBUTION_OF_TOMA))
+							else if (player.getInventory().hasItem(CONTRIBUTION_OF_TOMA))
 							{
 								htmltext = "30536-03.htm";
 								playSound(player, SOUND_ITEMGET);
@@ -452,14 +452,14 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 								giveItems(player, RECEIPT_OF_CONTRIBUTION_5, 1);
 							}
 							else
-								htmltext = (player.getInventory().hasItems(RECEIPT_OF_CONTRIBUTION_5)) ? "30536-04.htm" : "30536-02.htm";
+								htmltext = (player.getInventory().hasItem(RECEIPT_OF_CONTRIBUTION_5)) ? "30536-04.htm" : "30536-02.htm";
 						}
 						break;
 					
 					case SHARI:
-						if (cond == 1 && player.getInventory().hasItems(COLLECTION_LICENSE))
+						if (cond == 1 && player.getInventory().hasItem(COLLECTION_LICENSE))
 						{
-							if (player.getInventory().hasItems(CONTRIBUTION_OF_SHARI))
+							if (player.getInventory().hasItem(CONTRIBUTION_OF_SHARI))
 								htmltext = "30517-02.htm";
 							else if (!player.getInventory().hasAtLeastOneItem(LOCKIRIN_NOTICE_1, RECEIPT_OF_CONTRIBUTION_1))
 							{
@@ -471,9 +471,9 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 						break;
 					
 					case MION:
-						if (cond == 1 && player.getInventory().hasItems(COLLECTION_LICENSE))
+						if (cond == 1 && player.getInventory().hasItem(COLLECTION_LICENSE))
 						{
-							if (player.getInventory().hasItems(CONTRIBUTION_OF_MION))
+							if (player.getInventory().hasItem(CONTRIBUTION_OF_MION))
 								htmltext = "30519-02.htm";
 							else if (!player.getInventory().hasAtLeastOneItem(LOCKIRIN_NOTICE_2, RECEIPT_OF_CONTRIBUTION_2))
 							{
@@ -485,9 +485,9 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 						break;
 					
 					case MARYSE_REDBONNET:
-						if (cond == 1 && player.getInventory().hasItems(COLLECTION_LICENSE))
+						if (cond == 1 && player.getInventory().hasItem(COLLECTION_LICENSE))
 						{
-							if (player.getInventory().hasItems(MARYSE_REQUEST))
+							if (player.getInventory().hasItem(MARYSE_REQUEST))
 							{
 								if (player.getInventory().getItemCount(ANIMAL_SKIN) < 100)
 									htmltext = "30553-02.htm";
@@ -500,7 +500,7 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 									giveItems(player, CONTRIBUTION_OF_MARYSE, 1);
 								}
 							}
-							else if (player.getInventory().hasItems(CONTRIBUTION_OF_MARYSE))
+							else if (player.getInventory().hasItem(CONTRIBUTION_OF_MARYSE))
 								htmltext = "30553-04.htm";
 							else if (!player.getInventory().hasAtLeastOneItem(LOCKIRIN_NOTICE_2, RECEIPT_OF_CONTRIBUTION_2))
 							{
@@ -512,9 +512,9 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 						break;
 					
 					case TOROCCO:
-						if (cond == 1 && player.getInventory().hasItems(COLLECTION_LICENSE))
+						if (cond == 1 && player.getInventory().hasItem(COLLECTION_LICENSE))
 						{
-							if (player.getInventory().hasItems(PROCURATION_OF_TOROCCO))
+							if (player.getInventory().hasItem(PROCURATION_OF_TOROCCO))
 								htmltext = "30555-03.htm";
 							else if (!player.getInventory().hasAtLeastOneItem(LOCKIRIN_NOTICE_3, RECEIPT_OF_CONTRIBUTION_3))
 								htmltext = "30555-01.htm";
@@ -522,9 +522,9 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 						break;
 					
 					case BOLTER:
-						if (cond == 1 && player.getInventory().hasItems(COLLECTION_LICENSE))
+						if (cond == 1 && player.getInventory().hasItem(COLLECTION_LICENSE))
 						{
-							if (player.getInventory().hasItems(RECEIPT_OF_BOLTER))
+							if (player.getInventory().hasItem(RECEIPT_OF_BOLTER))
 								htmltext = "30554-02.htm";
 							else if (!player.getInventory().hasAtLeastOneItem(LOCKIRIN_NOTICE_4, RECEIPT_OF_CONTRIBUTION_4))
 							{
@@ -536,9 +536,9 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 						break;
 					
 					case TOMA:
-						if (cond == 1 && player.getInventory().hasItems(COLLECTION_LICENSE))
+						if (cond == 1 && player.getInventory().hasItem(COLLECTION_LICENSE))
 						{
-							if (player.getInventory().hasItems(CONTRIBUTION_OF_TOMA))
+							if (player.getInventory().hasItem(CONTRIBUTION_OF_TOMA))
 								htmltext = "30556-02.htm";
 							else if (!player.getInventory().hasAtLeastOneItem(LOCKIRIN_NOTICE_5, RECEIPT_OF_CONTRIBUTION_5))
 							{
@@ -551,7 +551,7 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 					
 					case PIOTUR:
 						if (cond == 1 || cond == 2)
-							htmltext = (player.getInventory().hasItems(BLESSED_SEED)) ? "30597-03.htm" : "30597-01.htm";
+							htmltext = (player.getInventory().hasItem(BLESSED_SEED)) ? "30597-03.htm" : "30597-01.htm";
 						else if (cond >= 4)
 							htmltext = "30597-04.htm";
 						break;
@@ -559,10 +559,10 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 					case WILFORD:
 						if (cond == 1 || cond == 2)
 						{
-							if (player.getInventory().hasItems(LILITH_ELVEN_WAFER))
+							if (player.getInventory().hasItem(LILITH_ELVEN_WAFER))
 								htmltext = "30005-06.htm";
 							else
-								htmltext = (player.getInventory().hasItems(CRYSTAL_BROOCH)) ? "30005-05.htm" : "30005-01.htm";
+								htmltext = (player.getInventory().hasItem(CRYSTAL_BROOCH)) ? "30005-05.htm" : "30005-01.htm";
 						}
 						else if (cond >= 4)
 							htmltext = "30005-07.htm";
@@ -571,9 +571,9 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 					case LILITH:
 						if (cond == 1 || cond == 2)
 						{
-							if (player.getInventory().hasItems(CRYSTAL_BROOCH))
+							if (player.getInventory().hasItem(CRYSTAL_BROOCH))
 								htmltext = "30368-01.htm";
-							else if (player.getInventory().hasItems(LILITH_ELVEN_WAFER))
+							else if (player.getInventory().hasItem(LILITH_ELVEN_WAFER))
 								htmltext = "30368-04.htm";
 						}
 						else if (cond >= 4)
@@ -583,11 +583,11 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 					case BRIGHT:
 						if (cond == 1 || cond == 2)
 						{
-							if (player.getInventory().hasItems(EMILY_RECIPE))
+							if (player.getInventory().hasItem(EMILY_RECIPE))
 								htmltext = "30466-07.htm";
-							else if (player.getInventory().hasItems(MANDRAGORA_BOUQUET))
+							else if (player.getInventory().hasItem(MANDRAGORA_BOUQUET))
 								htmltext = "30466-06.htm";
-							else if (player.getInventory().hasItems(BRIGHT_LIST))
+							else if (player.getInventory().hasItem(BRIGHT_LIST))
 							{
 								if (player.getInventory().getItemCount(CRIMSON_MOSS) + player.getInventory().getItemCount(MANDRAGORA_PETAL) < 30)
 									htmltext = "30466-04.htm";
@@ -611,9 +611,9 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 					case EMILY:
 						if (cond == 1 || cond == 2)
 						{
-							if (player.getInventory().hasItems(EMILY_RECIPE))
+							if (player.getInventory().hasItem(EMILY_RECIPE))
 								htmltext = "30620-04.htm";
-							else if (player.getInventory().hasItems(MANDRAGORA_BOUQUET))
+							else if (player.getInventory().hasItem(MANDRAGORA_BOUQUET))
 								htmltext = "30620-01.htm";
 						}
 						else if (cond >= 4)
@@ -639,7 +639,7 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 							giveItems(player, RECIPE_TITAN_KEY, 1);
 						}
 						else if (cond == 7 || cond == 8)
-							htmltext = (player.getInventory().hasItems(KEY_OF_TITAN)) ? "30621-08.htm" : "30621-07.htm";
+							htmltext = (player.getInventory().hasItem(KEY_OF_TITAN)) ? "30621-08.htm" : "30621-07.htm";
 						else if (cond == 9)
 							htmltext = "30621-09.htm";
 						break;
@@ -647,7 +647,7 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 					case BOX_OF_TITAN:
 						if (cond == 5)
 							htmltext = "30622-01.htm";
-						else if (cond == 8 && player.getInventory().hasItems(KEY_OF_TITAN))
+						else if (cond == 8 && player.getInventory().hasItem(KEY_OF_TITAN))
 							htmltext = "30622-03.htm";
 						else
 							htmltext = "30622-05.htm";
@@ -664,38 +664,38 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
 			case MANDRAGORA_SPROUT_1:
-				if (player.getInventory().hasItems(BRIGHT_LIST))
+				if (player.getInventory().hasItem(BRIGHT_LIST))
 					dropItems(player, MANDRAGORA_PETAL, 1, 20, 300000);
 				break;
 			
 			case MANDRAGORA_SPROUT_2:
-				if (player.getInventory().hasItems(BRIGHT_LIST))
+				if (player.getInventory().hasItem(BRIGHT_LIST))
 					dropItems(player, MANDRAGORA_PETAL, 1, 20, 600000);
 				break;
 			
 			case MANDRAGORA_SAPLING:
-				if (player.getInventory().hasItems(BRIGHT_LIST))
+				if (player.getInventory().hasItem(BRIGHT_LIST))
 					dropItems(player, MANDRAGORA_PETAL, 1, 20, 800000);
 				break;
 			
 			case MANDRAGORA_BLOSSOM:
-				if (player.getInventory().hasItems(BRIGHT_LIST))
+				if (player.getInventory().hasItem(BRIGHT_LIST))
 					dropItemsAlways(player, MANDRAGORA_PETAL, 1, 20);
 				break;
 			
 			case GIANT_CRIMSON_ANT:
-				if (player.getInventory().hasItems(BRIGHT_LIST))
+				if (player.getInventory().hasItem(BRIGHT_LIST))
 					dropItemsAlways(player, CRIMSON_MOSS, 1, 10);
 				break;
 			
@@ -729,7 +729,5 @@ public class Q221_TestimonyOfProsperity extends SecondClassQuest
 					st.setCond(8);
 				break;
 		}
-		
-		return null;
 	}
 }

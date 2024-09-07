@@ -5,15 +5,15 @@ import net.sf.l2j.commons.pool.ThreadPool;
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.manager.CastleManager;
 import net.sf.l2j.gameserver.data.manager.ClanHallManager;
-import net.sf.l2j.gameserver.data.xml.MapRegionData;
-import net.sf.l2j.gameserver.data.xml.MapRegionData.TeleportType;
+import net.sf.l2j.gameserver.data.xml.RestartPointData;
+import net.sf.l2j.gameserver.enums.RestartType;
 import net.sf.l2j.gameserver.enums.SiegeSide;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.clanhall.ClanHall;
-import net.sf.l2j.gameserver.model.clanhall.ClanHallFunction;
-import net.sf.l2j.gameserver.model.entity.Siege;
 import net.sf.l2j.gameserver.model.location.Location;
 import net.sf.l2j.gameserver.model.pledge.Clan;
+import net.sf.l2j.gameserver.model.residence.castle.Siege;
+import net.sf.l2j.gameserver.model.residence.clanhall.ClanHall;
+import net.sf.l2j.gameserver.model.residence.clanhall.ClanHallFunction;
 
 public final class RequestRestartPoint extends L2GameClientPacket
 {
@@ -80,7 +80,7 @@ public final class RequestRestartPoint extends L2GameClientPacket
 			if (clan == null || !clan.hasClanHall())
 				return;
 			
-			loc = MapRegionData.getInstance().getLocationToTeleport(player, TeleportType.CLAN_HALL);
+			loc = RestartPointData.getInstance().getLocationToTeleport(player, RestartType.CLAN_HALL);
 			
 			final ClanHall ch = ClanHallManager.getInstance().getClanHallByOwner(clan);
 			if (ch != null)
@@ -98,9 +98,9 @@ public final class RequestRestartPoint extends L2GameClientPacket
 			{
 				final SiegeSide side = siege.getSide(clan);
 				if (side == SiegeSide.DEFENDER || side == SiegeSide.OWNER)
-					loc = MapRegionData.getInstance().getLocationToTeleport(player, TeleportType.CASTLE);
+					loc = RestartPointData.getInstance().getLocationToTeleport(player, RestartType.CASTLE);
 				else if (side == SiegeSide.ATTACKER)
-					loc = MapRegionData.getInstance().getLocationToTeleport(player, TeleportType.TOWN);
+					loc = RestartPointData.getInstance().getLocationToTeleport(player, RestartType.TOWN);
 				else
 					return;
 			}
@@ -109,12 +109,12 @@ public final class RequestRestartPoint extends L2GameClientPacket
 				if (clan == null || !clan.hasCastle())
 					return;
 				
-				loc = MapRegionData.getInstance().getLocationToTeleport(player, TeleportType.CASTLE);
+				loc = RestartPointData.getInstance().getLocationToTeleport(player, RestartType.CASTLE);
 			}
 		}
 		// To siege flag.
 		else if (_requestType == 3)
-			loc = MapRegionData.getInstance().getLocationToTeleport(player, TeleportType.SIEGE_FLAG);
+			loc = RestartPointData.getInstance().getLocationToTeleport(player, RestartType.SIEGE_FLAG);
 		// Fixed.
 		else if (_requestType == 4)
 		{
@@ -133,7 +133,7 @@ public final class RequestRestartPoint extends L2GameClientPacket
 		}
 		// Nothing has been found, use regular "To town" behavior.
 		else
-			loc = MapRegionData.getInstance().getLocationToTeleport(player, TeleportType.TOWN);
+			loc = RestartPointData.getInstance().getLocationToTeleport(player, RestartType.TOWN);
 		
 		player.setIsIn7sDungeon(false);
 		

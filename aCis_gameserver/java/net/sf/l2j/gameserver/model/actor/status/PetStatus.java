@@ -5,13 +5,12 @@ import net.sf.l2j.gameserver.data.xml.PlayerLevelData;
 import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.enums.actors.WeightPenalty;
 import net.sf.l2j.gameserver.enums.skills.Stats;
-import net.sf.l2j.gameserver.model.PetDataEntry;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.instance.Pet;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
+import net.sf.l2j.gameserver.model.records.PetDataEntry;
 import net.sf.l2j.gameserver.model.zone.type.SwampZone;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.InventoryUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.SocialAction;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.skills.L2Skill;
@@ -74,12 +73,7 @@ public class PetStatus extends SummonStatus<Pet>
 		{
 			_actor.sendPetInfosToOwner();
 			
-			controlItem.setEnchantLevel(getLevel());
-			
-			// Update item
-			InventoryUpdate iu = new InventoryUpdate();
-			iu.addModifiedItem(controlItem);
-			_actor.getOwner().sendPacket(iu);
+			controlItem.setEnchantLevel(getLevel(), _actor.getOwner());
 		}
 	}
 	
@@ -108,13 +102,13 @@ public class PetStatus extends SummonStatus<Pet>
 	@Override
 	public int getMaxHp()
 	{
-		return (int) calcStat(Stats.MAX_HP, _actor.getPetData().getMaxHp(), null, null);
+		return (int) calcStat(Stats.MAX_HP, _actor.getPetData().maxHp(), null, null);
 	}
 	
 	@Override
 	public int getMaxMp()
 	{
-		return (int) calcStat(Stats.MAX_MP, _actor.getPetData().getMaxMp(), null, null);
+		return (int) calcStat(Stats.MAX_MP, _actor.getPetData().maxMp(), null, null);
 	}
 	
 	@Override
@@ -146,7 +140,7 @@ public class PetStatus extends SummonStatus<Pet>
 	@Override
 	public int getMAtk(Creature target, L2Skill skill)
 	{
-		return (int) calcStat(Stats.MAGIC_ATTACK, _actor.getPetData().getMAtk(), target, skill);
+		return (int) calcStat(Stats.MAGIC_ATTACK, _actor.getPetData().mAtk(), target, skill);
 	}
 	
 	@Override
@@ -163,13 +157,13 @@ public class PetStatus extends SummonStatus<Pet>
 	@Override
 	public int getMDef(Creature target, L2Skill skill)
 	{
-		return (int) calcStat(Stats.MAGIC_DEFENCE, _actor.getPetData().getMDef(), target, skill);
+		return (int) calcStat(Stats.MAGIC_DEFENCE, _actor.getPetData().mDef(), target, skill);
 	}
 	
 	@Override
 	public int getPAtk(Creature target)
 	{
-		return (int) calcStat(Stats.POWER_ATTACK, _actor.getPetData().getPAtk(), target, null);
+		return (int) calcStat(Stats.POWER_ATTACK, _actor.getPetData().pAtk(), target, null);
 	}
 	
 	@Override
@@ -186,7 +180,7 @@ public class PetStatus extends SummonStatus<Pet>
 	@Override
 	public int getPDef(Creature target)
 	{
-		return (int) calcStat(Stats.POWER_DEFENCE, _actor.getPetData().getPDef(), target, null);
+		return (int) calcStat(Stats.POWER_DEFENCE, _actor.getPetData().pDef(), target, null);
 	}
 	
 	@Override
@@ -196,7 +190,7 @@ public class PetStatus extends SummonStatus<Pet>
 		if (pde == null)
 			return 0;
 		
-		return pde.getMaxExp();
+		return pde.maxExp();
 	}
 	
 	@Override
@@ -206,7 +200,7 @@ public class PetStatus extends SummonStatus<Pet>
 		if (pde == null)
 			return 0;
 		
-		return pde.getMaxExp();
+		return pde.maxExp();
 	}
 	
 	@Override
@@ -216,6 +210,6 @@ public class PetStatus extends SummonStatus<Pet>
 		if (pde == null)
 			return 0;
 		
-		return pde.getMaxExp();
+		return pde.maxExp();
 	}
 }

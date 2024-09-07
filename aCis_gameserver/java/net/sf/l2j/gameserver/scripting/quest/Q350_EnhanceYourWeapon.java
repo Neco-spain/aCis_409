@@ -12,8 +12,8 @@ import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.container.npc.AbsorbInfo;
 import net.sf.l2j.gameserver.model.actor.instance.Monster;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
-import net.sf.l2j.gameserver.model.soulcrystal.LevelingInfo;
-import net.sf.l2j.gameserver.model.soulcrystal.SoulCrystal;
+import net.sf.l2j.gameserver.model.records.LevelingInfo;
+import net.sf.l2j.gameserver.model.records.SoulCrystal;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.scripting.Quest;
 import net.sf.l2j.gameserver.scripting.QuestState;
@@ -26,11 +26,11 @@ public class Q350_EnhanceYourWeapon extends Quest
 	{
 		super(350, "Enhance Your Weapon");
 		
-		addStartNpc(30115, 30194, 30856);
+		addQuestStart(30115, 30194, 30856);
 		addTalkId(30115, 30194, 30856);
 		
 		for (int npcId : SoulCrystalData.getInstance().getLevelingInfos().keySet())
-			addKillId(npcId);
+			addMyDying(npcId);
 		
 		for (int crystalId : SoulCrystalData.getInstance().getSoulCrystals().keySet())
 			addItemUse(crystalId);
@@ -110,45 +110,41 @@ public class Q350_EnhanceYourWeapon extends Quest
 	}
 	
 	@Override
-	public String onItemUse(ItemInstance item, Player user, WorldObject target)
+	public void onItemUse(ItemInstance item, Player user, WorldObject target)
 	{
 		// Caster is dead.
 		if (user.isDead())
-			return null;
+			return;
 		
 		// No target, or target isn't an Monster.
-		if (!(target instanceof Monster))
-			return null;
-		
-		final Monster monster = ((Monster) target);
+		if (!(target instanceof Monster monster))
+			return;
 		
 		// Mob is dead or not registered in _npcInfos.
 		if (monster.isDead() || !SoulCrystalData.getInstance().getLevelingInfos().containsKey(monster.getNpcId()))
-			return null;
+			return;
 		
 		// Add user to mob's absorber list.
 		monster.addAbsorber(user, item);
-		
-		return null;
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		if (player == null)
-			return null;
+			return;
 		
 		// Retrieve individual mob informations.
 		final LevelingInfo npcInfo = SoulCrystalData.getInstance().getLevelingInfos().get(npc.getNpcId());
 		if (npcInfo == null)
-			return null;
+			return;
 		
 		final int chance = Rnd.get(1000);
 		final Monster monster = (Monster) npc;
 		
 		// Handle npc leveling info type.
-		switch (npcInfo.getAbsorbCrystalType())
+		switch (npcInfo.absorbCrystalType())
 		{
 			case FULL_PARTY:
 				for (QuestState st : getPartyMembersState(player, npc, QuestStatus.STARTED))
@@ -166,8 +162,6 @@ public class Q350_EnhanceYourWeapon extends Quest
 					tryToStageCrystal(player, monster, npcInfo, chance);
 				break;
 		}
-		
-		return null;
 	}
 	
 	/**
@@ -233,7 +227,7 @@ public class Q350_EnhanceYourWeapon extends Quest
 		}
 		
 		// Check, if npc stages this type of crystal.
-		if (!ArraysUtil.contains(npcInfo.getLevelList(), crystalData.getLevel()))
+		if (!ArraysUtil.contains(npcInfo.levelList(), crystalData.level()))
 		{
 			player.sendPacket(SystemMessageId.SOUL_CRYSTAL_ABSORBING_REFUSED);
 			return;
@@ -247,10 +241,10 @@ public class Q350_EnhanceYourWeapon extends Quest
 		}
 		
 		// Lucky, crystal successfully stages.
-		if (chance < npcInfo.getChanceStage())
+		if (chance < npcInfo.chanceStage())
 			exchangeCrystal(player, crystalData, true);
 		// Bad luck, crystal accidentally breaks.
-		else if (chance < (npcInfo.getChanceStage() + npcInfo.getChanceBreak()))
+		else if (chance < (npcInfo.chanceStage() + npcInfo.chanceBreak()))
 			exchangeCrystal(player, crystalData, false);
 		// Bad luck, crystal doesn't stage.
 		else
@@ -265,16 +259,16 @@ public class Q350_EnhanceYourWeapon extends Quest
 	 */
 	private static void exchangeCrystal(Player player, SoulCrystal sc, boolean stage)
 	{
-		takeItems(player, sc.getInitialItemId(), 1);
+		takeItems(player, sc.initialItemId(), 1);
 		if (stage)
 		{
 			player.sendPacket(SystemMessageId.SOUL_CRYSTAL_ABSORBING_SUCCEEDED);
-			giveItems(player, sc.getStagedItemId(), 1);
+			giveItems(player, sc.stagedItemId(), 1);
 			playSound(player, SOUND_ITEMGET);
 		}
 		else
 		{
-			int broken = sc.getBrokenItemId();
+			int broken = sc.brokenItemId();
 			if (broken != 0)
 			{
 				player.sendPacket(SystemMessageId.SOUL_CRYSTAL_BROKE);

@@ -10,7 +10,6 @@ public class Node extends Location implements Comparable<Node>
 	private int _geoX;
 	private int _geoY;
 	private byte _nswe;
-	private byte _nsweExpand;
 	
 	// The cost G (movement cost done) and cost H (estimated cost to target).
 	private int _costG;
@@ -20,9 +19,19 @@ public class Node extends Location implements Comparable<Node>
 	// Node parent (reverse path construction).
 	private Node _parent;
 	
-	public Node()
+	public Node(int gx, int gy, int gz, byte nswe)
 	{
-		super(0, 0, 0);
+		super(GeoEngine.getWorldX(gx), GeoEngine.getWorldY(gy), gz);
+		
+		_geoX = gx;
+		_geoY = gy;
+		_nswe = nswe;
+	}
+	
+	@Override
+	public int compareTo(Node o)
+	{
+		return _costF - o._costF;
 	}
 	
 	@Override
@@ -33,7 +42,6 @@ public class Node extends Location implements Comparable<Node>
 		_geoX = 0;
 		_geoY = 0;
 		_nswe = GeoStructure.CELL_FLAG_NONE;
-		_nsweExpand = GeoStructure.CELL_FLAG_NONE;
 		
 		_costG = 0;
 		_costH = 0;
@@ -42,21 +50,12 @@ public class Node extends Location implements Comparable<Node>
 		_parent = null;
 	}
 	
-	public final void setGeo(int gx, int gy, int gz, byte nswe, byte nsweExpand)
-	{
-		super.set(GeoEngine.getWorldX(gx), GeoEngine.getWorldY(gy), gz);
-		
-		_geoX = gx;
-		_geoY = gy;
-		_nswe = nswe;
-		_nsweExpand = nsweExpand;
-	}
-	
 	public final void setCost(Node parent, int weight, int costH)
 	{
 		_costG = weight;
 		if (parent != null)
 			_costG += parent._costG;
+		
 		_costH = costH;
 		_costF = _costG + _costH;
 		
@@ -78,9 +77,14 @@ public class Node extends Location implements Comparable<Node>
 		return _nswe;
 	}
 	
-	public byte getNsweExpand()
+	public int getCostG()
 	{
-		return _nsweExpand;
+		return _costG;
+	}
+	
+	public int getCostH()
+	{
+		return _costH;
 	}
 	
 	public int getCostF()
@@ -91,11 +95,5 @@ public class Node extends Location implements Comparable<Node>
 	public Node getParent()
 	{
 		return _parent;
-	}
-	
-	@Override
-	public int compareTo(Node o)
-	{
-		return _costF - o._costF;
 	}
 }

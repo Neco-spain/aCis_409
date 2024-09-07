@@ -21,7 +21,7 @@ public class HeroCirclet extends Quest
 		if (!player.isHero())
 			return "no_hero.htm";
 		
-		if (player.getInventory().hasItems(CIRCLET))
+		if (player.getInventory().hasItem(CIRCLET))
 			return "already_have_circlet.htm";
 		
 		giveItems(player, 6842, 1);

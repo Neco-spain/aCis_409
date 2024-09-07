@@ -23,10 +23,8 @@ public class FuncMDefMod extends Func
 	@Override
 	public double calc(Creature effector, Creature effected, L2Skill skill, double base, double value)
 	{
-		if (effector instanceof Player)
+		if (effector instanceof Player player)
 		{
-			final Player player = (Player) effector;
-			
 			if (player.getInventory().hasItemIn(Paperdoll.LFINGER))
 				value -= 5;
 			

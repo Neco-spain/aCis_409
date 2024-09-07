@@ -17,14 +17,14 @@ public class PrayerZone extends ZoneType
 	}
 	
 	@Override
-	protected void onEnter(Creature character)
+	protected void onEnter(Creature creature)
 	{
-		character.setInsideZone(ZoneId.CAST_ON_ARTIFACT, true);
+		creature.setInsideZone(ZoneId.CAST_ON_ARTIFACT, true);
 	}
 	
 	@Override
-	protected void onExit(Creature character)
+	protected void onExit(Creature creature)
 	{
-		character.setInsideZone(ZoneId.CAST_ON_ARTIFACT, false);
+		creature.setInsideZone(ZoneId.CAST_ON_ARTIFACT, false);
 	}
 }

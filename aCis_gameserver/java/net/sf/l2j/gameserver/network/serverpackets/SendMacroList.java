@@ -1,6 +1,7 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
 import net.sf.l2j.gameserver.model.Macro;
+import net.sf.l2j.gameserver.model.records.MacroCmd;
 
 public class SendMacroList extends L2GameServerPacket
 {
@@ -37,12 +38,12 @@ public class SendMacroList extends L2GameServerPacket
 			
 			for (int i = 0; i < _macro.commands.length; i++)
 			{
-				Macro.MacroCmd cmd = _macro.commands[i];
+				MacroCmd cmd = _macro.commands[i];
 				writeC(i + 1); // i of count
-				writeC(cmd.type); // type 1 = skill, 3 = action, 4 = shortcut
-				writeD(cmd.d1); // skill id
-				writeC(cmd.d2); // shortcut id
-				writeS(cmd.cmd); // command name
+				writeC(cmd.type()); // type 1 = skill, 3 = action, 4 = shortcut
+				writeD(cmd.d1()); // skill id
+				writeC(cmd.d2()); // shortcut id
+				writeS(cmd.cmd()); // command name
 			}
 		}
 	}

@@ -127,25 +127,19 @@ public class ZoneCuboid extends ZoneForm
 	}
 	
 	@Override
-	public void visualizeZone(String info, ExServerPrimitive debug, int z)
+	public void visualizeZone(String info, ExServerPrimitive debug)
 	{
 		final int z1 = _z1 - 32;
 		final int z2 = _z2 - 32;
 		
-		debug.addLine(info + " MinZ", Color.GREEN, true, _x1, _y1, z1, _x1, _y2, z1);
-		debug.addLine(info, Color.YELLOW, true, _x1, _y1, z, _x1, _y2, z);
-		debug.addLine(info + " MaxZ", Color.RED, true, _x1, _y1, z2, _x1, _y2, z2);
+		// Floors - min/max.
+		debug.addRectangle(info, Color.GREEN, true, _x1, _y1, _x1, _y2, z1);
+		debug.addRectangle(info, Color.RED, true, _x1, _y1, _x1, _y2, z2);
 		
-		debug.addLine(info + " MinZ", Color.GREEN, true, _x2, _y2, z1, _x1, _y2, z1);
-		debug.addLine(info, Color.YELLOW, true, _x2, _y2, z, _x1, _y2, z);
-		debug.addLine(info + " MaxZ", Color.RED, true, _x2, _y2, z2, _x1, _y2, z2);
-		
-		debug.addLine(info + " MinZ", Color.GREEN, true, _x2, _y2, z1, _x2, _y1, z1);
-		debug.addLine(info, Color.YELLOW, true, _x2, _y2, z, _x2, _y1, z);
-		debug.addLine(info + " MaxZ", Color.RED, true, _x2, _y2, z2, _x2, _y1, z2);
-		
-		debug.addLine(info + " MinZ", Color.GREEN, true, _x1, _y1, z1, _x2, _y1, z1);
-		debug.addLine(info, Color.YELLOW, true, _x1, _y1, z, _x2, _y1, z);
-		debug.addLine(info + " MaxZ", Color.RED, true, _x1, _y1, z2, _x2, _y1, z2);
+		// Vertical lines.
+		debug.addLine("", Color.YELLOW, true, _x1, _y1, z1, _x1, _y1, z2);
+		debug.addLine("", Color.YELLOW, true, _x1, _y2, z1, _x1, _y2, z2);
+		debug.addLine("", Color.YELLOW, true, _x2, _y1, z1, _x2, _y1, z2);
+		debug.addLine("", Color.YELLOW, true, _x2, _y2, z1, _x2, _y2, z2);
 	}
 }

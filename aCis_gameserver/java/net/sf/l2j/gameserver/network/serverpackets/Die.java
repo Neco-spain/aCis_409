@@ -6,9 +6,9 @@ import net.sf.l2j.gameserver.enums.SiegeSide;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Monster;
-import net.sf.l2j.gameserver.model.entity.ClanHallSiege;
-import net.sf.l2j.gameserver.model.entity.Siege;
 import net.sf.l2j.gameserver.model.pledge.Clan;
+import net.sf.l2j.gameserver.model.residence.castle.Siege;
+import net.sf.l2j.gameserver.model.residence.clanhall.ClanHallSiege;
 
 public class Die extends L2GameServerPacket
 {
@@ -26,15 +26,14 @@ public class Die extends L2GameServerPacket
 		_objectId = creature.getObjectId();
 		_fake = !creature.isDead();
 		
-		if (creature instanceof Player)
+		if (creature instanceof Player player)
 		{
-			Player player = (Player) creature;
 			_allowFixedRes = player.getAccessLevel().allowFixedRes();
 			_clan = player.getClan();
 			
 		}
-		else if (creature instanceof Monster)
-			_sweepable = ((Monster) creature).getSpoilState().isSweepable();
+		else if (creature instanceof Monster monster)
+			_sweepable = monster.getSpoilState().isSweepable();
 	}
 	
 	@Override

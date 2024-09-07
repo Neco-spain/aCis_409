@@ -1,19 +1,12 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
-import java.util.Collection;
-import java.util.Set;
-
-import net.sf.l2j.gameserver.model.pledge.ClanMember;
-
 public class PledgePowerGradeList extends L2GameServerPacket
 {
-	private final Set<Integer> _ranks;
-	private final Collection<ClanMember> _members;
+	private final int[] _membersPerRank;
 	
-	public PledgePowerGradeList(Set<Integer> ranks, Collection<ClanMember> members)
+	public PledgePowerGradeList(int[] membersPerRank)
 	{
-		_ranks = ranks;
-		_members = members;
+		_membersPerRank = membersPerRank;
 	}
 	
 	@Override
@@ -21,11 +14,12 @@ public class PledgePowerGradeList extends L2GameServerPacket
 	{
 		writeC(0xFE);
 		writeH(0x3b);
-		writeD(_ranks.size());
-		for (int rank : _ranks)
+		
+		writeD(9);
+		for (int i = 1; i < 10; i++)
 		{
-			writeD(rank);
-			writeD((int) _members.stream().filter(m -> m.getPowerGrade() == rank).count());
+			writeD(i);
+			writeD(_membersPerRank[i]);
 		}
 	}
 }

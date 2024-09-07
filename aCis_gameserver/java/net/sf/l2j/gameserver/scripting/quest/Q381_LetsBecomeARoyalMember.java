@@ -30,10 +30,10 @@ public class Q381_LetsBecomeARoyalMember extends Quest
 		
 		setItemsIds(KAIL_COIN, GOLDEN_CLOVER_COIN);
 		
-		addStartNpc(SORINT);
+		addQuestStart(SORINT);
 		addTalkId(SORINT, SANDRA);
 		
-		addKillId(21018, 27316);
+		addMyDying(21018, 27316);
 	}
 	
 	@Override
@@ -67,16 +67,16 @@ public class Q381_LetsBecomeARoyalMember extends Quest
 		switch (st.getState())
 		{
 			case CREATED:
-				htmltext = (player.getStatus().getLevel() < 55 || !player.getInventory().hasItems(COIN_COLLECTOR_MEMBERSHIP)) ? "30232-02.htm" : "30232-01.htm";
+				htmltext = (player.getStatus().getLevel() < 55 || !player.getInventory().hasItem(COIN_COLLECTOR_MEMBERSHIP)) ? "30232-02.htm" : "30232-01.htm";
 				break;
 			
 			case STARTED:
 				switch (npc.getNpcId())
 				{
 					case SORINT:
-						if (!player.getInventory().hasItems(KAIL_COIN))
+						if (!player.getInventory().hasItem(KAIL_COIN))
 							htmltext = "30232-04.htm";
-						else if (!player.getInventory().hasItems(COIN_ALBUM))
+						else if (!player.getInventory().hasItem(COIN_ALBUM))
 							htmltext = "30232-05.htm";
 						else
 						{
@@ -90,13 +90,13 @@ public class Q381_LetsBecomeARoyalMember extends Quest
 						break;
 					
 					case SANDRA:
-						if (!player.getInventory().hasItems(COIN_ALBUM))
+						if (!player.getInventory().hasItem(COIN_ALBUM))
 						{
 							if (st.getInteger("aCond") == 0)
 								htmltext = "30090-01.htm";
 							else
 							{
-								if (!player.getInventory().hasItems(GOLDEN_CLOVER_COIN))
+								if (!player.getInventory().hasItem(GOLDEN_CLOVER_COIN))
 									htmltext = "30090-03.htm";
 								else
 								{
@@ -117,19 +117,17 @@ public class Q381_LetsBecomeARoyalMember extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		if (npc.getNpcId() == 21018)
 			dropItems(player, KAIL_COIN, 1, 1, 50000);
 		else if (st.getInteger("aCond") == 1)
 			dropItemsAlways(player, GOLDEN_CLOVER_COIN, 1, 1);
-		
-		return null;
 	}
 }

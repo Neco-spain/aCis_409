@@ -4,6 +4,7 @@ import net.sf.l2j.gameserver.enums.QuestStatus;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.network.NpcStringId;
 import net.sf.l2j.gameserver.scripting.Quest;
 import net.sf.l2j.gameserver.scripting.QuestState;
 
@@ -12,6 +13,7 @@ public class Q024_InhabitantsOfTheForestOfTheDead extends Quest
 	private static final String QUEST_NAME = "Q024_InhabitantsOfTheForestOfTheDead";
 	
 	// NPCs
+	private static final int NIGHT_DORIAN = 25332;
 	private static final int DORIAN = 31389;
 	private static final int MYSTERIOUS_WIZARD = 31522;
 	private static final int TOMBSTONE = 31531;
@@ -42,10 +44,11 @@ public class Q024_InhabitantsOfTheForestOfTheDead extends Quest
 		
 		setItemsIds(LIDIAS_LETTER, LIDIAS_HAIRPIN, SUSPICIOUS_TOTEM_DOLL, FLOWER_BOUQUET, SILVER_CROSS_OF_EINHASAD, BROKEN_SILVER_CROSS_OF_EINHASAD);
 		
-		addStartNpc(DORIAN);
+		addQuestStart(DORIAN);
 		addTalkId(DORIAN, MYSTERIOUS_WIZARD, LIDIA_MAID, TOMBSTONE);
 		
-		addKillId(BONE_SNATCHER, BONE_SNATCHER_A, BONE_SHAPER, BONE_COLLECTOR, SKULL_COLLECTOR, BONE_ANIMATOR, SKULL_ANIMATOR, BONE_SLAYER);
+		addMyDying(BONE_SNATCHER, BONE_SNATCHER_A, BONE_SHAPER, BONE_COLLECTOR, SKULL_COLLECTOR, BONE_ANIMATOR, SKULL_ANIMATOR, BONE_SLAYER);
+		addSeeCreature(NIGHT_DORIAN);
 	}
 	
 	@Override
@@ -110,7 +113,7 @@ public class Q024_InhabitantsOfTheForestOfTheDead extends Quest
 		}
 		else if (event.equalsIgnoreCase("31532-06.htm"))
 		{
-			if (player.getInventory().hasItems(LIDIAS_HAIRPIN))
+			if (player.getInventory().hasItem(LIDIAS_HAIRPIN))
 			{
 				st.set("state", 8);
 				takeItems(player, LIDIAS_LETTER, -1);
@@ -175,26 +178,26 @@ public class Q024_InhabitantsOfTheForestOfTheDead extends Quest
 							htmltext = "31389-09.htm";
 						else if (state == 4)
 						{
-							if (player.getInventory().hasItems(SILVER_CROSS_OF_EINHASAD))
+							if (player.getInventory().hasItem(SILVER_CROSS_OF_EINHASAD))
 								htmltext = "31389-14.htm";
-							else if (player.getInventory().hasItems(BROKEN_SILVER_CROSS_OF_EINHASAD))
+							else if (player.getInventory().hasItem(BROKEN_SILVER_CROSS_OF_EINHASAD))
 								htmltext = "31389-15.htm";
 						}
 						else if (state == 5)
 							htmltext = "31389-20.htm";
-						else if (state == 7 && !player.getInventory().hasItems(LIDIAS_HAIRPIN))
+						else if (state == 7 && !player.getInventory().hasItem(LIDIAS_HAIRPIN))
 						{
 							htmltext = "31389-21.htm";
 							st.setCond(8);
 							giveItems(player, LIDIAS_HAIRPIN, 1);
 							playSound(player, SOUND_MIDDLE);
 						}
-						else if ((state == 7 && player.getInventory().hasItems(LIDIAS_HAIRPIN)) || state == 6)
+						else if ((state == 7 && player.getInventory().hasItem(LIDIAS_HAIRPIN)) || state == 6)
 							htmltext = "31389-22.htm";
 						break;
 					
 					case MYSTERIOUS_WIZARD:
-						if (state == 11 && player.getInventory().hasItems(SUSPICIOUS_TOTEM_DOLL))
+						if (state == 11 && player.getInventory().hasItem(SUSPICIOUS_TOTEM_DOLL))
 							htmltext = "31522-01.htm";
 						else if (state == 12)
 							htmltext = "31522-04.htm";
@@ -207,7 +210,7 @@ public class Q024_InhabitantsOfTheForestOfTheDead extends Quest
 					case LIDIA_MAID:
 						if (state == 5)
 							htmltext = "31532-01.htm";
-						else if (state == 6 && player.getInventory().hasItems(LIDIAS_LETTER))
+						else if (state == 6 && player.getInventory().hasItem(LIDIAS_LETTER))
 							htmltext = "31532-05.htm";
 						else if (state == 7)
 							htmltext = "31532-07a.htm";
@@ -222,7 +225,7 @@ public class Q024_InhabitantsOfTheForestOfTheDead extends Quest
 						break;
 					
 					case TOMBSTONE:
-						if (state == 1 && player.getInventory().hasItems(FLOWER_BOUQUET))
+						if (state == 1 && player.getInventory().hasItem(FLOWER_BOUQUET))
 						{
 							htmltext = "31531-01.htm";
 							playSound(player, "AmdSound.d_wind_loot_02");
@@ -245,17 +248,35 @@ public class Q024_InhabitantsOfTheForestOfTheDead extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerCondition(player, npc, 9);
 		if (st == null)
-			return null;
+			return;
 		
 		if (dropItems(player, SUSPICIOUS_TOTEM_DOLL, 1, 1, 100000))
 			st.setCond(10);
-		
-		return null;
+	}
+	
+	@Override
+	public void onSeeCreature(Npc npc, Creature creature)
+	{
+		if (creature instanceof Player player)
+		{
+			final QuestState st = player.getQuestList().getQuestState(QUEST_NAME);
+			if (st == null)
+				return;
+			
+			if (st.getCond() == 3)
+			{
+				st.setCond(4);
+				takeItems(player, SILVER_CROSS_OF_EINHASAD, -1);
+				giveItems(player, BROKEN_SILVER_CROSS_OF_EINHASAD, 1);
+				playSound(player, SOUND_MIDDLE);
+				npc.broadcastNpcSay(NpcStringId.ID_2450);
+			}
+		}
 	}
 }

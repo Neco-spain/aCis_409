@@ -1,5 +1,7 @@
 package net.sf.l2j.gameserver.enums.actors;
 
+import net.sf.l2j.gameserver.model.actor.Player;
+
 /**
  * This class defines all races that a player can choose.
  */
@@ -26,5 +28,30 @@ public enum ClassRace
 	public double getBreathMultiplier()
 	{
 		return _breathMultiplier;
+	}
+	
+	public static final boolean isSameRace(Player player, String race)
+	{
+		if (player == null || race == null)
+			return false;
+		
+		switch (race)
+		{
+			case "@race_human":
+				return player.getRace() == HUMAN;
+			
+			case "@race_elf":
+				return player.getRace() == ELF;
+			
+			case "@race_dark_elf":
+				return player.getRace() == DARK_ELF;
+			
+			case "@race_orc":
+				return player.getRace() == ORC;
+			
+			case "@race_dwarf":
+				return player.getRace() == DWARF;
+		}
+		return false;
 	}
 }

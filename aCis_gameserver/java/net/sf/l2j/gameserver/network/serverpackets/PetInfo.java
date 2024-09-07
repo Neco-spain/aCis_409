@@ -18,19 +18,15 @@ public class PetInfo extends L2GameServerPacket
 		_summon = summon;
 		_val = val;
 		
-		if (_summon instanceof Pet)
+		if (_summon instanceof Pet pet)
 		{
-			final Pet pet = (Pet) _summon;
-			
 			_curFed = pet.getCurrentFed();
-			_maxFed = pet.getPetData().getMaxMeal();
+			_maxFed = pet.getPetData().maxMeal();
 		}
-		else if (_summon instanceof Servitor)
+		else if (_summon instanceof Servitor servitor)
 		{
-			final Servitor sum = (Servitor) _summon;
-			
-			_curFed = sum.getTimeRemaining();
-			_maxFed = sum.getTotalLifeTime();
+			_curFed = servitor.getTimeRemaining();
+			_maxFed = servitor.getTotalLifeTime();
 		}
 	}
 	
@@ -91,7 +87,7 @@ public class PetInfo extends L2GameServerPacket
 		writeQ(_summon.getStatus().getExp());
 		writeQ(_summon.getStatus().getExpForThisLevel());
 		writeQ(_summon.getStatus().getExpForNextLevel());
-		writeD((_summon instanceof Pet) ? _summon.getInventory().getTotalWeight() : 0);
+		writeD((_summon instanceof Pet pet) ? pet.getInventory().getTotalWeight() : 0);
 		writeD(_summon.getWeightLimit());
 		writeD(_summon.getStatus().getPAtk(null));
 		writeD(_summon.getStatus().getPDef(null));

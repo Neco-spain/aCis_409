@@ -2,11 +2,10 @@ package net.sf.l2j.gameserver.skills.l2skills;
 
 import net.sf.l2j.commons.data.StatSet;
 
-import net.sf.l2j.gameserver.data.xml.MapRegionData;
-import net.sf.l2j.gameserver.data.xml.MapRegionData.TeleportType;
+import net.sf.l2j.gameserver.data.xml.RestartPointData;
+import net.sf.l2j.gameserver.enums.RestartType;
 import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.enums.items.ShotType;
-import net.sf.l2j.gameserver.enums.skills.SkillType;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
@@ -23,81 +22,57 @@ public class L2SkillTeleport extends L2Skill
 		super(set);
 		
 		_recallType = set.getString("recallType", "");
-		String coords = set.getString("teleCoords", null);
-		if (coords != null)
-		{
-			String[] valuesSplit = coords.split(",");
-			_loc = new Location(Integer.parseInt(valuesSplit[0]), Integer.parseInt(valuesSplit[1]), Integer.parseInt(valuesSplit[2]));
-		}
-		else
-			_loc = null;
+		_loc = set.getLocation("teleCoords", null);
 	}
 	
 	@Override
-	public void useSkill(Creature activeChar, WorldObject[] targets)
+	public void useSkill(Creature creature, WorldObject[] targets)
 	{
-		if (activeChar instanceof Player)
-		{
-			// Check invalid states.
-			if (activeChar.isAfraid() || ((Player) activeChar).isInOlympiadMode() || activeChar.isInsideZone(ZoneId.BOSS))
-				return;
-		}
+		// Check invalid Player states.
+		if (creature instanceof Player player && (player.isAfraid() || player.isInOlympiadMode() || player.isInsideZone(ZoneId.BOSS)))
+			return;
 		
-		boolean bsps = activeChar.isChargedShot(ShotType.BLESSED_SPIRITSHOT);
+		boolean bsps = creature.isChargedShot(ShotType.BLESSED_SPIRITSHOT);
 		
-		for (WorldObject obj : targets)
+		for (WorldObject target : targets)
 		{
-			if (!(obj instanceof Creature))
+			if (!(target instanceof Player targetPlayer))
 				continue;
 			
-			final Creature target = ((Creature) obj);
+			// Check invalid states.
+			if (targetPlayer.isFestivalParticipant() || targetPlayer.isInJail() || targetPlayer.isInDuel() || targetPlayer.isRiding() || targetPlayer.isFlying())
+				continue;
 			
-			if (target instanceof Player)
+			if (targetPlayer != creature)
 			{
-				Player targetChar = (Player) target;
-				
-				// Check invalid states.
-				if (targetChar.isFestivalParticipant() || targetChar.isInJail() || targetChar.isInDuel())
+				if (targetPlayer.isInOlympiadMode())
 					continue;
 				
-				if (targetChar != activeChar)
-				{
-					if (targetChar.isInOlympiadMode())
-						continue;
-					
-					if (targetChar.isInsideZone(ZoneId.BOSS))
-						continue;
-				}
+				if (targetPlayer.isInsideZone(ZoneId.BOSS))
+					continue;
 			}
 			
-			Location loc = null;
-			if (getSkillType() == SkillType.TELEPORT)
-			{
-				if (_loc != null)
-				{
-					if (!(target instanceof Player) || !target.isFlying())
-						loc = _loc;
-				}
-			}
-			else
+			// teleCoords are prioritized over recallType, if existing.
+			Location loc = _loc;
+			
+			// If teleCoords aren't existing, we calculate the regular way using recallType.
+			if (loc == null)
 			{
 				if (_recallType.equalsIgnoreCase("Castle"))
-					loc = MapRegionData.getInstance().getLocationToTeleport(target, TeleportType.CASTLE);
+					loc = RestartPointData.getInstance().getLocationToTeleport(targetPlayer, RestartType.CASTLE);
 				else if (_recallType.equalsIgnoreCase("ClanHall"))
-					loc = MapRegionData.getInstance().getLocationToTeleport(target, TeleportType.CLAN_HALL);
+					loc = RestartPointData.getInstance().getLocationToTeleport(targetPlayer, RestartType.CLAN_HALL);
 				else
-					loc = MapRegionData.getInstance().getLocationToTeleport(target, TeleportType.TOWN);
+					loc = RestartPointData.getInstance().getLocationToTeleport(targetPlayer, RestartType.TOWN);
 			}
 			
 			if (loc != null)
 			{
-				if (target instanceof Player)
-					((Player) target).setIsIn7sDungeon(false);
-				
-				target.teleportTo(loc, 20);
+				targetPlayer.setIsIn7sDungeon(false);
+				targetPlayer.teleportTo(loc, 20);
 			}
 		}
 		
-		activeChar.setChargedShot(bsps ? ShotType.BLESSED_SPIRITSHOT : ShotType.SPIRITSHOT, isStaticReuse());
+		creature.setChargedShot(bsps ? ShotType.BLESSED_SPIRITSHOT : ShotType.SPIRITSHOT, isStaticReuse());
 	}
 }

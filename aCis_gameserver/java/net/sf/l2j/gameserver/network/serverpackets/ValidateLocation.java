@@ -1,21 +1,18 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
 import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.model.location.Location;
 
 public class ValidateLocation extends L2GameServerPacket
 {
 	private final int _objectId;
-	private final int _x;
-	private final int _y;
-	private final int _z;
+	private final Location _loc;
 	private final int _heading;
 	
 	public ValidateLocation(Creature creature)
 	{
 		_objectId = creature.getObjectId();
-		_x = creature.getX();
-		_y = creature.getY();
-		_z = creature.getZ();
+		_loc = creature.getPosition();
 		_heading = creature.getHeading();
 	}
 	
@@ -24,9 +21,7 @@ public class ValidateLocation extends L2GameServerPacket
 	{
 		writeC(0x61);
 		writeD(_objectId);
-		writeD(_x);
-		writeD(_y);
-		writeD(_z);
+		writeLoc(_loc);
 		writeD(_heading);
 	}
 }

@@ -11,6 +11,11 @@ import org.mariadb.jdbc.MariaDbPoolDataSource;
 
 public final class ConnectionPool
 {
+	private ConnectionPool()
+	{
+		throw new IllegalStateException("Utility class");
+	}
+	
 	private static final CLogger LOGGER = new CLogger(ConnectionPool.class.getName());
 	
 	private static MariaDbPoolDataSource _source;
@@ -20,11 +25,16 @@ public final class ConnectionPool
 		try
 		{
 			_source = new MariaDbPoolDataSource();
-			_source.setMaxPoolSize(Config.DATABASE_MAX_CONNECTIONS);
+			
+			// Check if username is not empty because the source checks for null only.
+			if (!Config.DATABASE_LOGIN.isEmpty())
+			{
+				_source.setUser(Config.DATABASE_LOGIN);
+				_source.setPassword(Config.DATABASE_PASSWORD);
+			}
+			
+			// Make sure the setUrl is called last as it initializes the pool.
 			_source.setUrl(Config.DATABASE_URL);
-			_source.setUser(Config.DATABASE_LOGIN);
-			_source.setPassword(Config.DATABASE_PASSWORD);
-			_source.setStaticGlobal(true);
 		}
 		catch (SQLException e)
 		{

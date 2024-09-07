@@ -8,17 +8,11 @@ import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.item.ArmorSet;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.item.kind.Item;
+import net.sf.l2j.gameserver.network.serverpackets.SkillList;
 import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class ArmorSetListener implements OnEquipListener
 {
-	private static ArmorSetListener instance = new ArmorSetListener();
-	
-	public static ArmorSetListener getInstance()
-	{
-		return instance;
-	}
-	
 	@Override
 	public void onEquip(Paperdoll slot, ItemInstance item, Playable actor)
 	{
@@ -30,7 +24,7 @@ public class ArmorSetListener implements OnEquipListener
 		// Formal Wear skills refresh. Don't bother going farther.
 		if (item.getItem().getBodyPart() == Item.SLOT_ALLDRESS)
 		{
-			player.sendSkillList();
+			player.sendPacket(new SkillList(player));
 			return;
 		}
 		
@@ -54,7 +48,7 @@ public class ArmorSetListener implements OnEquipListener
 				{
 					player.addSkill(SkillTable.getInstance().getInfo(3006, 1), false);
 					player.addSkill(skill, false);
-					player.sendSkillList();
+					player.sendPacket(new SkillList(player));
 				}
 				
 				if (armorSet.containsShield(player)) // has shield from set
@@ -63,7 +57,7 @@ public class ArmorSetListener implements OnEquipListener
 					if (skills != null)
 					{
 						player.addSkill(skills, false);
-						player.sendSkillList();
+						player.sendPacket(new SkillList(player));
 					}
 				}
 				
@@ -76,22 +70,19 @@ public class ArmorSetListener implements OnEquipListener
 						if (skille != null)
 						{
 							player.addSkill(skille, false);
-							player.sendSkillList();
+							player.sendPacket(new SkillList(player));
 						}
 					}
 				}
 			}
 		}
-		else if (armorSet.containsShield(item.getItemId()))
+		else if (armorSet.containsShield(item.getItemId()) && armorSet.containsAll(player))
 		{
-			if (armorSet.containsAll(player))
+			L2Skill skills = SkillTable.getInstance().getInfo(armorSet.getShieldSkillId(), 1);
+			if (skills != null)
 			{
-				L2Skill skills = SkillTable.getInstance().getInfo(armorSet.getShieldSkillId(), 1);
-				if (skills != null)
-				{
-					player.addSkill(skills, false);
-					player.sendSkillList();
-				}
+				player.addSkill(skills, false);
+				player.sendPacket(new SkillList(player));
 			}
 		}
 	}
@@ -104,7 +95,7 @@ public class ArmorSetListener implements OnEquipListener
 		// Formal Wear skills refresh. Don't bother going farther.
 		if (item.getItem().getBodyPart() == Item.SLOT_ALLDRESS)
 		{
-			player.sendSkillList();
+			player.sendPacket(new SkillList(player));
 			return;
 		}
 		
@@ -165,7 +156,17 @@ public class ArmorSetListener implements OnEquipListener
 			if (removeSkillId3 != 0)
 				player.removeSkill(removeSkillId3, false);
 			
-			player.sendSkillList();
+			player.sendPacket(new SkillList(player));
 		}
+	}
+	
+	public static final ArmorSetListener getInstance()
+	{
+		return SingletonHolder.INSTANCE;
+	}
+	
+	private static class SingletonHolder
+	{
+		protected static final ArmorSetListener INSTANCE = new ArmorSetListener();
 	}
 }

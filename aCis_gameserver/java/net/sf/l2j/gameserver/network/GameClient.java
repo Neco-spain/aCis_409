@@ -42,12 +42,12 @@ public final class GameClient extends MMOClient<MMOConnection<GameClient>> imple
 	private static final String SELECT_CLAN = "SELECT clanId FROM characters WHERE obj_id=?";
 	private static final String UPDATE_DELETE_TIME = "UPDATE characters SET deletetime=? WHERE obj_id=?";
 	
-	private static final String DELETE_CHAR_FRIENDS = "DELETE FROM character_friends WHERE char_id=? OR friend_id=?";
 	private static final String DELETE_CHAR_HENNAS = "DELETE FROM character_hennas WHERE char_obj_id=?";
 	private static final String DELETE_CHAR_MACROS = "DELETE FROM character_macroses WHERE char_obj_id=?";
 	private static final String DELETE_CHAR_MEMOS = "DELETE FROM character_memo WHERE charId=?";
 	private static final String DELETE_CHAR_QUESTS = "DELETE FROM character_quests WHERE charId=?";
 	private static final String DELETE_CHAR_RECIPES = "DELETE FROM character_recipebook WHERE charId=?";
+	private static final String DELETE_CHAR_RELATIONS = "DELETE FROM character_relations WHERE char_id=? OR friend_id=?";
 	private static final String DELETE_CHAR_SHORTCUTS = "DELETE FROM character_shortcuts WHERE char_obj_id=?";
 	private static final String DELETE_CHAR_SKILLS = "DELETE FROM character_skills WHERE char_obj_id=?";
 	private static final String DELETE_CHAR_SKILLS_SAVE = "DELETE FROM character_skills_save WHERE char_obj_id=?";
@@ -78,7 +78,7 @@ public final class GameClient extends MMOClient<MMOConnection<GameClient>> imple
 	private final ClientStats _stats;
 	private final long _connectionStartTime;
 	
-	public GameClientState _state;
+	private GameClientState _state;
 	private String _accountName;
 	private SessionKey _sessionId;
 	private Player _player;
@@ -169,8 +169,7 @@ public final class GameClient extends MMOClient<MMOConnection<GameClient>> imple
 				case AUTHED:
 					return "[Account: " + getAccountName() + " - IP: " + (address == null ? "disconnected" : address.getHostAddress()) + "]";
 				
-				case ENTERING:
-				case IN_GAME:
+				case ENTERING, IN_GAME:
 					return "[Character: " + (getPlayer() == null ? "disconnected" : getPlayer().getName()) + " - Account: " + getAccountName() + " - IP: " + (address == null ? "disconnected" : address.getHostAddress()) + "]";
 				
 				default:
@@ -214,8 +213,9 @@ public final class GameClient extends MMOClient<MMOConnection<GameClient>> imple
 				cleanMe(fast);
 			});
 		}
-		catch (RejectedExecutionException e)
+		catch (RejectedExecutionException ree)
 		{
+			// Do nothing.
 		}
 	}
 	
@@ -413,13 +413,6 @@ public final class GameClient extends MMOClient<MMOConnection<GameClient>> imple
 		
 		try (Connection con = ConnectionPool.getConnection())
 		{
-			try (PreparedStatement ps = con.prepareStatement(DELETE_CHAR_FRIENDS))
-			{
-				ps.setInt(1, objectId);
-				ps.setInt(2, objectId);
-				ps.execute();
-			}
-			
 			try (PreparedStatement ps = con.prepareStatement(DELETE_CHAR_HENNAS))
 			{
 				ps.setInt(1, objectId);
@@ -447,6 +440,13 @@ public final class GameClient extends MMOClient<MMOConnection<GameClient>> imple
 			try (PreparedStatement ps = con.prepareStatement(DELETE_CHAR_RECIPES))
 			{
 				ps.setInt(1, objectId);
+				ps.execute();
+			}
+			
+			try (PreparedStatement ps = con.prepareStatement(DELETE_CHAR_RELATIONS))
+			{
+				ps.setInt(1, objectId);
+				ps.setInt(2, objectId);
 				ps.execute();
 			}
 			
@@ -530,31 +530,23 @@ public final class GameClient extends MMOClient<MMOConnection<GameClient>> imple
 	
 	public Player loadCharFromDisk(int slot)
 	{
+		// Retrieve the objectId associated to the player slot.
 		final int objectId = getObjectIdForSlot(slot);
 		if (objectId < 0)
 			return null;
 		
-		Player player = World.getInstance().getPlayer(objectId);
-		if (player != null)
-		{
-			if (player.getClient() != null)
-				player.getClient().closeNow();
-			else
-				player.deleteMe();
-			
-			return null;
-		}
+		// Retrieve an existing Player ; if not, generate it.
+		final Player player = World.getInstance().getPlayer(objectId);
+		if (player == null)
+			return Player.restore(objectId);
 		
-		player = Player.restore(objectId);
-		if (player != null)
-		{
-			player.forceRunStance();
-			player.standUp();
-			
-			player.setOnlineStatus(true, false);
-			World.getInstance().addPlayer(player);
-		}
-		return player;
+		// We found an existing Player ; abort the connection if a GameClient is found, otherwise delete the object.
+		if (player.getClient() != null)
+			player.getClient().closeNow();
+		else
+			player.deleteMe();
+		
+		return null;
 	}
 	
 	/**
@@ -745,8 +737,9 @@ public final class GameClient extends MMOClient<MMOConnection<GameClient>> imple
 			
 			ThreadPool.execute(this);
 		}
-		catch (RejectedExecutionException e)
+		catch (RejectedExecutionException ree)
 		{
+			// Do nothing.
 		}
 	}
 	

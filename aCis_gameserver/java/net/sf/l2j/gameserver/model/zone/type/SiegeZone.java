@@ -1,7 +1,7 @@
 package net.sf.l2j.gameserver.model.zone.type;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.gameserver.data.xml.MapRegionData.TeleportType;
+import net.sf.l2j.gameserver.enums.RestartType;
 import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
@@ -38,18 +38,16 @@ public class SiegeZone extends ZoneType
 	}
 	
 	@Override
-	protected void onEnter(Creature character)
+	protected void onEnter(Creature creature)
 	{
 		if (_isActiveSiege)
 		{
-			character.setInsideZone(ZoneId.PVP, true);
-			character.setInsideZone(ZoneId.SIEGE, true);
-			character.setInsideZone(ZoneId.NO_SUMMON_FRIEND, true);
+			creature.setInsideZone(ZoneId.PVP, true);
+			creature.setInsideZone(ZoneId.SIEGE, true);
+			creature.setInsideZone(ZoneId.NO_SUMMON_FRIEND, true);
 			
-			if (character instanceof Player)
+			if (creature instanceof Player player)
 			{
-				final Player player = (Player) character;
-				
 				player.sendPacket(SystemMessageId.ENTERED_COMBAT_ZONE);
 				player.enterOnNoLandingZone();
 			}
@@ -57,16 +55,14 @@ public class SiegeZone extends ZoneType
 	}
 	
 	@Override
-	protected void onExit(Creature character)
+	protected void onExit(Creature creature)
 	{
-		character.setInsideZone(ZoneId.PVP, false);
-		character.setInsideZone(ZoneId.SIEGE, false);
-		character.setInsideZone(ZoneId.NO_SUMMON_FRIEND, false);
+		creature.setInsideZone(ZoneId.PVP, false);
+		creature.setInsideZone(ZoneId.SIEGE, false);
+		creature.setInsideZone(ZoneId.NO_SUMMON_FRIEND, false);
 		
-		if (character instanceof Player)
+		if (creature instanceof Player player)
 		{
-			final Player player = (Player) character;
-			
 			if (_isActiveSiege)
 			{
 				player.sendPacket(SystemMessageId.LEFT_COMBAT_ZONE);
@@ -79,8 +75,8 @@ public class SiegeZone extends ZoneType
 					player.updatePvPFlag(1);
 			}
 		}
-		else if (character instanceof SiegeSummon)
-			((SiegeSummon) character).unSummon(((SiegeSummon) character).getOwner());
+		else if (creature instanceof SiegeSummon siegeSummon)
+			siegeSummon.unSummon(siegeSummon.getOwner());
 	}
 	
 	public int getSiegableId()
@@ -99,26 +95,24 @@ public class SiegeZone extends ZoneType
 		
 		if (_isActiveSiege)
 		{
-			for (Creature character : _characters.values())
-				onEnter(character);
+			for (Creature creature : _creatures)
+				onEnter(creature);
 		}
 		else
 		{
-			for (Creature character : _characters.values())
+			for (Creature creature : _creatures)
 			{
-				character.setInsideZone(ZoneId.PVP, false);
-				character.setInsideZone(ZoneId.SIEGE, false);
-				character.setInsideZone(ZoneId.NO_SUMMON_FRIEND, false);
+				creature.setInsideZone(ZoneId.PVP, false);
+				creature.setInsideZone(ZoneId.SIEGE, false);
+				creature.setInsideZone(ZoneId.NO_SUMMON_FRIEND, false);
 				
-				if (character instanceof Player)
+				if (creature instanceof Player player)
 				{
-					final Player player = ((Player) character);
-					
 					player.sendPacket(SystemMessageId.LEFT_COMBAT_ZONE);
 					player.exitOnNoLandingZone();
 				}
-				else if (character instanceof SiegeSummon)
-					((SiegeSummon) character).unSummon(((SiegeSummon) character).getOwner());
+				else if (creature instanceof SiegeSummon siegeSummon)
+					siegeSummon.unSummon(siegeSummon.getOwner());
 			}
 		}
 	}
@@ -134,7 +128,7 @@ public class SiegeZone extends ZoneType
 			if (player.getClanId() == clanId)
 				continue;
 			
-			player.teleportTo(TeleportType.TOWN);
+			player.teleportTo(RestartType.TOWN);
 		}
 	}
 }

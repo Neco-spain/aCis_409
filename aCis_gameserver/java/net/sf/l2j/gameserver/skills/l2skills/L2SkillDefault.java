@@ -15,9 +15,9 @@ public class L2SkillDefault extends L2Skill
 	}
 	
 	@Override
-	public void useSkill(Creature caster, WorldObject[] targets)
+	public void useSkill(Creature creature, WorldObject[] targets)
 	{
-		caster.sendPacket(ActionFailed.STATIC_PACKET);
-		caster.sendMessage("Skill " + getId() + " [" + getSkillType() + "] isn't implemented.");
+		creature.sendPacket(ActionFailed.STATIC_PACKET);
+		creature.sendMessage("Skill " + getId() + " [" + getSkillType() + "] isn't implemented.");
 	}
 }

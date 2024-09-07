@@ -8,8 +8,10 @@ import net.sf.l2j.commons.lang.StringUtil;
 import net.sf.l2j.commons.pool.ConnectionPool;
 
 import net.sf.l2j.gameserver.data.xml.NpcData;
+import net.sf.l2j.gameserver.enums.items.ItemState;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Pet;
+import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 
 public final class RequestChangePetName extends L2GameClientPacket
@@ -69,6 +71,15 @@ public final class RequestChangePetName extends L2GameClientPacket
 		}
 		
 		pet.setName(_name);
+		
+		// Refresh control item infos.
+		final ItemInstance controlItem = pet.getControlItem();
+		if (controlItem != null)
+		{
+			controlItem.setCustomType2(1);
+			controlItem.updateState(player, ItemState.MODIFIED);
+		}
+		
 		pet.sendPetInfosToOwner();
 	}
 	

@@ -102,11 +102,6 @@ public final class NpcHtmlMessage extends L2GameServerPacket
 		setHtml(HtmCache.getInstance().getHtmForce(filename));
 	}
 	
-	public void basicReplace(String pattern, String value)
-	{
-		_html = _html.replaceAll(pattern, value);
-	}
-	
 	public void replace(String pattern, String value)
 	{
 		_html = _html.replaceAll(pattern, value.replaceAll("\\$", "\\\\\\$"));
@@ -114,16 +109,21 @@ public final class NpcHtmlMessage extends L2GameServerPacket
 	
 	public void replace(String pattern, int value)
 	{
-		_html = _html.replaceAll(pattern, Integer.toString(value));
+		_html = _html.replaceAll(pattern, String.valueOf(value));
 	}
 	
 	public void replace(String pattern, long value)
 	{
-		_html = _html.replaceAll(pattern, Long.toString(value));
+		_html = _html.replaceAll(pattern, String.valueOf(value));
 	}
 	
 	public void replace(String pattern, double value)
 	{
-		_html = _html.replaceAll(pattern, Double.toString(value));
+		_html = _html.replaceAll(pattern, String.valueOf(value));
+	}
+	
+	public void replace(String pattern, boolean value)
+	{
+		_html = _html.replaceAll(pattern, String.valueOf(value));
 	}
 }

@@ -9,6 +9,7 @@ public final class RequestRecipeShopManagePrev extends L2GameClientPacket
 	@Override
 	protected void readImpl()
 	{
+		// Do nothing.
 	}
 	
 	@Override
@@ -25,9 +26,9 @@ public final class RequestRecipeShopManagePrev extends L2GameClientPacket
 			return;
 		}
 		
-		if (!(player.getTarget() instanceof Player))
+		if (!(player.getTarget() instanceof Player targetPlayer))
 			return;
 		
-		player.sendPacket(new RecipeShopSellList(player, (Player) player.getTarget()));
+		player.sendPacket(new RecipeShopSellList(player, targetPlayer));
 	}
 }

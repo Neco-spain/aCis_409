@@ -6,6 +6,7 @@ import java.util.StringTokenizer;
 
 import net.sf.l2j.commons.lang.StringUtil;
 import net.sf.l2j.commons.pool.ConnectionPool;
+import net.sf.l2j.commons.pool.ThreadPool;
 
 import net.sf.l2j.gameserver.data.sql.PlayerInfoTable;
 import net.sf.l2j.gameserver.data.xml.NpcData;
@@ -13,15 +14,17 @@ import net.sf.l2j.gameserver.data.xml.PlayerData;
 import net.sf.l2j.gameserver.data.xml.PlayerLevelData;
 import net.sf.l2j.gameserver.enums.actors.ClassId;
 import net.sf.l2j.gameserver.enums.actors.Sex;
+import net.sf.l2j.gameserver.enums.skills.AbnormalEffect;
 import net.sf.l2j.gameserver.handler.IAdminCommandHandler;
-import net.sf.l2j.gameserver.model.PlayerLevel;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.group.Party;
+import net.sf.l2j.gameserver.model.records.PlayerLevel;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.AbstractNpcInfo.NpcInfo;
+import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
 import net.sf.l2j.gameserver.network.serverpackets.SkillCoolTime;
 
@@ -141,9 +144,8 @@ public class AdminEditChar implements IAdminCommandHandler
 						if (paramCount == 1)
 						{
 							final int lvl = Integer.parseInt(st.nextToken());
-							if (targetWorldObject instanceof Player)
+							if (targetWorldObject instanceof Player targetPlayer)
 							{
-								final Player targetPlayer = (Player) targetWorldObject;
 								targetPlayer.setAccessLevel(lvl);
 								
 								if (lvl < 0)
@@ -200,7 +202,7 @@ public class AdminEditChar implements IAdminCommandHandler
 				case "class":
 					try
 					{
-						if (!(targetWorldObject instanceof Player))
+						if (!(targetWorldObject instanceof Player targetPlayer))
 							return;
 						
 						final int newClassId = Integer.parseInt(st.nextToken());
@@ -212,29 +214,39 @@ public class AdminEditChar implements IAdminCommandHandler
 						// Don't bother with dummy classes.
 						if (newClass.getLevel() == -1)
 						{
-							player.sendMessage("You tried to set an invalid class for " + targetWorldObject.getName() + ".");
+							player.sendMessage("You tried to set an invalid class for " + targetPlayer.getName() + ".");
 							return;
 						}
-						
-						final Player targetPlayer = (Player) targetWorldObject;
 						
 						// Don't bother edit ClassId if already set the same.
 						if (targetPlayer.getClassId() == newClass)
 						{
-							player.sendMessage(targetWorldObject.getName() + " is already a(n) " + newClass.toString() + ".");
+							player.sendMessage(targetPlayer.getName() + " is already a(n) " + newClass.toString() + ".");
 							return;
 						}
 						
-						targetPlayer.setClassId(newClass.getId());
-						if (!targetPlayer.isSubClassActive())
-							targetPlayer.setBaseClass(newClass);
+						targetPlayer.abortAll(false);
+						targetPlayer.startAbnormalEffect(AbnormalEffect.HOLD_2);
+						targetPlayer.removeKnownObject(targetPlayer);
+						targetPlayer.decayMe();
 						
-						targetPlayer.refreshWeightPenalty();
-						targetPlayer.store();
-						targetPlayer.refreshHennaList();
-						targetPlayer.broadcastUserInfo();
-						
-						player.sendMessage("You successfully set " + targetPlayer.getName() + " class to " + newClass.toString() + ".");
+						ThreadPool.schedule(() ->
+						{
+							targetPlayer.setClassId(newClass.getId());
+							if (!targetPlayer.isSubClassActive())
+								targetPlayer.setBaseClass(newClass);
+							
+							targetPlayer.spawnMe();
+							targetPlayer.store();
+							targetPlayer.refreshWeightPenalty();
+							targetPlayer.refreshHennaList();
+							targetPlayer.broadcastUserInfo();
+							targetPlayer.stopAbnormalEffect(AbnormalEffect.HOLD_2);
+							targetPlayer.sendPacket(ActionFailed.STATIC_PACKET);
+							
+							player.sendMessage("You successfully set " + targetPlayer.getName() + " class to " + newClass.toString() + ".");
+							
+						}, 4000);
 					}
 					catch (Exception e)
 					{
@@ -245,10 +257,9 @@ public class AdminEditChar implements IAdminCommandHandler
 				case "color":
 					try
 					{
-						if (!(targetWorldObject instanceof Player))
+						if (!(targetWorldObject instanceof Player targetPlayer))
 							return;
 						
-						final Player targetPlayer = (Player) targetWorldObject;
 						targetPlayer.getAppearance().setNameColor(Integer.decode("0x" + st.nextToken()));
 						targetPlayer.broadcastUserInfo();
 						
@@ -263,10 +274,8 @@ public class AdminEditChar implements IAdminCommandHandler
 				case "exp":
 					try
 					{
-						if (!(targetWorldObject instanceof Player))
+						if (!(targetWorldObject instanceof Player targetPlayer))
 							return;
-						
-						final Player targetPlayer = ((Player) targetWorldObject);
 						
 						final long newExp = Long.parseLong(st.nextToken());
 						final long currentExp = targetPlayer.getStatus().getExp();
@@ -289,7 +298,7 @@ public class AdminEditChar implements IAdminCommandHandler
 				case "karma":
 					try
 					{
-						if (!(targetWorldObject instanceof Player))
+						if (!(targetWorldObject instanceof Player targetPlayer))
 							return;
 						
 						final int newKarma = Integer.parseInt(st.nextToken());
@@ -299,9 +308,9 @@ public class AdminEditChar implements IAdminCommandHandler
 							return;
 						}
 						
-						((Player) targetWorldObject).setKarma(newKarma);
+						targetPlayer.setKarma(newKarma);
 						
-						player.sendMessage("You successfully set " + targetWorldObject.getName() + "'s karma to " + newKarma + ".");
+						player.sendMessage("You successfully set " + targetPlayer.getName() + "'s karma to " + newKarma + ".");
 					}
 					catch (Exception e)
 					{
@@ -312,7 +321,7 @@ public class AdminEditChar implements IAdminCommandHandler
 				case "level":
 					try
 					{
-						if (!(targetWorldObject instanceof Player))
+						if (!(targetWorldObject instanceof Player targetPlayer))
 							return;
 						
 						final int newLevel = Integer.parseInt(st.nextToken());
@@ -323,15 +332,15 @@ public class AdminEditChar implements IAdminCommandHandler
 							return;
 						}
 						
-						final long pXp = ((Player) targetWorldObject).getStatus().getExp();
-						final long tXp = pl.getRequiredExpToLevelUp();
+						final long pXp = targetPlayer.getStatus().getExp();
+						final long tXp = pl.requiredExpToLevelUp();
 						
 						if (pXp > tXp)
-							((Player) targetWorldObject).removeExpAndSp(pXp - tXp, 0);
+							targetPlayer.removeExpAndSp(pXp - tXp, 0);
 						else if (pXp < tXp)
-							((Player) targetWorldObject).addExpAndSp(tXp - pXp, 0);
+							targetPlayer.addExpAndSp(tXp - pXp, 0);
 						
-						player.sendMessage("You successfully set " + targetWorldObject.getName() + "'s level to " + newLevel + ".");
+						player.sendMessage("You successfully set " + targetPlayer.getName() + "'s level to " + newLevel + ".");
 					}
 					catch (Exception e)
 					{
@@ -344,48 +353,49 @@ public class AdminEditChar implements IAdminCommandHandler
 					{
 						final String newName = st.nextToken();
 						
-						if (targetWorldObject instanceof Player)
+						switch (targetWorldObject)
 						{
-							// Invalid pattern.
-							if (!StringUtil.isValidString(newName, "^[A-Za-z0-9]{1,16}$"))
-							{
-								player.sendPacket(SystemMessageId.INCORRECT_NAME_TRY_AGAIN);
-								return;
-							}
+							case Player targetPlayer:
+								// Invalid pattern.
+								if (!StringUtil.isValidString(newName, "^[A-Za-z0-9]{1,16}$"))
+								{
+									player.sendPacket(SystemMessageId.INCORRECT_NAME_TRY_AGAIN);
+									return;
+								}
+								
+								// Name is a npc name.
+								if (NpcData.getInstance().getTemplateByName(newName) != null)
+								{
+									player.sendPacket(SystemMessageId.INCORRECT_NAME_TRY_AGAIN);
+									return;
+								}
+								
+								// Name already exists.
+								if (PlayerInfoTable.getInstance().getPlayerObjectId(newName) > 0)
+								{
+									player.sendPacket(SystemMessageId.INCORRECT_NAME_TRY_AGAIN);
+									return;
+								}
+								
+								targetPlayer.setName(newName);
+								PlayerInfoTable.getInstance().updatePlayerData(targetPlayer, false);
+								targetPlayer.broadcastUserInfo();
+								targetPlayer.store();
+								
+								player.sendMessage("You successfully set your target's name to " + targetPlayer.getName() + ".");
+								break;
 							
-							// Name is a npc name.
-							if (NpcData.getInstance().getTemplateByName(newName) != null)
-							{
-								player.sendPacket(SystemMessageId.INCORRECT_NAME_TRY_AGAIN);
-								return;
-							}
+							case Npc targetNpc:
+								targetNpc.setName(newName);
+								targetNpc.broadcastPacket(new NpcInfo(targetNpc, null));
+								
+								player.sendMessage("You successfully set your target's name to " + targetNpc.getName() + ".");
+								break;
 							
-							// Name already exists.
-							if (PlayerInfoTable.getInstance().getPlayerObjectId(newName) > 0)
-							{
-								player.sendPacket(SystemMessageId.INCORRECT_NAME_TRY_AGAIN);
-								return;
-							}
-							
-							final Player targetPlayer = (Player) targetWorldObject;
-							targetPlayer.setName(newName);
-							PlayerInfoTable.getInstance().updatePlayerData(targetPlayer, false);
-							targetPlayer.broadcastUserInfo();
-							targetPlayer.store();
-							
-							player.sendMessage("You successfully set your target's name to " + targetPlayer.getName() + ".");
+							default:
+								player.sendPacket(SystemMessageId.INVALID_TARGET);
+								break;
 						}
-						else if (targetWorldObject instanceof Npc)
-						{
-							final Npc targetNpc = (Npc) targetWorldObject;
-							
-							targetNpc.setName(newName);
-							targetNpc.broadcastPacket(new NpcInfo(targetNpc, null));
-							
-							player.sendMessage("You successfully set your target's name to " + targetNpc.getName() + ".");
-						}
-						else
-							player.sendPacket(SystemMessageId.INVALID_TARGET);
 					}
 					catch (Exception e)
 					{
@@ -396,10 +406,8 @@ public class AdminEditChar implements IAdminCommandHandler
 				case "noble":
 					try
 					{
-						if (!(targetWorldObject instanceof Player))
+						if (!(targetWorldObject instanceof Player targetPlayer))
 							return;
-						
-						final Player targetPlayer = (Player) targetWorldObject;
 						
 						targetPlayer.setNoble(!targetPlayer.isNoble(), true);
 						player.sendMessage("You have modified " + targetPlayer.getName() + "'s noble status.");
@@ -413,10 +421,9 @@ public class AdminEditChar implements IAdminCommandHandler
 				case "rec":
 					try
 					{
-						if (!(targetWorldObject instanceof Player))
+						if (!(targetWorldObject instanceof Player targetPlayer))
 							return;
 						
-						final Player targetPlayer = (Player) targetWorldObject;
 						final int newRec = Integer.parseInt(st.nextToken());
 						
 						targetPlayer.setRecomHave(newRec);
@@ -433,10 +440,9 @@ public class AdminEditChar implements IAdminCommandHandler
 				case "sex":
 					try
 					{
-						if (!(targetWorldObject instanceof Player))
+						if (!(targetWorldObject instanceof Player targetPlayer))
 							return;
 						
-						final Player targetPlayer = (Player) targetWorldObject;
 						final Sex sex = Enum.valueOf(Sex.class, st.nextToken().toUpperCase());
 						
 						if (sex == targetPlayer.getAppearance().getSex())
@@ -445,12 +451,23 @@ public class AdminEditChar implements IAdminCommandHandler
 							return;
 						}
 						
-						targetPlayer.getAppearance().setSex(sex);
-						targetPlayer.broadcastUserInfo();
+						targetPlayer.abortAll(false);
+						targetPlayer.startAbnormalEffect(AbnormalEffect.HOLD_2);
+						targetPlayer.removeKnownObject(targetPlayer);
 						targetPlayer.decayMe();
-						targetPlayer.spawnMe();
 						
-						player.sendMessage("You successfully set " + targetPlayer.getName() + " gender to " + sex.toString() + ".");
+						ThreadPool.schedule(() ->
+						{
+							targetPlayer.getAppearance().setSex(sex);
+							targetPlayer.spawnMe();
+							targetPlayer.store();
+							targetPlayer.broadcastUserInfo();
+							targetPlayer.stopAbnormalEffect(AbnormalEffect.HOLD_2);
+							targetPlayer.sendPacket(ActionFailed.STATIC_PACKET);
+							
+							player.sendMessage("You successfully set " + targetPlayer.getName() + " gender to " + sex.toString() + ".");
+							
+						}, 4000);
 					}
 					catch (Exception e)
 					{
@@ -461,10 +478,8 @@ public class AdminEditChar implements IAdminCommandHandler
 				case "sp":
 					try
 					{
-						if (!(targetWorldObject instanceof Player))
+						if (!(targetWorldObject instanceof Player targetPlayer))
 							return;
-						
-						final Player targetPlayer = ((Player) targetWorldObject);
 						
 						final int newSp = Integer.parseInt(st.nextToken());
 						final int currentSp = targetPlayer.getStatus().getSp();
@@ -487,10 +502,9 @@ public class AdminEditChar implements IAdminCommandHandler
 				case "tcolor":
 					try
 					{
-						if (!(targetWorldObject instanceof Player))
+						if (!(targetWorldObject instanceof Player targetPlayer))
 							return;
 						
-						final Player targetPlayer = (Player) targetWorldObject;
 						targetPlayer.getAppearance().setTitleColor(Integer.decode("0x" + command.substring(16)));
 						targetPlayer.broadcastUserInfo();
 						
@@ -507,26 +521,26 @@ public class AdminEditChar implements IAdminCommandHandler
 					{
 						final String newTitle = st.nextToken();
 						
-						if (targetWorldObject instanceof Player)
+						switch (targetWorldObject)
 						{
-							final Player targetPlayer = (Player) targetWorldObject;
+							case Player targetPlayer:
+								targetPlayer.setTitle(newTitle);
+								targetPlayer.broadcastTitleInfo();
+								
+								player.sendMessage("You successfully set your target's title to " + targetPlayer.getTitle() + ".");
+								break;
 							
-							targetPlayer.setTitle(newTitle);
-							targetPlayer.broadcastTitleInfo();
+							case Npc targetNpc:
+								targetNpc.setTitle(newTitle);
+								targetNpc.broadcastPacket(new NpcInfo(targetNpc, null));
+								
+								player.sendMessage("You successfully set your target's title to " + targetNpc.getTitle() + ".");
+								break;
 							
-							player.sendMessage("You successfully set your target's title to " + targetPlayer.getTitle() + ".");
+							default:
+								player.sendPacket(SystemMessageId.INVALID_TARGET);
+								break;
 						}
-						else if (targetWorldObject instanceof Npc)
-						{
-							final Npc targetNpc = (Npc) targetWorldObject;
-							
-							targetNpc.setTitle(newTitle);
-							targetNpc.broadcastPacket(new NpcInfo(targetNpc, null));
-							
-							player.sendMessage("You successfully set your target's title to " + targetNpc.getTitle() + ".");
-						}
-						else
-							player.sendPacket(SystemMessageId.INVALID_TARGET);
 					}
 					catch (Exception e)
 					{
@@ -565,12 +579,11 @@ public class AdminEditChar implements IAdminCommandHandler
 		html.replace("%party%", (targetPlayer.getParty() != null) ? "<a action=\"bypass -h admin_party_info " + targetPlayer.getName() + "\">" + targetPlayer.getParty().getMembers().size() + " members</a>" : "N/A");
 		html.replace("%baseclass%", PlayerData.getInstance().getClassNameById(targetPlayer.getBaseClass()));
 		html.replace("%xp%", targetPlayer.getStatus().getExp());
-		html.replace("%prevai%", targetPlayer.getAI().getPreviousIntention().getType().toString());
 		html.replace("%curai%", targetPlayer.getAI().getCurrentIntention().getType().toString());
 		html.replace("%nextai%", targetPlayer.getAI().getNextIntention().getType().toString());
 		html.replace("%loc%", targetPlayer.getPosition().toString());
 		html.replace("%account%", targetPlayer.getAccountName());
-		html.replace("%ip%", (targetPlayer.getClient().isDetached()) ? "Disconnected" : targetPlayer.getClient().getConnection().getInetAddress().getHostAddress());
+		html.replace("%ip%", (targetPlayer.getClient() == null || targetPlayer.getClient().isDetached()) ? "Disconnected" : targetPlayer.getClient().getConnection().getInetAddress().getHostAddress());
 	}
 	
 	/**

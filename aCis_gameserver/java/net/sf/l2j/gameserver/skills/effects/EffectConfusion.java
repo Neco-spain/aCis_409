@@ -1,16 +1,12 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import net.sf.l2j.commons.random.Rnd;
 
-import net.sf.l2j.gameserver.enums.AiEventType;
 import net.sf.l2j.gameserver.enums.skills.EffectFlag;
 import net.sf.l2j.gameserver.enums.skills.EffectType;
-import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Attackable;
 import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Chest;
@@ -34,59 +30,45 @@ public class EffectConfusion extends AbstractEffect
 	@Override
 	public boolean onStart()
 	{
+		if (getEffected() instanceof Player)
+			return true;
+		
 		// Abort move.
 		getEffected().getMove().stop();
 		
 		// Refresh abnormal effects.
 		getEffected().updateAbnormalEffect();
 		
-		onActionTime();
+		// Find a random target from known Attackables (without doors nor chests) and Playables.
+		final Creature target = Rnd.get(getEffected().getKnownType(Creature.class, wo -> (wo instanceof Attackable || wo instanceof Playable) && wo != getEffected() && !(wo instanceof Door || wo instanceof Chest) && wo.distance2D(getEffected()) <= 1000));
+		if (target == null)
+			return true;
+		
+		if (getEffected() instanceof Playable targetPlayable)
+			targetPlayable.getAI().tryToAttack(target, false, false);
+		else if (getEffected() instanceof Npc targetNpc)
+			targetNpc.getAI().addAttackDesire(target, Integer.MAX_VALUE);
+		
 		return true;
 	}
 	
 	@Override
 	public void onExit()
 	{
-		getEffected().removeEffect(this);
-		
-		if (!(getEffected() instanceof Player))
-			getEffected().getAI().notifyEvent(AiEventType.THINK, null, null);
-		
 		// Refresh abnormal effects.
 		getEffected().updateAbnormalEffect();
+		
+		if (getEffected() instanceof Playable targetPlayable)
+			targetPlayable.getAI().tryToFollow(getEffected().getActingPlayer(), false);
+		else if (getEffected() instanceof Npc targetNpc)
+			targetNpc.getAI().getAggroList().stopHate(targetNpc.getAI().getAggroList().getMostHatedCreature());
+		
 	}
 	
 	@Override
 	public boolean onActionTime()
 	{
-		final List<Creature> targetList = new ArrayList<>();
-		
-		// Getting the possible targets
-		for (final WorldObject obj : getEffected().getKnownType(WorldObject.class))
-		{
-			// Attackable NPCs and playable characters (players, summons) are put in the list.
-			if ((obj instanceof Attackable || obj instanceof Playable) && (obj != getEffected()))
-				// Don't put doors nor chests on it.
-				if (!(obj instanceof Door || obj instanceof Chest))
-					targetList.add((Creature) obj);
-		}
-		
-		// if there is no target, exit function
-		if (targetList.isEmpty())
-			return true;
-		
-		// Choosing randomly a new target
-		final Creature target = Rnd.get(targetList);
-		
-		// Attacking the target
-		getEffected().setTarget(target);
-		getEffected().getAI().tryToAttack(target);
-		
-		// Add aggro to that target aswell. The aggro power is random.
-		final int aggro = (5 + Rnd.get(5)) * getEffector().getStatus().getLevel();
-		((Attackable) getEffected()).getAggroList().addDamageHate(target, 0, aggro);
-		
-		return true;
+		return false;
 	}
 	
 	@Override

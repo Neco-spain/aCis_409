@@ -10,6 +10,7 @@ public final class AllyLeave extends L2GameClientPacket
 	@Override
 	protected void readImpl()
 	{
+		// Do nothing.
 	}
 	
 	@Override

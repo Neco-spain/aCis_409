@@ -89,11 +89,11 @@ public class Q038_DragonFangs extends Quest
 		
 		setItemsIds(FEATHER_ORNAMENT, TOOTH_OF_TOTEM, TOOTH_OF_DRAGON, LETTER_OF_IRIS, LETTER_OF_ROHMER);
 		
-		addStartNpc(LUIS);
+		addQuestStart(LUIS);
 		addTalkId(LUIS, IRIS, ROHMER);
 		
 		for (int mob : DROPLIST.keySet())
-			addKillId(mob);
+			addMyDying(mob);
 	}
 	
 	@Override
@@ -119,7 +119,7 @@ public class Q038_DragonFangs extends Quest
 		}
 		else if (event.equalsIgnoreCase("30034-02a.htm"))
 		{
-			if (player.getInventory().hasItems(TOOTH_OF_TOTEM))
+			if (player.getInventory().hasItem(TOOTH_OF_TOTEM))
 			{
 				htmltext = "30034-02.htm";
 				st.setCond(4);
@@ -130,7 +130,7 @@ public class Q038_DragonFangs extends Quest
 		}
 		else if (event.equalsIgnoreCase("30344-02a.htm"))
 		{
-			if (player.getInventory().hasItems(LETTER_OF_IRIS))
+			if (player.getInventory().hasItem(LETTER_OF_IRIS))
 			{
 				htmltext = "30344-02.htm";
 				st.setCond(5);
@@ -141,7 +141,7 @@ public class Q038_DragonFangs extends Quest
 		}
 		else if (event.equalsIgnoreCase("30034-04a.htm"))
 		{
-			if (player.getInventory().hasItems(LETTER_OF_ROHMER))
+			if (player.getInventory().hasItem(LETTER_OF_ROHMER))
 			{
 				htmltext = "30034-04.htm";
 				st.setCond(6);
@@ -225,19 +225,17 @@ public class Q038_DragonFangs extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final int[] droplist = DROPLIST.get(npc.getNpcId());
 		
 		if (st.getCond() == droplist[0] && dropItems(player, droplist[1], 1, droplist[2], droplist[3]))
 			st.setCond(droplist[0] + 1);
-		
-		return null;
 	}
 }

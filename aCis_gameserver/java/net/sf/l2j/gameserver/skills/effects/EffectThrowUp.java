@@ -1,12 +1,10 @@
 package net.sf.l2j.gameserver.skills.effects;
 
-import net.sf.l2j.gameserver.enums.AiEventType;
 import net.sf.l2j.gameserver.enums.skills.EffectFlag;
 import net.sf.l2j.gameserver.enums.skills.EffectType;
 import net.sf.l2j.gameserver.enums.skills.FlyType;
 import net.sf.l2j.gameserver.geoengine.GeoEngine;
 import net.sf.l2j.gameserver.model.actor.Creature;
-import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.location.Location;
 import net.sf.l2j.gameserver.network.serverpackets.FlyToLocation;
 import net.sf.l2j.gameserver.network.serverpackets.ValidateLocation;
@@ -33,6 +31,9 @@ public class EffectThrowUp extends AbstractEffect
 	@Override
 	public boolean onStart()
 	{
+		// Abort attack, cast and move.
+		getEffected().abortAll(false);
+		
 		// Get current position of the Creature
 		final int curX = getEffected().getX();
 		final int curY = getEffected().getY();
@@ -69,11 +70,6 @@ public class EffectThrowUp extends AbstractEffect
 		_x = loc.getX();
 		_y = loc.getY();
 		
-		// Abort attack, cast and move.
-		getEffected().abortAll(false);
-		
-		getEffected().getAI().tryToIdle();
-		
 		// Refresh abnormal effects.
 		getEffected().updateAbnormalEffect();
 		
@@ -90,9 +86,6 @@ public class EffectThrowUp extends AbstractEffect
 	@Override
 	public void onExit()
 	{
-		if (!(getEffected() instanceof Player))
-			getEffected().getAI().notifyEvent(AiEventType.THINK, null, null);
-		
 		// Refresh abnormal effects.
 		getEffected().updateAbnormalEffect();
 		

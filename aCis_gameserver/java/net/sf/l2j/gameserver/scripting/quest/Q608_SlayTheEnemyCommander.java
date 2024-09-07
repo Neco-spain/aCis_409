@@ -22,10 +22,10 @@ public class Q608_SlayTheEnemyCommander extends Quest
 		
 		setItemsIds(HEAD_OF_MOS);
 		
-		addStartNpc(31370); // Kadun Zu Ketra
+		addQuestStart(31370); // Kadun Zu Ketra
 		addTalkId(31370);
 		
-		addKillId(25312); // Mos
+		addMyDying(25312); // Mos
 	}
 	
 	@Override
@@ -44,7 +44,7 @@ public class Q608_SlayTheEnemyCommander extends Quest
 		}
 		else if (event.equalsIgnoreCase("31370-07.htm"))
 		{
-			if (player.getInventory().hasItems(HEAD_OF_MOS))
+			if (player.getInventory().hasItem(HEAD_OF_MOS))
 			{
 				takeItems(player, HEAD_OF_MOS, -1);
 				giveItems(player, TOTEM_OF_WISDOM, 1);
@@ -76,7 +76,7 @@ public class Q608_SlayTheEnemyCommander extends Quest
 			case CREATED:
 				if (player.getStatus().getLevel() >= 75)
 				{
-					if (player.getAllianceWithVarkaKetra() >= 4 && player.getInventory().hasItems(KETRA_ALLIANCE_4) && !player.getInventory().hasItems(TOTEM_OF_WISDOM))
+					if (player.getAllianceWithVarkaKetra() >= 4 && player.getInventory().hasItem(KETRA_ALLIANCE_4) && !player.getInventory().hasItem(TOTEM_OF_WISDOM))
 						htmltext = "31370-01.htm";
 					else
 						htmltext = "31370-02.htm";
@@ -86,7 +86,7 @@ public class Q608_SlayTheEnemyCommander extends Quest
 				break;
 			
 			case STARTED:
-				htmltext = (player.getInventory().hasItems(HEAD_OF_MOS)) ? "31370-05.htm" : "31370-06.htm";
+				htmltext = (player.getInventory().hasItem(HEAD_OF_MOS)) ? "31370-05.htm" : "31370-06.htm";
 				break;
 		}
 		
@@ -94,21 +94,19 @@ public class Q608_SlayTheEnemyCommander extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		for (QuestState st : getPartyMembers(player, npc, 1))
 		{
 			Player pm = st.getPlayer();
-			if (pm.getAllianceWithVarkaKetra() >= 4 && pm.getInventory().hasItems(KETRA_ALLIANCE_4))
+			if (pm.getAllianceWithVarkaKetra() >= 4 && pm.getInventory().hasItem(KETRA_ALLIANCE_4))
 			{
 				st.setCond(2);
 				playSound(pm, SOUND_MIDDLE);
 				giveItems(pm, HEAD_OF_MOS, 1);
 			}
 		}
-		
-		return null;
 	}
 }

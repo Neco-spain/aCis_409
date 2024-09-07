@@ -3,7 +3,6 @@ package net.sf.l2j.gameserver.network.clientpackets;
 import static net.sf.l2j.gameserver.model.itemcontainer.PcInventory.ADENA_ID;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.gameserver.enums.StatusType;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Folk;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
@@ -11,9 +10,6 @@ import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.itemcontainer.ItemContainer;
 import net.sf.l2j.gameserver.model.itemcontainer.PcWarehouse;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.EnchantResult;
-import net.sf.l2j.gameserver.network.serverpackets.InventoryUpdate;
-import net.sf.l2j.gameserver.network.serverpackets.StatusUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public final class SendWarehouseDepositList extends L2GameClientPacket
@@ -60,12 +56,7 @@ public final class SendWarehouseDepositList extends L2GameClientPacket
 			return;
 		}
 		
-		if (player.getActiveEnchantItem() != null)
-		{
-			player.setActiveEnchantItem(null);
-			player.sendPacket(EnchantResult.CANCELLED);
-			player.sendPacket(SystemMessageId.ENCHANT_SCROLL_CANCELLED);
-		}
+		player.cancelActiveEnchant();
 		
 		final ItemContainer warehouse = player.getActiveWarehouse();
 		if (warehouse == null)
@@ -116,7 +107,7 @@ public final class SendWarehouseDepositList extends L2GameClientPacket
 		}
 		
 		// Check if enough adena and charge the fee
-		if (currentAdena < fee || !player.reduceAdena(warehouse.getName(), fee, folk, false))
+		if (currentAdena < fee || !player.reduceAdena(fee, false))
 		{
 			sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_NOT_ENOUGH_ADENA));
 			return;
@@ -127,7 +118,6 @@ public final class SendWarehouseDepositList extends L2GameClientPacket
 			return;
 		
 		// Proceed to the transfer
-		InventoryUpdate playerIU = new InventoryUpdate();
 		for (IntIntHolder i : _items)
 		{
 			// Check validity of requested item
@@ -138,22 +128,7 @@ public final class SendWarehouseDepositList extends L2GameClientPacket
 			if (!oldItem.isDepositable(isPrivate) || !oldItem.isAvailable(player, true, isPrivate, false))
 				continue;
 			
-			final ItemInstance newItem = player.getInventory().transferItem(warehouse.getName(), i.getId(), i.getValue(), warehouse, player, folk);
-			if (newItem == null)
-				continue;
-			
-			if (oldItem.getCount() > 0 && oldItem != newItem)
-				playerIU.addModifiedItem(oldItem);
-			else
-				playerIU.addRemovedItem(oldItem);
+			player.getInventory().transferItem(i.getId(), i.getValue(), warehouse);
 		}
-		
-		// Send updated item list to the player
-		player.sendPacket(playerIU);
-		
-		// Update current load status on player
-		StatusUpdate su = new StatusUpdate(player);
-		su.addAttribute(StatusType.CUR_LOAD, player.getCurrentWeight());
-		player.sendPacket(su);
 	}
 }

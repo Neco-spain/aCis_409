@@ -2,16 +2,17 @@ package net.sf.l2j.gameserver.model.actor.cast;
 
 import java.util.concurrent.ScheduledFuture;
 
-import net.sf.l2j.commons.logging.CLogger;
 import net.sf.l2j.commons.math.MathUtil;
 import net.sf.l2j.commons.pool.ThreadPool;
+import net.sf.l2j.commons.util.ArraysUtil;
 
 import net.sf.l2j.gameserver.enums.AiEventType;
+import net.sf.l2j.gameserver.enums.EventHandler;
 import net.sf.l2j.gameserver.enums.GaugeColor;
-import net.sf.l2j.gameserver.enums.ScriptEventType;
 import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.enums.items.ShotType;
 import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.enums.skills.SkillType;
 import net.sf.l2j.gameserver.enums.skills.Stats;
 import net.sf.l2j.gameserver.geoengine.GeoEngine;
 import net.sf.l2j.gameserver.handler.ISkillHandler;
@@ -42,8 +43,6 @@ import net.sf.l2j.gameserver.skills.L2Skill;
  */
 public class CreatureCast<T extends Creature>
 {
-	public static final CLogger LOGGER = new CLogger(CreatureCast.class.getName());
-	
 	protected final T _actor;
 	
 	protected long _castInterruptTime;
@@ -51,12 +50,13 @@ public class CreatureCast<T extends Creature>
 	protected Creature[] _targets;
 	protected Creature _target;
 	protected L2Skill _skill;
+	protected ItemInstance _item;
 	protected int _hitTime;
 	protected int _coolTime;
 	
 	protected ScheduledFuture<?> _castTask;
 	
-	private boolean _isCastingNow;
+	protected boolean _isCastingNow;
 	
 	public CreatureCast(T actor)
 	{
@@ -145,9 +145,6 @@ public class CreatureCast<T extends Creature>
 		if (initMpConsume > 0)
 			_actor.getStatus().reduceMp(initMpConsume);
 		
-		if (target != _actor)
-			_actor.getPosition().setHeadingTo(target);
-		
 		_actor.broadcastPacket(new MagicSkillUse(_actor, target, skill.getId(), skill.getLevel(), hitTime, reuseDelay, false));
 		
 		if (itemInstance == null)
@@ -155,12 +152,12 @@ public class CreatureCast<T extends Creature>
 		
 		final long castInterruptTime = System.currentTimeMillis() + hitTime - 200;
 		
-		setCastTask(skill, target, hitTime, coolTime, castInterruptTime);
+		setCastTask(skill, target, itemInstance, hitTime, coolTime, castInterruptTime);
 		
 		if (_hitTime > 410)
 		{
-			if (_actor instanceof Player)
-				_actor.sendPacket(new SetupGauge(GaugeColor.BLUE, _hitTime));
+			if (_actor instanceof Player player)
+				player.sendPacket(new SetupGauge(GaugeColor.BLUE, _hitTime));
 		}
 		else
 			_hitTime = 0;
@@ -212,19 +209,19 @@ public class CreatureCast<T extends Creature>
 			}
 			
 			// If the target reached a PEACE zone, stop the cast.
-			if (_skill.isOffensive() && _actor instanceof Playable && _target instanceof Playable)
+			if (_skill.isOffensive() && _actor instanceof Playable playable && _target instanceof Playable targetPlayable)
 			{
-				if (_actor.isInsideZone(ZoneId.PEACE))
+				if (playable.isInsideZone(ZoneId.PEACE))
 				{
-					_actor.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.CANT_ATK_PEACEZONE));
+					playable.sendPacket(SystemMessageId.CANT_ATK_PEACEZONE);
 					
 					stop();
 					return;
 				}
 				
-				if (_target.isInsideZone(ZoneId.PEACE))
+				if (targetPlayable.isInsideZone(ZoneId.PEACE))
 				{
-					_actor.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.TARGET_IN_PEACEZONE));
+					playable.sendPacket(SystemMessageId.TARGET_IN_PEACEZONE);
 					
 					stop();
 					return;
@@ -242,7 +239,7 @@ public class CreatureCast<T extends Creature>
 	/**
 	 * Manage effects application, after cast animation occured. Verify if conditions are still met.
 	 */
-	private final void onMagicHitTimer()
+	protected void onMagicHitTimer()
 	{
 		// Content was cleaned meantime, simply return doing nothing.
 		if (!isCastingNow())
@@ -274,21 +271,24 @@ public class CreatureCast<T extends Creature>
 			_actor.getStatus().reduceHp(hpConsume, _actor, true);
 		}
 		
-		if (_actor instanceof Player && _skill.getNumCharges() > 0)
+		if (_actor instanceof Player player)
 		{
-			if (_skill.getMaxCharges() > 0)
-				((Player) _actor).increaseCharges(_skill.getNumCharges(), _skill.getMaxCharges());
-			else
-				((Player) _actor).decreaseCharges(_skill.getNumCharges());
+			if (_skill.getNumCharges() > 0)
+			{
+				if (_skill.getMaxCharges() > 0)
+					player.increaseCharges(_skill.getNumCharges(), _skill.getMaxCharges());
+				else
+					player.decreaseCharges(_skill.getNumCharges());
+			}
+			
+			for (final Creature target : _targets)
+			{
+				if (target instanceof Summon targetSummon)
+					targetSummon.updateAndBroadcastStatus(1);
+			}
 		}
 		
-		for (final Creature target : _targets)
-		{
-			if (target instanceof Summon && _actor instanceof Player)
-				((Summon) target).updateAndBroadcastStatus(1);
-		}
-		
-		callSkill(_skill, _targets);
+		callSkill(_skill, _targets, _item);
 		
 		_castTask = ThreadPool.schedule(this::onMagicFinalizer, (_hitTime == 0 || _coolTime == 0) ? 0 : _coolTime);
 	}
@@ -302,16 +302,15 @@ public class CreatureCast<T extends Creature>
 		if (!isCastingNow())
 			return;
 		
-		_actor.rechargeShots(_skill.useSoulShot(), _skill.useSpiritShot());
+		if (_actor instanceof Playable)
+			_actor.rechargeShots(_skill.useSoulShot(), _skill.useSpiritShot());
 		
 		if (_skill.isOffensive() && _targets.length != 0)
 			_actor.getAI().startAttackStance();
 		
-		final Creature target = _targets.length > 0 ? _targets[0] : _target;
-		_actor.notifyQuestEventSkillFinished(_skill, target);
+		_isCastingNow = false;
 		
-		clearCastTask();
-		_actor.getAI().notifyEvent(AiEventType.FINISHED_CASTING, null, null);
+		notifyCastFinishToAI(false);
 	}
 	
 	/**
@@ -332,15 +331,16 @@ public class CreatureCast<T extends Creature>
 	}
 	
 	/**
-	 * Check cast conditions AFTER MOVEMENT.
+	 * Check cast conditions for Hp, Mp.
 	 * @param target : The {@link Creature} used as parameter.
 	 * @param skill : The {@link L2Skill} used as parameter.
-	 * @param isCtrlPressed : If True, we use specific CTRL rules.
-	 * @param itemObjectId : If different than 0, an object has been used.
 	 * @return True if casting is possible, false otherwise.
 	 */
-	public boolean canDoCast(Creature target, L2Skill skill, boolean isCtrlPressed, int itemObjectId)
+	public boolean meetsHpMpConditions(Creature target, L2Skill skill)
 	{
+		if (target == null || skill == null)
+			return false;
+		
 		final int initialMpConsume = _actor.getStatus().getMpInitialConsume(skill);
 		final int mpConsume = _actor.getStatus().getMpConsume(skill);
 		
@@ -356,7 +356,37 @@ public class CreatureCast<T extends Creature>
 			return false;
 		}
 		
+		return true;
+	}
+	
+	/**
+	 * Check cast conditions for Hp, Mp and disables (ex. Silence).
+	 * @param target : The {@link Creature} used as parameter.
+	 * @param skill : The {@link L2Skill} used as parameter.
+	 * @return True if casting is possible, false otherwise.
+	 */
+	public boolean meetsHpMpDisabledConditions(Creature target, L2Skill skill)
+	{
+		if (!meetsHpMpConditions(target, skill))
+			return false;
+		
 		if ((skill.isMagic() && _actor.isMuted()) || (!skill.isMagic() && _actor.isPhysicalMuted()))
+			return false;
+		
+		return true;
+	}
+	
+	/**
+	 * Check cast conditions AFTER MOVEMENT.
+	 * @param target : The {@link Creature} used as parameter.
+	 * @param skill : The {@link L2Skill} used as parameter.
+	 * @param isCtrlPressed : If True, we use specific CTRL rules.
+	 * @param itemObjectId : If different than 0, an object has been used.
+	 * @return True if casting is possible, false otherwise.
+	 */
+	public boolean canCast(Creature target, L2Skill skill, boolean isCtrlPressed, int itemObjectId)
+	{
+		if (!meetsHpMpDisabledConditions(target, skill))
 			return false;
 		
 		if (skill.getCastRange() > 0 && !GeoEngine.getInstance().canSeeTarget(_actor, target))
@@ -365,16 +395,13 @@ public class CreatureCast<T extends Creature>
 			return false;
 		}
 		
-		if (!skill.getWeaponDependancy(_actor))
-			return false;
-		
-		return true;
+		return skill.getWeaponDependancy(_actor);
 	}
 	
 	/**
 	 * Abort the current cast, no matter actual cast step.
 	 */
-	public final void stop()
+	public void stop()
 	{
 		if (_actor.getFusionSkill() != null)
 			_actor.getFusionSkill().onCastAbort();
@@ -387,18 +414,23 @@ public class CreatureCast<T extends Creature>
 			_actor.enableAllSkills();
 		
 		if (isCastingNow())
-			_actor.broadcastPacket(new MagicSkillCanceled(_actor.getObjectId()));
-		
-		if (_castTask != null)
 		{
-			_castTask.cancel(false);
-			_castTask = null;
+			// Send the client animation cancel.
+			_actor.broadcastPacket(new MagicSkillCanceled(_actor.getObjectId()));
+			
+			// Cancel the task, if running.
+			if (_castTask != null)
+			{
+				_castTask.cancel(false);
+				_castTask = null;
+			}
+			
+			// Notify the AI about interruption.
+			notifyCastFinishToAI(true);
+			
+			// Reset the variable.
+			_isCastingNow = false;
 		}
-		
-		clearCastTask();
-		
-		_actor.getAI().tryToActive();
-		_actor.getAI().clientActionFailed();
 	}
 	
 	/**
@@ -417,22 +449,18 @@ public class CreatureCast<T extends Creature>
 	 * Launch the magic skill and calculate its effects on each target contained in the targets array.
 	 * @param skill : The {@link L2Skill} to use.
 	 * @param targets : The array of {@link Creature} targets.
+	 * @param itemInstance : The {@link ItemInstance} used for skill cast.
 	 */
-	public void callSkill(L2Skill skill, Creature[] targets)
+	public void callSkill(L2Skill skill, Creature[] targets, ItemInstance itemInstance)
 	{
-		// Raid Curses system.
-		if (_actor instanceof Playable && _actor.testCursesOnSkillSee(skill, targets))
-			return;
-		
 		for (final Creature target : targets)
 		{
-			if (_actor instanceof Playable && target instanceof Monster && skill.isOverhit())
-				((Monster) target).getOverhitState().set(true);
+			if (_actor instanceof Playable && target instanceof Monster targetMonster && skill.isOverhit())
+				targetMonster.getOverhitState().set(true);
 			
 			switch (skill.getSkillType())
 			{
-				case COMMON_CRAFT:
-				case DWARVEN_CRAFT:
+				case COMMON_CRAFT, DWARVEN_CRAFT:
 					break;
 				
 				default:
@@ -441,18 +469,101 @@ public class CreatureCast<T extends Creature>
 						activeWeaponItem.castSkillOnMagic(_actor, target, skill);
 					
 					if (_actor.getChanceSkills() != null)
-						_actor.getChanceSkills().onSkillHit(target, false, skill.isMagic(), skill.isOffensive());
+						_actor.getChanceSkills().onSkillTargetHit(target, skill);
 					
 					if (target.getChanceSkills() != null)
-						target.getChanceSkills().onSkillHit(_actor, true, skill.isMagic(), skill.isOffensive());
+						target.getChanceSkills().onSkillSelfHit(_actor, skill);
+			}
+		}
+		
+		if (skill.isOffensive())
+		{
+			switch (skill.getSkillType())
+			{
+				case AGGREDUCE, AGGREMOVE, AGGREDUCE_CHAR:
+					break;
+				
+				default:
+					for (final Creature target : targets)
+						target.getAI().notifyEvent(AiEventType.ATTACKED, _actor, null);
+					break;
 			}
 		}
 		
 		final ISkillHandler handler = SkillHandler.getInstance().getHandler(skill.getSkillType());
 		if (handler != null)
-			handler.useSkill(_actor, skill, targets);
+			handler.useSkill(_actor, skill, targets, itemInstance);
 		else
 			skill.useSkill(_actor, targets);
+		
+		if (skill.isOffensive() && (skill.isDebuff() || skill.getAggroPoints() > 0))
+		{
+			for (final Creature target : targets)
+			{
+				if (!(target instanceof Npc targetNpc))
+					continue;
+				
+				for (Quest quest : (targetNpc).getTemplate().getEventQuests(EventHandler.ATTACKED))
+					quest.onAttacked(targetNpc, _actor, Math.max(120, skill.getAggroPoints()), skill);
+				
+				// Party aggro (minion/master).
+				if (targetNpc.isMaster() || targetNpc.hasMaster())
+				{
+					// Retrieve scripts associated to called Attackable and notify the party call.
+					for (Quest quest : targetNpc.getTemplate().getEventQuests(EventHandler.PARTY_ATTACKED))
+						quest.onPartyAttacked(targetNpc, targetNpc, _actor, Math.max(120, skill.getAggroPoints()));
+					
+					// If we have a master, we call the event.
+					final Npc master = targetNpc.getMaster();
+					
+					if (master != null && !master.isDead() && targetNpc != master)
+					{
+						// Retrieve scripts associated to called Attackable and notify the party call.
+						for (Quest quest : master.getTemplate().getEventQuests(EventHandler.PARTY_ATTACKED))
+							quest.onPartyAttacked(targetNpc, master, _actor, Math.max(120, skill.getAggroPoints()));
+					}
+					
+					// For all minions except me, we call the event.
+					for (Npc minion : targetNpc.getMinions())
+					{
+						if (minion == targetNpc || minion.isDead())
+							continue;
+						
+						// Retrieve scripts associated to called Attackable and notify the party call.
+						for (Quest quest : minion.getTemplate().getEventQuests(EventHandler.PARTY_ATTACKED))
+							quest.onPartyAttacked(targetNpc, minion, _actor, Math.max(120, skill.getAggroPoints()));
+					}
+				}
+				
+				// Social aggro.
+				final String[] actorClans = targetNpc.getTemplate().getClans();
+				if (actorClans != null && targetNpc.getTemplate().getClanRange() > 0)
+				{
+					targetNpc.forEachKnownTypeInRadius(Attackable.class, targetNpc.getTemplate().getClanRange(), called ->
+					{
+						// Called is dead.
+						if (called.isDead())
+							return;
+						
+						// Caller clan doesn't correspond to the called clan.
+						if (!ArraysUtil.contains(actorClans, called.getTemplate().getClans()))
+							return;
+						
+						// Called ignores that type of caller id.
+						if (ArraysUtil.contains(called.getTemplate().getIgnoredIds(), targetNpc.getNpcId()))
+							return;
+						
+						// Check if the Attackable is in the LoS of the caller.
+						if (!GeoEngine.getInstance().canSeeTarget(target, called))
+							return;
+						
+						// Retrieve scripts associated to called Attackable and notify the clan call.
+						for (Quest quest : called.getTemplate().getEventQuests(EventHandler.CLAN_ATTACKED))
+							quest.onClanAttacked((Attackable) target, called, _actor, Math.max(120, skill.getAggroPoints()), skill);
+					});
+				}
+			}
+		}
 		
 		final Player player = _actor.getActingPlayer();
 		if (player != null)
@@ -472,29 +583,28 @@ public class CreatureCast<T extends Creature>
 						if (!(targetPlayer.equals(_actor) || targetPlayer.equals(player)) && (targetPlayer.getPvpFlag() > 0 || targetPlayer.getKarma() > 0))
 							player.updatePvPStatus();
 					}
-					else if (target instanceof Attackable && !((Attackable) target).isGuard())
+					else if (target instanceof Attackable targetAttackable && !targetAttackable.isGuard())
 					{
 						switch (skill.getSkillType())
 						{
-							case SUMMON:
-							case BEAST_FEED:
-							case UNLOCK:
-							case UNLOCK_SPECIAL:
-							case DELUXE_KEY_UNLOCK:
+							case SUMMON, BEAST_FEED, UNLOCK, UNLOCK_SPECIAL, DELUXE_KEY_UNLOCK:
 								break;
 							
 							default:
 								player.updatePvPStatus();
 						}
 					}
+					
+					if (target instanceof Npc targetNpc)
+						for (Quest quest : targetNpc.getTemplate().getEventQuests(EventHandler.SPELLED))
+							quest.onSpelled(targetNpc, player, skill);
 				}
 				
 				switch (skill.getTargetType())
 				{
-					case CORPSE_MOB:
-					case AREA_CORPSE_MOB:
-						if (target instanceof Npc && target.isDead())
-							((Npc) target).endDecayTask();
+					case CORPSE_MOB, AREA_CORPSE_MOB:
+						if (skill.getSkillType() != SkillType.HARVEST)
+							target.forceDecay();
 						break;
 					default:
 						break;
@@ -502,45 +612,40 @@ public class CreatureCast<T extends Creature>
 			}
 			
 			// Notify NPCs in a 1000 range of a skill use.
-			for (Npc npc : _actor.getKnownTypeInRadius(Npc.class, 1000))
+			_actor.forEachKnownTypeInRadius(Npc.class, 1000, npc ->
 			{
-				for (Quest quest : npc.getTemplate().getEventQuests(ScriptEventType.ON_SKILL_SEE))
-					quest.notifySkillSee(npc, player, skill, targets, _actor instanceof Summon);
-			}
-		}
-		
-		if (skill.isOffensive())
-		{
-			switch (skill.getSkillType())
-			{
-				case AGGREDUCE:
-				case AGGREMOVE:
-				case AGGREDUCE_CHAR:
-					break;
+				// Do not trigger if the skill is a solo target skill, and if the target is player summon OR if the target is the npc and the skill was a positive effect.
+				if (targets.length == 1 && ((player.getSummon() != null && ArraysUtil.contains(targets, player.getSummon())) || (!skill.isOffensive() && !skill.isDebuff() && ArraysUtil.contains(targets, npc))))
+					return;
 				
-				default:
-					for (final Creature target : targets)
-					{
-						if (target != null && target.hasAI())
-							target.getAI().notifyEvent(AiEventType.ATTACKED, _actor, null);
-					}
-					break;
-			}
+				for (Quest quest : npc.getTemplate().getEventQuests(EventHandler.SEE_SPELL))
+					quest.onSeeSpell(npc, player, skill, targets, _actor instanceof Summon);
+			});
 		}
 	}
 	
-	protected void clearCastTask()
+	/**
+	 * Notify AI the cast ended.
+	 * @param isInterrupted : If true, we ended the cast prematurely.
+	 */
+	protected void notifyCastFinishToAI(boolean isInterrupted)
 	{
-		_isCastingNow = false;
+		_actor.getAI().notifyEvent(AiEventType.FINISHED_CASTING, null, null);
 	}
 	
-	protected void setCastTask(L2Skill skill, Creature target, int hitTime, int coolTime, long castInterruptTime)
+	protected void setCastTask(L2Skill skill, Creature target, ItemInstance item, int hitTime, int coolTime, long castInterruptTime)
 	{
 		_skill = skill;
 		_target = target;
+		_item = item;
 		_hitTime = hitTime;
 		_coolTime = coolTime;
 		_castInterruptTime = castInterruptTime;
 		_isCastingNow = true;
+	}
+	
+	public void describeCastTo(Player player)
+	{
+		player.sendPacket(new MagicSkillUse(_actor, _target, _skill.getId(), _skill.getLevel(), _skill.getHitTime(), _skill.getReuseDelay(), false));
 	}
 }

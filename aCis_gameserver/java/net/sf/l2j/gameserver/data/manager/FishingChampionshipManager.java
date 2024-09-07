@@ -53,7 +53,7 @@ public class FishingChampionshipManager
 	private static final CLogger LOGGER = new CLogger(FishingChampionshipManager.class.getName());
 	
 	private static final String INSERT = "INSERT INTO fishing_championship(player_name,fish_length,rewarded) VALUES (?,?,?)";
-	private static final String DELETE = "DELETE FROM fishing_championship";
+	private static final String TRUNCATE = "TRUNCATE fishing_championship";
 	private static final String SELECT = "SELECT `player_name`, `fish_length`, `rewarded` FROM fishing_championship";
 	
 	private final List<String> _playersName = new ArrayList<>();
@@ -359,7 +359,7 @@ public class FishingChampionshipManager
 				
 				if (rewardCnt > 0)
 				{
-					player.addItem("fishing_reward", Config.FISH_CHAMPIONSHIP_REWARD_ITEM, rewardCnt, null, true);
+					player.addItem(Config.FISH_CHAMPIONSHIP_REWARD_ITEM, rewardCnt, true);
 					
 					final NpcHtmlMessage html = new NpcHtmlMessage(0);
 					html.setFile("data/html/fisherman/championship/fish_event_reward001.htm");
@@ -431,7 +431,7 @@ public class FishingChampionshipManager
 		ServerMemoTable.getInstance().set("fishChampionshipEnd", _endDate);
 		
 		try (Connection con = ConnectionPool.getConnection();
-			PreparedStatement ps = con.prepareStatement(DELETE);
+			PreparedStatement ps = con.prepareStatement(TRUNCATE);
 			PreparedStatement ps2 = con.prepareStatement(INSERT))
 		{
 			ps.execute();

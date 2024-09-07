@@ -6,6 +6,7 @@ import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Monster;
+import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.skills.Formulas;
@@ -19,36 +20,38 @@ public class Spoil implements ISkillHandler
 	};
 	
 	@Override
-	public void useSkill(Creature activeChar, L2Skill skill, WorldObject[] targets)
+	public void useSkill(Creature creature, L2Skill skill, WorldObject[] targets, ItemInstance item)
 	{
-		if (!(activeChar instanceof Player))
+		// Must be called by a Player.
+		if (!(creature instanceof Player player))
 			return;
 		
-		if (targets == null)
-			return;
-		
-		for (final WorldObject tgt : targets)
+		for (WorldObject target : targets)
 		{
-			if (!(tgt instanceof Monster))
+			// Target must be a Monster.
+			if (!(target instanceof Monster targetMonster))
 				continue;
 			
-			final Monster target = (Monster) tgt;
-			if (target.isDead())
+			// Target must be dead.
+			if (targetMonster.isDead())
 				continue;
 			
-			if (target.getSpoilState().isSpoiled())
+			// Target mustn't be already in spoil state.
+			if (targetMonster.getSpoilState().isSpoiled())
 			{
-				activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.ALREADY_SPOILED));
+				player.sendPacket(SystemMessageId.ALREADY_SPOILED);
 				continue;
 			}
 			
-			if (Formulas.calcMagicSuccess(activeChar, (Creature) tgt, skill))
+			// Calculate the spoil success rate.
+			if (Formulas.calcMagicSuccess(player, targetMonster, skill))
 			{
-				target.getSpoilState().setSpoilerId(activeChar.getObjectId());
-				activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.SPOIL_SUCCESS));
+				targetMonster.getSpoilState().setSpoilerId(player.getObjectId());
+				
+				player.sendPacket(SystemMessageId.SPOIL_SUCCESS);
 			}
 			else
-				activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(target).addSkillName(skill.getId()));
+				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(targetMonster).addSkillName(skill.getId()));
 		}
 	}
 	

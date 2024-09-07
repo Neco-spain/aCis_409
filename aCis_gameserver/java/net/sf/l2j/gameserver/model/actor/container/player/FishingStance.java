@@ -2,21 +2,17 @@ package net.sf.l2j.gameserver.model.actor.container.player;
 
 import java.util.concurrent.Future;
 
-import net.sf.l2j.commons.math.MathUtil;
 import net.sf.l2j.commons.pool.ThreadPool;
 import net.sf.l2j.commons.random.Rnd;
 
 import net.sf.l2j.gameserver.data.manager.FishingChampionshipManager;
 import net.sf.l2j.gameserver.data.xml.FishData;
-import net.sf.l2j.gameserver.data.xml.NpcData;
-import net.sf.l2j.gameserver.idfactory.IdFactory;
-import net.sf.l2j.gameserver.model.Fish;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.actor.instance.Monster;
-import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.location.Location;
+import net.sf.l2j.gameserver.model.records.Fish;
+import net.sf.l2j.gameserver.model.spawn.Spawn;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ExFishingEnd;
 import net.sf.l2j.gameserver.network.serverpackets.ExFishingHpRegen;
@@ -56,8 +52,9 @@ public class FishingStance
 	
 	private boolean _isUpperGrade;
 	
-	private ItemInstance _lure;
+	private int _lureId;
 	private int _lureType;
+	private boolean _isNightLure;
 	
 	public FishingStance(Player fisher)
 	{
@@ -75,7 +72,7 @@ public class FishingStance
 		switch (group)
 		{
 			case 0: // fish for novices
-				switch (_lure.getItemId())
+				switch (_lureId)
 				{
 					case 7807: // green lure, preferred by fast-moving (nimble) fish (type 5)
 						if (check <= 54)
@@ -116,20 +113,13 @@ public class FishingStance
 				break;
 			
 			case 1: // normal fish
-				switch (_lure.getItemId())
+				switch (_lureId)
 				{
-					case 7610:
-					case 7611:
-					case 7612:
-					case 7613:
+					case 7610, 7611, 7612, 7613:
 						type = 3;
 						break;
 					
-					case 6519: // all theese lures (green) are prefered by fast-moving (nimble) fish (type 1)
-					case 8505:
-					case 6520:
-					case 6521:
-					case 8507:
+					case 6519, 6520, 6521, 8505, 8507: // all theese lures (green) are prefered by fast-moving (nimble) fish (type 1)
 						if (check <= 54)
 							type = 1;
 						else if (check <= 74)
@@ -140,11 +130,7 @@ public class FishingStance
 							type = 3;
 						break;
 					
-					case 6522: // all theese lures (purple) are prefered by fat fish (type 0)
-					case 8508:
-					case 6523:
-					case 6524:
-					case 8510:
+					case 6522, 6523, 6524, 8508, 8510: // all theese lures (purple) are prefered by fat fish (type 0)
 						if (check <= 54)
 							type = 0;
 						else if (check <= 74)
@@ -155,11 +141,7 @@ public class FishingStance
 							type = 3;
 						break;
 					
-					case 6525: // all theese lures (yellow) are prefered by ugly fish (type 2)
-					case 8511:
-					case 6526:
-					case 6527:
-					case 8513:
+					case 6525, 6526, 6527, 8511, 8513: // all theese lures (yellow) are prefered by ugly fish (type 2)
 						if (check <= 55)
 							type = 2;
 						else if (check <= 74)
@@ -181,7 +163,7 @@ public class FishingStance
 				break;
 			
 			case 2: // upper grade fish, luminous lure
-				switch (_lure.getItemId())
+				switch (_lureId)
 				{
 					case 8506: // green lure, preferred by fast-moving (nimble) fish (type 8)
 						if (check <= 54)
@@ -244,7 +226,7 @@ public class FishingStance
 			level++;
 		
 		// Return a number from 1 to 27, no matter what.
-		return MathUtil.limit(level, 1, 27);
+		return Math.clamp(level, 1, 27);
 	}
 	
 	/**
@@ -285,9 +267,9 @@ public class FishingStance
 		_fisher.broadcastPacket(new ExFishingHpRegen(_fisher, _time, _fishCurHp, _mode, _goodUse, _anim, penalty, _deceptiveMode));
 		_anim = 0;
 		
-		if (_fishCurHp > _fish.getHp() * 2)
+		if (_fishCurHp > _fish.hp() * 2)
 		{
-			_fishCurHp = _fish.getHp() * 2;
+			_fishCurHp = _fish.hp() * 2;
 			end(false);
 		}
 		else if (_fishCurHp == 0)
@@ -307,12 +289,12 @@ public class FishingStance
 			if (_mode == 1)
 			{
 				if (_deceptiveMode == 0)
-					_fishCurHp += _fish.getHpRegen();
+					_fishCurHp += _fish.hpRegen();
 			}
 			else
 			{
 				if (_deceptiveMode == 1)
-					_fishCurHp += _fish.getHpRegen();
+					_fishCurHp += _fish.hpRegen();
 			}
 			
 			if (_stop == 0)
@@ -476,23 +458,18 @@ public class FishingStance
 		
 		// Set variables.
 		_loc.set(baitLoc);
-		_lure = lure;
+		_lureId = lure.getItemId();
+		_isNightLure = lure.getItem().isNightLure();
 		
 		int group = 1;
 		
-		switch (_lure.getItemId())
+		switch (_lureId)
 		{
-			case 7807: // green for beginners
-			case 7808: // purple for beginners
-			case 7809: // yellow for beginners
-			case 8486: // prize-winning for beginners
+			case 7807, 7808, 7809, 8486:// green/purple/yellow/prize-winning for beginners
 				group = 0;
 				break;
 			
-			case 8485: // prize-winning luminous
-			case 8506: // green luminous
-			case 8509: // purple luminous
-			case 8512: // yellow luminous
+			case 8506, 8509, 8512, 8485: // green/purple/yellow/prize-winning luminous
 				group = 2;
 				break;
 		}
@@ -507,25 +484,24 @@ public class FishingStance
 		
 		_fisher.sendPacket(SystemMessageId.CAST_LINE_AND_START_FISHING);
 		
-		_fisher.broadcastPacket(new ExFishingStart(_fisher, _fish.getType(_lure.isNightLure()), _loc, _lure.isNightLure()));
+		_fisher.broadcastPacket(new ExFishingStart(_fisher, _fish.getType(_isNightLure), _loc, _isNightLure));
 		_fisher.sendPacket(new PlaySound(1, "SF_P_01"));
 		
 		// "Looking for fish" task is now processed.
 		if (_lookingForFish == null)
 		{
-			final int lureid = _lure.getItemId();
-			final boolean isNoob = _fish.getGroup() == 0;
-			final boolean isUpperGrade = _fish.getGroup() == 2;
+			final boolean isNoob = _fish.group() == 0;
+			final boolean isUpperGrade = _fish.group() == 2;
 			
 			int checkDelay = 0;
-			if (lureid == 6519 || lureid == 6522 || lureid == 6525 || lureid == 8505 || lureid == 8508 || lureid == 8511) // low grade
-				checkDelay = Math.round((float) (_fish.getGutsCheckTime() * (1.33)));
-			else if (lureid == 6520 || lureid == 6523 || lureid == 6526 || (lureid >= 8505 && lureid <= 8513) || (lureid >= 7610 && lureid <= 7613) || (lureid >= 7807 && lureid <= 7809) || (lureid >= 8484 && lureid <= 8486)) // medium grade, beginner, prize-winning & quest special bait
-				checkDelay = Math.round((float) (_fish.getGutsCheckTime() * (1.00)));
-			else if (lureid == 6521 || lureid == 6524 || lureid == 6527 || lureid == 8507 || lureid == 8510 || lureid == 8513) // high grade
-				checkDelay = Math.round((float) (_fish.getGutsCheckTime() * (0.66)));
+			if (_lureId == 6519 || _lureId == 6522 || _lureId == 6525 || _lureId == 8505 || _lureId == 8508 || _lureId == 8511) // low grade
+				checkDelay = Math.round((float) (_fish.gutsCheckTime() * (1.33)));
+			else if (_lureId == 6520 || _lureId == 6523 || _lureId == 6526 || (_lureId >= 8505 && _lureId <= 8513) || (_lureId >= 7610 && _lureId <= 7613) || (_lureId >= 7807 && _lureId <= 7809) || (_lureId >= 8484 && _lureId <= 8486)) // medium grade, beginner, prize-winning & quest special bait
+				checkDelay = Math.round((float) (_fish.gutsCheckTime() * (1.00)));
+			else if (_lureId == 6521 || _lureId == 6524 || _lureId == 6527 || _lureId == 8507 || _lureId == 8510 || _lureId == 8513) // high grade
+				checkDelay = Math.round((float) (_fish.gutsCheckTime() * (0.66)));
 			
-			final long timer = System.currentTimeMillis() + _fish.getWaitTime() + 10000;
+			final long timer = System.currentTimeMillis() + _fish.waitTime() + 10000;
 			
 			_lookingForFish = ThreadPool.scheduleAtFixedRate(() ->
 			{
@@ -535,10 +511,10 @@ public class FishingStance
 					return;
 				}
 				
-				if (_fish.getType(_lure.isNightLure()) == -1)
+				if (_fish.getType(_isNightLure) == -1)
 					return;
 				
-				if (_fish.getGuts() > Rnd.get(1000))
+				if (_fish.guts() > Rnd.get(1000))
 				{
 					// Stop task.
 					if (_lookingForFish != null)
@@ -547,10 +523,9 @@ public class FishingStance
 						_lookingForFish = null;
 					}
 					
-					_fishCurHp = _fish.getHp();
-					_time = _fish.getCombatTime() / 1000;
+					_fishCurHp = _fish.hp();
+					_time = _fish.combatTime() / 1000;
 					_isUpperGrade = isUpperGrade;
-					_lure = lure;
 					
 					if (isUpperGrade)
 					{
@@ -564,7 +539,7 @@ public class FishingStance
 					}
 					_mode = Rnd.get(100) >= 80 ? 1 : 0;
 					
-					_fisher.broadcastPacket(new ExFishingStartCombat(_fisher, _time, _fish.getHp(), _mode, _lureType, _deceptiveMode));
+					_fisher.broadcastPacket(new ExFishingStartCombat(_fisher, _time, _fish.hp(), _mode, _lureType, _deceptiveMode));
 					_fisher.sendPacket(new PlaySound(1, "SF_S_01"));
 					
 					// Succeeded in getting a bite
@@ -577,7 +552,7 @@ public class FishingStance
 								return;
 							
 							// The fish got away.
-							if (_fishCurHp >= _fish.getHp() * 2)
+							if (_fishCurHp >= _fish.hp() * 2)
 							{
 								_fisher.sendPacket(SystemMessageId.BAIT_STOLEN_BY_FISH);
 								end(false);
@@ -612,24 +587,26 @@ public class FishingStance
 		{
 			if (Rnd.get(100) < 5)
 			{
-				final int npcId = 18319 + Math.min(_fisher.getStatus().getLevel() / 11, 7); // 18319-18326
-				
-				final NpcTemplate template = NpcData.getInstance().getTemplate(npcId);
-				if (template != null)
+				try
 				{
-					final Monster monster = new Monster(IdFactory.getInstance().getNextId(), template);
-					monster.getStatus().setMaxHpMp();
-					monster.spawnMe(_fisher.getPosition());
+					// Create spawn and spawn the Npc.
+					final Spawn spawn = new Spawn(18319 + Math.min(_fisher.getStatus().getLevel() / 11, 7)); // 18319-18326
+					spawn.setLoc(_fisher.getPosition());
+					spawn.doSpawn(false, _fisher);
 					
 					_fisher.sendPacket(SystemMessageId.YOU_CAUGHT_SOMETHING_SMELLY_THROW_IT_BACK);
+				}
+				catch (Exception e)
+				{
+					// Do nothing.
 				}
 			}
 			else
 			{
 				_fisher.sendPacket(SystemMessageId.YOU_CAUGHT_SOMETHING);
-				_fisher.addItem("Fishing", _fish.getId(), 1, null, true);
+				_fisher.addItem(_fish.id(), 1, true);
 				
-				FishingChampionshipManager.getInstance().newFish(_fisher, _lure.getItemId());
+				FishingChampionshipManager.getInstance().newFish(_fisher, _lureId);
 			}
 		}
 		
@@ -651,8 +628,9 @@ public class FishingStance
 		
 		_isUpperGrade = false;
 		
-		_lure = null;
+		_lureId = 0;
 		_lureType = 0;
+		_isNightLure = false;
 		
 		_loc.clean();
 		

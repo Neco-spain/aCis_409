@@ -29,7 +29,7 @@ public final class QuestState extends MemoSet
 {
 	private static final long serialVersionUID = 1L;
 	
-	protected static final CLogger LOGGER = new CLogger(QuestState.class.getName());
+	private static final CLogger LOGGER = new CLogger(QuestState.class.getName());
 	
 	private static final String QUEST_SET_VAR = "INSERT INTO character_quests (charId,name,var,value) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE value=VALUES(value)";
 	private static final String QUEST_DEL_VAR = "DELETE FROM character_quests WHERE charId=? AND name=? AND var=?";
@@ -122,13 +122,12 @@ public final class QuestState extends MemoSet
 	@Override
 	public boolean equals(Object o)
 	{
-		if (!(o instanceof QuestState))
+		if (!(o instanceof QuestState qs))
 			return false;
 		
 		if (!_quest.isRealQuest())
 			return false;
 		
-		final QuestState qs = (QuestState) o;
 		if (_player != qs._player)
 			return false;
 		
@@ -230,15 +229,8 @@ public final class QuestState extends MemoSet
 	
 	/**
 	 * Set condition value of the {@link Player}'s {@link Quest}.<br>
-	 * Internally handles the progression of the quest so that it is ready for sending appropriate packets to the client<BR>
-	 * <BR>
-	 * <U><I>Actions :</I></U><BR>
-	 * <LI>Check if the new progress number resets the quest to a previous (smaller) step</LI>
-	 * <LI>If not, check if quest progress steps have been skipped</LI>
-	 * <LI>If skipped, prepare the variable completedStateFlags appropriately to be ready for sending to clients</LI>
-	 * <LI>If no steps were skipped, flags do not need to be prepared...</LI>
-	 * <LI>If the passed step resets the quest to a previous step, reset such that steps after the parameter are not considered, while skipped steps before the parameter, if any, maintain their info</LI>
-	 * @param cond : int indicating the step number for the current quest progress (as will be shown to the client)
+	 * Note: Handle the quest progression. If condition skip is detected, calculate {@link Quest}'s flags.
+	 * @param cond : The condition to be set.
 	 */
 	public void setCond(int cond)
 	{
@@ -247,75 +239,41 @@ public final class QuestState extends MemoSet
 		if (cond == previous)
 			return;
 		
+		// Set quest progression flags, if required.
+		int flags = getInteger(FLAGS, 0);
+		if (flags == 0)
+		{
+			if (previous != 0 && cond > (previous + 1))
+			{
+				flags = calculateFlags();
+				flags |= 1 << (cond - 1);
+				set(FLAGS, flags);
+			}
+		}
+		else
+		{
+			if (cond > previous)
+			{
+				flags |= 1 << (cond - 1);
+				set(FLAGS, flags);
+			}
+			else if (cond > 2)
+			{
+				int negate = (1 << cond) - 1;
+				flags &= negate;
+				flags |= 0x80000000;
+				set(FLAGS, flags);
+			}
+			else
+			{
+				unset(FLAGS);
+			}
+		}
+		
 		// Set new condition.
 		set(COND, cond);
 		
-		// cond 0 and 1 do not need completedStateFlags. Also, if cond > 1, the 1st step must
-		// always exist (i.e. it can never be skipped). So if cond is 2, we can still safely
-		// assume no steps have been skipped.
-		// Finally, more than 31 steps CANNOT be supported in any way with skipping.
-		int flags = 0;
-		if (cond < 3 || cond > 31)
-			unset(FLAGS);
-		else
-			flags = getInteger(FLAGS, 0);
-		
-		// case 1: No steps have been skipped so far...
-		if (flags == 0)
-		{
-			// check if this step also doesn't skip anything. If so, no further work is needed
-			// also, in this case, no work is needed if the state is being reset to a smaller value
-			// in those cases, skip forward to informing the client about the change...
-			
-			// ELSE, if we just now skipped for the first time...prepare the flags!!!
-			if (cond > (previous + 1))
-			{
-				// set the most significant bit to 1 (indicates that there exist skipped states)
-				// also, ensure that the least significant bit is an 1 (the first step is never skipped, no matter
-				// what the cond says)
-				flags = 0x80000001;
-				
-				// since no flag had been skipped until now, the least significant bits must all
-				// be set to 1, up until "old" number of bits.
-				flags |= ((1 << previous) - 1);
-				
-				// now, just set the bit corresponding to the passed cond to 1 (current step)
-				flags |= (1 << (cond - 1));
-				
-				set(FLAGS, flags);
-			}
-		}
-		// case 2: There were exist previously skipped steps
-		else
-		{
-			// if this is a push back to a previous step, clear all completion flags ahead
-			if (cond < previous)
-			{
-				flags &= ((1 << cond) - 1); // note, this also unsets the flag indicating that there exist skips
-				
-				// now, check if this resulted in no steps being skipped any more
-				if (flags == ((1 << cond) - 1))
-					unset(FLAGS);
-				else
-				{
-					// set the most significant bit back to 1 again, to correctly indicate that this skips states.
-					// also, ensure that the least significant bit is an 1 (the first step is never skipped, no matter
-					// what the cond says)
-					flags |= 0x80000001;
-					
-					set(FLAGS, flags);
-				}
-			}
-			// if this moves forward, it changes nothing on previously skipped steps...so just mark this
-			// state and we are done
-			else
-			{
-				flags |= (1 << (cond - 1));
-				
-				set(FLAGS, flags);
-			}
-		}
-		
+		// Send quest update.
 		if (_quest.isRealQuest())
 		{
 			_player.sendPacket(new QuestList(_player));
@@ -328,8 +286,8 @@ public final class QuestState extends MemoSet
 	 */
 	public int getFlags()
 	{
-		// Return quest flags, if present. Otherwise return quest condition.
-		return getInteger(FLAGS, getCond());
+		// Get or calculate quest flags.
+		return getInteger(FLAGS, calculateFlags());
 	}
 	
 	/**
@@ -372,5 +330,22 @@ public final class QuestState extends MemoSet
 		{
 			LOGGER.error("Couldn't delete quest.", e);
 		}
+	}
+	
+	/**
+	 * Calculate the {@link Quest}'s flags for {@link QuestList} packet.
+	 * @return The calculated flag.
+	 */
+	private int calculateFlags()
+	{
+		// Get cond and check.
+		final int cond = getCond();
+		if (cond == 0)
+			return 0;
+		
+		// Cond is set, calculate flags.
+		int flags = (1 << cond) - 1;
+		flags |= 0x80000000;
+		return flags;
 	}
 }

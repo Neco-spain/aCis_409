@@ -41,13 +41,12 @@ public class TargetPartyOther implements ITargetHandler
 			return false;
 		}
 		
-		if (!(target instanceof Player) || target.isDead())
+		if (!(target instanceof Player targetPlayer) || target.isDead())
 		{
 			caster.sendPacket(SystemMessageId.INVALID_TARGET);
 			return false;
 		}
 		
-		final Player targetPlayer = (Player) target;
 		if ((skill.getId() == 426 && targetPlayer.isMageClass()) || (skill.getId() == 427 && !targetPlayer.isMageClass()))
 		{
 			caster.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_CANNOT_BE_USED).addSkillName(skill));

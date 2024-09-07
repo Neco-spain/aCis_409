@@ -26,7 +26,7 @@ public class PaganTeleporter extends Quest
 		switch (npc.getNpcId())
 		{
 			case 32034:
-				if (player.getInventory().hasItems(VISITOR_MARK) || player.getInventory().hasItems(PAGAN_MARK))
+				if (player.getInventory().hasItem(VISITOR_MARK) || player.getInventory().hasItem(PAGAN_MARK))
 				{
 					DoorData.getInstance().getDoor(19160001).openMe();
 					htmltext = "FadedMark.htm";
@@ -41,7 +41,7 @@ public class PaganTeleporter extends Quest
 				break;
 			
 			case 32036:
-				if (!player.getInventory().hasItems(PAGAN_MARK))
+				if (!player.getInventory().hasItem(PAGAN_MARK))
 					htmltext = "32036-1.htm";
 				else
 				{
@@ -58,11 +58,11 @@ public class PaganTeleporter extends Quest
 				break;
 			
 			case 32039:
-				player.teleportTo(-12766, -35840, -10856, 0);
+				player.teleportTo(34962, -49758, -763, 0);
 				break;
 			
 			case 32040:
-				player.teleportTo(34962, -49758, -763, 0);
+				player.teleportTo(-12766, -35840, -10856, 0);
 				break;
 		}
 		return htmltext;

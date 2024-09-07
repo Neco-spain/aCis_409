@@ -6,9 +6,9 @@ import net.sf.l2j.gameserver.enums.SealType;
 import net.sf.l2j.gameserver.handler.IItemHandler;
 import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.entity.Castle;
 import net.sf.l2j.gameserver.model.item.MercenaryTicket;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
+import net.sf.l2j.gameserver.model.residence.castle.Castle;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
@@ -37,10 +37,8 @@ public class MercenaryTickets implements IItemHandler
 		if (castle == null)
 			return;
 		
-		final int castleId = castle.getCastleId();
-		
 		// Castle lord check.
-		if (!player.isCastleLord(castleId))
+		if (!player.isCastleLord(castle.getId()))
 		{
 			player.sendPacket(SystemMessageId.YOU_DO_NOT_HAVE_AUTHORITY_TO_POSITION_MERCENARIES);
 			return;
@@ -91,7 +89,7 @@ public class MercenaryTickets implements IItemHandler
 			return;
 		}
 		
-		final ItemInstance droppedTicket = player.dropItem("Consume", item.getObjectId(), 1, player.getX(), player.getY(), player.getZ(), null, false);
+		final ItemInstance droppedTicket = player.dropItem(item.getObjectId(), 1, player.getX(), player.getY(), player.getZ(), false);
 		if (droppedTicket == null)
 			return;
 		

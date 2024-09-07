@@ -19,19 +19,16 @@ public class ItemFilter implements Filter
 	};
 	
 	@Override
-	public boolean isLoggable(LogRecord record)
+	public boolean isLoggable(LogRecord logRecord)
 	{
-		if (!record.getLoggerName().equals("item"))
+		if (!logRecord.getLoggerName().equals("item"))
 			return false;
 		
-		final String[] messageList = record.getMessage().split(":");
+		final String[] messageList = logRecord.getMessage().split(":");
 		if (messageList.length < 2 || !EXCLUDE_PROCESS.contains(messageList[1]))
 			return true;
 		
-		final ItemInstance item = ((ItemInstance) record.getParameters()[1]);
-		if (!ArraysUtil.contains(EXCLUDE_TYPE, item.getItemType()))
-			return true;
-		
-		return false;
+		final ItemInstance item = ((ItemInstance) logRecord.getParameters()[1]);
+		return !ArraysUtil.contains(EXCLUDE_TYPE, item.getItemType());
 	}
 }

@@ -25,7 +25,7 @@ public class Q028_ChestCaughtWithABaitOfIcyAir extends Quest
 		
 		setItemsIds(KIKI_LETTER);
 		
-		addStartNpc(OFULLE);
+		addQuestStart(OFULLE);
 		addTalkId(OFULLE, KIKI);
 	}
 	
@@ -45,7 +45,7 @@ public class Q028_ChestCaughtWithABaitOfIcyAir extends Quest
 		}
 		else if (event.equalsIgnoreCase("31572-07.htm"))
 		{
-			if (player.getInventory().hasItems(BIG_YELLOW_TREASURE_CHEST))
+			if (player.getInventory().hasItem(BIG_YELLOW_TREASURE_CHEST))
 			{
 				st.setCond(2);
 				takeItems(player, BIG_YELLOW_TREASURE_CHEST, 1);
@@ -56,7 +56,7 @@ public class Q028_ChestCaughtWithABaitOfIcyAir extends Quest
 		}
 		else if (event.equalsIgnoreCase("31442-02.htm"))
 		{
-			if (player.getInventory().hasItems(KIKI_LETTER))
+			if (player.getInventory().hasItem(KIKI_LETTER))
 			{
 				htmltext = "31442-02.htm";
 				takeItems(player, KIKI_LETTER, 1);
@@ -100,7 +100,7 @@ public class Q028_ChestCaughtWithABaitOfIcyAir extends Quest
 				{
 					case OFULLE:
 						if (cond == 1)
-							htmltext = (!player.getInventory().hasItems(BIG_YELLOW_TREASURE_CHEST)) ? "31572-06.htm" : "31572-05.htm";
+							htmltext = (!player.getInventory().hasItem(BIG_YELLOW_TREASURE_CHEST)) ? "31572-06.htm" : "31572-05.htm";
 						else if (cond == 2)
 							htmltext = "31572-09.htm";
 						break;

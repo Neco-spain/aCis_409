@@ -25,7 +25,7 @@ public class Q030_ChestCaughtWithABaitOfFire extends Quest
 		
 		setItemsIds(MUSICAL_SCORE);
 		
-		addStartNpc(LINNAEUS);
+		addQuestStart(LINNAEUS);
 		addTalkId(LINNAEUS, RUKAL);
 	}
 	
@@ -45,7 +45,7 @@ public class Q030_ChestCaughtWithABaitOfFire extends Quest
 		}
 		else if (event.equalsIgnoreCase("31577-07.htm"))
 		{
-			if (player.getInventory().hasItems(RED_TREASURE_BOX))
+			if (player.getInventory().hasItem(RED_TREASURE_BOX))
 			{
 				st.setCond(2);
 				takeItems(player, RED_TREASURE_BOX, 1);
@@ -56,7 +56,7 @@ public class Q030_ChestCaughtWithABaitOfFire extends Quest
 		}
 		else if (event.equalsIgnoreCase("30629-02.htm"))
 		{
-			if (player.getInventory().hasItems(MUSICAL_SCORE))
+			if (player.getInventory().hasItem(MUSICAL_SCORE))
 			{
 				htmltext = "30629-02.htm";
 				takeItems(player, MUSICAL_SCORE, 1);
@@ -100,7 +100,7 @@ public class Q030_ChestCaughtWithABaitOfFire extends Quest
 				{
 					case LINNAEUS:
 						if (cond == 1)
-							htmltext = (!player.getInventory().hasItems(RED_TREASURE_BOX)) ? "31577-06.htm" : "31577-05.htm";
+							htmltext = (!player.getInventory().hasItem(RED_TREASURE_BOX)) ? "31577-06.htm" : "31577-05.htm";
 						else if (cond == 2)
 							htmltext = "31577-09.htm";
 						break;

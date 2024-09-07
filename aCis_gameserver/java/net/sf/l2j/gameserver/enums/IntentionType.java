@@ -5,28 +5,36 @@ package net.sf.l2j.gameserver.enums;
  */
 public enum IntentionType
 {
-	/** Alerted state without goal : scan attackable targets, random walk, etc. */
-	ACTIVE,
 	/** Move to target if too far, then attack it - may be ignored (another target, invalid zoning, etc). */
 	ATTACK,
 	/** Move to target if too far, then cast a spell. */
 	CAST,
 	/** Fake death. */
 	FAKE_DEATH,
+	/** Flee the target. */
+	FLEE,
 	/** Check target's movement and follow it. */
 	FOLLOW,
-	/** Stop all actions and do nothing. In case of Npc, disconnect AI if no players around. */
+	/** Stop all actions and do nothing. */
 	IDLE,
 	/** Move to target if too far, then interact. */
 	INTERACT,
+	/** Move to way point route. */
+	MOVE_ROUTE,
 	/** Move to another location. */
 	MOVE_TO,
+	/** Do nothing, used as a filler to schedule later desires. */
+	NOTHING,
 	/** Move to target if too far, then pick up the item. */
 	PICK_UP,
 	/** Rest (sit until attacked). */
 	SIT,
+	/** SocialAction call. */
+	SOCIAL,
 	/** Stand Up. */
 	STAND,
 	/** Use an Item. */
-	USE_ITEM;
+	USE_ITEM,
+	/** Move around your actual location. */
+	WANDER
 }

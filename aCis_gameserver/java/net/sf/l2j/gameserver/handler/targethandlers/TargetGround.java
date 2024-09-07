@@ -40,10 +40,8 @@ public class TargetGround implements ITargetHandler
 	public boolean meetCastConditions(Playable caster, Creature target, L2Skill skill, boolean isCtrlPressed)
 	{
 		final WorldRegion region = caster.getRegion();
-		if (region == null || !(caster instanceof Player))
+		if (region == null || !(caster instanceof Player player))
 			return false;
-		
-		final Player player = (Player) caster;
 		
 		final Location signetLocation = player.getCast().getSignetLocation();
 		if (!GeoEngine.getInstance().canSeeLocation(player, signetLocation))

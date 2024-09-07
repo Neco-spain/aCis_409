@@ -111,10 +111,10 @@ public class Q327_RecoverTheFarmland extends Quest
 		
 		setItemsIds(LEIKAN_LETTER);
 		
-		addStartNpc(LEIKAN, PIOTUR);
+		addQuestStart(LEIKAN, PIOTUR);
 		addTalkId(LEIKAN, PIOTUR, IRIS, ASHA, NESTLE);
 		
-		addKillId(TUREK_ORC_WARLORD, TUREK_ORC_ARCHER, TUREK_ORC_SKIRMISHER, TUREK_ORC_SUPPLIER, TUREK_ORC_FOOTMAN, TUREK_ORC_SENTINEL, TUREK_ORC_SHAMAN);
+		addMyDying(TUREK_ORC_WARLORD, TUREK_ORC_ARCHER, TUREK_ORC_SKIRMISHER, TUREK_ORC_SUPPLIER, TUREK_ORC_FOOTMAN, TUREK_ORC_SENTINEL, TUREK_ORC_SHAMAN);
 	}
 	
 	@Override
@@ -273,7 +273,7 @@ public class Q327_RecoverTheFarmland extends Quest
 		// Nestle
 		else if (event.equalsIgnoreCase("30314-03.htm"))
 		{
-			if (!player.getInventory().hasItems(ANCIENT_CLAY_URN))
+			if (!player.getInventory().hasItem(ANCIENT_CLAY_URN))
 				htmltext = "30314-07.htm";
 			else
 			{
@@ -283,7 +283,7 @@ public class Q327_RecoverTheFarmland extends Quest
 		}
 		else if (event.equalsIgnoreCase("30314-04.htm"))
 		{
-			if (!player.getInventory().hasItems(ANCIENT_BRASS_TIARA))
+			if (!player.getInventory().hasItem(ANCIENT_BRASS_TIARA))
 				htmltext = "30314-07.htm";
 			else
 			{
@@ -299,7 +299,7 @@ public class Q327_RecoverTheFarmland extends Quest
 		}
 		else if (event.equalsIgnoreCase("30314-05.htm"))
 		{
-			if (!player.getInventory().hasItems(ANCIENT_BRONZE_MIRROR))
+			if (!player.getInventory().hasItem(ANCIENT_BRONZE_MIRROR))
 				htmltext = "30314-07.htm";
 			else
 			{
@@ -309,7 +309,7 @@ public class Q327_RecoverTheFarmland extends Quest
 		}
 		else if (event.equalsIgnoreCase("30314-06.htm"))
 		{
-			if (!player.getInventory().hasItems(ANCIENT_JADE_NECKLACE))
+			if (!player.getInventory().hasItem(ANCIENT_JADE_NECKLACE))
 				htmltext = "30314-07.htm";
 			else
 			{
@@ -340,7 +340,7 @@ public class Q327_RecoverTheFarmland extends Quest
 				switch (npc.getNpcId())
 				{
 					case PIOTUR:
-						if (!player.getInventory().hasItems(LEIKAN_LETTER))
+						if (!player.getInventory().hasItem(LEIKAN_LETTER))
 						{
 							if (player.getInventory().hasAtLeastOneItem(TUREK_DOGTAG, TUREK_MEDALLION))
 							{
@@ -395,13 +395,13 @@ public class Q327_RecoverTheFarmland extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		for (int[] npcData : DROPLIST)
 		{
@@ -412,7 +412,5 @@ public class Q327_RecoverTheFarmland extends Quest
 				break;
 			}
 		}
-		
-		return null;
 	}
 }

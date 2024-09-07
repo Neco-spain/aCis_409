@@ -41,11 +41,11 @@ public class Q642_APowerfulPrimevalCreature extends Quest
 		
 		setItemsIds(DINOSAUR_TISSUE, DINOSAUR_EGG);
 		
-		addStartNpc(32105); // Dinn
+		addQuestStart(32105); // Dinn
 		addTalkId(32105);
 		
 		// Dinosaurs + egg
-		addKillId(22196, 22197, 22198, 22199, 22200, 22201, 22202, 22203, 22204, 22205, 22218, 22219, 22220, 22223, 22224, 22225, ANCIENT_EGG);
+		addMyDying(22196, 22197, 22198, 22199, 22200, 22201, 22202, 22203, 22204, 22205, 22218, 22219, 22220, 22223, 22224, 22225, ANCIENT_EGG);
 	}
 	
 	@Override
@@ -64,7 +64,7 @@ public class Q642_APowerfulPrimevalCreature extends Quest
 		}
 		else if (event.equalsIgnoreCase("32105-08.htm"))
 		{
-			if (player.getInventory().getItemCount(DINOSAUR_TISSUE) >= 150 && player.getInventory().hasItems(DINOSAUR_EGG))
+			if (player.getInventory().getItemCount(DINOSAUR_TISSUE) >= 150 && player.getInventory().hasItem(DINOSAUR_EGG))
 				htmltext = "32105-06.htm";
 		}
 		else if (event.equalsIgnoreCase("32105-07.htm"))
@@ -80,7 +80,7 @@ public class Q642_APowerfulPrimevalCreature extends Quest
 		}
 		else if (event.contains("event_"))
 		{
-			if (player.getInventory().getItemCount(DINOSAUR_TISSUE) >= 150 && player.getInventory().hasItems(DINOSAUR_EGG))
+			if (player.getInventory().getItemCount(DINOSAUR_TISSUE) >= 150 && player.getInventory().hasItem(DINOSAUR_EGG))
 			{
 				htmltext = "32105-07.htm";
 				
@@ -111,7 +111,7 @@ public class Q642_APowerfulPrimevalCreature extends Quest
 				break;
 			
 			case STARTED:
-				htmltext = (!player.getInventory().hasItems(DINOSAUR_TISSUE)) ? "32105-08.htm" : "32105-05.htm";
+				htmltext = (!player.getInventory().hasItem(DINOSAUR_TISSUE)) ? "32105-08.htm" : "32105-05.htm";
 				break;
 		}
 		
@@ -119,13 +119,13 @@ public class Q642_APowerfulPrimevalCreature extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		if (npc.getNpcId() == ANCIENT_EGG)
 		{
@@ -143,12 +143,10 @@ public class Q642_APowerfulPrimevalCreature extends Quest
 		{
 			rewardItems(player, DINOSAUR_TISSUE, 1);
 			
-			if (player.getInventory().getItemCount(DINOSAUR_TISSUE) >= 150 && player.getInventory().hasItems(DINOSAUR_EGG))
+			if (player.getInventory().getItemCount(DINOSAUR_TISSUE) >= 150 && player.getInventory().hasItem(DINOSAUR_EGG))
 				playSound(player, SOUND_MIDDLE);
 			else
 				playSound(player, SOUND_ITEMGET);
 		}
-		
-		return null;
 	}
 }

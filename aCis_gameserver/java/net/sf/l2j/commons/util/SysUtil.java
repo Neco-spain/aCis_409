@@ -5,6 +5,11 @@ package net.sf.l2j.commons.util;
  */
 public class SysUtil
 {
+	private SysUtil()
+	{
+		throw new IllegalStateException("Utility class");
+	}
+	
 	private static final int MEBIOCTET = 1024 * 1024;
 	
 	/**

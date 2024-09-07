@@ -7,6 +7,7 @@ public final class ObserverReturn extends L2GameClientPacket
 	@Override
 	protected void readImpl()
 	{
+		// Do nothing.
 	}
 	
 	@Override

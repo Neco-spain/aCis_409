@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.gameserver.enums.StatusType;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Folk;
@@ -13,8 +12,6 @@ import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.itemcontainer.ItemContainer;
 import net.sf.l2j.gameserver.model.itemcontainer.PcFreight;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.InventoryUpdate;
-import net.sf.l2j.gameserver.network.serverpackets.StatusUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public final class RequestPackageSend extends L2GameClientPacket
@@ -116,14 +113,13 @@ public final class RequestPackageSend extends L2GameClientPacket
 		}
 		
 		// Check if enough adena and charge the fee
-		if (currentAdena < fee || !player.reduceAdena("Warehouse", fee, player.getCurrentFolk(), false))
+		if (currentAdena < fee || !player.reduceAdena(fee, false))
 		{
 			sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_NOT_ENOUGH_ADENA));
 			return;
 		}
 		
 		// Proceed to the transfer
-		InventoryUpdate playerIU = new InventoryUpdate();
 		for (IntIntHolder i : _items)
 		{
 			int objectId = i.getId();
@@ -137,22 +133,7 @@ public final class RequestPackageSend extends L2GameClientPacket
 			if (oldItem == null || oldItem.isHeroItem())
 				continue;
 			
-			ItemInstance newItem = player.getInventory().transferItem("Warehouse", objectId, count, warehouse, player, player.getCurrentFolk());
-			if (newItem == null)
-				continue;
-			
-			if (oldItem.getCount() > 0 && oldItem != newItem)
-				playerIU.addModifiedItem(oldItem);
-			else
-				playerIU.addRemovedItem(oldItem);
+			player.getInventory().transferItem(objectId, count, warehouse);
 		}
-		
-		// Send updated item list to the player
-		player.sendPacket(playerIU);
-		
-		// Update current load status on player
-		StatusUpdate su = new StatusUpdate(player);
-		su.addAttribute(StatusType.CUR_LOAD, player.getCurrentWeight());
-		player.sendPacket(su);
 	}
 }

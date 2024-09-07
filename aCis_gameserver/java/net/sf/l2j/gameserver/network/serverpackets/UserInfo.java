@@ -30,9 +30,7 @@ public class UserInfo extends L2GameServerPacket
 	protected final void writeImpl()
 	{
 		writeC(0x04);
-		writeD(_player.getX());
-		writeD(_player.getY());
-		writeD(_player.getZ());
+		writeLoc(_player.getPosition());
 		writeD(_player.getHeading());
 		writeD(_player.getObjectId());
 		writeS((_player.getPolymorphTemplate() != null) ? _player.getPolymorphTemplate().getName() : _player.getName());
@@ -180,7 +178,7 @@ public class UserInfo extends L2GameServerPacket
 		writeD(_relation);
 		writeC(_player.getMountType());
 		writeC(_player.getOperateType().getId());
-		writeC((_player.hasDwarvenCraft()) ? 1 : 0);
+		writeC((_player.hasCrystallize()) ? 1 : 0);
 		writeD(_player.getPkKills());
 		writeD(_player.getPvpKills());
 		

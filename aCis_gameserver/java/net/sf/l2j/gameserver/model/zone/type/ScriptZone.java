@@ -15,14 +15,14 @@ public class ScriptZone extends ZoneType
 	}
 	
 	@Override
-	protected void onEnter(Creature character)
+	protected void onEnter(Creature creature)
 	{
-		character.setInsideZone(ZoneId.SCRIPT, true);
+		creature.setInsideZone(ZoneId.SCRIPT, true);
 	}
 	
 	@Override
-	protected void onExit(Creature character)
+	protected void onExit(Creature creature)
 	{
-		character.setInsideZone(ZoneId.SCRIPT, false);
+		creature.setInsideZone(ZoneId.SCRIPT, false);
 	}
 }

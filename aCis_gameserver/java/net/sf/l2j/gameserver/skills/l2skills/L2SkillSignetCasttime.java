@@ -14,16 +14,17 @@ public final class L2SkillSignetCasttime extends L2Skill
 	public L2SkillSignetCasttime(StatSet set)
 	{
 		super(set);
+		
 		effectNpcId = set.getInteger("effectNpcId", -1);
 		effectId = set.getInteger("effectId", -1);
 	}
 	
 	@Override
-	public void useSkill(Creature caster, WorldObject[] targets)
+	public void useSkill(Creature creature, WorldObject[] targets)
 	{
-		if (caster.isAlikeDead())
+		if (creature.isAlikeDead())
 			return;
 		
-		getEffectsSelf(caster);
+		getEffectsSelf(creature);
 	}
 }

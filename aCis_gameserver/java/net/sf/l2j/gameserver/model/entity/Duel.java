@@ -1,8 +1,7 @@
 package net.sf.l2j.gameserver.model.entity;
 
-import java.util.Calendar;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
 import net.sf.l2j.commons.pool.ThreadPool;
@@ -10,10 +9,10 @@ import net.sf.l2j.commons.pool.ThreadPool;
 import net.sf.l2j.gameserver.data.manager.DuelManager;
 import net.sf.l2j.gameserver.enums.TeamType;
 import net.sf.l2j.gameserver.enums.ZoneId;
+import net.sf.l2j.gameserver.enums.duels.DuelResult;
+import net.sf.l2j.gameserver.enums.duels.DuelState;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.actor.Summon;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 import net.sf.l2j.gameserver.network.serverpackets.ExDuelEnd;
 import net.sf.l2j.gameserver.network.serverpackets.ExDuelReady;
 import net.sf.l2j.gameserver.network.serverpackets.ExDuelStart;
@@ -22,45 +21,23 @@ import net.sf.l2j.gameserver.network.serverpackets.L2GameServerPacket;
 import net.sf.l2j.gameserver.network.serverpackets.PlaySound;
 import net.sf.l2j.gameserver.network.serverpackets.SocialAction;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
-import net.sf.l2j.gameserver.skills.AbstractEffect;
 
 public class Duel
 {
-	public enum DuelState
-	{
-		NO_DUEL,
-		ON_COUNTDOWN,
-		DUELLING,
-		DEAD,
-		WINNER,
-		INTERRUPTED
-	}
-	
 	private static final PlaySound B04_S01 = new PlaySound(1, "B04_S01");
+	private static final int TWO_MINUTES = 120000;
 	
-	private enum DuelResult
-	{
-		CONTINUE,
-		TEAM_1_WIN,
-		TEAM_2_WIN,
-		TEAM_1_SURRENDER,
-		TEAM_2_SURRENDER,
-		CANCELED,
-		TIMEOUT
-	}
-	
+	private final Set<PlayerCondition> _playerConditions = ConcurrentHashMap.newKeySet();
 	private final int _duelId;
 	private final boolean _isPartyDuel;
-	private final Calendar _duelEndTime;
+	private final long _duelEndTime;
 	private final Player _playerA;
 	private final Player _playerB;
-	private final List<PlayerCondition> _playerConditions = new CopyOnWriteArrayList<>();
+	
+	private Future<?> _task;
 	
 	private int _surrenderRequest;
-	
-	protected Future<?> _startTask = null;
-	protected Future<?> _checkTask = null;
-	protected int _countdown = 5;
+	private int _countdown = 5;
 	
 	public Duel(Player playerA, Player playerB, boolean isPartyDuel, int duelId)
 	{
@@ -69,8 +46,10 @@ public class Duel
 		_playerB = playerB;
 		_isPartyDuel = isPartyDuel;
 		
-		_duelEndTime = Calendar.getInstance();
-		_duelEndTime.add(Calendar.SECOND, 120);
+		_duelEndTime = System.currentTimeMillis() + TWO_MINUTES;
+		
+		// Save Players conditions before adding them in duel state.
+		savePlayerConditions();
 		
 		if (_isPartyDuel)
 		{
@@ -78,14 +57,12 @@ public class Duel
 			
 			// Inform players that they will be ported shortly.
 			SystemMessage sm = SystemMessage.getSystemMessage(SystemMessageId.IN_A_MOMENT_YOU_WILL_BE_TRANSPORTED_TO_THE_SITE_WHERE_THE_DUEL_WILL_TAKE_PLACE);
-			broadcastToTeam1(sm);
-			broadcastToTeam2(sm);
+			broadcastTo(_playerA, sm);
+			broadcastTo(_playerB, sm);
 			
-			for (Player partyPlayer : _playerA.getParty().getMembers())
-				partyPlayer.setInDuel(_duelId);
-			
-			for (Player partyPlayer : _playerB.getParty().getMembers())
-				partyPlayer.setInDuel(_duelId);
+			// Set states.
+			_playerA.getParty().getMembers().forEach(p -> p.setInDuel(_duelId));
+			_playerB.getParty().getMembers().forEach(p -> p.setInDuel(_duelId));
 		}
 		else
 		{
@@ -94,136 +71,80 @@ public class Duel
 			_playerB.setInDuel(_duelId);
 		}
 		
-		savePlayerConditions();
-		
-		// Start task, used for countdowns and startDuel method call. Can be shutdowned if the check task commands it.
-		_startTask = ThreadPool.scheduleAtFixedRate(new StartTask(), 1000, 1000);
-		
-		// Check task, used to verify if duel is disturbed.
-		_checkTask = ThreadPool.scheduleAtFixedRate(new CheckTask(), 1000, 1000);
+		// Start task. Can be shutdowned if the check commands it.
+		_task = ThreadPool.scheduleAtFixedRate(this::start, 1000, 1000);
 	}
 	
 	/**
-	 * This class hold important player informations, which will be restored on duel end.
-	 */
-	private static class PlayerCondition
-	{
-		private Player _player;
-		
-		private double _hp;
-		private double _mp;
-		private double _cp;
-		
-		private int _x;
-		private int _y;
-		private int _z;
-		
-		private List<AbstractEffect> _debuffs;
-		
-		public PlayerCondition(Player player, boolean partyDuel)
-		{
-			if (player == null)
-				return;
-			
-			_player = player;
-			_hp = _player.getStatus().getHp();
-			_mp = _player.getStatus().getMp();
-			_cp = _player.getStatus().getCp();
-			
-			if (partyDuel)
-			{
-				_x = _player.getX();
-				_y = _player.getY();
-				_z = _player.getZ();
-			}
-		}
-		
-		public void restoreCondition(boolean abnormalEnd)
-		{
-			teleportBack();
-			
-			if (abnormalEnd)
-				return;
-			
-			_player.getStatus().setCpHpMp(_cp, _hp, _mp);
-			
-			if (_debuffs != null)
-			{
-				for (AbstractEffect effect : _debuffs)
-					if (effect != null)
-						effect.exit();
-			}
-		}
-		
-		public void registerDebuff(AbstractEffect effect)
-		{
-			if (_debuffs == null)
-				_debuffs = new CopyOnWriteArrayList<>();
-			
-			_debuffs.add(effect);
-		}
-		
-		public void teleportBack()
-		{
-			if (_x != 0 && _y != 0)
-				_player.teleportTo(_x, _y, _z, 0);
-		}
-		
-		public Player getPlayer()
-		{
-			return _player;
-		}
-	}
-	
-	/**
-	 * This task makes the countdown, both for party and 1vs1 cases.
+	 * This method makes the countdown, both for party (35sec timer) and 1vs1 cases (5sec timer).<br>
+	 * <br>
+	 * It also listen the different ways to disturb the duel. Two cases are possible :
 	 * <ul>
-	 * <li>For 1vs1, the timer begins to 5 (messages then start duel process).</li>
-	 * <li>For party duel, the timer begins to 35 (2sec break, teleport parties, 3sec break, messages then start duel process).</li>
+	 * <li>DuelResult is under CONTINUE state, nothing happens. The task will continue to run every second.</li>
+	 * <li>DuelResult is anything except CONTINUE, then the duel ends. Animations are played on any duel end cases, except CANCELED.</li>
 	 * </ul>
-	 * The task is running until countdown reaches -1 (0 being startDuel).
 	 */
-	private class StartTask implements Runnable
+	public void start()
 	{
-		public StartTask()
+		// Test duel condition, no matter if duel already begun or is under preparation.
+		final DuelResult status = checkEndDuelCondition();
+		if (status != DuelResult.CONTINUE)
 		{
-			
-		}
-		
-		@Override
-		public void run()
-		{
-			// Schedule anew, until time reaches 0.
-			if (_countdown < 0)
+			// Abort the task if it was currently running.
+			if (_task != null)
 			{
-				_startTask.cancel(true);
-				_startTask = null;
+				_task.cancel(false);
+				_task = null;
 			}
 			
+			// Stop the fight.
+			if (_isPartyDuel)
+			{
+				_playerA.getParty().stopToFight();
+				_playerB.getParty().stopToFight();
+			}
+			else
+			{
+				_playerA.stopToFight();
+				_playerB.stopToFight();
+			}
+			
+			// Play the animations.
+			switch (status)
+			{
+				case TEAM_1_WIN, TEAM_2_SURRENDER:
+					playAnimation(_playerB);
+					break;
+				
+				case TEAM_2_WIN, TEAM_1_SURRENDER:
+					playAnimation(_playerA);
+					break;
+			}
+			
+			// End the duel. Restore conditions, teleport back if it was a Party duel, broadcast messages, etc.
+			endDuel(status);
+			return;
+		}
+		
+		// Schedule anew, until time reaches 0.
+		if (_countdown >= 0)
+		{
 			switch (_countdown)
 			{
 				case 33:
 					teleportPlayers(-83760, -238825, -3331);
 					break;
 				
-				case 30:
-				case 20:
-				case 15:
-				case 10:
-				case 5:
-				case 4:
-				case 3:
-				case 2:
-				case 1:
+				case 30, 20, 15, 10, 3, 2, 1:
 					SystemMessage sm = SystemMessage.getSystemMessage(SystemMessageId.THE_DUEL_WILL_BEGIN_IN_S1_SECONDS).addNumber(_countdown);
-					broadcastToTeam1(sm);
-					broadcastToTeam2(sm);
+					broadcastTo(_playerA, sm);
+					broadcastTo(_playerB, sm);
 					break;
 				
 				case 0:
 					sm = SystemMessage.getSystemMessage(SystemMessageId.LET_THE_DUEL_BEGIN);
-					broadcastToTeam1(sm);
-					broadcastToTeam2(sm);
+					broadcastTo(_playerA, sm);
+					broadcastTo(_playerB, sm);
 					
 					startDuel();
 					break;
@@ -235,152 +156,44 @@ public class Duel
 	}
 	
 	/**
-	 * This task listens the different ways to disturb the duel. Two cases are possible :
-	 * <ul>
-	 * <li>DuelResult is under CONTINUE state, nothing happens. The task will continue to run every second.</li>
-	 * <li>DuelResult is anything except CONTINUE, then the duel ends. Animations are played on any duel end cases, except CANCELED.</li>
-	 * </ul>
+	 * Start the duel.<br>
+	 * <br>
+	 * Save players conditions, cancel active states, set the team color and send all duel packets.
 	 */
-	private class CheckTask implements Runnable
+	private void startDuel()
 	{
-		public CheckTask()
-		{
-			
-		}
+		final ExDuelReady ready = new ExDuelReady(_isPartyDuel);
+		final ExDuelStart start = new ExDuelStart(_isPartyDuel);
 		
-		@Override
-		public void run()
-		{
-			final DuelResult status = checkEndDuelCondition();
-			
-			if (status != DuelResult.CONTINUE)
-			{
-				// Abort the start task if it was currently running. Interrupt it, even if it was on a loop.
-				if (_startTask != null)
-				{
-					_startTask.cancel(true);
-					_startTask = null;
-				}
-				
-				// Abort the check task. Let this last loop alive.
-				if (_checkTask != null)
-				{
-					_checkTask.cancel(false);
-					_checkTask = null;
-				}
-				
-				if (_isPartyDuel)
-				{
-					for (Player member : _playerA.getParty().getMembers())
-						stopFighting(member);
-					
-					for (Player member : _playerB.getParty().getMembers())
-						stopFighting(member);
-				}
-				else
-				{
-					stopFighting(_playerA);
-					stopFighting(_playerB);
-				}
-				
-				if (status != DuelResult.CANCELED)
-					playAnimations();
-				
-				endDuel(status);
-			}
-		}
-	}
-	
-	private static void stopFighting(Player player)
-	{
-		player.getCast().stop();
-		player.getAI().tryToActive();
-		player.setTarget(null);
-		player.sendPacket(ActionFailed.STATIC_PACKET);
-	}
-	
-	/**
-	 * Starts the duel.<br>
-	 * Save players conditions, cancel active trade, set the team color and all duel start packets.<br>
-	 * Handle the duel task, which checks if the duel ends in one way or another.
-	 */
-	protected void startDuel()
-	{
+		// Send duel packets.
+		broadcastTo(_playerA, ready, start, B04_S01);
+		broadcastTo(_playerB, ready, start, B04_S01);
+		
+		// Set states.
 		if (_isPartyDuel)
 		{
 			for (Player partyPlayer : _playerA.getParty().getMembers())
 			{
-				partyPlayer.cancelActiveTrade();
-				partyPlayer.setDuelState(DuelState.DUELLING);
-				partyPlayer.setTeam(TeamType.BLUE);
-				partyPlayer.broadcastUserInfo();
+				partyPlayer.prepareToDuel(TeamType.BLUE);
 				
-				final Summon summon = partyPlayer.getSummon();
-				if (summon != null)
-					summon.updateAbnormalEffect();
-				
-				broadcastToTeam2(new ExDuelUpdateUserInfo(partyPlayer));
+				broadcastTo(_playerB, new ExDuelUpdateUserInfo(partyPlayer));
 			}
 			
 			for (Player partyPlayer : _playerB.getParty().getMembers())
 			{
-				partyPlayer.cancelActiveTrade();
-				partyPlayer.setDuelState(DuelState.DUELLING);
-				partyPlayer.setTeam(TeamType.RED);
-				partyPlayer.broadcastUserInfo();
+				partyPlayer.prepareToDuel(TeamType.RED);
 				
-				final Summon summon = partyPlayer.getSummon();
-				if (summon != null)
-					summon.updateAbnormalEffect();
-				
-				broadcastToTeam1(new ExDuelUpdateUserInfo(partyPlayer));
+				broadcastTo(_playerA, new ExDuelUpdateUserInfo(partyPlayer));
 			}
-			
-			// Send duel Start packets.
-			ExDuelReady ready = new ExDuelReady(true);
-			ExDuelStart start = new ExDuelStart(true);
-			
-			broadcastToTeam1(ready);
-			broadcastToTeam2(ready);
-			broadcastToTeam1(start);
-			broadcastToTeam2(start);
 		}
 		else
 		{
-			// Set states.
-			_playerA.setDuelState(DuelState.DUELLING);
-			_playerA.setTeam(TeamType.BLUE);
-			_playerB.setDuelState(DuelState.DUELLING);
-			_playerB.setTeam(TeamType.RED);
+			_playerA.prepareToDuel(TeamType.BLUE);
+			_playerB.prepareToDuel(TeamType.RED);
 			
-			// Send duel Start packets.
-			ExDuelReady ready = new ExDuelReady(false);
-			ExDuelStart start = new ExDuelStart(false);
-			
-			broadcastToTeam1(ready);
-			broadcastToTeam2(ready);
-			broadcastToTeam1(start);
-			broadcastToTeam2(start);
-			
-			broadcastToTeam1(new ExDuelUpdateUserInfo(_playerB));
-			broadcastToTeam2(new ExDuelUpdateUserInfo(_playerA));
-			
-			_playerA.broadcastUserInfo();
-			
-			Summon summon = _playerA.getSummon();
-			if (summon != null)
-				summon.updateAbnormalEffect();
-			
-			_playerB.broadcastUserInfo();
-			
-			summon = _playerB.getSummon();
-			if (summon != null)
-				summon.updateAbnormalEffect();
+			broadcastTo(_playerA, new ExDuelUpdateUserInfo(_playerB));
+			broadcastTo(_playerB, new ExDuelUpdateUserInfo(_playerA));
 		}
-		
-		// Play sound.
-		broadcastToTeam1(B04_S01);
-		broadcastToTeam2(B04_S01);
 	}
 	
 	/**
@@ -409,54 +222,18 @@ public class Duel
 	 */
 	private void restorePlayerConditions(boolean abnormalEnd)
 	{
+		// Restore player conditions, clear the Map.
+		_playerConditions.forEach(cond -> cond.restoreCondition(!_isPartyDuel && abnormalEnd));
+		
 		if (_isPartyDuel)
 		{
-			for (Player partyPlayer : _playerA.getParty().getMembers())
-			{
-				partyPlayer.setInDuel(0);
-				partyPlayer.setTeam(TeamType.NONE);
-				partyPlayer.broadcastUserInfo();
-				
-				final Summon summon = partyPlayer.getSummon();
-				if (summon != null)
-					summon.updateAbnormalEffect();
-			}
-			
-			for (Player partyPlayer : _playerB.getParty().getMembers())
-			{
-				partyPlayer.setInDuel(0);
-				partyPlayer.setTeam(TeamType.NONE);
-				partyPlayer.broadcastUserInfo();
-				
-				final Summon summon = partyPlayer.getSummon();
-				if (summon != null)
-					summon.updateAbnormalEffect();
-			}
+			_playerA.getParty().resetDuelState();
+			_playerB.getParty().resetDuelState();
 		}
 		else
 		{
-			_playerA.setInDuel(0);
-			_playerA.setTeam(TeamType.NONE);
-			_playerA.broadcastUserInfo();
-			
-			Summon summon = _playerA.getSummon();
-			if (summon != null)
-				summon.updateAbnormalEffect();
-			
-			_playerB.setInDuel(0);
-			_playerB.setTeam(TeamType.NONE);
-			_playerB.broadcastUserInfo();
-			
-			summon = _playerB.getSummon();
-			if (summon != null)
-				summon.updateAbnormalEffect();
-		}
-		
-		// Restore player conditions, but only for party duel (no matter the end) && 1vs1 which ends normally.
-		if ((!_isPartyDuel && !abnormalEnd) || _isPartyDuel)
-		{
-			for (PlayerCondition cond : _playerConditions)
-				cond.restoreCondition(abnormalEnd);
+			_playerA.resetDuelState();
+			_playerB.resetDuelState();
 		}
 	}
 	
@@ -473,7 +250,7 @@ public class Duel
 	 */
 	public int getRemainingTime()
 	{
-		return (int) (_duelEndTime.getTimeInMillis() - Calendar.getInstance().getTimeInMillis());
+		return (int) (_duelEndTime - System.currentTimeMillis());
 	}
 	
 	/**
@@ -529,88 +306,43 @@ public class Duel
 	}
 	
 	/**
-	 * Broadcast a packet to the challenger team.
-	 * @param packet : The packet to send.
+	 * Broadcast a packet to the {@link Player} set as parameter or his team.
+	 * @param player : The {@link Player} to send packet to.
+	 * @param packets : The {@link L2GameServerPacket}s to send.
 	 */
-	public void broadcastToTeam1(L2GameServerPacket packet)
+	public void broadcastTo(Player player, L2GameServerPacket... packets)
 	{
-		if (_isPartyDuel && _playerA.getParty() != null)
+		if (_isPartyDuel && player.getParty() != null)
 		{
-			for (Player partyPlayer : _playerA.getParty().getMembers())
-				partyPlayer.sendPacket(packet);
+			for (Player partyPlayer : player.getParty().getMembers())
+			{
+				for (L2GameServerPacket packet : packets)
+					partyPlayer.sendPacket(packet);
+			}
 		}
 		else
-			_playerA.sendPacket(packet);
+		{
+			for (L2GameServerPacket packet : packets)
+				player.sendPacket(packet);
+		}
 	}
 	
 	/**
-	 * Broadcast a packet to the challenged team.
-	 * @param packet : The packet to send.
+	 * Playback the bow animation for loser.
+	 * @param player : The {@link Player} to handle.
 	 */
-	public void broadcastToTeam2(L2GameServerPacket packet)
+	private void playAnimation(Player player)
 	{
-		if (_isPartyDuel && _playerB.getParty() != null)
-		{
-			for (Player partyPlayer : _playerB.getParty().getMembers())
-				partyPlayer.sendPacket(packet);
-		}
-		else
-			_playerB.sendPacket(packet);
-	}
-	
-	/**
-	 * Playback the bow animation for loosers, victory pose for winners.<br>
-	 * The method works even if other side is null or offline.
-	 */
-	protected void playAnimations()
-	{
-		if (_playerA.isOnline())
-		{
-			if (_playerA.getDuelState() == DuelState.WINNER)
-			{
-				if (_isPartyDuel && _playerA.getParty() != null)
-				{
-					for (Player partyPlayer : _playerA.getParty().getMembers())
-						partyPlayer.broadcastPacket(new SocialAction(partyPlayer, 3));
-				}
-				else
-					_playerA.broadcastPacket(new SocialAction(_playerA, 3));
-			}
-			else if (_playerA.getDuelState() == DuelState.DEAD)
-			{
-				if (_isPartyDuel && _playerA.getParty() != null)
-				{
-					for (Player partyPlayer : _playerA.getParty().getMembers())
-						partyPlayer.broadcastPacket(new SocialAction(partyPlayer, 7));
-				}
-				else
-					_playerA.broadcastPacket(new SocialAction(_playerA, 7));
-			}
-		}
+		if (!player.isOnline() || player.getDuelState() != DuelState.DEAD)
+			return;
 		
-		if (_playerB.isOnline())
+		if (_isPartyDuel && player.getParty() != null)
 		{
-			if (_playerB.getDuelState() == DuelState.WINNER)
-			{
-				if (_isPartyDuel && _playerB.getParty() != null)
-				{
-					for (Player partyPlayer : _playerB.getParty().getMembers())
-						partyPlayer.broadcastPacket(new SocialAction(partyPlayer, 3));
-				}
-				else
-					_playerB.broadcastPacket(new SocialAction(_playerB, 3));
-			}
-			else if (_playerB.getDuelState() == DuelState.DEAD)
-			{
-				if (_isPartyDuel && _playerB.getParty() != null)
-				{
-					for (Player partyPlayer : _playerB.getParty().getMembers())
-						partyPlayer.broadcastPacket(new SocialAction(partyPlayer, 7));
-				}
-				else
-					_playerB.broadcastPacket(new SocialAction(_playerB, 7));
-			}
+			for (Player partyPlayer : player.getParty().getMembers())
+				partyPlayer.broadcastPacket(new SocialAction(partyPlayer, 7));
 		}
+		else
+			player.broadcastPacket(new SocialAction(player, 7));
 	}
 	
 	/**
@@ -624,44 +356,40 @@ public class Duel
 		{
 			case TEAM_2_SURRENDER:
 				sm = SystemMessage.getSystemMessage((_isPartyDuel) ? SystemMessageId.SINCE_S1_PARTY_WITHDREW_FROM_THE_DUEL_S2_PARTY_HAS_WON : SystemMessageId.SINCE_S1_WITHDREW_FROM_THE_DUEL_S2_HAS_WON).addString(_playerB.getName()).addString(_playerA.getName());
-				broadcastToTeam1(sm);
-				broadcastToTeam2(sm);
+				broadcastTo(_playerA, sm);
+				broadcastTo(_playerB, sm);
 			case TEAM_1_WIN:
 				sm = SystemMessage.getSystemMessage((_isPartyDuel) ? SystemMessageId.S1_PARTY_HAS_WON_THE_DUEL : SystemMessageId.S1_HAS_WON_THE_DUEL).addString(_playerA.getName());
 				break;
 			
 			case TEAM_1_SURRENDER:
 				sm = SystemMessage.getSystemMessage((_isPartyDuel) ? SystemMessageId.SINCE_S1_PARTY_WITHDREW_FROM_THE_DUEL_S2_PARTY_HAS_WON : SystemMessageId.SINCE_S1_WITHDREW_FROM_THE_DUEL_S2_HAS_WON).addString(_playerA.getName()).addString(_playerB.getName());
-				broadcastToTeam1(sm);
-				broadcastToTeam2(sm);
+				broadcastTo(_playerA, sm);
+				broadcastTo(_playerB, sm);
 			case TEAM_2_WIN:
 				sm = SystemMessage.getSystemMessage((_isPartyDuel) ? SystemMessageId.S1_PARTY_HAS_WON_THE_DUEL : SystemMessageId.S1_HAS_WON_THE_DUEL).addString(_playerB.getName());
 				break;
 			
-			case CANCELED:
-			case TIMEOUT:
+			case CANCELED, TIMEOUT:
 				sm = SystemMessage.getSystemMessage(SystemMessageId.THE_DUEL_HAS_ENDED_IN_A_TIE);
 				break;
 		}
 		
-		broadcastToTeam1(sm);
-		broadcastToTeam2(sm);
-		
-		restorePlayerConditions(result == DuelResult.CANCELED);
-		
 		// Send end duel packet.
 		ExDuelEnd duelEnd = new ExDuelEnd(_isPartyDuel);
 		
-		broadcastToTeam1(duelEnd);
-		broadcastToTeam2(duelEnd);
+		broadcastTo(_playerA, sm, duelEnd);
+		broadcastTo(_playerB, sm, duelEnd);
+		
+		// Restore Players conditions.
+		restorePlayerConditions(result == DuelResult.CANCELED);
 		
 		// Cleanup.
-		_playerConditions.clear();
 		DuelManager.getInstance().removeDuel(_duelId);
 	}
 	
 	/**
-	 * This method checks all possible scenari which can disturb a duel, and return the appropriate status.
+	 * This method checks all possible scenarios which can disturb a duel, and return the appropriate status.
 	 * @return DuelResult : The duel status.
 	 */
 	protected DuelResult checkEndDuelCondition()
@@ -871,28 +599,11 @@ public class Duel
 		// Teleport back players, setting their duelId to 0.
 		for (PlayerCondition cond : _playerConditions)
 		{
-			cond.teleportBack();
+			cond.restoreCondition(true);
 			cond.getPlayer().setInDuel(0);
 		}
 		
 		// Cancel the duel properly.
 		endDuel(DuelResult.CANCELED);
-	}
-	
-	/**
-	 * This method is called to register an effect.
-	 * @param player : The player condition to affect.
-	 * @param effect : The effect to register.
-	 */
-	public void onBuff(Player player, AbstractEffect effect)
-	{
-		for (PlayerCondition cond : _playerConditions)
-		{
-			if (cond.getPlayer() == player)
-			{
-				cond.registerDebuff(effect);
-				return;
-			}
-		}
 	}
 }

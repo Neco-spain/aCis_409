@@ -26,9 +26,11 @@ public class ExShowCropInfo extends L2GameServerPacket
 	{
 		writeC(0xFE);
 		writeH(0x1D);
+		
 		writeC(_hideButtons ? 0x01 : 0x00);
 		writeD(_manorId);
 		writeD(0);
+		
 		if (_crops == null)
 		{
 			writeD(0);
@@ -47,19 +49,19 @@ public class ExShowCropInfo extends L2GameServerPacket
 			final Seed seed = CastleManorManager.getInstance().getSeedByCrop(crop.getId());
 			if (seed == null)
 			{
-				writeD(0); // Seed level
-				writeC(0x01); // Reward 1
-				writeD(0); // Reward 1 - item id
-				writeC(0x01); // Reward 2
-				writeD(0); // Reward 2 - item id
+				writeD(0);
+				writeC(0x01);
+				writeD(0);
+				writeC(0x01);
+				writeD(0);
 			}
 			else
 			{
-				writeD(seed.getLevel()); // Seed level
-				writeC(0x01); // Reward 1
-				writeD(seed.getReward(1)); // Reward 1 - item id
-				writeC(0x01); // Reward 2
-				writeD(seed.getReward(2)); // Reward 2 - item id
+				writeD(seed.getLevel());
+				writeC(0x01);
+				writeD(seed.getReward1());
+				writeC(0x01);
+				writeD(seed.getReward2());
 			}
 		}
 	}

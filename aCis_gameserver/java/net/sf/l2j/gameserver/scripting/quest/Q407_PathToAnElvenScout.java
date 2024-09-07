@@ -38,10 +38,10 @@ public class Q407_PathToAnElvenScout extends Quest
 		
 		setItemsIds(REISA_LETTER, PRIAS_TORN_LETTER_1, PRIAS_TORN_LETTER_2, PRIAS_TORN_LETTER_3, PRIAS_TORN_LETTER_4, MORETTI_HERB, MORETTI_LETTER, PRIAS_LETTER, HONORARY_GUARD, RUSTED_KEY);
 		
-		addStartNpc(REISA);
+		addQuestStart(REISA);
 		addTalkId(REISA, MORETTI, BABENCO, PRIAS);
 		
-		addKillId(20053, 27031);
+		addMyDying(20053, 27031);
 	}
 	
 	@Override
@@ -58,7 +58,7 @@ public class Q407_PathToAnElvenScout extends Quest
 				htmltext = (player.getClassId() == ClassId.ELVEN_SCOUT) ? "30328-02a.htm" : "30328-02.htm";
 			else if (player.getStatus().getLevel() < 19)
 				htmltext = "30328-03.htm";
-			else if (player.getInventory().hasItems(REISA_RECOMMENDATION))
+			else if (player.getInventory().hasItem(REISA_RECOMMENDATION))
 				htmltext = "30328-04.htm";
 			else
 			{
@@ -117,7 +117,7 @@ public class Q407_PathToAnElvenScout extends Quest
 						if (cond == 1)
 							htmltext = "30337-01.htm";
 						else if (cond == 2)
-							htmltext = (!player.getInventory().hasItems(PRIAS_TORN_LETTER_1)) ? "30337-04.htm" : "30337-05.htm";
+							htmltext = (!player.getInventory().hasItem(PRIAS_TORN_LETTER_1)) ? "30337-04.htm" : "30337-05.htm";
 						else if (cond == 3)
 						{
 							htmltext = "30337-06.htm";
@@ -132,7 +132,7 @@ public class Q407_PathToAnElvenScout extends Quest
 						}
 						else if (cond > 3 && cond < 7)
 							htmltext = "30337-09.htm";
-						else if (cond == 7 && player.getInventory().hasItems(PRIAS_LETTER))
+						else if (cond == 7 && player.getInventory().hasItem(PRIAS_LETTER))
 						{
 							htmltext = "30337-07.htm";
 							st.setCond(8);
@@ -179,35 +179,35 @@ public class Q407_PathToAnElvenScout extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final int cond = st.getCond();
 		if (npc.getNpcId() == 20053)
 		{
 			if (cond == 2)
 			{
-				if (!player.getInventory().hasItems(PRIAS_TORN_LETTER_1))
+				if (!player.getInventory().hasItem(PRIAS_TORN_LETTER_1))
 				{
 					playSound(player, SOUND_ITEMGET);
 					giveItems(player, PRIAS_TORN_LETTER_1, 1);
 				}
-				else if (!player.getInventory().hasItems(PRIAS_TORN_LETTER_2))
+				else if (!player.getInventory().hasItem(PRIAS_TORN_LETTER_2))
 				{
 					playSound(player, SOUND_ITEMGET);
 					giveItems(player, PRIAS_TORN_LETTER_2, 1);
 				}
-				else if (!player.getInventory().hasItems(PRIAS_TORN_LETTER_3))
+				else if (!player.getInventory().hasItem(PRIAS_TORN_LETTER_3))
 				{
 					playSound(player, SOUND_ITEMGET);
 					giveItems(player, PRIAS_TORN_LETTER_3, 1);
 				}
-				else if (!player.getInventory().hasItems(PRIAS_TORN_LETTER_4))
+				else if (!player.getInventory().hasItem(PRIAS_TORN_LETTER_4))
 				{
 					st.setCond(3);
 					playSound(player, SOUND_MIDDLE);
@@ -217,7 +217,5 @@ public class Q407_PathToAnElvenScout extends Quest
 		}
 		else if ((cond == 4 || cond == 5) && dropItems(player, RUSTED_KEY, 1, 1, 600000))
 			st.setCond(6);
-		
-		return null;
 	}
 }

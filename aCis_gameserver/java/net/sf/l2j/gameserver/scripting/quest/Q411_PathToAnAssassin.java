@@ -33,10 +33,10 @@ public class Q411_PathToAnAssassin extends Quest
 		
 		setItemsIds(SHILEN_CALL, ARKENIA_LETTER, LEIKAN_NOTE, MOONSTONE_BEAST_MOLAR, SHILEN_TEARS, ARKENIA_RECOMMENDATION);
 		
-		addStartNpc(TRISKEL);
+		addQuestStart(TRISKEL);
 		addTalkId(TRISKEL, ARKENIA, LEIKAN);
 		
-		addKillId(27036, 20369);
+		addMyDying(27036, 20369);
 	}
 	
 	@Override
@@ -53,7 +53,7 @@ public class Q411_PathToAnAssassin extends Quest
 				htmltext = (player.getClassId() == ClassId.ASSASSIN) ? "30416-02a.htm" : "30416-02.htm";
 			else if (player.getStatus().getLevel() < 19)
 				htmltext = "30416-03.htm";
-			else if (player.getInventory().hasItems(IRON_HEART))
+			else if (player.getInventory().hasItem(IRON_HEART))
 				htmltext = "30416-04.htm";
 			else
 			{
@@ -147,7 +147,7 @@ public class Q411_PathToAnAssassin extends Quest
 						if (cond == 2)
 							htmltext = "30382-01.htm";
 						else if (cond == 3)
-							htmltext = (!player.getInventory().hasItems(MOONSTONE_BEAST_MOLAR)) ? "30382-05.htm" : "30382-06.htm";
+							htmltext = (!player.getInventory().hasItem(MOONSTONE_BEAST_MOLAR)) ? "30382-05.htm" : "30382-06.htm";
 						else if (cond == 4)
 						{
 							htmltext = "30382-07.htm";
@@ -169,13 +169,13 @@ public class Q411_PathToAnAssassin extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		if (npc.getNpcId() == 20369)
 		{
@@ -188,7 +188,5 @@ public class Q411_PathToAnAssassin extends Quest
 			playSound(player, SOUND_MIDDLE);
 			giveItems(player, SHILEN_TEARS, 1);
 		}
-		
-		return null;
 	}
 }

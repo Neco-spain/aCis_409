@@ -30,12 +30,6 @@ public class EffectPoint extends Npc
 	}
 	
 	@Override
-	public boolean hasRandomAnimation()
-	{
-		return false;
-	}
-	
-	@Override
 	public boolean isAttackableBy(Creature attacker)
 	{
 		return false;

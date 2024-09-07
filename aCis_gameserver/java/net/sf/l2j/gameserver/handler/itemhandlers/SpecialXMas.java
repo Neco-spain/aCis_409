@@ -11,9 +11,9 @@ public class SpecialXMas implements IItemHandler
 	@Override
 	public void useItem(Playable playable, ItemInstance item, boolean forceUse)
 	{
-		if (!(playable instanceof Player))
+		if (!(playable instanceof Player player))
 			return;
 		
-		playable.sendPacket(new ShowXMasSeal(item.getItemId()));
+		player.sendPacket(new ShowXMasSeal(item.getItemId()));
 	}
 }

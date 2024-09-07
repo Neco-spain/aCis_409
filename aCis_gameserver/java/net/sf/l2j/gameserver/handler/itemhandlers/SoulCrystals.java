@@ -14,7 +14,7 @@ public class SoulCrystals implements IItemHandler
 	@Override
 	public void useItem(Playable playable, ItemInstance item, boolean forceUse)
 	{
-		if (!(playable instanceof Player))
+		if (!(playable instanceof Player player))
 			return;
 		
 		final IntIntHolder[] skills = item.getEtcItem().getSkills();
@@ -25,13 +25,13 @@ public class SoulCrystals implements IItemHandler
 		if (skill == null || skill.getId() != 2096)
 			return;
 		
-		final Creature target = playable.getTarget() instanceof Creature ? (Creature) playable.getTarget() : null;
+		final Creature target = (player.getTarget() instanceof Creature targetCreature) ? targetCreature : null;
 		if (target == null)
 		{
-			playable.sendPacket(SystemMessageId.INVALID_TARGET);
+			player.sendPacket(SystemMessageId.INVALID_TARGET);
 			return;
 		}
 		
-		playable.getAI().tryToCast(target, skill, forceUse, false, 0);
+		player.getAI().tryToCast(target, skill, forceUse, false, 0);
 	}
 }

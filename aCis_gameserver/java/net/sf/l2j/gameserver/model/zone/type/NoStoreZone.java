@@ -16,16 +16,16 @@ public class NoStoreZone extends ZoneType
 	}
 	
 	@Override
-	protected void onEnter(final Creature character)
+	protected void onEnter(final Creature creature)
 	{
-		if (character instanceof Player)
-			character.setInsideZone(ZoneId.NO_STORE, true);
+		if (creature instanceof Player player)
+			player.setInsideZone(ZoneId.NO_STORE, true);
 	}
 	
 	@Override
-	protected void onExit(final Creature character)
+	protected void onExit(final Creature creature)
 	{
-		if (character instanceof Player)
-			character.setInsideZone(ZoneId.NO_STORE, false);
+		if (creature instanceof Player player)
+			player.setInsideZone(ZoneId.NO_STORE, false);
 	}
 }

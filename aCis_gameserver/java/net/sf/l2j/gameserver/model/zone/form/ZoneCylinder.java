@@ -90,22 +90,25 @@ public class ZoneCylinder extends ZoneForm
 	}
 	
 	@Override
-	public void visualizeZone(String info, ExServerPrimitive debug, int z)
+	public void visualizeZone(String info, ExServerPrimitive debug)
 	{
 		final int z1 = _z1 - 32;
 		final int z2 = _z2 - 32;
 		
-		int count = (int) (2 * Math.PI * _rad / STEP);
-		double angle = 2 * Math.PI / count;
+		final int count = (int) (2 * Math.PI * _rad / STEP);
+		final double angle = 2 * Math.PI / count;
 		
 		for (int i = 0; i < count; i++)
 		{
-			int x = (int) (Math.cos(angle * i) * _rad);
-			int y = (int) (Math.sin(angle * i) * _rad);
+			final int x = (int) (Math.cos(angle * i) * _rad) + _x;
+			final int y = (int) (Math.sin(angle * i) * _rad) + _y;
 			
-			debug.addPoint(info + " MinZ", Color.GREEN, true, _x + x, _y + y, z1);
-			debug.addPoint(info, Color.YELLOW, true, _x + x, _y + y, z);
-			debug.addPoint(info + " MaxZ", Color.RED, true, _x + x, _y + y, z2);
+			// Floors - min/max.
+			debug.addPoint(info, Color.GREEN, true, x, y, z1);
+			debug.addPoint(info, Color.RED, true, x, y, z2);
+			
+			// Vertical line.
+			debug.addLine("", Color.YELLOW, true, x, y, z1, x, y, z2);
 		}
 	}
 }

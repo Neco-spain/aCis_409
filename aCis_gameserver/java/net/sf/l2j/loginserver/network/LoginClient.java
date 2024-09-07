@@ -111,6 +111,7 @@ public final class LoginClient extends MMOClient<MMOConnection<LoginClient>>
 	@Override
 	protected void onForcedDisconnection()
 	{
+		// Do nothing.
 	}
 	
 	public LoginClientState getState()

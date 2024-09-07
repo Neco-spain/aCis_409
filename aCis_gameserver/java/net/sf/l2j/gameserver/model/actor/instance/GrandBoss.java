@@ -22,7 +22,20 @@ public final class GrandBoss extends Monster
 	public GrandBoss(int objectId, NpcTemplate template)
 	{
 		super(objectId, template);
-		setRaid(true);
+		
+		setRaidRelated();
+	}
+	
+	@Override
+	public int getSeeRange()
+	{
+		return getTemplate().getAggroRange();
+	}
+	
+	@Override
+	public boolean isRaidBoss()
+	{
+		return true;
 	}
 	
 	@Override

@@ -25,7 +25,7 @@ public class CoupleManager
 	private static final CLogger LOGGER = new CLogger(CoupleManager.class.getName());
 	
 	private static final String LOAD_COUPLES = "SELECT * FROM mods_wedding";
-	private static final String DELETE_COUPLES = "DELETE FROM mods_wedding";
+	private static final String TRUNCATE_COUPLES = "TRUNCATE mods_wedding";
 	private static final String ADD_COUPLE = "INSERT INTO mods_wedding (id, requesterId, partnerId) VALUES (?,?,?)";
 	
 	private final Map<Integer, IntIntHolder> _couples = new ConcurrentHashMap<>();
@@ -111,7 +111,7 @@ public class CoupleManager
 	{
 		try (Connection con = ConnectionPool.getConnection())
 		{
-			try (PreparedStatement ps = con.prepareStatement(DELETE_COUPLES))
+			try (PreparedStatement ps = con.prepareStatement(TRUNCATE_COUPLES))
 			{
 				ps.execute();
 			}

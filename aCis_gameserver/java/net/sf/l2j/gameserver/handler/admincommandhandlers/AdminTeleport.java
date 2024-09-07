@@ -2,7 +2,7 @@ package net.sf.l2j.gameserver.handler.admincommandhandlers;
 
 import java.util.StringTokenizer;
 
-import net.sf.l2j.gameserver.data.xml.MapRegionData.TeleportType;
+import net.sf.l2j.gameserver.enums.RestartType;
 import net.sf.l2j.gameserver.enums.TeleportMode;
 import net.sf.l2j.gameserver.geoengine.GeoEngine;
 import net.sf.l2j.gameserver.handler.IAdminCommandHandler;
@@ -155,7 +155,7 @@ public class AdminTeleport implements IAdminCommandHandler
 			else
 				targetPlayer = getTargetPlayer(player, true);
 			
-			targetPlayer.teleportTo(TeleportType.TOWN);
+			targetPlayer.teleportTo(RestartType.TOWN);
 			targetPlayer.setIsIn7sDungeon(false);
 		}
 		else if (command.startsWith("admin_teleportto"))

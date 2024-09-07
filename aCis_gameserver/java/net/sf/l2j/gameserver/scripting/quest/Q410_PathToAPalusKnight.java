@@ -38,10 +38,10 @@ public class Q410_PathToAPalusKnight extends Quest
 		
 		setItemsIds(PALUS_TALISMAN, LYCANTHROPE_SKULL, VIRGIL_LETTER, MORTE_TALISMAN, PREDATOR_CARAPACE, ARACHNID_TRACKER_SILK, COFFIN_OF_ETERNAL_REST);
 		
-		addStartNpc(VIRGIL);
+		addQuestStart(VIRGIL);
 		addTalkId(VIRGIL, KALINTA);
 		
-		addKillId(POISON_SPIDER, ARACHNID_TRACKER, LYCANTHROPE);
+		addMyDying(POISON_SPIDER, ARACHNID_TRACKER, LYCANTHROPE);
 	}
 	
 	@Override
@@ -58,7 +58,7 @@ public class Q410_PathToAPalusKnight extends Quest
 				htmltext = (player.getClassId() == ClassId.PALUS_KNIGHT) ? "30329-02a.htm" : "30329-03.htm";
 			else if (player.getStatus().getLevel() < 19)
 				htmltext = "30329-02.htm";
-			else if (player.getInventory().hasItems(GAZE_OF_ABYSS))
+			else if (player.getInventory().hasItem(GAZE_OF_ABYSS))
 				htmltext = "30329-04.htm";
 		}
 		else if (event.equalsIgnoreCase("30329-06.htm"))
@@ -116,7 +116,7 @@ public class Q410_PathToAPalusKnight extends Quest
 				{
 					case VIRGIL:
 						if (cond == 1)
-							htmltext = (!player.getInventory().hasItems(LYCANTHROPE_SKULL)) ? "30329-07.htm" : "30329-08.htm";
+							htmltext = (!player.getInventory().hasItem(LYCANTHROPE_SKULL)) ? "30329-07.htm" : "30329-08.htm";
 						else if (cond == 2)
 							htmltext = "30329-09.htm";
 						else if (cond > 2 && cond < 6)
@@ -138,7 +138,7 @@ public class Q410_PathToAPalusKnight extends Quest
 							htmltext = "30422-01.htm";
 						else if (cond == 4)
 						{
-							if (!player.getInventory().hasItems(ARACHNID_TRACKER_SILK) || !player.getInventory().hasItems(PREDATOR_CARAPACE))
+							if (!player.getInventory().hasItem(ARACHNID_TRACKER_SILK) || !player.getInventory().hasItem(PREDATOR_CARAPACE))
 								htmltext = "30422-03.htm";
 							else
 								htmltext = "30422-04.htm";
@@ -156,13 +156,13 @@ public class Q410_PathToAPalusKnight extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
@@ -172,7 +172,7 @@ public class Q410_PathToAPalusKnight extends Quest
 				break;
 			
 			case ARACHNID_TRACKER:
-				if (st.getCond() == 4 && dropItemsAlways(player, ARACHNID_TRACKER_SILK, 1, 5) && player.getInventory().hasItems(PREDATOR_CARAPACE))
+				if (st.getCond() == 4 && dropItemsAlways(player, ARACHNID_TRACKER_SILK, 1, 5) && player.getInventory().hasItem(PREDATOR_CARAPACE))
 					st.setCond(5);
 				break;
 			
@@ -181,7 +181,5 @@ public class Q410_PathToAPalusKnight extends Quest
 					st.setCond(5);
 				break;
 		}
-		
-		return null;
 	}
 }

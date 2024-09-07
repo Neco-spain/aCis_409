@@ -31,10 +31,10 @@ public class Q043_HelpTheSister extends Quest
 		
 		setItemsIds(MAP_PIECE, MAP);
 		
-		addStartNpc(COOPER);
+		addQuestStart(COOPER);
 		addTalkId(COOPER, GALLADUCCI);
 		
-		addKillId(SPECTER, SORROW_MAIDEN);
+		addMyDying(SPECTER, SORROW_MAIDEN);
 	}
 	
 	@Override
@@ -51,7 +51,7 @@ public class Q043_HelpTheSister extends Quest
 			st.setCond(1);
 			playSound(player, SOUND_ACCEPT);
 		}
-		else if (event.equalsIgnoreCase("30829-03.htm") && player.getInventory().hasItems(CRAFTED_DAGGER))
+		else if (event.equalsIgnoreCase("30829-03.htm") && player.getInventory().hasItem(CRAFTED_DAGGER))
 		{
 			st.setCond(2);
 			playSound(player, SOUND_MIDDLE);
@@ -100,7 +100,7 @@ public class Q043_HelpTheSister extends Quest
 				{
 					case COOPER:
 						if (cond == 1)
-							htmltext = (!player.getInventory().hasItems(CRAFTED_DAGGER)) ? "30829-01a.htm" : "30829-02.htm";
+							htmltext = (!player.getInventory().hasItem(CRAFTED_DAGGER)) ? "30829-01a.htm" : "30829-02.htm";
 						else if (cond == 2)
 							htmltext = "30829-03a.htm";
 						else if (cond == 3)
@@ -129,17 +129,15 @@ public class Q043_HelpTheSister extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerCondition(player, npc, 2);
 		if (st == null)
-			return null;
+			return;
 		
 		if (dropItemsAlways(player, MAP_PIECE, 1, 30))
 			st.setCond(3);
-		
-		return null;
 	}
 }

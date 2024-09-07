@@ -17,8 +17,8 @@ public class ConditionPlayerWeight extends Condition
 	@Override
 	public boolean testImpl(Creature effector, Creature effected, L2Skill skill, Item item)
 	{
-		if (effector instanceof Player)
-			return ((Player) effector).getWeightPenalty().ordinal() < _weight;
+		if (effector instanceof Player player)
+			return player.getWeightPenalty().ordinal() < _weight;
 		
 		return true;
 	}

@@ -25,20 +25,19 @@ public class SummonCreature implements ISkillHandler
 	};
 	
 	@Override
-	public void useSkill(Creature activeChar, L2Skill skill, WorldObject[] targets)
+	public void useSkill(Creature creature, L2Skill skill, WorldObject[] targets, ItemInstance item)
 	{
-		if (!(activeChar instanceof Player))
+		// Must be called by a Player.
+		if (!(creature instanceof Player player))
 			return;
 		
-		final Player player = (Player) activeChar;
-		final ItemInstance item = player.getInventory().getItemByObjectId(player.getAI().getCurrentIntention().getItemObjectId());
-		
-		// Skill cast may have been interrupted of cancelled
-		if (item == null)
+		// Sanity check - skill cast may have been interrupted or cancelled.
+		final ItemInstance checkedItem = player.getInventory().getItemByObjectId(player.getAI().getCurrentIntention().getItemObjectId());
+		if (checkedItem == null)
 			return;
 		
 		// Check for summon item validity.
-		if (item.getOwnerId() != player.getObjectId() || item.getLocation() != ItemLocation.INVENTORY)
+		if (checkedItem.getOwnerId() != player.getObjectId() || checkedItem.getLocation() != ItemLocation.INVENTORY)
 			return;
 		
 		// Owner has a pet listed in world.
@@ -46,7 +45,7 @@ public class SummonCreature implements ISkillHandler
 			return;
 		
 		// Check summon item validity.
-		final IntIntHolder summonItem = SummonItemData.getInstance().getSummonItem(item.getItemId());
+		final IntIntHolder summonItem = SummonItemData.getInstance().getSummonItem(checkedItem.getItemId());
 		if (summonItem == null)
 			return;
 		
@@ -56,7 +55,7 @@ public class SummonCreature implements ISkillHandler
 			return;
 		
 		// Add the pet instance to world.
-		final Pet pet = Pet.restore(item, npcTemplate, player);
+		final Pet pet = Pet.restore(checkedItem, npcTemplate, player);
 		if (pet == null)
 			return;
 		
@@ -68,10 +67,10 @@ public class SummonCreature implements ISkillHandler
 		pet.setTitle(player.getName());
 		pet.startFeed();
 		
-		final SpawnLocation spawnLoc = activeChar.getPosition().clone();
+		final SpawnLocation spawnLoc = creature.getPosition().clone();
 		spawnLoc.addStrictOffset(40);
-		spawnLoc.setHeadingTo(activeChar.getPosition());
-		spawnLoc.set(GeoEngine.getInstance().getValidLocation(activeChar, spawnLoc));
+		spawnLoc.setHeadingTo(creature.getPosition());
+		spawnLoc.set(GeoEngine.getInstance().getValidLocation(creature, spawnLoc));
 		
 		pet.spawnMe(spawnLoc);
 		pet.getAI().setFollowStatus(true);

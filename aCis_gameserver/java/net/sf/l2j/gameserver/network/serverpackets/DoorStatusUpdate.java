@@ -1,6 +1,7 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
 import net.sf.l2j.gameserver.model.actor.instance.Door;
+import net.sf.l2j.gameserver.model.residence.castle.Castle;
 
 public class DoorStatusUpdate extends L2GameServerPacket
 {
@@ -10,7 +11,7 @@ public class DoorStatusUpdate extends L2GameServerPacket
 	public DoorStatusUpdate(Door door)
 	{
 		_door = door;
-		_showHp = door.getCastle() != null && door.getCastle().getSiege().isInProgress();
+		_showHp = door.getResidence() instanceof Castle castle && castle.getSiege().isInProgress();
 	}
 	
 	@Override

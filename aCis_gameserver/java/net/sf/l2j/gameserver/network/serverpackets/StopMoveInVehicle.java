@@ -13,7 +13,7 @@ public class StopMoveInVehicle extends L2GameServerPacket
 	{
 		_objectId = player.getObjectId();
 		_boatId = boatId;
-		_loc = player.getBoatPosition();
+		_loc = player.getBoatInfo().getBoatPosition().clone();
 	}
 	
 	@Override
@@ -22,9 +22,7 @@ public class StopMoveInVehicle extends L2GameServerPacket
 		writeC(0x72);
 		writeD(_objectId);
 		writeD(_boatId);
-		writeD(_loc.getX());
-		writeD(_loc.getY());
-		writeD(_loc.getZ());
+		writeLoc(_loc);
 		writeD(_loc.getHeading());
 	}
 }

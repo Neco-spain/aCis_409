@@ -1,19 +1,23 @@
 package net.sf.l2j.gameserver.model;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import net.sf.l2j.commons.logging.CLogger;
 
 import net.sf.l2j.gameserver.data.sql.PlayerInfoTable;
-import net.sf.l2j.gameserver.data.sql.SpawnTable;
+import net.sf.l2j.gameserver.data.xml.RestartPointData;
 import net.sf.l2j.gameserver.enums.SayType;
+import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Pet;
 import net.sf.l2j.gameserver.model.location.Location;
-import net.sf.l2j.gameserver.model.spawn.Spawn;
+import net.sf.l2j.gameserver.model.restart.RestartPoint;
+import net.sf.l2j.gameserver.model.spawn.ASpawn;
 import net.sf.l2j.gameserver.model.zone.type.subtype.ZoneType;
 import net.sf.l2j.gameserver.network.serverpackets.CreatureSay;
 import net.sf.l2j.gameserver.network.serverpackets.L2GameServerPacket;
@@ -37,7 +41,7 @@ public final class World
 	public static final int WORLD_Z_MAX = 16410;
 	
 	// Regions and offsets
-	public static final int REGION_SIZE = 2048;
+	private static final int REGION_SIZE = 2048;
 	public static final int REGIONS_X = (WORLD_X_MAX - WORLD_X_MIN + 1) / REGION_SIZE;
 	public static final int REGIONS_Y = (WORLD_Y_MAX - WORLD_Y_MIN + 1) / REGION_SIZE;
 	private static final int REGION_X_OFFSET = Math.abs(WORLD_X_MIN / REGION_SIZE);
@@ -56,21 +60,6 @@ public final class World
 			for (int y = 0; y < REGIONS_Y; y++)
 				_worldRegions[x][y] = new WorldRegion(x, y);
 		}
-		
-		for (int x = 0; x < REGIONS_X; x++)
-		{
-			for (int y = 0; y < REGIONS_Y; y++)
-			{
-				for (int ix = -1; ix <= 1; ix++)
-				{
-					for (int iy = -1; iy <= 1; iy++)
-					{
-						if (validRegion(x + ix, y + iy))
-							_worldRegions[x + ix][y + iy].addSurroundingRegion(_worldRegions[x][y]);
-					}
-				}
-			}
-		}
 		LOGGER.info("World grid ({} by {}) is now set up.", REGIONS_X, REGIONS_Y);
 	}
 	
@@ -84,6 +73,14 @@ public final class World
 		_objects.remove(object.getObjectId());
 	}
 	
+	public void removeObjects(Set<? extends WorldObject> objects)
+	{
+		if (objects == null || objects.isEmpty())
+			return;
+		
+		_objects.keySet().removeAll(objects.stream().map(WorldObject::getObjectId).toList());
+	}
+	
 	public Collection<WorldObject> getObjects()
 	{
 		return _objects.values();
@@ -92,6 +89,16 @@ public final class World
 	public WorldObject getObject(int objectId)
 	{
 		return _objects.get(objectId);
+	}
+	
+	public Npc getNpc(int npcId)
+	{
+		return (Npc) _objects.values().stream().filter(o -> (o instanceof Npc npc && npc.getNpcId() == npcId)).findFirst().orElse(null);
+	}
+	
+	public List<Npc> getNpcs(int npcId)
+	{
+		return _objects.values().stream().filter(o -> (o instanceof Npc npc && npc.getNpcId() == npcId)).map(Npc.class::cast).toList();
 	}
 	
 	public void addPlayer(Player cha)
@@ -191,16 +198,6 @@ public final class World
 	}
 	
 	/**
-	 * @param x X position of the object
-	 * @param y Y position of the object
-	 * @return True if the given coordinates are valid WorldRegion coordinates.
-	 */
-	private static boolean validRegion(int x, int y)
-	{
-		return (x >= 0 && x < REGIONS_X && y >= 0 && y < REGIONS_Y);
-	}
-	
-	/**
 	 * Delete all spawns in the world.
 	 */
 	public void deleteVisibleNpcSpawns()
@@ -212,16 +209,13 @@ public final class World
 			{
 				for (WorldObject obj : _worldRegions[i][j].getObjects())
 				{
-					if (obj instanceof Npc)
+					if (obj instanceof Npc npc)
 					{
-						((Npc) obj).deleteMe();
-						
-						final Spawn spawn = ((Npc) obj).getSpawn();
+						final ASpawn spawn = npc.getSpawn();
 						if (spawn != null)
-						{
-							spawn.setRespawnState(false);
-							SpawnTable.getInstance().deleteSpawn(spawn, false);
-						}
+							spawn.doDelete();
+						else
+							npc.deleteMe();
 					}
 				}
 			}
@@ -250,6 +244,21 @@ public final class World
 	public static void announceToOnlinePlayers(String text, boolean critical)
 	{
 		toAllOnlinePlayers(new CreatureSay((critical) ? SayType.CRITICAL_ANNOUNCE : SayType.ANNOUNCEMENT, null, text));
+	}
+	
+	public static void broadcastToSameRegion(Creature creature, L2GameServerPacket packet)
+	{
+		final RestartPoint creatureRp = RestartPointData.getInstance().getRestartPoint(creature);
+		
+		for (Player pl : World.getInstance().getPlayers())
+		{
+			if (!pl.isOnline())
+				continue;
+			
+			final RestartPoint plRp = RestartPointData.getInstance().getRestartPoint(pl);
+			if (creatureRp == plRp)
+				pl.sendPacket(packet);
+		}
 	}
 	
 	/**

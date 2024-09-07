@@ -1,15 +1,13 @@
 package net.sf.l2j.loginserver.network.clientpackets;
 
-/**
- * This class ...
- * @version $Revision: 1.2.4.1 $ $Date: 2005/03/27 15:30:12 $
- */
+import java.nio.charset.StandardCharsets;
+
 public abstract class ClientBasePacket
 {
 	private final byte[] _decrypt;
 	private int _off;
 	
-	public ClientBasePacket(byte[] decrypt)
+	protected ClientBasePacket(byte[] decrypt)
 	{
 		_decrypt = decrypt;
 		_off = 1; // skip packet type id
@@ -17,11 +15,7 @@ public abstract class ClientBasePacket
 	
 	public int readD()
 	{
-		int result = _decrypt[_off++] & 0xff;
-		result |= _decrypt[_off++] << 8 & 0xff00;
-		result |= _decrypt[_off++] << 0x10 & 0xff0000;
-		result |= _decrypt[_off++] << 0x18 & 0xff000000;
-		return result;
+		return (_decrypt[_off++] & 0xff) | ((_decrypt[_off++] & 0xff) << 8) | ((_decrypt[_off++] & 0xff) << 16) | ((_decrypt[_off++] & 0xff) << 24);
 	}
 	
 	public int readC()
@@ -31,48 +25,43 @@ public abstract class ClientBasePacket
 	
 	public int readH()
 	{
-		int result = _decrypt[_off++] & 0xff;
-		result |= _decrypt[_off++] << 8 & 0xff00;
-		return result;
+		return (_decrypt[_off++] & 0xff) | ((_decrypt[_off++] & 0xff) << 8);
 	}
 	
 	public double readF()
 	{
-		long result = _decrypt[_off++] & 0xff;
-		result |= _decrypt[_off++] << 8 & 0xff00;
-		result |= _decrypt[_off++] << 0x10 & 0xff0000;
-		result |= _decrypt[_off++] << 0x18 & 0xff000000;
-		result |= _decrypt[_off++] << 0x20 & 0xff00000000l;
-		result |= _decrypt[_off++] << 0x28 & 0xff0000000000l;
-		result |= _decrypt[_off++] << 0x30 & 0xff000000000000l;
-		result |= _decrypt[_off++] << 0x38 & 0xff00000000000000l;
+		final long result = (_decrypt[_off++] & 0xffL) | ((_decrypt[_off++] & 0xffL) << 8) | ((_decrypt[_off++] & 0xffL) << 16) | ((_decrypt[_off++] & 0xffL) << 24) | ((_decrypt[_off++] & 0xffL) << 32) | ((_decrypt[_off++] & 0xffL) << 40) | ((_decrypt[_off++] & 0xffL) << 48) | ((_decrypt[_off++] & 0xffL) << 56);
 		return Double.longBitsToDouble(result);
 	}
 	
 	public String readS()
 	{
-		String result = null;
-		try
-		{
-			result = new String(_decrypt, _off, _decrypt.length - _off, "UTF-16LE");
-			result = result.substring(0, result.indexOf(0x00));
-			_off += result.length() * 2 + 2;
-		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
-		}
-		return result;
+		final int start = _off;
+		
+		// Find the null terminator in UTF-16LE encoding.
+		int end = start;
+		while (end < _decrypt.length - 1 && (_decrypt[end] != 0 || _decrypt[end + 1] != 0))
+			end += 2;
+		
+		// Move the offset past the string and the null terminator.
+		_off = end + 2;
+		
+		// Create a string from the bytes between start and end.
+		return new String(_decrypt, start, end - start, StandardCharsets.UTF_16LE);
 	}
 	
 	public final byte[] readB(int length)
 	{
+		// Create a new byte array to hold the result.
 		byte[] result = new byte[length];
-		for (int i = 0; i < length; i++)
-		{
-			result[i] = _decrypt[_off + i];
-		}
+		
+		// Use System.arraycopy to efficiently copy the specified number of bytes from the _decrypt array starting at the current offset (_off) into the result array.
+		System.arraycopy(_decrypt, _off, result, 0, length);
+		
+		// Update the offset (_off) by the length of the data read.
 		_off += length;
+		
+		// Return the byte array containing the copied data.
 		return result;
 	}
 }

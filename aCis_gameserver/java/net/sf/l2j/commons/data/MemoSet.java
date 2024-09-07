@@ -1,5 +1,6 @@
 package net.sf.l2j.commons.data;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -15,14 +16,19 @@ public abstract class MemoSet extends ConcurrentHashMap<String, String>
 	
 	protected abstract void onUnset(String key);
 	
-	public MemoSet()
+	protected MemoSet()
 	{
 		super();
 	}
 	
-	public MemoSet(final int size)
+	protected MemoSet(final int size)
 	{
 		super(size);
+	}
+	
+	protected MemoSet(final Map<String, String> m)
+	{
+		super(m);
 	}
 	
 	public final void set(final String key, final String value)

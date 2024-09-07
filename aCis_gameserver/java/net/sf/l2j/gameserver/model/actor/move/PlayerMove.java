@@ -8,17 +8,16 @@ import java.util.List;
 import net.sf.l2j.commons.math.MathUtil;
 
 import net.sf.l2j.gameserver.data.manager.ZoneManager;
-import net.sf.l2j.gameserver.enums.FloodProtector;
 import net.sf.l2j.gameserver.enums.actors.MoveType;
 import net.sf.l2j.gameserver.geoengine.GeoEngine;
 import net.sf.l2j.gameserver.geoengine.geodata.GeoStructure;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.WorldObject;
+import net.sf.l2j.gameserver.model.actor.Boat;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.location.Location;
 import net.sf.l2j.gameserver.model.zone.type.WaterZone;
-import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 import net.sf.l2j.gameserver.network.serverpackets.ExServerPrimitive;
 import net.sf.l2j.gameserver.network.serverpackets.MoveToLocation;
 import net.sf.l2j.gameserver.network.serverpackets.MoveToPawn;
@@ -49,12 +48,6 @@ public class PlayerMove extends CreatureMove<Player>
 	
 	private void moveToPawn(WorldObject pawn, int offset)
 	{
-		if (!_actor.getClient().performAction(FloodProtector.MOVE))
-		{
-			_actor.sendPacket(ActionFailed.STATIC_PACKET);
-			return;
-		}
-		
 		// Get the current position of the pawn.
 		final int tx = pawn.getX();
 		final int ty = pawn.getY();
@@ -86,7 +79,7 @@ public class PlayerMove extends CreatureMove<Player>
 		if (_isDebugMove)
 		{
 			// Draw debug packet to surrounding GMs.
-			for (Player p : _actor.getSurroundingGMs())
+			_actor.forEachKnownGM(p ->
 			{
 				// Get debug packet.
 				final ExServerPrimitive debug = p.getDebugPacket("MOVE" + _actor.getObjectId());
@@ -101,7 +94,7 @@ public class PlayerMove extends CreatureMove<Player>
 				debug.addLine("MoveToPawn (" + _offset + "): " + tx + " " + ty + " " + tz, Color.WHITE, true, ox, oy, oz, tx, ty, tz);
 				
 				p.sendMessage("Moving from " + ox + " " + oy + " " + oz + " to " + tx + " " + ty + " " + tz);
-			}
+			});
 		}
 		
 		// Set the destination.
@@ -117,12 +110,6 @@ public class PlayerMove extends CreatureMove<Player>
 	@Override
 	protected void moveToLocation(Location destination, boolean pathfinding)
 	{
-		if (!_actor.getClient().performAction(FloodProtector.MOVE))
-		{
-			_actor.sendPacket(ActionFailed.STATIC_PACKET);
-			return;
-		}
-		
 		if (_task != null)
 			updatePosition(true);
 		
@@ -151,7 +138,7 @@ public class PlayerMove extends CreatureMove<Player>
 		if (_isDebugMove)
 		{
 			// Draw debug packet to surrounding GMs.
-			for (Player p : _actor.getSurroundingGMs())
+			_actor.forEachKnownGM(p ->
 			{
 				// Get debug packet.
 				final ExServerPrimitive debug = p.getDebugPacket("MOVE" + _actor.getObjectId());
@@ -161,6 +148,16 @@ public class PlayerMove extends CreatureMove<Player>
 				
 				// Add a WHITE line corresponding to the initial click release.
 				debug.addLine("MoveToLocation: " + destination.toString(), Color.WHITE, true, position, destination);
+				
+				final Boat boat = _actor.getDockedBoat();
+				if (boat != null)
+				{
+					// Add a WHITE line corresponding to the boat entrance.
+					debug.addLine("Boat Entrance", Color.WHITE, true, boat.getEngine().getDock().getBoatEntrance(), -3624);
+					
+					// Add a WHITE line corresponding to the boat Exit.
+					debug.addLine("Boat Exit", Color.WHITE, true, boat.getEngine().getDock().getBoatExit(), -3624);
+				}
 				
 				// Add a RED point corresponding to initial start location.
 				debug.addPoint(Color.RED, position);
@@ -190,7 +187,7 @@ public class PlayerMove extends CreatureMove<Player>
 					debug.addLine("No geopath", Color.YELLOW, true, position, destination);
 				
 				p.sendMessage("Moving from " + position.toString() + " to " + destination.toString());
-			}
+			});
 		}
 		
 		// Set the destination.
@@ -225,7 +222,7 @@ public class PlayerMove extends CreatureMove<Player>
 		_instant = instant;
 		
 		final MoveType type = getMoveType();
-		final boolean canBypassZCheck = _actor.getBoat() != null || type == MoveType.FLY;
+		final boolean canBypassZCheck = _actor.getBoatInfo().getBoat() != null || type == MoveType.FLY;
 		
 		// Increment the timestamp.
 		_moveTimeStamp++;
@@ -304,7 +301,7 @@ public class PlayerMove extends CreatureMove<Player>
 			final String heading = "" + _actor.getHeading();
 			
 			// Draw debug packet to surrounding GMs.
-			for (Player p : _actor.getSurroundingGMs())
+			_actor.forEachKnownGM(p ->
 			{
 				// Get debug packet.
 				final ExServerPrimitive debug = p.getDebugPacket("MOVE" + _actor.getObjectId());
@@ -318,7 +315,7 @@ public class PlayerMove extends CreatureMove<Player>
 				// We are supposed to run, but the difference of Z is way too high.
 				if (type == MoveType.GROUND && Math.abs(curZ - _actor.getPosition().getZ()) > 100)
 					p.sendMessage("Falling/Climb bug found when moving from " + curX + ", " + curY + ", " + curZ + " to " + _actor.getPosition().toString());
-			}
+			});
 		}
 		
 		_actor.revalidateZone(false);
@@ -340,7 +337,7 @@ public class PlayerMove extends CreatureMove<Player>
 		if (offset < 0 || _actor == target)
 			return false;
 		
-		if (_actor.isIn3DRadius(target, (int) (offset + _actor.getCollisionRadius() + ((target instanceof Creature) ? ((Creature) target).getCollisionRadius() : 0))))
+		if (_actor.isIn3DRadius(target, (int) (offset + _actor.getCollisionRadius() + ((target instanceof Creature targetCreature) ? targetCreature.getCollisionRadius() : 0))))
 			return false;
 		
 		if (!_actor.isMovementDisabled() && !isShiftPressed)
@@ -364,7 +361,7 @@ public class PlayerMove extends CreatureMove<Player>
 		// Pawn isn't registered on knownlist.
 		if (!_actor.knows(target))
 		{
-			_actor.getAI().tryToActive();
+			_actor.getAI().tryToIdle();
 			return;
 		}
 		
@@ -401,7 +398,7 @@ public class PlayerMove extends CreatureMove<Player>
 		// Invalid pawn to follow, or the pawn isn't registered on knownlist.
 		if (!_actor.knows(target))
 		{
-			_actor.getAI().tryToActive();
+			_actor.getAI().tryToIdle();
 			return;
 		}
 		
@@ -448,7 +445,7 @@ public class PlayerMove extends CreatureMove<Player>
 		if (_isDebugPath)
 		{
 			// Draw debug packet to all players.
-			for (Player p : _actor.getSurroundingGMs())
+			_actor.forEachKnownGM(p ->
 			{
 				// Get debug packet.
 				final ExServerPrimitive debug = p.getDebugPacket("PATH" + _actor.getObjectId());
@@ -459,7 +456,7 @@ public class PlayerMove extends CreatureMove<Player>
 				
 				// Send.
 				debug.sendTo(p);
-			}
+			});
 		}
 		
 		// Feed the geopath with whole path.

@@ -15,7 +15,7 @@ import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.EtcStatusUpdate;
 
 /**
- * A zone extending {@link CastleZoneType}, which fires a task on the first character entrance, notably used by castle damage traps.<br>
+ * A zone extending {@link CastleZoneType}, which fires a task on the first {@link Creature} entrance, notably used by castle damage traps.<br>
  * <br>
  * This task decreases HPs using a reuse delay and can affect specific class types. The zone is considered a danger zone.
  */
@@ -46,13 +46,13 @@ public class DamageZone extends CastleZoneType
 	}
 	
 	@Override
-	protected boolean isAffected(Creature character)
+	protected boolean isAffected(Creature creature)
 	{
-		return character instanceof Playable;
+		return creature instanceof Playable;
 	}
 	
 	@Override
-	protected void onEnter(Creature character)
+	protected void onEnter(Creature creature)
 	{
 		if (_hpDamage > 0)
 		{
@@ -69,14 +69,14 @@ public class DamageZone extends CastleZoneType
 					if (task == null)
 						_task = task = ThreadPool.scheduleAtFixedRate(() ->
 						{
-							if (_characters.isEmpty() || _hpDamage <= 0 || (getCastle() != null && (!isEnabled() || !getCastle().getSiege().isInProgress())))
+							if (_creatures.isEmpty() || _hpDamage <= 0 || (getCastle() != null && (!isEnabled() || !getCastle().getSiege().isInProgress())))
 							{
 								stopTask();
 								return;
 							}
 							
 							// Effect all people inside the zone.
-							for (Creature temp : _characters.values())
+							for (Creature temp : _creatures)
 							{
 								if (!temp.isDead())
 									temp.reduceCurrentHp(_hpDamage * (1 + (temp.getStatus().calcStat(Stats.DAMAGE_ZONE_VULN, 0, null, null) / 100)), null, null);
@@ -90,22 +90,22 @@ public class DamageZone extends CastleZoneType
 			}
 		}
 		
-		if (character instanceof Player)
+		if (creature instanceof Player player)
 		{
-			character.setInsideZone(ZoneId.DANGER_AREA, true);
-			character.sendPacket(new EtcStatusUpdate((Player) character));
+			player.setInsideZone(ZoneId.DANGER_AREA, true);
+			player.sendPacket(new EtcStatusUpdate(player));
 		}
 	}
 	
 	@Override
-	protected void onExit(Creature character)
+	protected void onExit(Creature creature)
 	{
-		if (character instanceof Player)
+		if (creature instanceof Player player)
 		{
-			character.setInsideZone(ZoneId.DANGER_AREA, false);
+			player.setInsideZone(ZoneId.DANGER_AREA, false);
 			
-			if (!character.isInsideZone(ZoneId.DANGER_AREA))
-				character.sendPacket(new EtcStatusUpdate((Player) character));
+			if (!player.isInsideZone(ZoneId.DANGER_AREA))
+				player.sendPacket(new EtcStatusUpdate(player));
 		}
 	}
 	

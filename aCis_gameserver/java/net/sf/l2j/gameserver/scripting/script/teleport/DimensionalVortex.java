@@ -24,7 +24,7 @@ public class DimensionalVortex extends Quest
 		
 		if (event.equalsIgnoreCase("blue"))
 		{
-			if (player.getInventory().hasItems(BLUE_STONE))
+			if (player.getInventory().hasItem(BLUE_STONE))
 			{
 				takeItems(player, BLUE_STONE, 1);
 				player.teleportTo(114097, 19935, 935, 0);
@@ -34,7 +34,7 @@ public class DimensionalVortex extends Quest
 		}
 		else if (event.equalsIgnoreCase("green"))
 		{
-			if (player.getInventory().hasItems(GREEN_STONE))
+			if (player.getInventory().hasItem(GREEN_STONE))
 			{
 				takeItems(player, GREEN_STONE, 1);
 				player.teleportTo(110930, 15963, -4378, 0);
@@ -44,7 +44,7 @@ public class DimensionalVortex extends Quest
 		}
 		else if (event.equalsIgnoreCase("red"))
 		{
-			if (player.getInventory().hasItems(RED_STONE))
+			if (player.getInventory().hasItem(RED_STONE))
 			{
 				takeItems(player, RED_STONE, 1);
 				player.teleportTo(118558, 16659, 5987, 0);

@@ -5,8 +5,6 @@ import net.sf.l2j.commons.random.Rnd;
 import net.sf.l2j.gameserver.data.SkillTable;
 import net.sf.l2j.gameserver.data.xml.ArmorSetData;
 import net.sf.l2j.gameserver.enums.Paperdoll;
-import net.sf.l2j.gameserver.enums.StatusType;
-import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.item.ArmorSet;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
@@ -15,9 +13,7 @@ import net.sf.l2j.gameserver.model.item.kind.Item;
 import net.sf.l2j.gameserver.model.item.kind.Weapon;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.EnchantResult;
-import net.sf.l2j.gameserver.network.serverpackets.InventoryUpdate;
-import net.sf.l2j.gameserver.network.serverpackets.ItemList;
-import net.sf.l2j.gameserver.network.serverpackets.StatusUpdate;
+import net.sf.l2j.gameserver.network.serverpackets.SkillList;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.skills.L2Skill;
 
@@ -57,9 +53,7 @@ public final class RequestEnchantItem extends AbstractEnchantPacket
 		
 		if (item == null || scroll == null)
 		{
-			player.setActiveEnchantItem(null);
-			player.sendPacket(SystemMessageId.ENCHANT_SCROLL_CANCELLED);
-			player.sendPacket(EnchantResult.CANCELLED);
+			player.cancelActiveEnchant();
 			return;
 		}
 		
@@ -78,7 +72,7 @@ public final class RequestEnchantItem extends AbstractEnchantPacket
 		}
 		
 		// attempting to destroy scroll
-		scroll = player.getInventory().destroyItem("Enchant", scroll.getObjectId(), 1, player, item);
+		scroll = player.getInventory().destroyItem(scroll.getObjectId(), 1);
 		if (scroll == null)
 		{
 			player.sendPacket(SystemMessageId.NOT_ENOUGH_ITEMS);
@@ -127,8 +121,7 @@ public final class RequestEnchantItem extends AbstractEnchantPacket
 					player.sendPacket(sm);
 				}
 				
-				item.setEnchantLevel(item.getEnchantLevel() + 1);
-				item.updateDatabase();
+				item.setEnchantLevel(item.getEnchantLevel() + 1, player);
 				
 				// If item is equipped, verify the skill obtention (+4 duals, +6 armorset).
 				if (item.isEquipped())
@@ -136,13 +129,13 @@ public final class RequestEnchantItem extends AbstractEnchantPacket
 					final Item it = item.getItem();
 					
 					// Add skill bestowed by +4 duals.
-					if (it instanceof Weapon && item.getEnchantLevel() == 4)
+					if (it instanceof Weapon weapon && item.getEnchantLevel() == 4)
 					{
-						final L2Skill enchant4Skill = ((Weapon) it).getEnchant4Skill();
+						final L2Skill enchant4Skill = weapon.getEnchant4Skill();
 						if (enchant4Skill != null)
 						{
 							player.addSkill(enchant4Skill, false);
-							player.sendSkillList();
+							player.sendPacket(new SkillList(player));
 						}
 					}
 					// Add skill bestowed by +6 armorset.
@@ -162,7 +155,7 @@ public final class RequestEnchantItem extends AbstractEnchantPacket
 									if (skill != null)
 									{
 										player.addSkill(skill, false);
-										player.sendSkillList();
+										player.sendPacket(new SkillList(player));
 									}
 								}
 							}
@@ -179,13 +172,13 @@ public final class RequestEnchantItem extends AbstractEnchantPacket
 					final Item it = item.getItem();
 					
 					// Remove skill bestowed by +4 duals.
-					if (it instanceof Weapon && item.getEnchantLevel() >= 4)
+					if (it instanceof Weapon weapon && item.getEnchantLevel() >= 4)
 					{
-						final L2Skill enchant4Skill = ((Weapon) it).getEnchant4Skill();
+						final L2Skill enchant4Skill = weapon.getEnchant4Skill();
 						if (enchant4Skill != null)
 						{
 							player.removeSkill(enchant4Skill.getId(), false);
-							player.sendSkillList();
+							player.sendPacket(new SkillList(player));
 						}
 					}
 					// Add skill bestowed by +6 armorset.
@@ -202,7 +195,7 @@ public final class RequestEnchantItem extends AbstractEnchantPacket
 								if (skillId > 0)
 								{
 									player.removeSkill(skillId, false);
-									player.sendSkillList();
+									player.sendPacket(new SkillList(player));
 								}
 							}
 						}
@@ -214,8 +207,7 @@ public final class RequestEnchantItem extends AbstractEnchantPacket
 					// blessed enchant - clear enchant value
 					player.sendPacket(SystemMessageId.BLESSED_ENCHANT_FAILED);
 					
-					item.setEnchantLevel(0);
-					item.updateDatabase();
+					item.setEnchantLevel(0, player);
 					player.sendPacket(EnchantResult.UNSUCCESS);
 				}
 				else
@@ -226,7 +218,7 @@ public final class RequestEnchantItem extends AbstractEnchantPacket
 					if (count < 1)
 						count = 1;
 					
-					ItemInstance destroyItem = player.getInventory().destroyItem("Enchant", item, player, null);
+					final ItemInstance destroyItem = player.getInventory().destroyItem(item);
 					if (destroyItem == null)
 					{
 						player.setActiveEnchantItem(null);
@@ -236,17 +228,9 @@ public final class RequestEnchantItem extends AbstractEnchantPacket
 					
 					if (crystalId != 0)
 					{
-						player.getInventory().addItem("Enchant", crystalId, count, player, destroyItem);
+						player.getInventory().addItem(crystalId, count);
 						player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.EARNED_S2_S1_S).addItemName(crystalId).addItemNumber(count));
 					}
-					
-					InventoryUpdate iu = new InventoryUpdate();
-					if (destroyItem.getCount() == 0)
-						iu.addRemovedItem(destroyItem);
-					else
-						iu.addModifiedItem(destroyItem);
-					
-					player.sendPacket(iu);
 					
 					// Messages.
 					if (item.getEnchantLevel() > 0)
@@ -254,19 +238,10 @@ public final class RequestEnchantItem extends AbstractEnchantPacket
 					else
 						player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.ENCHANTMENT_FAILED_S1_EVAPORATED).addItemName(item.getItemId()));
 					
-					World.getInstance().removeObject(destroyItem);
-					if (crystalId == 0)
-						player.sendPacket(EnchantResult.UNK_RESULT_4);
-					else
-						player.sendPacket(EnchantResult.UNK_RESULT_1);
-					
-					StatusUpdate su = new StatusUpdate(player);
-					su.addAttribute(StatusType.CUR_LOAD, player.getCurrentWeight());
-					player.sendPacket(su);
+					player.sendPacket((crystalId == 0) ? EnchantResult.UNK_RESULT_4 : EnchantResult.UNK_RESULT_1);
 				}
 			}
 			
-			player.sendPacket(new ItemList(player, false));
 			player.broadcastUserInfo();
 			player.setActiveEnchantItem(null);
 		}

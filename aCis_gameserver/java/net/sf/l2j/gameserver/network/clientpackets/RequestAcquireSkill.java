@@ -13,6 +13,7 @@ import net.sf.l2j.gameserver.model.holder.skillnode.FishingSkillNode;
 import net.sf.l2j.gameserver.model.holder.skillnode.GeneralSkillNode;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ExStorageMaxCount;
+import net.sf.l2j.gameserver.network.serverpackets.SkillList;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.skills.L2Skill;
 
@@ -80,7 +81,7 @@ public class RequestAcquireSkill extends L2GameClientPacket
 				
 				// Get spellbook and try to consume it.
 				final int bookId = SpellbookData.getInstance().getBookForSkill(_skillId, _skillLevel);
-				if (bookId > 0 && !player.destroyItemByItemId("SkillLearn", bookId, 1, folk, true))
+				if (bookId > 0 && !player.destroyItemByItemId(bookId, 1, true))
 				{
 					player.sendPacket(SystemMessageId.ITEM_MISSING_TO_LEARN_SKILL);
 					folk.showSkillList(player);
@@ -95,7 +96,7 @@ public class RequestAcquireSkill extends L2GameClientPacket
 				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.LEARNED_SKILL_S1).addSkillName(skill));
 				
 				// Update player and return.
-				player.sendSkillList();
+				player.sendPacket(new SkillList(player));
 				folk.showSkillList(player);
 				break;
 			
@@ -114,7 +115,7 @@ public class RequestAcquireSkill extends L2GameClientPacket
 				if (fsn == null)
 					return;
 				
-				if (!player.destroyItemByItemId("Consume", fsn.getItemId(), fsn.getItemCount(), folk, true))
+				if (!player.destroyItemByItemId(fsn.getItemId(), fsn.getItemCount(), true))
 				{
 					player.sendPacket(SystemMessageId.ITEM_MISSING_TO_LEARN_SKILL);
 					Fisherman.showFishSkillList(player);
@@ -127,7 +128,7 @@ public class RequestAcquireSkill extends L2GameClientPacket
 				if (_skillId >= 1368 && _skillId <= 1372)
 					player.sendPacket(new ExStorageMaxCount(player));
 				
-				player.sendSkillList();
+				player.sendPacket(new SkillList(player));
 				Fisherman.showFishSkillList(player);
 				break;
 			
@@ -147,7 +148,7 @@ public class RequestAcquireSkill extends L2GameClientPacket
 					return;
 				}
 				
-				if (Config.LIFE_CRYSTAL_NEEDED && !player.destroyItemByItemId("Consume", csn.getItemId(), 1, folk, true))
+				if (Config.LIFE_CRYSTAL_NEEDED && !player.destroyItemByItemId(csn.getItemId(), 1, true))
 				{
 					player.sendPacket(SystemMessageId.ITEM_MISSING_TO_LEARN_SKILL);
 					VillageMaster.showPledgeSkillList(player);

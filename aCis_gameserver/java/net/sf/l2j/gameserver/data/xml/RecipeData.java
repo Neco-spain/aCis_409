@@ -7,7 +7,7 @@ import java.util.Map;
 import net.sf.l2j.commons.data.StatSet;
 import net.sf.l2j.commons.data.xml.IXmlReader;
 
-import net.sf.l2j.gameserver.model.item.Recipe;
+import net.sf.l2j.gameserver.model.records.Recipe;
 
 import org.w3c.dom.Document;
 
@@ -47,7 +47,7 @@ public class RecipeData implements IXmlReader
 	
 	public Recipe getRecipeByItemId(int itemId)
 	{
-		return _recipes.values().stream().filter(r -> r.getRecipeId() == itemId).findFirst().orElse(null);
+		return _recipes.values().stream().filter(r -> r.recipeId() == itemId).findFirst().orElse(null);
 	}
 	
 	public static RecipeData getInstance()

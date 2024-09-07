@@ -1,18 +1,19 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.craft.ManufactureItem;
 import net.sf.l2j.gameserver.model.craft.ManufactureList;
-import net.sf.l2j.gameserver.model.item.Recipe;
+import net.sf.l2j.gameserver.model.records.ManufactureItem;
+import net.sf.l2j.gameserver.model.records.Recipe;
 
 public class RecipeShopManageList extends L2GameServerPacket
 {
 	private final Player _player;
 	private final Collection<Recipe> _recipes;
+	private final List<ManufactureItem> _items = new ArrayList<>();
 	
 	public RecipeShopManageList(Player player, boolean isDwarven)
 	{
@@ -22,14 +23,8 @@ public class RecipeShopManageList extends L2GameServerPacket
 		final ManufactureList manufactureList = player.getManufactureList();
 		manufactureList.setState(isDwarven);
 		
-		// Integrity check.
-		final Iterator<ManufactureItem> it = manufactureList.iterator();
-		while (it.hasNext())
-		{
-			ManufactureItem item = it.next();
-			if (item.isDwarven() != isDwarven || !player.getRecipeBook().hasRecipe(item.getId()))
-				it.remove();
-		}
+		_items.addAll(manufactureList);
+		_items.removeIf(i -> i.isDwarven() != isDwarven || !player.getRecipeBook().hasRecipe(i.recipeId()));
 	}
 	
 	@Override
@@ -49,19 +44,18 @@ public class RecipeShopManageList extends L2GameServerPacket
 			int i = 0;
 			for (Recipe recipe : _recipes)
 			{
-				writeD(recipe.getId());
+				writeD(recipe.id());
 				writeD(++i);
 			}
 		}
 		
-		final List<ManufactureItem> list = _player.getManufactureList();
-		writeD(list.size());
+		writeD(_items.size());
 		
-		for (ManufactureItem item : list)
+		for (ManufactureItem item : _items)
 		{
-			writeD(item.getId());
+			writeD(item.recipeId());
 			writeD(0x00);
-			writeD(item.getValue());
+			writeD(item.cost());
 		}
 	}
 }

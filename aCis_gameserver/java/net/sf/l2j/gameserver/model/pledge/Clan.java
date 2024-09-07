@@ -10,11 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 import net.sf.l2j.commons.lang.StringUtil;
 import net.sf.l2j.commons.logging.CLogger;
-import net.sf.l2j.commons.math.MathUtil;
 import net.sf.l2j.commons.pool.ConnectionPool;
 
 import net.sf.l2j.Config;
@@ -22,20 +20,21 @@ import net.sf.l2j.gameserver.communitybbs.CommunityBoard;
 import net.sf.l2j.gameserver.communitybbs.model.Forum;
 import net.sf.l2j.gameserver.data.SkillTable;
 import net.sf.l2j.gameserver.data.cache.CrestCache;
-import net.sf.l2j.gameserver.data.cache.CrestCache.CrestType;
 import net.sf.l2j.gameserver.data.manager.CastleManager;
+import net.sf.l2j.gameserver.data.manager.RelationManager;
 import net.sf.l2j.gameserver.data.sql.ClanTable;
+import net.sf.l2j.gameserver.enums.CrestType;
+import net.sf.l2j.gameserver.enums.PrivilegeType;
 import net.sf.l2j.gameserver.enums.SiegeSide;
 import net.sf.l2j.gameserver.enums.bbs.ForumAccess;
 import net.sf.l2j.gameserver.enums.bbs.ForumType;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.entity.Castle;
-import net.sf.l2j.gameserver.model.entity.Siege;
 import net.sf.l2j.gameserver.model.itemcontainer.ClanWarehouse;
 import net.sf.l2j.gameserver.model.itemcontainer.ItemContainer;
+import net.sf.l2j.gameserver.model.residence.castle.Castle;
+import net.sf.l2j.gameserver.model.residence.castle.Siege;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.ItemList;
 import net.sf.l2j.gameserver.network.serverpackets.L2GameServerPacket;
 import net.sf.l2j.gameserver.network.serverpackets.PledgeReceiveSubPledgeCreated;
 import net.sf.l2j.gameserver.network.serverpackets.PledgeShowInfoUpdate;
@@ -44,6 +43,7 @@ import net.sf.l2j.gameserver.network.serverpackets.PledgeShowMemberListDeleteAll
 import net.sf.l2j.gameserver.network.serverpackets.PledgeShowMemberListUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.PledgeSkillList;
 import net.sf.l2j.gameserver.network.serverpackets.PledgeSkillListAdd;
+import net.sf.l2j.gameserver.network.serverpackets.SkillList;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.network.serverpackets.UserInfo;
 import net.sf.l2j.gameserver.skills.L2Skill;
@@ -62,9 +62,9 @@ public class Clan
 	private static final String LOAD_PRIVILEGES = "SELECT ranking,privs FROM clan_privs WHERE clan_id=?";
 	private static final String LOAD_SKILLS = "SELECT skill_id,skill_level FROM clan_skills WHERE clan_id=?";
 	
-	private static final String RESET_MEMBER_PRIVS = "UPDATE characters SET clan_privs=0 WHERE obj_Id=?";
+	private static final String SET_MEMBER_POWER_GRADE = "UPDATE characters SET power_grade=? WHERE obj_Id=?";
 	
-	private static final String REMOVE_MEMBER = "UPDATE characters SET clanid=0, title=?, clan_join_expiry_time=?, clan_create_expiry_time=?, clan_privs=0, wantspeace=0, subpledge=0, lvl_joined_academy=0, apprentice=0, sponsor=0 WHERE obj_Id=?";
+	private static final String REMOVE_MEMBER = "UPDATE characters SET clanid=0, title=?, clan_join_expiry_time=?, clan_create_expiry_time=?, wantspeace=0, subpledge=0, lvl_joined_academy=0, apprentice=0, sponsor=0 WHERE obj_Id=?";
 	private static final String REMOVE_APPRENTICE = "UPDATE characters SET apprentice=0 WHERE apprentice=?";
 	private static final String REMOVE_SPONSOR = "UPDATE characters SET sponsor=0 WHERE sponsor=?";
 	
@@ -94,32 +94,6 @@ public class Clan
 	public static final int PENALTY_TYPE_CLAN_DISMISSED = 2;
 	public static final int PENALTY_TYPE_DISMISS_CLAN = 3;
 	public static final int PENALTY_TYPE_DISSOLVE_ALLY = 4;
-	
-	// Clan Privileges
-	public static final int CP_NOTHING = 0;
-	public static final int CP_CL_JOIN_CLAN = 2;
-	public static final int CP_CL_GIVE_TITLE = 4;
-	public static final int CP_CL_VIEW_WAREHOUSE = 8;
-	public static final int CP_CL_MANAGE_RANKS = 16;
-	public static final int CP_CL_PLEDGE_WAR = 32;
-	public static final int CP_CL_DISMISS = 64;
-	public static final int CP_CL_REGISTER_CREST = 128;
-	public static final int CP_CL_MASTER_RIGHTS = 256;
-	public static final int CP_CL_MANAGE_LEVELS = 512;
-	public static final int CP_CH_OPEN_DOOR = 1024;
-	public static final int CP_CH_USE_FUNCTIONS = 2048;
-	public static final int CP_CH_AUCTION = 4096;
-	public static final int CP_CH_DISMISS = 8192;
-	public static final int CP_CH_SET_FUNCTIONS = 16384;
-	public static final int CP_CS_OPEN_DOOR = 32768;
-	public static final int CP_CS_MANOR_ADMIN = 65536;
-	public static final int CP_CS_MANAGE_SIEGE = 131072;
-	public static final int CP_CS_USE_FUNCTIONS = 262144;
-	public static final int CP_CS_DISMISS = 524288;
-	public static final int CP_CS_TAXES = 1048576;
-	public static final int CP_CS_MERCENARIES = 2097152;
-	public static final int CP_CS_SET_FUNCTIONS = 4194304;
-	public static final int CP_ALL = 8388606;
 	
 	// Sub-unit types
 	public static final int SUBUNIT_ACADEMY = -1;
@@ -186,9 +160,6 @@ public class Clan
 	public Clan(int clanId, int leaderId)
 	{
 		_clanId = clanId;
-		
-		for (int i = 1; i < 10; i++)
-			_privileges.put(i, CP_NOTHING);
 		
 		try (Connection con = ConnectionPool.getConnection())
 		{
@@ -297,9 +268,6 @@ public class Clan
 		
 		_notice = "";
 		_introduction = "";
-		
-		for (int i = 1; i < 10; i++)
-			_privileges.put(i, CP_NOTHING);
 	}
 	
 	public String getName()
@@ -345,10 +313,22 @@ public class Clan
 	
 	public void setNewLeader(ClanMember member)
 	{
+		// Store references for future usage.
 		final Player newLeader = member.getPlayerInstance();
-		final ClanMember exMember = getLeader();
-		final Player exLeader = exMember.getPlayerInstance();
+		final Player exLeader = getLeader().getPlayerInstance();
 		
+		// Store references for future usage.
+		final int newLeaderId = member.getObjectId();
+		final int exLeaderId = getLeaderId();
+		
+		// Update leader and reset _newLeaderId references.
+		_leader = member;
+		_newLeaderId = 0;
+		
+		// Store in database.
+		updateClanInDB();
+		
+		// If the ex leader is found, make special actions.
 		if (exLeader != null)
 		{
 			if (exLeader.isFlying())
@@ -357,59 +337,41 @@ public class Clan
 			if (_level >= Config.MINIMUM_CLAN_LEVEL)
 				exLeader.removeSiegeSkills();
 			
-			exLeader.setClanPrivileges(CP_NOTHING);
-			exLeader.broadcastUserInfo();
-			
-		}
-		else
-		{
-			try (Connection con = ConnectionPool.getConnection();
-				PreparedStatement ps = con.prepareStatement(RESET_MEMBER_PRIVS))
-			{
-				ps.setInt(1, getLeaderId());
-				ps.executeUpdate();
-			}
-			catch (Exception e)
-			{
-				LOGGER.error("Couldn't update clan privs for old clan leader.", e);
-			}
-		}
-		
-		setLeader(member);
-		if (getNewLeaderId() != 0)
-			setNewLeaderId(0, true);
-		
-		updateClanInDB();
-		
-		if (exLeader != null)
-		{
+			exLeader.setPowerGrade(6);
 			exLeader.setPledgeClass(ClanMember.calculatePledgeClass(exLeader));
 			exLeader.broadcastUserInfo();
 			exLeader.checkItemRestriction();
 		}
 		
+		// If the new leader is found, make special actions.
 		if (newLeader != null)
 		{
+			newLeader.setPowerGrade(0);
 			newLeader.setPledgeClass(ClanMember.calculatePledgeClass(newLeader));
-			newLeader.setClanPrivileges(CP_ALL);
 			
 			if (_level >= Config.MINIMUM_CLAN_LEVEL)
 				newLeader.addSiegeSkills();
 			
 			newLeader.broadcastUserInfo();
 		}
-		else
+		
+		// Update power grades of both ex and new leader.
+		try (Connection con = ConnectionPool.getConnection();
+			PreparedStatement ps = con.prepareStatement(SET_MEMBER_POWER_GRADE))
 		{
-			try (Connection con = ConnectionPool.getConnection();
-				PreparedStatement ps = con.prepareStatement(RESET_MEMBER_PRIVS))
-			{
-				ps.setInt(1, getLeaderId());
-				ps.executeUpdate();
-			}
-			catch (Exception e)
-			{
-				LOGGER.error("Couldn't update clan privs for new clan leader.", e);
-			}
+			ps.setInt(1, 0);
+			ps.setInt(2, newLeaderId);
+			ps.addBatch();
+			
+			ps.setInt(1, 6);
+			ps.setInt(2, exLeaderId);
+			ps.addBatch();
+			
+			ps.executeBatch();
+		}
+		catch (Exception e)
+		{
+			LOGGER.error("Couldn't update clan privs.", e);
 		}
 		
 		broadcastClanStatus();
@@ -652,8 +614,10 @@ public class Clan
 	public void addClanMember(Player player)
 	{
 		final ClanMember member = new ClanMember(this, player);
-		_members.put(member.getObjectId(), member);
 		member.setPlayerInstance(player);
+		
+		_members.put(member.getObjectId(), member);
+		
 		player.setClan(this);
 		player.setPledgeClass(ClanMember.calculatePledgeClass(player));
 		
@@ -759,7 +723,7 @@ public class Clan
 			for (L2Skill skill : _skills.values())
 				player.removeSkill(skill.getId(), false);
 			
-			player.sendSkillList();
+			player.sendPacket(new SkillList(player));
 			player.setClan(null);
 			
 			// Players leaving from clan academy have no penalty.
@@ -866,15 +830,10 @@ public class Clan
 						return 40;
 				}
 				
-			case SUBUNIT_ACADEMY:
-			case SUBUNIT_ROYAL1:
-			case SUBUNIT_ROYAL2:
+			case SUBUNIT_ACADEMY, SUBUNIT_ROYAL1, SUBUNIT_ROYAL2:
 				return 20;
 			
-			case SUBUNIT_KNIGHT1:
-			case SUBUNIT_KNIGHT2:
-			case SUBUNIT_KNIGHT3:
-			case SUBUNIT_KNIGHT4:
+			case SUBUNIT_KNIGHT1, SUBUNIT_KNIGHT2, SUBUNIT_KNIGHT3, SUBUNIT_KNIGHT4:
 				return 10;
 		}
 		return 0;
@@ -1098,7 +1057,7 @@ public class Clan
 			if (!needRefresh && checkAndAddClanSkill(player, skill))
 			{
 				player.addSkill(skill, false);
-				player.sendSkillList();
+				player.sendPacket(new SkillList(player));
 			}
 			player.sendPacket(psla);
 			player.sendPacket(sm);
@@ -1138,7 +1097,7 @@ public class Clan
 		for (Player player : getOnlineMembers())
 		{
 			player.removeSkill(id, false);
-			player.sendSkillList();
+			player.sendPacket(new SkillList(player));
 			
 			player.sendPacket(psl);
 		}
@@ -1152,7 +1111,7 @@ public class Clan
 	public boolean addAllClanSkills()
 	{
 		// Build the complete List of skills to reward. If all skills are already learnt, don't process it.
-		final List<L2Skill> list = Arrays.stream(SkillTable.getClanSkills()).filter(s -> !_skills.containsKey(s.getId()) || _skills.get(s.getId()).getLevel() < s.getLevel()).collect(Collectors.toList());
+		final List<L2Skill> list = Arrays.stream(SkillTable.getInstance().getClanSkills()).filter(s -> !_skills.containsKey(s.getId()) || _skills.get(s.getId()).getLevel() < s.getLevel()).toList();
 		if (list.isEmpty())
 			return false;
 		
@@ -1186,7 +1145,7 @@ public class Clan
 		for (Player player : getOnlineMembers())
 		{
 			if (checkAndAddClanSkills(player))
-				player.sendSkillList();
+				player.sendPacket(new SkillList(player));
 			
 			player.sendPacket(psl);
 		}
@@ -1224,7 +1183,7 @@ public class Clan
 			for (L2Skill skill : _skills.values())
 				player.removeSkill(skill.getId(), false);
 			
-			player.sendSkillList();
+			player.sendPacket(new SkillList(player));
 			player.sendPacket(psl);
 		}
 		
@@ -1529,36 +1488,32 @@ public class Clan
 		}
 	}
 	
-	public final Map<Integer, Integer> getPrivileges()
+	public int getPrivilegesByRank(int rank)
 	{
-		return _privileges;
-	}
-	
-	public int getPrivilegesByRank(int ranking)
-	{
-		return _privileges.getOrDefault(ranking, CP_NOTHING);
+		return _privileges.getOrDefault(rank, PrivilegeType.NONE.getMask());
 	}
 	
 	/**
 	 * Update ranks privileges.
-	 * @param ranking : The ranking to edit.
+	 * @param rank : The rank to edit.
 	 * @param privs : The privileges to be set.
 	 */
-	public void setPrivilegesForRanking(int ranking, int privs)
+	public void setPrivilegesForRank(int rank, int privs)
 	{
 		// Avoid to bother with invalid rankings.
-		if (!_privileges.containsKey(ranking))
+		if (rank < 1 || rank > 9)
 			return;
 		
-		// Replace the privileges.
-		_privileges.put(ranking, privs);
-		
-		// Refresh online members privileges.
-		for (Player member : getOnlineMembers())
+		// Special treatment for rank 9, which is Academy Rank.
+		if (rank == 9)
 		{
-			if (member.getPowerGrade() == ranking)
-				member.setClanPrivileges(privs);
+			// Limit the passed privs in terms of possible rights.
+			privs = (privs & PrivilegeType.SP_WAREHOUSE_SEARCH.getMask()) + (privs & PrivilegeType.CHP_ENTRY_EXIT_RIGHTS.getMask()) + (privs & PrivilegeType.CHP_USE_FUNCTIONS.getMask()) + (privs & PrivilegeType.CP_ENTRY_EXIT_RIGHTS.getMask()) + (privs & PrivilegeType.CP_USE_FUNCTIONS.getMask());
 		}
+		
+		// Replace the privileges.
+		_privileges.put(rank, privs);
+		
 		broadcastClanStatus();
 		
 		// Update database.
@@ -1566,7 +1521,7 @@ public class Clan
 			PreparedStatement ps = con.prepareStatement(ADD_OR_UPDATE_PRIVILEGE))
 		{
 			ps.setInt(1, _clanId);
-			ps.setInt(2, ranking);
+			ps.setInt(2, rank);
 			ps.setInt(3, privs);
 			ps.executeUpdate();
 		}
@@ -1634,7 +1589,7 @@ public class Clan
 		// Store the online members (used in 2 positions, can't merge)
 		final Player[] members = getOnlineMembers();
 		
-		_reputationScore = MathUtil.limit(value, -100000000, 100000000);
+		_reputationScore = Math.clamp(value, -100000000, 100000000);
 		
 		// Refresh clan windows of all clan members, and reward/remove skills.
 		if (needRefresh)
@@ -1650,7 +1605,7 @@ public class Clan
 					for (L2Skill sk : skills)
 						member.removeSkill(sk.getId(), false);
 					
-					member.sendSkillList();
+					member.sendPacket(new SkillList(member));
 				}
 			}
 			else
@@ -1665,7 +1620,7 @@ public class Clan
 							member.addSkill(sk, false);
 					}
 					
-					member.sendSkillList();
+					member.sendPacket(new SkillList(member));
 				}
 			}
 		}
@@ -1733,7 +1688,7 @@ public class Clan
 		if (player == null)
 			return false;
 		
-		if (!player.hasClanPrivileges(CP_CL_JOIN_CLAN))
+		if (!player.hasClanPrivileges(PrivilegeType.SP_INVITE))
 		{
 			player.sendPacket(SystemMessageId.YOU_ARE_NOT_AUTHORIZED_TO_DO_THAT);
 			return false;
@@ -1751,13 +1706,13 @@ public class Clan
 			return false;
 		}
 		
-		if (target.getBlockList().isBlockingAll())
+		if (target.isBlockingAll())
 		{
 			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_BLOCKED_EVERYTHING).addCharName(target));
 			return false;
 		}
 		
-		if (target.getBlockList().isInBlockList(player))
+		if (RelationManager.getInstance().isInBlockList(target, player))
 		{
 			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_HAS_ADDED_YOU_TO_IGNORE_LIST).addCharName(target));
 			return false;
@@ -2034,7 +1989,7 @@ public class Clan
 		switch (_level)
 		{
 			case 0: // upgrade to 1
-				if (player.getStatus().getSp() >= 30000 && player.reduceAdena("ClanLvl", 650000, player.getTarget(), true))
+				if (player.getStatus().getSp() >= 30000 && player.reduceAdena(650000, true))
 				{
 					player.removeExpAndSp(0, 30000);
 					increaseClanLevel = true;
@@ -2042,7 +1997,7 @@ public class Clan
 				break;
 			
 			case 1: // upgrade to 2
-				if (player.getStatus().getSp() >= 150000 && player.reduceAdena("ClanLvl", 2500000, player.getTarget(), true))
+				if (player.getStatus().getSp() >= 150000 && player.reduceAdena(2500000, true))
 				{
 					player.removeExpAndSp(0, 150000);
 					increaseClanLevel = true;
@@ -2050,7 +2005,7 @@ public class Clan
 				break;
 			
 			case 2:// upgrade to 3
-				if (player.getStatus().getSp() >= 500000 && player.destroyItemByItemId("ClanLvl", 1419, 1, player.getTarget(), true))
+				if (player.getStatus().getSp() >= 500000 && player.destroyItemByItemId(1419, 1, true))
 				{
 					player.removeExpAndSp(0, 500000);
 					increaseClanLevel = true;
@@ -2058,7 +2013,7 @@ public class Clan
 				break;
 			
 			case 3: // upgrade to 4
-				if (player.getStatus().getSp() >= 1400000 && player.destroyItemByItemId("ClanLvl", 3874, 1, player.getTarget(), true))
+				if (player.getStatus().getSp() >= 1400000 && player.destroyItemByItemId(3874, 1, true))
 				{
 					player.removeExpAndSp(0, 1400000);
 					increaseClanLevel = true;
@@ -2066,7 +2021,7 @@ public class Clan
 				break;
 			
 			case 4: // upgrade to 5
-				if (player.getStatus().getSp() >= 3500000 && player.destroyItemByItemId("ClanLvl", 3870, 1, player.getTarget(), true))
+				if (player.getStatus().getSp() >= 3500000 && player.destroyItemByItemId(3870, 1, true))
 				{
 					player.removeExpAndSp(0, 3500000);
 					increaseClanLevel = true;
@@ -2106,8 +2061,6 @@ public class Clan
 			player.sendPacket(SystemMessageId.FAILED_TO_INCREASE_CLAN_LEVEL);
 			return false;
 		}
-		
-		player.sendPacket(new ItemList(player, false));
 		
 		changeLevel(_level + 1);
 		return true;

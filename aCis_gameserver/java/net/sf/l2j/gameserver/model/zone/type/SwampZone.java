@@ -6,7 +6,7 @@ import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.zone.type.subtype.CastleZoneType;
 
 /**
- * A zone extending {@link CastleZoneType}, which fires a task on the first character entrance, notably used by castle slow traps.<br>
+ * A zone extending {@link CastleZoneType}, which fires a task on the first {@link Creature} entrance, notably used by castle slow traps.<br>
  * <br>
  * This task slows down {@link Player}s.
  */
@@ -29,23 +29,23 @@ public class SwampZone extends CastleZoneType
 	}
 	
 	@Override
-	protected void onEnter(Creature character)
+	protected void onEnter(Creature creature)
 	{
 		// Castle traps are active only during siege, or if they're activated.
 		if (getCastle() != null && (!isEnabled() || !getCastle().getSiege().isInProgress()))
 			return;
 		
-		character.setInsideZone(ZoneId.SWAMP, true);
-		if (character instanceof Player)
-			((Player) character).broadcastUserInfo();
+		creature.setInsideZone(ZoneId.SWAMP, true);
+		if (creature instanceof Player player)
+			player.broadcastUserInfo();
 	}
 	
 	@Override
-	protected void onExit(Creature character)
+	protected void onExit(Creature creature)
 	{
-		character.setInsideZone(ZoneId.SWAMP, false);
-		if (character instanceof Player)
-			((Player) character).broadcastUserInfo();
+		creature.setInsideZone(ZoneId.SWAMP, false);
+		if (creature instanceof Player player)
+			player.broadcastUserInfo();
 	}
 	
 	public int getMoveBonus()

@@ -2,10 +2,8 @@ package net.sf.l2j.gameserver.scripting.quest;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import net.sf.l2j.gameserver.enums.QuestStatus;
-import net.sf.l2j.gameserver.model.actor.Attackable;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
@@ -13,6 +11,7 @@ import net.sf.l2j.gameserver.model.location.SpawnLocation;
 import net.sf.l2j.gameserver.network.NpcStringId;
 import net.sf.l2j.gameserver.scripting.Quest;
 import net.sf.l2j.gameserver.scripting.QuestState;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class Q025_HidingBehindTheTruth extends Quest
 {
@@ -46,34 +45,29 @@ public class Q025_HidingBehindTheTruth extends Quest
 	private static final int TRIOL_PAWN = 27218;
 	
 	// Spawns
-	private static final Map<Integer, SpawnLocation> TRIOL_SPAWNS = new HashMap<>(3);
-	{
-		TRIOL_SPAWNS.put(BROKEN_BOOKSHELF_1, new SpawnLocation(47142, -35941, -1623, 0));
-		TRIOL_SPAWNS.put(BROKEN_BOOKSHELF_2, new SpawnLocation(50055, -47020, -3396, 0));
-		TRIOL_SPAWNS.put(BROKEN_BOOKSHELF_3, new SpawnLocation(59712, -47568, -2720, 0));
-	}
+	private static final Map<Integer, SpawnLocation> TRIOL_SPAWNS = HashMap.newHashMap(3);
 	
 	// Sound
 	private static final String SOUND_HORROR_1 = "SkillSound5.horror_01";
 	private static final String SOUND_HORROR_2 = "AmdSound.dd_horror_02";
 	private static final String SOUND_CRY = "ChrSound.FDElf_Cry";
 	
-	private final Map<Npc, Attackable> _triolPawns = new ConcurrentHashMap<>(3);
-	private Npc _coffin;
-	
 	public Q025_HidingBehindTheTruth()
 	{
 		super(25, "Hiding Behind the Truth");
 		
+		TRIOL_SPAWNS.put(BROKEN_BOOKSHELF_1, new SpawnLocation(47142, -35941, -1623, 0));
+		TRIOL_SPAWNS.put(BROKEN_BOOKSHELF_2, new SpawnLocation(50055, -47020, -3396, 0));
+		TRIOL_SPAWNS.put(BROKEN_BOOKSHELF_3, new SpawnLocation(59712, -47568, -2720, 0));
+		
 		// Note: FOREST_OF_DEADMAN_MAP and SUSPICIOUS_TOTEM_DOLL_2 are items from previous quests, should not be added.
 		setItemsIds(CONTRACT, LIDIA_DRESS, GEMSTONE_KEY, SUSPICIOUS_TOTEM_DOLL_3);
 		
-		addStartNpc(BENEDICT);
+		addQuestStart(BENEDICT);
 		addTalkId(AGRIPEL, BENEDICT, MYSTERIOUS_WIZARD, TOMBSTONE, MAID_OF_LIDIA, BROKEN_BOOKSHELF_1, BROKEN_BOOKSHELF_2, BROKEN_BOOKSHELF_3, COFFIN);
 		addFirstTalkId(MAID_OF_LIDIA);
 		
-		addKillId(TRIOL_PAWN);
-		addDecayId(TRIOL_PAWN, COFFIN);
+		addAttacked(TRIOL_PAWN);
 	}
 	
 	@Override
@@ -95,7 +89,7 @@ public class Q025_HidingBehindTheTruth extends Quest
 		else if (event.equalsIgnoreCase("31349-04.htm"))
 		{
 			// Suspicious Totem is lost, redirect to Mysterious Wizard to obtain it again
-			if (!player.getInventory().hasItems(SUSPICIOUS_TOTEM_DOLL_2))
+			if (!player.getInventory().hasItem(SUSPICIOUS_TOTEM_DOLL_2))
 			{
 				htmltext = "31349-05.htm";
 				if (st.getCond() == 1)
@@ -195,22 +189,18 @@ public class Q025_HidingBehindTheTruth extends Quest
 		}
 		else if (event.equalsIgnoreCase("3153x-07.htm"))
 		{
-			if (!player.getInventory().hasItems(SUSPICIOUS_TOTEM_DOLL_3))
+			if (!player.getInventory().hasItem(SUSPICIOUS_TOTEM_DOLL_3))
 			{
-				Attackable triolPawn = _triolPawns.get(npc);
-				if (triolPawn == null)
+				if (npc.getMinions().isEmpty())
 				{
-					triolPawn = (Attackable) addSpawn(TRIOL_PAWN, TRIOL_SPAWNS.get(npc.getNpcId()), false, 120000, true);
-					triolPawn.forceAttack(player, 20000);
-					triolPawn.setScriptValue(player.getObjectId());
+					Npc triolPawn = createOnePrivateEx(npc, TRIOL_PAWN, TRIOL_SPAWNS.get(npc.getNpcId()), 120000, true);
 					triolPawn.broadcastNpcSay(NpcStringId.ID_2550, player.getName());
-					
-					_triolPawns.put(npc, triolPawn);
+					triolPawn.setScriptValue(player.getObjectId());
 					
 					st.setCond(7);
 					playSound(player, SOUND_MIDDLE);
 				}
-				else if (triolPawn.getScriptValue() == player.getObjectId())
+				else if (npc.getMinions().iterator().next().getScriptValue() == player.getObjectId())
 					htmltext = "3153x-08.htm";
 				else
 					htmltext = "3153x-09.htm";
@@ -278,24 +268,30 @@ public class Q025_HidingBehindTheTruth extends Quest
 		{
 			st.setCond(12);
 			playSound(player, SOUND_MIDDLE);
-			if (_coffin == null)
-				_coffin = addSpawn(COFFIN, 60104, -35820, -681, 0, false, 20000, true);
+			
+			if (npc.getMinions().isEmpty())
+				createOnePrivateEx(npc, COFFIN, 60104, -35820, -681, 0, 20000, true);
 		}
 		
 		return htmltext;
 	}
 	
 	@Override
-	public String onDecay(Npc npc)
+	public void onAttacked(Npc npc, Creature attacker, int damage, L2Skill skill)
 	{
-		if (_coffin == npc)
-		{
-			_coffin = null;
-		}
-		else
-			_triolPawns.values().remove(npc);
+		final Player player = attacker.getActingPlayer();
 		
-		return null;
+		final QuestState st = checkPlayerCondition(player, npc, 7);
+		if (st == null)
+			return;
+		
+		if (player.getObjectId() == npc.getScriptValue() && npc.getStatus().getHpRatio() < 0.3 && dropItemsAlways(player, SUSPICIOUS_TOTEM_DOLL_3, 1, 1))
+		{
+			st.setCond(8);
+			
+			npc.broadcastNpcSay(NpcStringId.ID_2551);
+			npc.deleteMe();
+		}
 	}
 	
 	@Override
@@ -360,7 +356,7 @@ public class Q025_HidingBehindTheTruth extends Quest
 					case MYSTERIOUS_WIZARD:
 						if (state == 1)
 						{
-							if (!player.getInventory().hasItems(SUSPICIOUS_TOTEM_DOLL_2))
+							if (!player.getInventory().hasItem(SUSPICIOUS_TOTEM_DOLL_2))
 							{
 								htmltext = "31522-01.htm";
 								st.setCond(3);
@@ -380,7 +376,7 @@ public class Q025_HidingBehindTheTruth extends Quest
 						{
 							htmltext = "31522-06.htm";
 							
-							if (st.getCond() != 10 && player.getInventory().hasItems(CONTRACT))
+							if (st.getCond() != 10 && player.getInventory().hasItem(CONTRACT))
 							{
 								st.setCond(10);
 								playSound(player, SOUND_MIDDLE);
@@ -400,9 +396,7 @@ public class Q025_HidingBehindTheTruth extends Quest
 							htmltext = "31522-15.htm";
 						break;
 					
-					case BROKEN_BOOKSHELF_1:
-					case BROKEN_BOOKSHELF_2:
-					case BROKEN_BOOKSHELF_3:
+					case BROKEN_BOOKSHELF_1, BROKEN_BOOKSHELF_2, BROKEN_BOOKSHELF_3:
 						if (state == 7)
 						{
 							// Investigating bookshelves, check if current one has been opened.
@@ -456,7 +450,7 @@ public class Q025_HidingBehindTheTruth extends Quest
 					
 					case TOMBSTONE:
 						if (state == 11)
-							htmltext = (_coffin == null) ? "31531-01.htm" : "31531-02.htm";
+							htmltext = (npc.getMinions().isEmpty()) ? "31531-01.htm" : "31531-02.htm";
 						else if (state > 11)
 							htmltext = "31531-03.htm";
 						break;
@@ -470,7 +464,7 @@ public class Q025_HidingBehindTheTruth extends Quest
 							playSound(player, SOUND_MIDDLE);
 							giveItems(player, LIDIA_DRESS, 1);
 							
-							_coffin.deleteMe();
+							npc.deleteMe();
 						}
 						break;
 				}
@@ -482,26 +476,5 @@ public class Q025_HidingBehindTheTruth extends Quest
 		}
 		
 		return htmltext;
-	}
-	
-	@Override
-	public String onKill(Npc npc, Creature killer)
-	{
-		final Player player = killer.getActingPlayer();
-		
-		final QuestState st = checkPlayerCondition(player, npc, 7);
-		if (st == null)
-			return null;
-		
-		if (player.getObjectId() != npc.getScriptValue())
-			return null;
-		
-		if (dropItemsAlways(player, SUSPICIOUS_TOTEM_DOLL_3, 1, 1))
-		{
-			st.setCond(8);
-			npc.broadcastNpcSay(NpcStringId.ID_2551);
-		}
-		
-		return null;
 	}
 }

@@ -20,24 +20,24 @@ import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.SkillTable;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Npc;
-import net.sf.l2j.gameserver.model.holder.BuffSkillHolder;
+import net.sf.l2j.gameserver.model.records.BuffSkill;
 import net.sf.l2j.gameserver.skills.L2Skill;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 
 /**
- * Loads and stores available {@link BuffSkillHolder}s for the integrated scheme buffer.<br>
+ * Loads and stores available {@link BuffSkill}s for the integrated scheme buffer.<br>
  * Loads and stores Players' buff schemes into _schemesTable (under a {@link String} name and a {@link List} of {@link Integer} skill ids).
  */
 public class BufferManager implements IXmlReader
 {
 	private static final String LOAD_SCHEMES = "SELECT * FROM buffer_schemes";
-	private static final String DELETE_SCHEMES = "TRUNCATE TABLE buffer_schemes";
+	private static final String TRUNCATE_SCHEMES = "TRUNCATE buffer_schemes";
 	private static final String INSERT_SCHEME = "INSERT INTO buffer_schemes (object_id, scheme_name, skills) VALUES (?,?,?)";
 	
 	private final Map<Integer, Map<String, ArrayList<Integer>>> _schemesTable = new ConcurrentHashMap<>();
-	private final Map<Integer, BuffSkillHolder> _availableBuffs = new LinkedHashMap<>();
+	private final Map<Integer, BuffSkill> _availableBuffs = new LinkedHashMap<>();
 	
 	protected BufferManager()
 	{
@@ -65,7 +65,7 @@ public class BufferManager implements IXmlReader
 					if (skill.isEmpty())
 						break;
 					
-					final int skillId = Integer.valueOf(skill);
+					final int skillId = Integer.parseInt(skill);
 					
 					// Integrity check to see if the skillId is available as a buff.
 					if (_availableBuffs.containsKey(skillId))
@@ -91,7 +91,11 @@ public class BufferManager implements IXmlReader
 			{
 				final NamedNodeMap attrs = buffNode.getAttributes();
 				final int skillId = parseInteger(attrs, "id");
-				_availableBuffs.put(skillId, new BuffSkillHolder(skillId, parseInteger(attrs, "level", SkillTable.getInstance().getMaxLevel(skillId)), parseInteger(attrs, "price", 0), category, parseString(attrs, "desc", "")));
+				final int skillLvl = parseInteger(attrs, "level", SkillTable.getInstance().getMaxLevel(skillId));
+				final int price = parseInteger(attrs, "price", 0);
+				final String desc = parseString(attrs, "desc", "");
+				
+				_availableBuffs.put(skillId, new BuffSkill(skillId, skillLvl, price, category, desc));
 			});
 		}));
 	}
@@ -103,7 +107,7 @@ public class BufferManager implements IXmlReader
 		try (Connection con = ConnectionPool.getConnection())
 		{
 			// Delete all entries from database.
-			try (PreparedStatement ps = con.prepareStatement(DELETE_SCHEMES))
+			try (PreparedStatement ps = con.prepareStatement(TRUNCATE_SCHEMES))
 			{
 				ps.execute();
 			}
@@ -194,7 +198,7 @@ public class BufferManager implements IXmlReader
 	{
 		for (int skillId : getScheme(playerId, schemeName))
 		{
-			final BuffSkillHolder holder = getAvailableBuff(skillId);
+			final BuffSkill holder = getAvailableBuff(skillId);
 			if (holder != null)
 			{
 				final L2Skill skill = holder.getSkill();
@@ -222,10 +226,10 @@ public class BufferManager implements IXmlReader
 	public List<Integer> getSkillsIdsByType(String groupType)
 	{
 		final List<Integer> skills = new ArrayList<>();
-		for (BuffSkillHolder holder : _availableBuffs.values())
+		for (BuffSkill holder : _availableBuffs.values())
 		{
-			if (holder.getType().equalsIgnoreCase(groupType))
-				skills.add(holder.getId());
+			if (holder.type().equalsIgnoreCase(groupType))
+				skills.add(holder.id());
 		}
 		return skills;
 	}
@@ -236,20 +240,20 @@ public class BufferManager implements IXmlReader
 	public List<String> getSkillTypes()
 	{
 		final List<String> skillTypes = new ArrayList<>();
-		for (BuffSkillHolder holder : _availableBuffs.values())
+		for (BuffSkill holder : _availableBuffs.values())
 		{
-			if (!skillTypes.contains(holder.getType()))
-				skillTypes.add(holder.getType());
+			if (!skillTypes.contains(holder.type()))
+				skillTypes.add(holder.type());
 		}
 		return skillTypes;
 	}
 	
-	public BuffSkillHolder getAvailableBuff(int skillId)
+	public BuffSkill getAvailableBuff(int skillId)
 	{
 		return _availableBuffs.get(skillId);
 	}
 	
-	public Map<Integer, BuffSkillHolder> getAvailableBuffs()
+	public Map<Integer, BuffSkill> getAvailableBuffs()
 	{
 		return _availableBuffs;
 	}

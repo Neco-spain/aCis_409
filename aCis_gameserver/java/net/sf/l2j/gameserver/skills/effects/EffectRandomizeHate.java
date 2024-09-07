@@ -22,13 +22,13 @@ public class EffectRandomizeHate extends AbstractEffect
 	@Override
 	public boolean onStart()
 	{
-		if (!(getEffected() instanceof Attackable))
+		if (!(getEffected() instanceof Attackable targetAttackable))
 			return false;
 			
-		// if (getEffected().isUnresponsive()) TODO
+		// if (targetAttackable.isUnresponsive()) TODO
 		// return false;
 		
-		((Attackable) getEffected()).getAggroList().randomizeAttack();
+		targetAttackable.getAI().getAggroList().randomizeAttack();
 		
 		return true;
 	}
@@ -36,6 +36,7 @@ public class EffectRandomizeHate extends AbstractEffect
 	@Override
 	public void onExit()
 	{
+		// Do nothing.
 	}
 	
 	@Override

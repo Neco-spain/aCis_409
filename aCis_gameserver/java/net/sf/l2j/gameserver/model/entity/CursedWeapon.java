@@ -22,6 +22,7 @@ import net.sf.l2j.gameserver.model.location.Location;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.Earthquake;
 import net.sf.l2j.gameserver.network.serverpackets.ExRedSky;
+import net.sf.l2j.gameserver.network.serverpackets.SkillList;
 import net.sf.l2j.gameserver.network.serverpackets.SocialAction;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.network.serverpackets.UserInfo;
@@ -42,7 +43,7 @@ import net.sf.l2j.gameserver.skills.L2Skill;
  */
 public class CursedWeapon
 {
-	protected static final CLogger LOGGER = new CLogger(CursedWeapon.class.getName());
+	private static final CLogger LOGGER = new CLogger(CursedWeapon.class.getName());
 	
 	private static final String LOAD_CW = "SELECT * FROM cursed_weapons WHERE itemId=?";
 	private static final String DELETE_ITEM = "DELETE FROM items WHERE owner_id=? AND item_id=?";
@@ -269,7 +270,7 @@ public class CursedWeapon
 				
 				// Unequip && remove.
 				_player.useEquippableItem(_item, true);
-				_player.destroyItemByItemId("CW", _itemId, 1, _player, false);
+				_player.destroyItemByItemId(_itemId, 1, false);
 				
 				_player.broadcastUserInfo();
 				
@@ -308,7 +309,7 @@ public class CursedWeapon
 			// This CW is in the inventory of someone who has another cursed weapon equipped.
 			if (_player != null && _player.getInventory().getItemByItemId(_itemId) != null)
 			{
-				_player.destroyItemByItemId("CW", _itemId, 1, _player, false);
+				_player.destroyItemByItemId(_itemId, 1, false);
 				LOGGER.info("{} has been assimilated.", _name);
 			}
 			// This CW is on the ground.
@@ -387,7 +388,7 @@ public class CursedWeapon
 		
 		// Prevent item from being removed by ItemsAutoDestroy.
 		_item.setDestroyProtected(true);
-		_player.dropItem("DieDrop", _item, killer, true);
+		_player.dropItem(_item, true);
 		
 		_isActivated = false;
 		_isDropped = true;
@@ -424,7 +425,7 @@ public class CursedWeapon
 		_isActivated = false;
 		
 		// Create item and drop it.
-		_item = ItemInstance.create(_itemId, 1, player, attackable);
+		_item = ItemInstance.create(_itemId, 1);
 		_item.setDestroyProtected(true);
 		_item.dropMe(attackable, 70);
 		
@@ -477,14 +478,14 @@ public class CursedWeapon
 		if (skill != null)
 		{
 			_player.addSkill(skill, false);
-			_player.sendSkillList();
+			_player.sendPacket(new SkillList(_player));
 		}
 	}
 	
 	private void removeDemonicSkills()
 	{
 		_player.removeSkill(_skillId, false);
-		_player.sendSkillList();
+		_player.sendPacket(new SkillList(_player));
 	}
 	
 	/**

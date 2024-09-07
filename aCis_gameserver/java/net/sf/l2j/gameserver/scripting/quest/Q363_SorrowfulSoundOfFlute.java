@@ -33,7 +33,7 @@ public class Q363_SorrowfulSoundOfFlute extends Quest
 		
 		setItemsIds(NANARIN_FLUTE, BLACK_BEER, CLOTHES);
 		
-		addStartNpc(NANARIN);
+		addQuestStart(NANARIN);
 		addTalkId(NANARIN, OPIX, ALDO, RANSPO, HOLVAS, BARBADO, POITAN);
 	}
 	
@@ -115,11 +115,7 @@ public class Q363_SorrowfulSoundOfFlute extends Quest
 						}
 						break;
 					
-					case OPIX:
-					case POITAN:
-					case ALDO:
-					case RANSPO:
-					case HOLVAS:
+					case OPIX, POITAN, ALDO, RANSPO, HOLVAS:
 						htmltext = npc.getNpcId() + "-01.htm";
 						if (cond == 1)
 						{
@@ -134,7 +130,7 @@ public class Q363_SorrowfulSoundOfFlute extends Quest
 							st.setCond(4);
 							playSound(player, SOUND_MIDDLE);
 							
-							if (player.getInventory().hasItems(NANARIN_FLUTE))
+							if (player.getInventory().hasItem(NANARIN_FLUTE))
 							{
 								htmltext = "30959-02.htm";
 								st.set("success", 1);

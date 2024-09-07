@@ -10,6 +10,7 @@ public final class RequestPledgeMemberList extends L2GameClientPacket
 	@Override
 	protected void readImpl()
 	{
+		// Do nothing.
 	}
 	
 	@Override

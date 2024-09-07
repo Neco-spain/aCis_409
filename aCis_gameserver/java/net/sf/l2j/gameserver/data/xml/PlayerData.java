@@ -11,9 +11,9 @@ import net.sf.l2j.commons.data.xml.IXmlReader;
 
 import net.sf.l2j.gameserver.enums.actors.ClassId;
 import net.sf.l2j.gameserver.model.actor.template.PlayerTemplate;
-import net.sf.l2j.gameserver.model.holder.ItemTemplateHolder;
 import net.sf.l2j.gameserver.model.holder.skillnode.GeneralSkillNode;
 import net.sf.l2j.gameserver.model.location.Location;
+import net.sf.l2j.gameserver.model.records.NewbieItem;
 
 import org.w3c.dom.Document;
 
@@ -53,8 +53,8 @@ public class PlayerData implements IXmlReader
 			forEach(classNode, "set", setNode -> set.putAll(parseAttributes(setNode)));
 			forEach(classNode, "items", itemsNode ->
 			{
-				final List<ItemTemplateHolder> items = new ArrayList<>();
-				forEach(itemsNode, "item", itemNode -> items.add(new ItemTemplateHolder(parseAttributes(itemNode))));
+				final List<NewbieItem> items = new ArrayList<>();
+				forEach(itemsNode, "item", itemNode -> items.add(new NewbieItem(parseAttributes(itemNode))));
 				set.set("items", items);
 			});
 			forEach(classNode, "skills", skillsNode ->

@@ -2,11 +2,6 @@ package net.sf.l2j.commons.math;
 
 import java.util.Arrays;
 
-/*
- * Modified for Trove to use the java.util.Arrays sort/search
- * algorithms instead of those provided with colt.
- */
-
 /**
  * Used to keep hash table capacities prime numbers. Not of interest for users; only for implementors of hashtables.
  * <p>
@@ -20,6 +15,11 @@ import java.util.Arrays;
  */
 public final class PrimeFinder
 {
+	private PrimeFinder()
+	{
+		throw new IllegalStateException("Utility class");
+	}
+	
 	/**
 	 * The largest prime this class can generate; currently equal to <tt>Integer.MAX_VALUE</tt>.
 	 */

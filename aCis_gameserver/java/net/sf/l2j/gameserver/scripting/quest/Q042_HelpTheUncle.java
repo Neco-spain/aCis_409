@@ -31,10 +31,10 @@ public class Q042_HelpTheUncle extends Quest
 		
 		setItemsIds(MAP_PIECE, MAP);
 		
-		addStartNpc(WATERS);
+		addQuestStart(WATERS);
 		addTalkId(WATERS, SOPHYA);
 		
-		addKillId(MONSTER_EYE_DESTROYER, MONSTER_EYE_GAZER);
+		addMyDying(MONSTER_EYE_DESTROYER, MONSTER_EYE_GAZER);
 	}
 	
 	@Override
@@ -51,7 +51,7 @@ public class Q042_HelpTheUncle extends Quest
 			st.setCond(1);
 			playSound(player, SOUND_ACCEPT);
 		}
-		else if (event.equalsIgnoreCase("30828-03.htm") && player.getInventory().hasItems(TRIDENT))
+		else if (event.equalsIgnoreCase("30828-03.htm") && player.getInventory().hasItem(TRIDENT))
 		{
 			st.setCond(2);
 			playSound(player, SOUND_MIDDLE);
@@ -100,7 +100,7 @@ public class Q042_HelpTheUncle extends Quest
 				{
 					case WATERS:
 						if (cond == 1)
-							htmltext = (!player.getInventory().hasItems(TRIDENT)) ? "30828-01a.htm" : "30828-02.htm";
+							htmltext = (!player.getInventory().hasItem(TRIDENT)) ? "30828-01a.htm" : "30828-02.htm";
 						else if (cond == 2)
 							htmltext = "30828-03a.htm";
 						else if (cond == 3)
@@ -129,17 +129,15 @@ public class Q042_HelpTheUncle extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerCondition(player, npc, 2);
 		if (st == null)
-			return null;
+			return;
 		
 		if (dropItemsAlways(player, MAP_PIECE, 1, 30))
 			st.setCond(3);
-		
-		return null;
 	}
 }

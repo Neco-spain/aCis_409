@@ -29,11 +29,11 @@ public class ElmoredenCemeteryTeleporter extends Quest
 		
 		if (event.equalsIgnoreCase("4S"))
 		{
-			if (player.getInventory().hasItems(ANTIQUE_BROOCH))
+			if (player.getInventory().hasItem(ANTIQUE_BROOCH))
 			{
 				player.teleportTo(FOUR_SEPULCHERS_LOC, 0);
 			}
-			else if (player.getInventory().hasItems(USED_GRAVE_PASS))
+			else if (player.getInventory().hasItem(USED_GRAVE_PASS))
 			{
 				takeItems(player, USED_GRAVE_PASS, 1);
 				player.teleportTo(FOUR_SEPULCHERS_LOC, 0);
@@ -43,11 +43,11 @@ public class ElmoredenCemeteryTeleporter extends Quest
 		}
 		else if (event.equalsIgnoreCase("IT"))
 		{
-			if (player.getInventory().hasItems(ANTIQUE_BROOCH))
+			if (player.getInventory().hasItem(ANTIQUE_BROOCH))
 			{
 				player.teleportTo(IMPERIAL_TOMB_LOC, 0);
 			}
-			else if (player.getInventory().hasItems(USED_GRAVE_PASS))
+			else if (player.getInventory().hasItem(USED_GRAVE_PASS))
 			{
 				takeItems(player, USED_GRAVE_PASS, 1);
 				player.teleportTo(IMPERIAL_TOMB_LOC, 0);

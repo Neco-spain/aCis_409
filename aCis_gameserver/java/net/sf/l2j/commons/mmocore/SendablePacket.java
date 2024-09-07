@@ -1,6 +1,7 @@
 package net.sf.l2j.commons.mmocore;
 
 import net.sf.l2j.gameserver.model.location.Location;
+import net.sf.l2j.gameserver.model.records.EffectHolder;
 
 public abstract class SendablePacket<T extends MMOClient<?>> extends AbstractPacket<T>
 {
@@ -33,18 +34,16 @@ public abstract class SendablePacket<T extends MMOClient<?>> extends AbstractPac
 	
 	protected final void writeB(final byte[] data)
 	{
-		_buf.put(data);
+		if (data != null && data.length > 0)
+			_buf.put(data);
 	}
 	
 	protected final void writeS(final String text)
 	{
-		if (text != null)
+		if (text != null && !text.isEmpty())
 		{
-			final int len = text.length();
-			for (int i = 0; i < len; i++)
-			{
+			for (int i = 0; i < text.length(); i++)
 				_buf.putChar(text.charAt(i));
-			}
 		}
 		
 		_buf.putChar('\000');
@@ -52,8 +51,15 @@ public abstract class SendablePacket<T extends MMOClient<?>> extends AbstractPac
 	
 	protected final void writeLoc(final Location loc)
 	{
-		_buf.putInt(loc.getX());
-		_buf.putInt(loc.getY());
-		_buf.putInt(loc.getZ());
+		writeD(loc.getX());
+		writeD(loc.getY());
+		writeD(loc.getZ());
+	}
+	
+	protected void writeEffect(EffectHolder effect, boolean toggle)
+	{
+		writeD(effect.id());
+		writeH(effect.level());
+		writeD((toggle) ? -1 : effect.duration() / 1000);
 	}
 }

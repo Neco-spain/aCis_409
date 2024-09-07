@@ -24,7 +24,7 @@ public class Q383_SearchingForTreasure extends Quest
 	{
 		super(383, "Searching for Treasure");
 		
-		addStartNpc(ESPEN);
+		addQuestStart(ESPEN);
 		addTalkId(ESPEN, PIRATE_CHEST);
 	}
 	
@@ -39,7 +39,7 @@ public class Q383_SearchingForTreasure extends Quest
 		if (event.equalsIgnoreCase("30890-04.htm"))
 		{
 			// Sell the map.
-			if (player.getInventory().hasItems(PIRATE_TREASURE_MAP))
+			if (player.getInventory().hasItem(PIRATE_TREASURE_MAP))
 			{
 				takeItems(player, PIRATE_TREASURE_MAP, 1);
 				rewardItems(player, 57, 1000);
@@ -50,7 +50,7 @@ public class Q383_SearchingForTreasure extends Quest
 		else if (event.equalsIgnoreCase("30890-07.htm"))
 		{
 			// Listen the story.
-			if (player.getInventory().hasItems(PIRATE_TREASURE_MAP))
+			if (player.getInventory().hasItem(PIRATE_TREASURE_MAP))
 			{
 				st.setState(QuestStatus.STARTED);
 				st.setCond(1);
@@ -62,7 +62,7 @@ public class Q383_SearchingForTreasure extends Quest
 		else if (event.equalsIgnoreCase("30890-11.htm"))
 		{
 			// Decipher the map.
-			if (player.getInventory().hasItems(PIRATE_TREASURE_MAP))
+			if (player.getInventory().hasItem(PIRATE_TREASURE_MAP))
 			{
 				st.setCond(2);
 				playSound(player, SOUND_MIDDLE);
@@ -73,7 +73,7 @@ public class Q383_SearchingForTreasure extends Quest
 		}
 		else if (event.equalsIgnoreCase("31148-02.htm"))
 		{
-			if (player.getInventory().hasItems(THIEF_KEY))
+			if (player.getInventory().hasItem(THIEF_KEY))
 			{
 				takeItems(player, THIEF_KEY, 1);
 				
@@ -173,7 +173,7 @@ public class Q383_SearchingForTreasure extends Quest
 		switch (st.getState())
 		{
 			case CREATED:
-				htmltext = (player.getStatus().getLevel() < 42 || !player.getInventory().hasItems(PIRATE_TREASURE_MAP)) ? "30890-01.htm" : "30890-02.htm";
+				htmltext = (player.getStatus().getLevel() < 42 || !player.getInventory().hasItem(PIRATE_TREASURE_MAP)) ? "30890-01.htm" : "30890-02.htm";
 				break;
 			
 			case STARTED:

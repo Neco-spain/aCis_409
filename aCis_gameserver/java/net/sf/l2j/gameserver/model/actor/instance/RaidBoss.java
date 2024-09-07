@@ -1,20 +1,14 @@
 package net.sf.l2j.gameserver.model.actor.instance;
 
-import java.util.concurrent.ScheduledFuture;
-
-import net.sf.l2j.commons.pool.ThreadPool;
 import net.sf.l2j.commons.random.Rnd;
 
-import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.manager.HeroManager;
-import net.sf.l2j.gameserver.data.manager.RaidBossManager;
 import net.sf.l2j.gameserver.data.manager.RaidPointManager;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
 import net.sf.l2j.gameserver.model.group.CommandChannel;
 import net.sf.l2j.gameserver.model.group.Party;
-import net.sf.l2j.gameserver.model.spawn.Spawn;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.PlaySound;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
@@ -30,66 +24,23 @@ import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
  */
 public class RaidBoss extends Monster
 {
-	private ScheduledFuture<?> _maintenanceTask;
-	
 	public RaidBoss(int objectId, NpcTemplate template)
 	{
 		super(objectId, template);
 		
-		setRaid(true);
+		setRaidRelated();
 	}
 	
 	@Override
-	public void onSpawn()
+	public int getSeeRange()
 	{
-		// No random walk allowed.
-		setNoRndWalk(true);
-		
-		// Basic behavior.
-		super.onSpawn();
-		
-		// "AI task" for regular bosses.
-		_maintenanceTask = ThreadPool.scheduleAtFixedRate(() ->
-		{
-			// Don't bother with dead bosses.
-			if (!isDead())
-			{
-				// The boss isn't in combat, check the teleport possibility.
-				if (!isInCombat())
-				{
-					// Gordon is excluded too.
-					if (getNpcId() != 29095 && Rnd.nextBoolean())
-					{
-						// Spawn must exist.
-						final Spawn spawn = getSpawn();
-						if (spawn == null)
-							return;
-						
-						// If the boss is above drift range (or 200 minimum), teleport him on his spawn.
-						if (!isIn3DRadius(spawn.getLoc(), Math.max(Config.MAX_DRIFT_RANGE, 200)))
-							teleportTo(spawn.getLoc(), 0);
-					}
-				}
-				// Randomized attack if the boss is already attacking.
-				else if (Rnd.get(5) == 0)
-					getAggroList().randomizeAttack();
-			}
-			
-			// For each minion (if any), randomize the attack.
-			if (hasMinions())
-			{
-				for (Monster minion : getMinionList().getSpawnedMinions())
-				{
-					// Don't bother with dead minions.
-					if (minion.isDead() || !minion.isInCombat())
-						return;
-					
-					// Randomized attack if the boss is already attacking.
-					if (Rnd.get(3) == 0)
-						minion.getAggroList().randomizeAttack();
-				}
-			}
-		}, 1000, 60000);
+		return getTemplate().getAggroRange();
+	}
+	
+	@Override
+	public boolean isRaidBoss()
+	{
+		return true;
 	}
 	
 	@Override
@@ -97,12 +48,6 @@ public class RaidBoss extends Monster
 	{
 		if (!super.doDie(killer))
 			return false;
-		
-		if (_maintenanceTask != null)
-		{
-			_maintenanceTask.cancel(false);
-			_maintenanceTask = null;
-		}
 		
 		if (killer != null)
 		{
@@ -131,19 +76,8 @@ public class RaidBoss extends Monster
 			}
 		}
 		
-		RaidBossManager.getInstance().onDeath(this);
+		// TODO implement NpcSpawnManager or ASpawn notification
+		// RaidBossManager.getInstance().onDeath(this);
 		return true;
-	}
-	
-	@Override
-	public void deleteMe()
-	{
-		if (_maintenanceTask != null)
-		{
-			_maintenanceTask.cancel(false);
-			_maintenanceTask = null;
-		}
-		
-		super.deleteMe();
 	}
 }

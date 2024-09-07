@@ -7,7 +7,7 @@ import java.util.Map;
 import net.sf.l2j.commons.data.StatSet;
 import net.sf.l2j.commons.data.xml.IXmlReader;
 
-import net.sf.l2j.gameserver.model.PlayerLevel;
+import net.sf.l2j.gameserver.model.records.PlayerLevel;
 
 import org.w3c.dom.Document;
 
@@ -59,7 +59,7 @@ public class PlayerLevelData implements IXmlReader
 	
 	public long getRequiredExpForHighestLevel()
 	{
-		return _levels.get(_maxLevel).getRequiredExpToLevelUp();
+		return _levels.get(_maxLevel).requiredExpToLevelUp();
 	}
 	
 	/**

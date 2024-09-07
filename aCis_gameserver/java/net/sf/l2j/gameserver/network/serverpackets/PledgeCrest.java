@@ -1,7 +1,7 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
 import net.sf.l2j.gameserver.data.cache.CrestCache;
-import net.sf.l2j.gameserver.data.cache.CrestCache.CrestType;
+import net.sf.l2j.gameserver.enums.CrestType;
 
 public class PledgeCrest extends L2GameServerPacket
 {

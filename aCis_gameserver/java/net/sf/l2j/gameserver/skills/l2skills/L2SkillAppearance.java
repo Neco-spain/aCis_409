@@ -23,13 +23,12 @@ public class L2SkillAppearance extends L2Skill
 	}
 	
 	@Override
-	public void useSkill(Creature caster, WorldObject[] targets)
+	public void useSkill(Creature creature, WorldObject[] targets)
 	{
 		for (WorldObject target : targets)
 		{
-			if (target instanceof Player)
+			if (target instanceof Player targetPlayer)
 			{
-				final Player targetPlayer = (Player) target;
 				if (_faceId >= 0)
 					targetPlayer.getAppearance().setFace(_faceId);
 				if (_hairColorId >= 0)

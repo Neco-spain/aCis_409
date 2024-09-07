@@ -17,22 +17,22 @@ public class ArenaZone extends ZoneType
 	}
 	
 	@Override
-	protected void onEnter(Creature character)
+	protected void onEnter(Creature creature)
 	{
-		if (character instanceof Player)
-			((Player) character).sendPacket(SystemMessageId.ENTERED_COMBAT_ZONE);
+		if (creature instanceof Player player)
+			player.sendPacket(SystemMessageId.ENTERED_COMBAT_ZONE);
 		
-		character.setInsideZone(ZoneId.PVP, true);
-		character.setInsideZone(ZoneId.NO_SUMMON_FRIEND, true);
+		creature.setInsideZone(ZoneId.PVP, true);
+		creature.setInsideZone(ZoneId.NO_SUMMON_FRIEND, true);
 	}
 	
 	@Override
-	protected void onExit(Creature character)
+	protected void onExit(Creature creature)
 	{
-		character.setInsideZone(ZoneId.PVP, false);
-		character.setInsideZone(ZoneId.NO_SUMMON_FRIEND, false);
+		creature.setInsideZone(ZoneId.PVP, false);
+		creature.setInsideZone(ZoneId.NO_SUMMON_FRIEND, false);
 		
-		if (character instanceof Player)
-			((Player) character).sendPacket(SystemMessageId.LEFT_COMBAT_ZONE);
+		if (creature instanceof Player player)
+			player.sendPacket(SystemMessageId.LEFT_COMBAT_ZONE);
 	}
 }

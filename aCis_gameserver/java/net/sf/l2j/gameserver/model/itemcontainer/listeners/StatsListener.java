@@ -6,13 +6,6 @@ import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 
 public class StatsListener implements OnEquipListener
 {
-	private static StatsListener instance = new StatsListener();
-	
-	public static StatsListener getInstance()
-	{
-		return instance;
-	}
-	
 	@Override
 	public void onEquip(Paperdoll slot, ItemInstance item, Playable playable)
 	{
@@ -23,5 +16,15 @@ public class StatsListener implements OnEquipListener
 	public void onUnequip(Paperdoll slot, ItemInstance item, Playable playable)
 	{
 		playable.removeStatsByOwner(item);
+	}
+	
+	public static final StatsListener getInstance()
+	{
+		return SingletonHolder.INSTANCE;
+	}
+	
+	private static class SingletonHolder
+	{
+		protected static final StatsListener INSTANCE = new StatsListener();
 	}
 }

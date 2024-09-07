@@ -43,12 +43,12 @@ public class Q372_LegacyOfInsolence extends Quest
 		},
 		// rate
 		{
-			300000,
-			400000,
-			460000,
-			400000,
-			250000,
-			250000
+			302000,
+			410000,
+			447000,
+			451000,
+			280000,
+			290000
 		}
 	};
 	
@@ -82,203 +82,14 @@ public class Q372_LegacyOfInsolence extends Quest
 		}
 	};
 	
-	// Rewards matrice.
-	private static final int[][][] REWARDS_MATRICE =
-	{
-		// Walderal DC choice
-		{
-			{
-				13,
-				5496
-			},
-			{
-				26,
-				5508
-			},
-			{
-				40,
-				5525
-			},
-			{
-				58,
-				5368
-			},
-			{
-				76,
-				5392
-			},
-			{
-				100,
-				5426
-			}
-		},
-		// Walderal Tallum choice
-		{
-			{
-				13,
-				5497
-			},
-			{
-				26,
-				5509
-			},
-			{
-				40,
-				5526
-			},
-			{
-				58,
-				5370
-			},
-			{
-				76,
-				5394
-			},
-			{
-				100,
-				5428
-			}
-		},
-		// Walderal NM choice
-		{
-			{
-				20,
-				5502
-			},
-			{
-				40,
-				5514
-			},
-			{
-				58,
-				5527
-			},
-			{
-				73,
-				5380
-			},
-			{
-				87,
-				5404
-			},
-			{
-				100,
-				5430
-			}
-		},
-		// Walderal Maja choice
-		{
-			{
-				20,
-				5503
-			},
-			{
-				40,
-				5515
-			},
-			{
-				58,
-				5528
-			},
-			{
-				73,
-				5382
-			},
-			{
-				87,
-				5406
-			},
-			{
-				100,
-				5432
-			}
-		},
-		// Holly DC parts + adenas.
-		{
-			{
-				33,
-				5496
-			},
-			{
-				66,
-				5508
-			},
-			{
-				89,
-				5525
-			},
-			{
-				100,
-				57
-			}
-		},
-		// Patrin Tallum parts + adenas.
-		{
-			{
-				33,
-				5497
-			},
-			{
-				66,
-				5509
-			},
-			{
-				89,
-				5526
-			},
-			{
-				100,
-				57
-			}
-		},
-		// Claudia NM parts + adenas.
-		{
-			{
-				35,
-				5502
-			},
-			{
-				70,
-				5514
-			},
-			{
-				87,
-				5527
-			},
-			{
-				100,
-				57
-			}
-		},
-		// Desmond Maja choice
-		{
-			{
-				35,
-				5503
-			},
-			{
-				70,
-				5515
-			},
-			{
-				87,
-				5528
-			},
-			{
-				100,
-				57
-			}
-		}
-	};
-	
 	public Q372_LegacyOfInsolence()
 	{
 		super(372, "Legacy of Insolence");
 		
-		addStartNpc(WALDERAL);
+		addQuestStart(WALDERAL);
 		addTalkId(WALDERAL, PATRIN, HOLLY, CLAUDIA, DESMOND);
 		
-		addKillId(MONSTERS_DROPS[0]);
+		addMyDying(MONSTERS_DROPS[0]);
 	}
 	
 	@Override
@@ -307,7 +118,7 @@ public class Q372_LegacyOfInsolence extends Quest
 		{
 			for (int blueprint = 5989; blueprint <= 6001; blueprint++)
 			{
-				if (!player.getInventory().hasItems(blueprint))
+				if (!player.getInventory().hasItem(blueprint))
 				{
 					htmltext = "30844-06.htm";
 					break;
@@ -316,7 +127,121 @@ public class Q372_LegacyOfInsolence extends Quest
 		}
 		else if (event.startsWith("30844-07-"))
 		{
-			checkAndRewardItems(player, 0, Integer.parseInt(event.substring(9, 10)), WALDERAL);
+			if (!checkAndTakeItems(player, 0))
+				return npc.getNpcId() + "-07a.htm";
+			
+			final int chance = Rnd.get(100);
+			
+			switch (Integer.parseInt(event.substring(9, 10)))
+			{
+				case 0:
+					if (chance < 10)
+						rewardItems(player, 5496, 1);
+					else if (chance < 20)
+						rewardItems(player, 5508, 1);
+					else if (chance < 30)
+						rewardItems(player, 5525, 1);
+					else if (chance < 40)
+					{
+						rewardItems(player, 5496, 1);
+						rewardItems(player, 5508, 1);
+						rewardItems(player, 5525, 1);
+					}
+					else if (chance < 51)
+						rewardItems(player, 5368, 1);
+					else if (chance < 62)
+						rewardItems(player, 5392, 1);
+					else if (chance < 79)
+						rewardItems(player, 5426, 1);
+					else
+					{
+						rewardItems(player, 5368, 1);
+						rewardItems(player, 5392, 1);
+						rewardItems(player, 5426, 1);
+					}
+					break;
+				
+				case 1:
+					if (chance < 10)
+						rewardItems(player, 5497, 1);
+					else if (chance < 20)
+						rewardItems(player, 5509, 1);
+					else if (chance < 30)
+						rewardItems(player, 5526, 1);
+					else if (chance < 40)
+					{
+						rewardItems(player, 5497, 1);
+						rewardItems(player, 5509, 1);
+						rewardItems(player, 5526, 1);
+					}
+					else if (chance < 51)
+						rewardItems(player, 5370, 1);
+					else if (chance < 62)
+						rewardItems(player, 5394, 1);
+					else if (chance < 79)
+						rewardItems(player, 5428, 1);
+					else
+					{
+						rewardItems(player, 5370, 1);
+						rewardItems(player, 5394, 1);
+						rewardItems(player, 5428, 1);
+					}
+					break;
+				
+				case 2:
+					if (chance < 17)
+						rewardItems(player, 5502, 1);
+					else if (chance < 34)
+						rewardItems(player, 5514, 1);
+					else if (chance < 49)
+						rewardItems(player, 5527, 1);
+					else if (chance < 58)
+					{
+						rewardItems(player, 5502, 1);
+						rewardItems(player, 5514, 1);
+						rewardItems(player, 5527, 1);
+					}
+					else if (chance < 70)
+						rewardItems(player, 5380, 1);
+					else if (chance < 82)
+						rewardItems(player, 5404, 1);
+					else if (chance < 92)
+						rewardItems(player, 5430, 1);
+					else
+					{
+						rewardItems(player, 5380, 1);
+						rewardItems(player, 5404, 1);
+						rewardItems(player, 5430, 1);
+					}
+					break;
+				
+				case 3:
+					if (chance < 17)
+						rewardItems(player, 5503, 1);
+					else if (chance < 34)
+						rewardItems(player, 5515, 1);
+					else if (chance < 49)
+						rewardItems(player, 5528, 1);
+					else if (chance < 58)
+					{
+						rewardItems(player, 5503, 1);
+						rewardItems(player, 5515, 1);
+						rewardItems(player, 5528, 1);
+					}
+					else if (chance < 70)
+						rewardItems(player, 5382, 1);
+					else if (chance < 82)
+						rewardItems(player, 5406, 1);
+					else if (chance < 92)
+						rewardItems(player, 5432, 1);
+					else
+					{
+						rewardItems(player, 5382, 1);
+						rewardItems(player, 5406, 1);
+						rewardItems(player, 5432, 1);
+					}
+					break;
+			}
 		}
 		else if (event.equalsIgnoreCase("30844-09.htm"))
 		{
@@ -349,19 +274,103 @@ public class Q372_LegacyOfInsolence extends Quest
 						break;
 					
 					case HOLLY:
-						htmltext = checkAndRewardItems(player, 1, 4, HOLLY);
+						if (!checkAndTakeItems(player, 1))
+							htmltext = "30839-01.htm";
+						else
+						{
+							final int chance = Rnd.get(100);
+							if (chance < 30)
+								rewardItems(player, 5496, 1);
+							else if (chance < 60)
+								rewardItems(player, 5508, 1);
+							else if (chance < 80)
+								rewardItems(player, 5525, 1);
+							else if (chance < 90)
+							{
+								rewardItems(player, 5496, 1);
+								rewardItems(player, 5508, 1);
+								rewardItems(player, 5525, 1);
+							}
+							else if (chance < 100)
+								rewardItems(player, 57, 4000);
+							
+							htmltext = "30839-02.htm";
+						}
 						break;
 					
 					case PATRIN:
-						htmltext = checkAndRewardItems(player, 2, 5, PATRIN);
+						if (!checkAndTakeItems(player, 2))
+							htmltext = "30929-01.htm";
+						else
+						{
+							final int chance = Rnd.get(100);
+							if (chance < 30)
+								rewardItems(player, 5497, 1);
+							else if (chance < 60)
+								rewardItems(player, 5509, 1);
+							else if (chance < 80)
+								rewardItems(player, 5526, 1);
+							else if (chance < 90)
+							{
+								rewardItems(player, 5497, 1);
+								rewardItems(player, 5509, 1);
+								rewardItems(player, 5526, 1);
+							}
+							else if (chance < 100)
+								rewardItems(player, 57, 4000);
+							
+							htmltext = "30929-02.htm";
+						}
 						break;
 					
 					case CLAUDIA:
-						htmltext = checkAndRewardItems(player, 3, 6, CLAUDIA);
+						if (!checkAndTakeItems(player, 3))
+							htmltext = "31001-01.htm";
+						else
+						{
+							final int chance = Rnd.get(100);
+							if (chance < 31)
+								rewardItems(player, 5502, 1);
+							else if (chance < 62)
+								rewardItems(player, 5514, 1);
+							else if (chance < 75)
+								rewardItems(player, 5527, 1);
+							else if (chance < 83)
+							{
+								rewardItems(player, 5502, 1);
+								rewardItems(player, 5514, 1);
+								rewardItems(player, 5527, 1);
+							}
+							else if (chance < 100)
+								rewardItems(player, 57, 4000);
+							
+							htmltext = "31001-02.htm";
+						}
 						break;
 					
 					case DESMOND:
-						htmltext = checkAndRewardItems(player, 4, 7, DESMOND);
+						if (!checkAndTakeItems(player, 4))
+							htmltext = "30855-01.htm";
+						else
+						{
+							final int chance = Rnd.get(100);
+							if (chance < 31)
+								rewardItems(player, 5503, 1);
+							else if (chance < 62)
+								rewardItems(player, 5515, 1);
+							else if (chance < 75)
+								rewardItems(player, 5528, 1);
+							else if (chance < 83)
+							{
+								rewardItems(player, 5503, 1);
+								rewardItems(player, 5515, 1);
+								rewardItems(player, 5528, 1);
+							}
+							else if (chance < 100)
+								rewardItems(player, 57, 4000);
+							
+							htmltext = "30855-02.htm";
+						}
 						break;
 				}
 				break;
@@ -371,13 +380,13 @@ public class Q372_LegacyOfInsolence extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMemberState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final int npcId = npc.getNpcId();
 		
@@ -389,35 +398,22 @@ public class Q372_LegacyOfInsolence extends Quest
 				break;
 			}
 		}
-		return null;
 	}
 	
-	private static String checkAndRewardItems(Player player, int itemType, int rewardType, int npcId)
+	private static boolean checkAndTakeItems(Player player, int itemType)
 	{
 		// Retrieve array with items to check.
 		final int[] itemsToCheck = SCROLLS[itemType];
 		
 		// Check set of items.
 		for (int item = itemsToCheck[0]; item <= itemsToCheck[1]; item++)
-			if (!player.getInventory().hasItems(item))
-				return npcId + ((npcId == WALDERAL) ? "-07a.htm" : "-01.htm");
+			if (!player.getInventory().hasItem(item))
+				return false;
 			
 		// Remove set of items.
 		for (int item = itemsToCheck[0]; item <= itemsToCheck[1]; item++)
 			takeItems(player, item, 1);
 		
-		final int chance = Rnd.get(100);
-		
-		// Retrieve array with rewards.
-		for (int[] reward : REWARDS_MATRICE[rewardType])
-		{
-			if (chance < reward[0])
-			{
-				rewardItems(player, reward[1], 1);
-				return npcId + "-02.htm";
-			}
-		}
-		
-		return npcId + ((npcId == WALDERAL) ? "-07a.htm" : "-01.htm");
+		return true;
 	}
 }

@@ -1,6 +1,7 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
 import net.sf.l2j.Config;
+import net.sf.l2j.gameserver.data.manager.RelationManager;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.network.SystemMessageId;
@@ -76,13 +77,13 @@ public final class TradeRequest extends L2GameClientPacket
 			return;
 		}
 		
-		if (target.getBlockList().isBlockingAll())
+		if (target.isBlockingAll())
 		{
 			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_BLOCKED_EVERYTHING).addCharName(target));
 			return;
 		}
 		
-		if (target.getBlockList().isInBlockList(player))
+		if (RelationManager.getInstance().isInBlockList(target, player))
 		{
 			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_HAS_ADDED_YOU_TO_IGNORE_LIST).addCharName(target));
 			return;

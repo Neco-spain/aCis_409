@@ -96,10 +96,10 @@ public class Q214_TrialOfTheScholar extends SecondClassQuest
 		
 		setItemsIds(MIRIEN_SIGIL_1, MIRIEN_SIGIL_2, MIRIEN_SIGIL_3, MIRIEN_INSTRUCTION, MARIA_LETTER_1, MARIA_LETTER_2, LUCAS_LETTER, LUCILLA_HANDBAG, CRETA_LETTER_1, CRETA_PAINTING_1, CRETA_PAINTING_2, CRETA_PAINTING_3, BROWN_SCROLL_SCRAP, CRYSTAL_OF_PURITY_1, HIGH_PRIEST_SIGIL, GRAND_MAGISTER_SIGIL, CRONOS_SIGIL, SYLVAIN_LETTER, SYMBOL_OF_SYLVAIN, JUREK_LIST, MONSTER_EYE_DESTROYER_SKIN, SHAMAN_NECKLACE, SHACKLE_SCALP, SYMBOL_OF_JUREK, CRONOS_LETTER, DIETER_KEY, CRETA_LETTER_2, DIETER_LETTER, DIETER_DIARY, RAUT_LETTER_ENVELOPE, TRIFF_RING, SCRIPTURE_CHAPTER_1, SCRIPTURE_CHAPTER_2, SCRIPTURE_CHAPTER_3, SCRIPTURE_CHAPTER_4, VALKON_REQUEST, POITAN_NOTES, STRONG_LIQUOR, CRYSTAL_OF_PURITY_2, CASIAN_LIST, GHOUL_SKIN, MEDUSA_BLOOD, FETTERED_SOUL_ICHOR, ENCHANTED_GARGOYLE_NAIL, SYMBOL_OF_CRONOS);
 		
-		addStartNpc(MIRIEN);
+		addQuestStart(MIRIEN);
 		addTalkId(MIRIEN, SYLVAIN, LUCAS, VALKON, DIETER, JUREK, EDROC, RAUT, POITAN, MARIA, CRETA, CRONOS, TRIFF, CASIAN);
 		
-		addKillId(MONSTER_EYE_DESTROYER, MEDUSA, GHOUL, SHACKLE_1, SHACKLE_2, BREKA_ORC_SHAMAN, FETTERED_SOUL, GRANDIS, ENCHANTED_GARGOYLE, LETO_LIZARDMAN_WARRIOR);
+		addMyDying(MONSTER_EYE_DESTROYER, MEDUSA, GHOUL, SHACKLE_1, SHACKLE_2, BREKA_ORC_SHAMAN, FETTERED_SOUL, GRANDIS, ENCHANTED_GARGOYLE, LETO_LIZARDMAN_WARRIOR);
 	}
 	
 	@Override
@@ -337,7 +337,7 @@ public class Q214_TrialOfTheScholar extends SecondClassQuest
 							htmltext = "30461-07.htm";
 						else if (cond == 18)
 						{
-							if (!player.getInventory().hasItems(MIRIEN_INSTRUCTION))
+							if (!player.getInventory().hasItem(MIRIEN_INSTRUCTION))
 								htmltext = "30461-08.htm";
 							else
 							{
@@ -435,7 +435,7 @@ public class Q214_TrialOfTheScholar extends SecondClassQuest
 							htmltext = "30608-16.htm";
 						else if (cond > 18)
 						{
-							if (!player.getInventory().hasItems(VALKON_REQUEST))
+							if (!player.getInventory().hasItem(VALKON_REQUEST))
 								htmltext = "30608-17.htm";
 							else
 							{
@@ -562,13 +562,13 @@ public class Q214_TrialOfTheScholar extends SecondClassQuest
 						break;
 					
 					case VALKON:
-						if (player.getInventory().hasItems(TRIFF_RING))
+						if (player.getInventory().hasItem(TRIFF_RING))
 						{
-							if (!player.getInventory().hasItems(SCRIPTURE_CHAPTER_2))
+							if (!player.getInventory().hasItem(SCRIPTURE_CHAPTER_2))
 							{
-								if (!player.getInventory().hasItems(VALKON_REQUEST))
+								if (!player.getInventory().hasItem(VALKON_REQUEST))
 								{
-									if (!player.getInventory().hasItems(CRYSTAL_OF_PURITY_2))
+									if (!player.getInventory().hasItem(CRYSTAL_OF_PURITY_2))
 										htmltext = "30103-01.htm";
 									else
 									{
@@ -589,7 +589,7 @@ public class Q214_TrialOfTheScholar extends SecondClassQuest
 					case POITAN:
 						if (cond == 26 || cond == 27)
 						{
-							if (!player.getInventory().hasItems(POITAN_NOTES))
+							if (!player.getInventory().hasItem(POITAN_NOTES))
 							{
 								htmltext = "30458-01.htm";
 								playSound(player, SOUND_ITEMGET);
@@ -605,7 +605,7 @@ public class Q214_TrialOfTheScholar extends SecondClassQuest
 						break;
 					
 					case CASIAN:
-						if ((cond == 26 || cond == 27) && player.getInventory().hasItems(POITAN_NOTES))
+						if ((cond == 26 || cond == 27) && player.getInventory().hasItem(POITAN_NOTES))
 						{
 							if (player.getInventory().hasItems(SCRIPTURE_CHAPTER_1, SCRIPTURE_CHAPTER_2, SCRIPTURE_CHAPTER_3))
 								htmltext = "30612-02.htm";
@@ -638,13 +638,13 @@ public class Q214_TrialOfTheScholar extends SecondClassQuest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
@@ -653,8 +653,7 @@ public class Q214_TrialOfTheScholar extends SecondClassQuest
 					st.setCond(12);
 				break;
 			
-			case SHACKLE_1:
-			case SHACKLE_2:
+			case SHACKLE_1, SHACKLE_2:
 				if (st.getCond() == 16 && dropItems(player, SHACKLE_SCALP, 1, 2, 500000))
 					if (player.getInventory().getItemCount(MONSTER_EYE_DESTROYER_SKIN) == 5 && player.getInventory().getItemCount(SHAMAN_NECKLACE) == 5)
 						st.setCond(17);
@@ -673,7 +672,7 @@ public class Q214_TrialOfTheScholar extends SecondClassQuest
 				break;
 			
 			case GRANDIS:
-				if (player.getInventory().hasItems(TRIFF_RING))
+				if (player.getInventory().hasItem(TRIFF_RING))
 					dropItems(player, SCRIPTURE_CHAPTER_3, 1, 1, 300000);
 				break;
 			
@@ -701,7 +700,5 @@ public class Q214_TrialOfTheScholar extends SecondClassQuest
 						st.setCond(29);
 				break;
 		}
-		
-		return null;
 	}
 }

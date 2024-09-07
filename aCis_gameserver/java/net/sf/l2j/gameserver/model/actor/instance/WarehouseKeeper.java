@@ -3,13 +3,13 @@ package net.sf.l2j.gameserver.model.actor.instance;
 import java.util.Map;
 
 import net.sf.l2j.Config;
+import net.sf.l2j.gameserver.enums.PrivilegeType;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
 import net.sf.l2j.gameserver.model.itemcontainer.PcFreight;
 import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
-import net.sf.l2j.gameserver.network.serverpackets.EnchantResult;
 import net.sf.l2j.gameserver.network.serverpackets.PackageToList;
 import net.sf.l2j.gameserver.network.serverpackets.WarehouseDepositList;
 import net.sf.l2j.gameserver.network.serverpackets.WarehouseWithdrawList;
@@ -57,16 +57,10 @@ public class WarehouseKeeper extends Folk
 			return;
 		}
 		
-		if (player.getActiveEnchantItem() != null)
-		{
-			player.setActiveEnchantItem(null);
-			player.sendPacket(EnchantResult.CANCELLED);
-			player.sendPacket(SystemMessageId.ENCHANT_SCROLL_CANCELLED);
-		}
+		player.cancelActiveEnchant();
 		
 		if (command.startsWith("WithdrawP"))
 		{
-			player.sendPacket(ActionFailed.STATIC_PACKET);
 			player.setActiveWarehouse(player.getWarehouse());
 			
 			if (player.getActiveWarehouse().getSize() == 0)
@@ -76,6 +70,7 @@ public class WarehouseKeeper extends Folk
 			}
 			
 			player.sendPacket(new WarehouseWithdrawList(player, WarehouseWithdrawList.PRIVATE));
+			player.sendPacket(ActionFailed.STATIC_PACKET);
 		}
 		else if (command.equals("DepositP"))
 		{
@@ -86,44 +81,43 @@ public class WarehouseKeeper extends Folk
 		}
 		else if (command.equals("WithdrawC"))
 		{
-			player.sendPacket(ActionFailed.STATIC_PACKET);
-			
-			if (!player.hasClanPrivileges(Clan.CP_CL_VIEW_WAREHOUSE))
+			if (!player.hasClanPrivileges(PrivilegeType.SP_WAREHOUSE_SEARCH))
 			{
 				player.sendPacket(SystemMessageId.YOU_DO_NOT_HAVE_THE_RIGHT_TO_USE_CLAN_WAREHOUSE);
 				return;
 			}
 			
 			final Clan clan = player.getClan();
-			if (clan == null)
-				return;
-			
-			if (clan.getLevel() == 0)
+			if (clan == null || clan.getLevel() == 0)
 			{
 				player.sendPacket(SystemMessageId.ONLY_LEVEL_1_CLAN_OR_HIGHER_CAN_USE_WAREHOUSE);
 				return;
 			}
 			
-			player.setActiveWarehouse(player.getClan().getWarehouse());
+			player.setActiveWarehouse(clan.getWarehouse());
+			
+			if (player.getActiveWarehouse().getSize() == 0)
+			{
+				player.sendPacket(SystemMessageId.NO_ITEM_DEPOSITED_IN_WH);
+				return;
+			}
+			
 			player.sendPacket(new WarehouseWithdrawList(player, WarehouseWithdrawList.CLAN));
+			player.sendPacket(ActionFailed.STATIC_PACKET);
 		}
 		else if (command.equals("DepositC"))
 		{
-			player.sendPacket(ActionFailed.STATIC_PACKET);
-			
 			final Clan clan = player.getClan();
-			if (clan == null)
-				return;
-			
-			if (clan.getLevel() == 0)
+			if (clan == null || clan.getLevel() == 0)
 			{
 				player.sendPacket(SystemMessageId.ONLY_LEVEL_1_CLAN_OR_HIGHER_CAN_USE_WAREHOUSE);
 				return;
 			}
 			
-			player.setActiveWarehouse(player.getClan().getWarehouse());
+			player.setActiveWarehouse(clan.getWarehouse());
 			player.tempInventoryDisable();
 			player.sendPacket(new WarehouseDepositList(player, WarehouseDepositList.CLAN));
+			player.sendPacket(ActionFailed.STATIC_PACKET);
 		}
 		else if (command.startsWith("WithdrawF"))
 		{

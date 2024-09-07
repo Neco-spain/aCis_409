@@ -1,56 +1,58 @@
 package net.sf.l2j.gameserver.model.actor.instance;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import net.sf.l2j.commons.pool.ThreadPool;
 import net.sf.l2j.commons.random.Rnd;
+import net.sf.l2j.commons.util.ArraysUtil;
 
-import net.sf.l2j.gameserver.data.manager.CastleManager;
-import net.sf.l2j.gameserver.data.manager.ClanHallManager;
 import net.sf.l2j.gameserver.data.xml.DoorData;
 import net.sf.l2j.gameserver.enums.DoorType;
+import net.sf.l2j.gameserver.enums.EventHandler;
 import net.sf.l2j.gameserver.enums.OpenType;
+import net.sf.l2j.gameserver.enums.PrivilegeType;
 import net.sf.l2j.gameserver.enums.SiegeSide;
 import net.sf.l2j.gameserver.geoengine.GeoEngine;
 import net.sf.l2j.gameserver.geoengine.geodata.IGeoObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.actor.Summon;
-import net.sf.l2j.gameserver.model.actor.ai.type.CreatureAI;
 import net.sf.l2j.gameserver.model.actor.ai.type.DoorAI;
 import net.sf.l2j.gameserver.model.actor.status.DoorStatus;
 import net.sf.l2j.gameserver.model.actor.template.DoorTemplate;
-import net.sf.l2j.gameserver.model.clanhall.ClanHall;
-import net.sf.l2j.gameserver.model.clanhall.SiegableHall;
-import net.sf.l2j.gameserver.model.entity.Castle;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.item.kind.Weapon;
-import net.sf.l2j.gameserver.model.pledge.Clan;
+import net.sf.l2j.gameserver.model.residence.Residence;
+import net.sf.l2j.gameserver.model.residence.castle.Castle;
+import net.sf.l2j.gameserver.model.residence.clanhall.ClanHall;
+import net.sf.l2j.gameserver.model.residence.clanhall.SiegableHall;
+import net.sf.l2j.gameserver.model.spawn.NpcMaker;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ConfirmDlg;
 import net.sf.l2j.gameserver.network.serverpackets.DoorInfo;
 import net.sf.l2j.gameserver.network.serverpackets.DoorStatusUpdate;
+import net.sf.l2j.gameserver.scripting.Quest;
 import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class Door extends Creature implements IGeoObject
 {
-	private final Castle _castle;
-	private final ClanHall _clanHall;
+	private static final String[] DOOR_CLAN = new String[]
+	{
+		"door_clan"
+	};
+	
+	private Residence _residence;
 	
 	private boolean _open;
+	
+	private List<Quest> _quests;
+	private List<NpcMaker> _npcMakers;
 	
 	public Door(int objectId, DoorTemplate template)
 	{
 		super(objectId, template);
-		
-		// Assign the Door to a Castle, if the Castle owns the door id.
-		_castle = CastleManager.getInstance().getCastleById(template.getCastleId());
-		if (_castle != null)
-			_castle.getDoors().add(this);
-		
-		// Assign the Door to a ClanHall, if the ClanHall owns the door id.
-		_clanHall = ClanHallManager.getInstance().getClanHall(template.getClanHallId());
-		if (_clanHall != null)
-			_clanHall.getDoors().add(this);
 		
 		// Temporarily set opposite state to initial state (will be set correctly by onSpawn).
 		_open = !getTemplate().isOpened();
@@ -60,19 +62,15 @@ public class Door extends Creature implements IGeoObject
 	}
 	
 	@Override
-	public CreatureAI getAI()
+	public DoorAI getAI()
 	{
-		CreatureAI ai = _ai;
-		if (ai == null)
-		{
-			synchronized (this)
-			{
-				ai = _ai;
-				if (ai == null)
-					_ai = ai = new DoorAI(this);
-			}
-		}
-		return ai;
+		return (DoorAI) _ai;
+	}
+	
+	@Override
+	public void setAI()
+	{
+		_ai = new DoorAI(this);
 	}
 	
 	@Override
@@ -96,11 +94,13 @@ public class Door extends Creature implements IGeoObject
 	@Override
 	public void addFuncsToNewCharacter()
 	{
+		// Do nothing.
 	}
 	
 	@Override
 	public void updateAbnormalEffect()
 	{
+		// Do nothing.
 	}
 	
 	@Override
@@ -136,22 +136,19 @@ public class Door extends Creature implements IGeoObject
 		if (!(attacker instanceof Playable))
 			return false;
 		
-		if (_castle != null && _castle.getSiege().isInProgress())
+		if (_residence instanceof Castle castle && castle.getSiege().isInProgress())
 		{
-			if (!_castle.getSiege().checkSides(attacker.getActingPlayer().getClan(), SiegeSide.ATTACKER))
+			if (!castle.getSiege().checkSides(attacker.getActingPlayer().getClan(), SiegeSide.ATTACKER))
 				return false;
 			
 			if (isWall())
-				return attacker instanceof SiegeSummon && ((Summon) attacker).getNpcId() != SiegeSummon.SWOOP_CANNON_ID;
+				return attacker instanceof SiegeSummon siegeSummon && siegeSummon.getNpcId() != SiegeSummon.SWOOP_CANNON_ID;
 			
 			return true;
 		}
 		
-		if (_clanHall instanceof SiegableHall)
-		{
-			final SiegableHall hall = (SiegableHall) _clanHall;
-			return hall.isInSiege() && hall.getSiege().doorIsAutoAttackable() && hall.getSiege().checkSides(attacker.getActingPlayer().getClan(), SiegeSide.ATTACKER);
-		}
+		if (_residence instanceof SiegableHall sh)
+			return sh.isInSiege() && sh.getSiege().doorIsAutoAttackable() && sh.getSiege().checkSides(attacker.getActingPlayer().getClan(), SiegeSide.ATTACKER);
 		
 		return false;
 	}
@@ -166,7 +163,7 @@ public class Door extends Creature implements IGeoObject
 	public void onInteract(Player player)
 	{
 		// Clan members (with privs) of door associated with a clan hall get a pop-up window to open/close the said door
-		if (player.getClan() != null && _clanHall != null && player.getClanId() == _clanHall.getOwnerId() && player.hasClanPrivileges(Clan.CP_CH_OPEN_DOOR))
+		if (canBeManuallyOpenedBy(player))
 		{
 			player.setRequestedGate(this);
 			player.sendPacket(new ConfirmDlg((!isOpened()) ? 1140 : 1141));
@@ -177,16 +174,31 @@ public class Door extends Creature implements IGeoObject
 	public void reduceCurrentHp(double damage, Creature attacker, boolean awake, boolean isDOT, L2Skill skill)
 	{
 		// HPs can only be reduced during sieges.
-		if (_castle != null && _castle.getSiege().isInProgress())
+		if (_residence instanceof Castle castle && castle.getSiege().isInProgress())
 		{
 			// SiegeSummon can attack both Walls and Doors (excepted Swoop Cannon - anti-infantery summon).
-			if (attacker instanceof SiegeSummon && ((SiegeSummon) attacker).getNpcId() == SiegeSummon.SWOOP_CANNON_ID)
+			if (attacker instanceof SiegeSummon siegeSummon && siegeSummon.getNpcId() == SiegeSummon.SWOOP_CANNON_ID)
 				return;
 			
 			super.reduceCurrentHp(damage, attacker, awake, isDOT, skill);
 		}
-		else if (_clanHall instanceof SiegableHall && ((SiegableHall) _clanHall).getSiegeZone().isActive())
+		else if (_residence instanceof SiegableHall sh && sh.getSiegeZone().isActive())
 			super.reduceCurrentHp(damage, attacker, awake, isDOT, skill);
+		
+		forEachKnownTypeInRadius(Npc.class, 600, called ->
+		{
+			// Called is dead or caller is the same as called.
+			if (called.isDead())
+				return;
+			
+			// Caller clan doesn't correspond to the called clan.
+			if (!ArraysUtil.contains(DOOR_CLAN, called.getTemplate().getClans()))
+				return;
+			
+			// Retrieve scripts associated to called Npc and notify the clan call.
+			for (Quest quest : called.getTemplate().getEventQuests(EventHandler.STATIC_OBJECT_CLAN_ATTACKED))
+				quest.onStaticObjectClanAttacked(this, called, attacker, (int) damage, skill);
+		});
 	}
 	
 	@Override
@@ -212,8 +224,8 @@ public class Door extends Creature implements IGeoObject
 		if (!_open)
 			GeoEngine.getInstance().removeGeoObject(this);
 		
-		if (_castle != null && _castle.getSiege().isInProgress())
-			_castle.getSiege().announce((isWall()) ? SystemMessageId.CASTLE_WALL_DAMAGED : SystemMessageId.CASTLE_GATE_BROKEN_DOWN, SiegeSide.DEFENDER);
+		if (_residence instanceof Castle castle && castle.getSiege().isInProgress())
+			castle.getSiege().announce((isWall()) ? SystemMessageId.CASTLE_WALL_DAMAGED : SystemMessageId.CASTLE_GATE_BROKEN_DOWN, SiegeSide.DEFENDER);
 		
 		return true;
 	}
@@ -274,6 +286,12 @@ public class Door extends Creature implements IGeoObject
 	
 	@Override
 	public boolean canBeHealed()
+	{
+		return false;
+	}
+	
+	@Override
+	public boolean isLethalable()
 	{
 		return false;
 	}
@@ -356,6 +374,19 @@ public class Door extends Creature implements IGeoObject
 		
 		getStatus().broadcastStatusUpdate();
 		
+		// notify scripts
+		if (_quests != null)
+		{
+			for (Quest quest : _quests)
+				quest.onDoorChange(this);
+		}
+		
+		if (_npcMakers != null)
+		{
+			for (NpcMaker npcMaker : _npcMakers)
+				npcMaker.getMaker().onDoorEvent(this, npcMaker);
+		}
+		
 		// door controls another door
 		int triggerId = getTemplate().getTriggerId();
 		if (triggerId > 0)
@@ -376,17 +407,56 @@ public class Door extends Creature implements IGeoObject
 			
 			// try to schedule automatic state change
 			if (time > 0)
-				ThreadPool.schedule(() -> changeState(!open, false), time * 1000);
+				ThreadPool.schedule(() -> changeState(!open, false), time * 1000L);
 		}
 	}
 	
-	public final Castle getCastle()
+	public final Residence getResidence()
 	{
-		return _castle;
+		return _residence;
 	}
 	
-	public final ClanHall getClanHall()
+	public final void setResidence(Residence residence)
 	{
-		return _clanHall;
+		_residence = residence;
+	}
+	
+	/**
+	 * Registers {@link Quest}.<br>
+	 * Generate {@link List} if not existing (lazy initialization).<br>
+	 * If already existing, we remove and add it back.
+	 * @param quest : The {@link Quest}.
+	 */
+	public void addQuestEvent(Quest quest)
+	{
+		if (_quests == null)
+			_quests = new ArrayList<>();
+		
+		_quests.remove(quest);
+		_quests.add(quest);
+	}
+	
+	/**
+	 * Register {@link NpcMaker}.<br>
+	 * Generate {@link List} if not existing (lazy initialization).<br>
+	 * If already existing, we remove and add it back.
+	 * @param npcMaker : The {@link NpcMaker}.
+	 */
+	public void addMakerEvent(NpcMaker npcMaker)
+	{
+		if (_npcMakers == null)
+			_npcMakers = new ArrayList<>();
+		
+		_npcMakers.remove(npcMaker);
+		_npcMakers.add(npcMaker);
+	}
+	
+	/**
+	 * @param player : The {@link Player} to test.
+	 * @return True if this {@link Door} can be manually opened, or false otherwise. Only used by {@link Player} upon {@link ClanHall} doors.
+	 */
+	public boolean canBeManuallyOpenedBy(Player player)
+	{
+		return player.getClan() != null && _residence instanceof ClanHall ch && player.getClanId() == ch.getOwnerId() && player.hasClanPrivileges(PrivilegeType.CHP_ENTRY_EXIT_RIGHTS);
 	}
 }

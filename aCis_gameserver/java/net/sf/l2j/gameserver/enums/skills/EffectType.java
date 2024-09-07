@@ -64,7 +64,6 @@ public enum EffectType
 	PHOENIX_BLESSING,
 	
 	THROW_UP,
-	WARP,
 	
 	SIGNET_GROUND,
 	SIGNET_EFFECT;

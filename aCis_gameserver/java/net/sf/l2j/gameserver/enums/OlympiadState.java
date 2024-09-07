@@ -2,6 +2,10 @@ package net.sf.l2j.gameserver.enums;
 
 public enum OlympiadState
 {
+	SAVE_NOBLE_POINTS,
+	VALIDATION,
 	COMPETITION,
-	VALIDATION
+	END_OLYMPIAD,
+	REGISTRATION,
+	CHECK_PENDING_GAMES
 }

@@ -3,8 +3,8 @@ package net.sf.l2j.gameserver.network.serverpackets;
 import java.util.List;
 
 import net.sf.l2j.gameserver.enums.SiegeSide;
-import net.sf.l2j.gameserver.model.entity.Castle;
 import net.sf.l2j.gameserver.model.pledge.Clan;
+import net.sf.l2j.gameserver.model.residence.castle.Castle;
 
 public class SiegeDefenderList extends L2GameServerPacket
 {
@@ -19,7 +19,7 @@ public class SiegeDefenderList extends L2GameServerPacket
 	protected final void writeImpl()
 	{
 		writeC(0xcb);
-		writeD(_castle.getCastleId());
+		writeD(_castle.getId());
 		writeD(0x00);
 		writeD(0x01);
 		writeD(0x00);

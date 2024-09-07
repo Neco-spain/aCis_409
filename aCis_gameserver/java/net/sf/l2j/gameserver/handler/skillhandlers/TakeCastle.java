@@ -8,7 +8,8 @@ import net.sf.l2j.gameserver.handler.ISkillHandler;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.entity.Castle;
+import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
+import net.sf.l2j.gameserver.model.residence.castle.Castle;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.skills.L2Skill;
@@ -21,15 +22,15 @@ public class TakeCastle implements ISkillHandler
 	};
 	
 	@Override
-	public void useSkill(Creature activeChar, L2Skill skill, WorldObject[] targets)
+	public void useSkill(Creature creature, L2Skill skill, WorldObject[] targets, ItemInstance item)
 	{
-		if (!(activeChar instanceof Player))
+		// Must be called by a Player.
+		if (!(creature instanceof Player player))
 			return;
 		
 		if (targets.length == 0)
 			return;
 		
-		final Player player = (Player) activeChar;
 		if (!player.isClanLeader())
 			return;
 		
@@ -56,7 +57,7 @@ public class TakeCastle implements ISkillHandler
 	public static Castle check(Player player, WorldObject target, L2Skill skill, boolean announce)
 	{
 		final Castle castle = CastleManager.getInstance().getCastle(player);
-		if (castle == null || castle.getCastleId() <= 0)
+		if (castle == null || castle.getId() <= 0)
 			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_CANNOT_BE_USED).addSkillName(skill));
 		else if (!castle.isGoodArtifact(target))
 			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.INVALID_TARGET));

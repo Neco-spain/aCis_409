@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import net.sf.l2j.commons.math.MathUtil;
 import net.sf.l2j.commons.random.Rnd;
 
 import net.sf.l2j.gameserver.enums.skills.EffectType;
@@ -80,6 +79,6 @@ public class EffectCancel extends AbstractEffect
 		rate += effect.getPeriod() / 120;
 		rate += baseRate;
 		
-		return Rnd.get(100) < MathUtil.limit(rate, 25, 75);
+		return Rnd.get(100) < Math.clamp(rate, 25, 75);
 	}
 }

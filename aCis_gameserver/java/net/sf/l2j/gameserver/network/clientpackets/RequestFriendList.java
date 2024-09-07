@@ -1,5 +1,6 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
+import net.sf.l2j.gameserver.data.manager.RelationManager;
 import net.sf.l2j.gameserver.data.sql.PlayerInfoTable;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
@@ -11,6 +12,7 @@ public final class RequestFriendList extends L2GameClientPacket
 	@Override
 	protected void readImpl()
 	{
+		// Do nothing.
 	}
 	
 	@Override
@@ -23,7 +25,7 @@ public final class RequestFriendList extends L2GameClientPacket
 		// ======<Friend List>======
 		player.sendPacket(SystemMessageId.FRIEND_LIST_HEADER);
 		
-		for (int id : player.getFriendList())
+		for (int id : RelationManager.getInstance().getFriendList(player.getObjectId()))
 		{
 			final String friendName = PlayerInfoTable.getInstance().getPlayerName(id);
 			if (friendName == null)

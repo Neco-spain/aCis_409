@@ -6,7 +6,6 @@ import java.sql.ResultSet;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import net.sf.l2j.commons.logging.CLogger;
 import net.sf.l2j.commons.pool.ConnectionPool;
@@ -15,7 +14,7 @@ import net.sf.l2j.gameserver.data.xml.HennaData;
 import net.sf.l2j.gameserver.enums.actors.ClassId;
 import net.sf.l2j.gameserver.enums.actors.HennaType;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.item.Henna;
+import net.sf.l2j.gameserver.model.records.Henna;
 
 /**
  * This class handles dyes (or {@link Henna}s) of a {@link Player}.
@@ -27,7 +26,7 @@ public class HennaList
 	private static final int MAX_HENNA_STAT_VALUE = 5;
 	private static final int HENNA_FIRST_SLOT_ID = 1;
 	
-	public static final int MAX_HENNAS_AMOUNT = 3;
+	private static final int MAX_HENNAS_AMOUNT = 3;
 	
 	private final Player _owner;
 	private final Henna[] _hennas = new Henna[MAX_HENNAS_AMOUNT];
@@ -53,12 +52,12 @@ public class HennaList
 			if (henna == null || !henna.canBeUsedBy(_owner))
 				continue;
 			
-			_stats[0] += henna.getINT();
-			_stats[1] += henna.getSTR();
-			_stats[2] += henna.getCON();
-			_stats[3] += henna.getMEN();
-			_stats[4] += henna.getDEX();
-			_stats[5] += henna.getWIT();
+			_stats[0] += henna.INT();
+			_stats[1] += henna.STR();
+			_stats[2] += henna.CON();
+			_stats[3] += henna.MEN();
+			_stats[4] += henna.DEX();
+			_stats[5] += henna.WIT();
 		}
 		
 		for (int i = 0; i < _stats.length; i++)
@@ -77,7 +76,7 @@ public class HennaList
 		for (int i = 0; i < _hennas.length; i++)
 		{
 			final Henna h = _hennas[i];
-			if (h != null && h.getSymbolId() == henna.getSymbolId())
+			if (h != null && h.symbolId() == henna.symbolId())
 				return i;
 		}
 		return -1;
@@ -101,7 +100,7 @@ public class HennaList
 	 */
 	public List<Henna> getHennas()
 	{
-		return Arrays.stream(_hennas).filter(Objects::nonNull).collect(Collectors.toList());
+		return Arrays.stream(_hennas).filter(Objects::nonNull).toList();
 	}
 	
 	/**
@@ -118,7 +117,7 @@ public class HennaList
 	 */
 	public void restore()
 	{
-		final Henna[] hennas = new Henna[HennaList.MAX_HENNAS_AMOUNT];
+		final Henna[] hennas = new Henna[MAX_HENNAS_AMOUNT];
 		
 		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement ps = con.prepareStatement("SELECT slot, symbol_id FROM character_hennas WHERE char_obj_id = ? AND class_index = ?"))
@@ -133,7 +132,7 @@ public class HennaList
 					final int slot = rs.getInt("slot");
 					final int symbolId = rs.getInt("symbol_id");
 					
-					if (slot < HENNA_FIRST_SLOT_ID || slot > HENNA_FIRST_SLOT_ID + HennaList.MAX_HENNAS_AMOUNT)
+					if (slot < HENNA_FIRST_SLOT_ID || slot > HENNA_FIRST_SLOT_ID + MAX_HENNAS_AMOUNT)
 					{
 						LOGGER.warn("{} has Henna on invalid slot {}.", _owner.toString(), slot);
 						continue;
@@ -155,8 +154,7 @@ public class HennaList
 			LOGGER.error("Couldn't restore hennas.", e);
 		}
 		
-		for (int i = 0; i < hennas.length; i++)
-			_hennas[i] = hennas[i];
+		System.arraycopy(hennas, 0, _hennas, 0, hennas.length);
 	}
 	
 	/**
@@ -194,7 +192,7 @@ public class HennaList
 	{
 		for (Henna h : _hennas)
 		{
-			if (h != null && h.getSymbolId() == symbolId)
+			if (h != null && h.symbolId() == symbolId)
 				return h;
 		}
 		return null;
@@ -250,7 +248,7 @@ public class HennaList
 			PreparedStatement ps = con.prepareStatement("INSERT INTO character_hennas (char_obj_id,symbol_id,slot,class_index) VALUES (?,?,?,?)"))
 		{
 			ps.setInt(1, _owner.getObjectId());
-			ps.setInt(2, henna.getSymbolId());
+			ps.setInt(2, henna.symbolId());
 			ps.setInt(3, slot + HENNA_FIRST_SLOT_ID);
 			ps.setInt(4, _owner.getClassIndex());
 			ps.execute();

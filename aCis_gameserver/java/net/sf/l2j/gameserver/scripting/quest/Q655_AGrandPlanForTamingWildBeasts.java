@@ -1,22 +1,24 @@
 package net.sf.l2j.gameserver.scripting.quest;
 
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
 
 import net.sf.l2j.gameserver.data.cache.HtmCache;
 import net.sf.l2j.gameserver.data.manager.ClanHallManager;
 import net.sf.l2j.gameserver.enums.QuestStatus;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.clanhall.SiegableHall;
-import net.sf.l2j.gameserver.model.entity.ClanHallSiege;
 import net.sf.l2j.gameserver.model.pledge.Clan;
+import net.sf.l2j.gameserver.model.residence.clanhall.ClanHallSiege;
+import net.sf.l2j.gameserver.model.residence.clanhall.SiegableHall;
 import net.sf.l2j.gameserver.scripting.Quest;
 import net.sf.l2j.gameserver.scripting.QuestState;
 
 public class Q655_AGrandPlanForTamingWildBeasts extends Quest
 {
 	public static final String QUEST_NAME = "Q655_AGrandPlanForTamingWildBeasts";
+	
+	// Misc
+	private static final SiegableHall BEAST_FARM = ClanHallManager.getInstance().getSiegableHall(63);
 	
 	// NPCs
 	private static final int MESSENGER = 35627;
@@ -28,9 +30,8 @@ public class Q655_AGrandPlanForTamingWildBeasts extends Quest
 	// Misc
 	private static final int REQUIRED_CRYSTAL_COUNT = 10;
 	private static final int REQUIRED_CLAN_LEVEL = 4;
-	private static final int MINUTES_TO_SIEGE = 3600;
 	
-	private static final String PATH_TO_HTML = "data/html/script/siegablehall/WildBeastReserve/messenger_initial.htm";
+	private static final String PATH_TO_HTML = "data/html/script/siegablehall/WildBeastReserve/farm_kel_mahum_messenger_1.htm";
 	
 	public Q655_AGrandPlanForTamingWildBeasts()
 	{
@@ -38,7 +39,7 @@ public class Q655_AGrandPlanForTamingWildBeasts extends Quest
 		
 		setItemsIds(CRYSTAL_OF_PURITY, TRAINER_LICENSE);
 		
-		addStartNpc(MESSENGER);
+		addQuestStart(MESSENGER);
 		addTalkId(MESSENGER);
 	}
 	
@@ -50,12 +51,10 @@ public class Q655_AGrandPlanForTamingWildBeasts extends Quest
 		if (st == null)
 			return htmltext;
 		
-		final long minutesToSiege = getMinutesToSiege();
-		
 		if (event.equalsIgnoreCase("35627-06.htm"))
 		{
 			final Clan clan = player.getClan();
-			if (clan != null && clan.getLevel() >= REQUIRED_CLAN_LEVEL && clan.getClanHallId() == 0 && player.isClanLeader() && minutesToSiege > 0 && minutesToSiege < MINUTES_TO_SIEGE)
+			if (clan != null && clan.getLevel() >= REQUIRED_CLAN_LEVEL && clan.getClanHallId() == 0 && player.isClanLeader() && BEAST_FARM.isWaitingBattle())
 			{
 				st.setState(QuestStatus.STARTED);
 				st.setCond(1);
@@ -64,10 +63,12 @@ public class Q655_AGrandPlanForTamingWildBeasts extends Quest
 		}
 		else if (event.equalsIgnoreCase("35627-11.htm"))
 		{
-			if (minutesToSiege > 0 && minutesToSiege < MINUTES_TO_SIEGE)
+			if (BEAST_FARM.isWaitingBattle())
+			{
 				htmltext = HtmCache.getInstance().getHtm(PATH_TO_HTML);
+			}
 			else
-				htmltext = htmltext.replace("%next_siege%", getSiegeDate());
+				htmltext = htmltext.replace("%next_siege%", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(BEAST_FARM.getSiegeDate().getTime()));
 		}
 		return htmltext;
 	}
@@ -80,8 +81,6 @@ public class Q655_AGrandPlanForTamingWildBeasts extends Quest
 		if (st == null)
 			return htmltext;
 		
-		final long minutesToSiege = getMinutesToSiege();
-		
 		switch (st.getState())
 		{
 			case CREATED:
@@ -89,7 +88,7 @@ public class Q655_AGrandPlanForTamingWildBeasts extends Quest
 				if (clan == null)
 					return htmltext;
 				
-				if (minutesToSiege > 0 && minutesToSiege < MINUTES_TO_SIEGE)
+				if (BEAST_FARM.isWaitingBattle())
 				{
 					if (player.isClanLeader())
 					{
@@ -100,19 +99,19 @@ public class Q655_AGrandPlanForTamingWildBeasts extends Quest
 					}
 					else
 					{
-						if (clan.getClanHallId() == ClanHallSiege.BEAST_FARM && minutesToSiege > 0 && minutesToSiege < MINUTES_TO_SIEGE)
+						if (clan.getClanHallId() == ClanHallSiege.BEAST_FARM && BEAST_FARM.isWaitingBattle())
 							htmltext = HtmCache.getInstance().getHtm(PATH_TO_HTML);
 						else
 							htmltext = "35627-05.htm";
 					}
 				}
 				else
-					htmltext = getHtmlText("35627-02.htm").replace("%next_siege%", getSiegeDate());
+					htmltext = getHtmlText("35627-02.htm").replace("%next_siege%", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(BEAST_FARM.getSiegeDate().getTime()));
 				break;
 			
 			case STARTED:
 				// Time out ; quest aborts.
-				if (minutesToSiege < 0 || minutesToSiege > MINUTES_TO_SIEGE)
+				if (!BEAST_FARM.isWaitingBattle())
 				{
 					htmltext = "35627-07.htm";
 					st.exitQuest(true);
@@ -136,32 +135,6 @@ public class Q655_AGrandPlanForTamingWildBeasts extends Quest
 				break;
 		}
 		return htmltext;
-	}
-	
-	/**
-	 * @return the next siege formatted date.
-	 */
-	private static String getSiegeDate()
-	{
-		final SiegableHall hall = ClanHallManager.getInstance().getSiegableHall(ClanHallSiege.BEAST_FARM);
-		if (hall != null)
-		{
-			final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-			return sdf.format(hall.getSiegeDate());
-		}
-		return "Error in date.";
-	}
-	
-	/**
-	 * @return the amount of minutes before the next siege.
-	 */
-	private static long getMinutesToSiege()
-	{
-		final SiegableHall hall = ClanHallManager.getInstance().getSiegableHall(ClanHallSiege.BEAST_FARM);
-		if (hall != null)
-			return (hall.getNextSiegeTime() - Calendar.getInstance().getTimeInMillis()) / 3600;
-		
-		return -1;
 	}
 	
 	/**

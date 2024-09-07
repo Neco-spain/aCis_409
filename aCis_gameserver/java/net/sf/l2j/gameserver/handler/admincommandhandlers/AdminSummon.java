@@ -3,11 +3,11 @@ package net.sf.l2j.gameserver.handler.admincommandhandlers;
 import java.util.StringTokenizer;
 
 import net.sf.l2j.gameserver.handler.IAdminCommandHandler;
-import net.sf.l2j.gameserver.model.PetDataEntry;
 import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.Summon;
 import net.sf.l2j.gameserver.model.actor.instance.Pet;
+import net.sf.l2j.gameserver.model.records.PetDataEntry;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.GMViewItemList;
 
@@ -88,7 +88,7 @@ public class AdminSummon implements IAdminCommandHandler
 			}
 			else if (command.startsWith("admin_summon"))
 			{
-				if (!(summon instanceof Pet))
+				if (!(summon instanceof Pet pet))
 				{
 					player.sendPacket(SystemMessageId.INVALID_TARGET);
 					return;
@@ -102,30 +102,30 @@ public class AdminSummon implements IAdminCommandHandler
 					switch (st.nextToken())
 					{
 						case "food":
-							((Pet) summon).setCurrentFed(((Pet) summon).getPetData().getMaxMeal());
+							pet.setCurrentFed(pet.getPetData().maxMeal());
 							break;
 						
 						case "inventory":
-							player.sendPacket(new GMViewItemList((Pet) summon));
+							player.sendPacket(new GMViewItemList(pet));
 							break;
 						
 						case "level":
 							final int level = Integer.parseInt(st.nextToken());
 							
-							final PetDataEntry pde = ((Pet) summon).getTemplate().getPetDataEntry(level);
+							final PetDataEntry pde = pet.getTemplate().getPetDataEntry(level);
 							if (pde == null)
 							{
 								player.sendMessage("Invalid level for //summon level.");
 								return;
 							}
 							
-							final long oldExp = summon.getStatus().getExp();
-							final long newExp = pde.getMaxExp();
+							final long oldExp = pet.getStatus().getExp();
+							final long newExp = pde.maxExp();
 							
 							if (oldExp > newExp)
-								summon.getStatus().removeExp(oldExp - newExp);
+								pet.getStatus().removeExp(oldExp - newExp);
 							else if (oldExp < newExp)
-								summon.getStatus().addExp(newExp - oldExp);
+								pet.getStatus().addExp(newExp - oldExp);
 							break;
 						
 						default:

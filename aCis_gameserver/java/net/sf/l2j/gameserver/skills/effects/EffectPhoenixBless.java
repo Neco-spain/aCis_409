@@ -29,8 +29,8 @@ public class EffectPhoenixBless extends AbstractEffect
 	@Override
 	public void onExit()
 	{
-		if (getEffected() instanceof Playable)
-			((Playable) getEffected()).stopPhoenixBlessing(this);
+		if (getEffected() instanceof Playable targetPlayable)
+			targetPlayable.stopPhoenixBlessing(this);
 	}
 	
 	@Override

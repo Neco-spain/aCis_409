@@ -18,7 +18,7 @@ public abstract class AbstractGroup
 	private Player _leader;
 	private int _level;
 	
-	public AbstractGroup(Player leader)
+	protected AbstractGroup(Player leader)
 	{
 		_leader = leader;
 	}

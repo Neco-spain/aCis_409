@@ -7,13 +7,6 @@ import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 
 public class BowRodListener implements OnEquipListener
 {
-	private static BowRodListener instance = new BowRodListener();
-	
-	public static BowRodListener getInstance()
-	{
-		return instance;
-	}
-	
 	@Override
 	public void onEquip(Paperdoll slot, ItemInstance item, Playable actor)
 	{
@@ -40,5 +33,15 @@ public class BowRodListener implements OnEquipListener
 			if (lHandItem != null)
 				actor.getInventory().setPaperdollItem(Paperdoll.LHAND, null);
 		}
+	}
+	
+	public static final BowRodListener getInstance()
+	{
+		return SingletonHolder.INSTANCE;
+	}
+	
+	private static class SingletonHolder
+	{
+		protected static final BowRodListener INSTANCE = new BowRodListener();
 	}
 }

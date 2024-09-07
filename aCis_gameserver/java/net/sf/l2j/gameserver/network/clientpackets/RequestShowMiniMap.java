@@ -8,6 +8,7 @@ public final class RequestShowMiniMap extends L2GameClientPacket
 	@Override
 	protected void readImpl()
 	{
+		// Do nothing.
 	}
 	
 	@Override

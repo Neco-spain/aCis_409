@@ -1,95 +1,114 @@
 package net.sf.l2j.gameserver.scripting.script.ai.individual;
 
-import net.sf.l2j.gameserver.data.SkillTable;
-import net.sf.l2j.gameserver.enums.ScriptEventType;
+import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Npc;
-import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.scripting.script.ai.AttackableAIScript;
+import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.skills.L2Skill;
 
-public class ImperialGravekeeper extends AttackableAIScript
+public class ImperialGravekeeper extends DefaultNpc
 {
-	private static final int IMPERIAL_SLAVE = 27180;
-	private static final int IMPERIAL_GRAVEKEEPER = 27181;
-	
-	private static final L2Skill SELF_HEAL = SkillTable.getInstance().getInfo(4080, 1);
-	
 	public ImperialGravekeeper()
 	{
 		super("ai/individual");
 	}
 	
-	@Override
-	protected void registerNpcs()
+	public ImperialGravekeeper(String descr)
 	{
-		addEventIds(IMPERIAL_GRAVEKEEPER, ScriptEventType.ON_ATTACK);
+		super(descr);
+	}
+	
+	protected final int[] _npcIds =
+	{
+		27181
+	};
+	
+	@Override
+	public void onNoDesire(Npc npc)
+	{
+		npc.getAI().addWanderDesire(5, 5);
 	}
 	
 	@Override
-	public String onAttack(Npc npc, Creature attacker, int damage, L2Skill skill)
+	public void onCreated(Npc npc)
 	{
-		// Get HP ratio.
-		final int ratio = (int) (npc.getStatus().getHpRatio() * 100);
+		npc._i_ai0 = 1;
+		npc._i_ai1 = 50;
+		npc._i_ai2 = 80;
+		npc._weightPoint = 10;
+	}
+	
+	@Override
+	public void onAttacked(Npc npc, Creature attacker, int damage, L2Skill skill)
+	{
+		final double hpRatio = npc.getStatus().getHpRatio();
 		
-		// The script value contains 2 parameters encoded, xxyy:
-		// xx - HP percentage to spawn minions, 80%, 40% and 20%
-		// yy - HP percentage to teleport, 50% and 30%
-		final int sv = npc.getScriptValue();
-		int teleport = sv % 100;
-		int minion = sv / 100;
-		
-		// Handle attacker teleport.
-		if (ratio < teleport)
+		if (!npc.isInsideZone(ZoneId.PEACE))
 		{
-			if (teleport == 50)
+			if (hpRatio * 100 <= npc._i_ai1)
 			{
-				teleport = 30;
-				// TODO It teleport players from its territory -> rework when territories are present.
-				for (Player player : npc.getKnownTypeInRadius(Player.class, 900))
-					player.teleportTo(171104, 6496, -2706, 200);
+				if (npc._i_ai0 == 1 || npc._i_ai0 == 3)
+					npc.getSpawn().instantTeleportInMyTerritory(179520, 6464, -2706, 200);
+				else
+					npc.getSpawn().instantTeleportInMyTerritory(171104, 6496, -2706, 200);
 			}
-			else
-			{
-				teleport = 0;
-				// TODO It teleport players from its territory -> rework when territories are present.
-				for (Player player : npc.getKnownTypeInRadius(Player.class, 900))
-					player.teleportTo(179520, 6464, -2706, 200);
-			}
-		}
-		
-		if (ratio > 50)
-			teleport = 50;
-		else if (ratio > 30)
-			teleport = 30;
-		
-		// Handle minion spawn.
-		if (ratio < minion)
-		{
-			if (minion == 80)
-				minion = 40;
-			else if (minion == 40)
-				minion = 20;
-			else
-				minion = 0;
 			
-			for (int i = 0; i < 4; i++)
-				addSpawn(IMPERIAL_SLAVE, npc, true, 0, false);
+			npc.getAI().addCastDesire(npc, 4080, 1, 1000000);
+			
+			if (npc._i_ai1 == 50)
+				npc._i_ai1 = 30;
+			else if (npc._i_ai1 == 30)
+				npc._i_ai1 = -1;
 		}
 		
-		if (ratio > 80)
-			minion = 80;
-		else if (ratio > 40)
-			minion = 40;
-		else if (ratio > 20)
-			minion = 20;
+		if (hpRatio * 100 <= npc._i_ai2)
+		{
+			if (npc._i_ai2 == 80)
+				npc._i_ai2 = 40;
+			else if (npc._i_ai2 == 40)
+				npc._i_ai2 = 20;
+			else
+				npc._i_ai2 = -1;
+			
+			createOnePrivate(npc, 27180, 0, false);
+			createOnePrivate(npc, 27180, 0, false);
+			createOnePrivate(npc, 27180, 0, false);
+			createOnePrivate(npc, 27180, 0, false);
+		}
 		
-		// Save script value.
-		npc.setScriptValue(minion * 100 + teleport);
+		if (hpRatio > 0.5)
+			npc._i_ai1 = 50;
+		else if (hpRatio > 0.3)
+			npc._i_ai1 = 30;
 		
-		// Cast self-heal whenever possible.
-		npc.getAI().tryToCast(npc, SELF_HEAL);
+		if (hpRatio > 0.8)
+			npc._i_ai2 = 80;
+		else if (hpRatio > 0.4)
+			npc._i_ai2 = 40;
+		else if (hpRatio > 0.2)
+			npc._i_ai2 = 20;
 		
-		return super.onAttack(npc, attacker, damage, skill);
+		if (attacker instanceof Playable)
+			npc.getAI().addAttackDesire(attacker, (((damage * 1.0) / npc.getStatus().getMaxHp()) / 0.05) * 100);
+	}
+	
+	@Override
+	public void onPartyAttacked(Npc caller, Npc called, Creature target, int damage)
+	{
+		if (target instanceof Playable)
+			called.getAI().addAttackDesire(target, (((damage * 1.0) / called.getStatus().getMaxHp()) / 0.05) * 50);
+	}
+	
+	@Override
+	public void onClanAttacked(Npc caller, Npc called, Creature attacker, int damage, L2Skill skill)
+	{
+		if (attacker instanceof Playable)
+			called.getAI().addAttackDesire(attacker, (((damage * 1.0) / called.getStatus().getMaxHp()) / 0.05) * 50);
+	}
+	
+	@Override
+	public void onOutOfTerritory(Npc npc)
+	{
+		npc.removeAllAttackDesire();
 	}
 }

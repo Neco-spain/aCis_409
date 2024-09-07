@@ -62,7 +62,7 @@ public abstract class AbstractEffect
 		
 		// Support for retail herbs duration when _effected has a Summon.
 		int period = template.getPeriod();
-		if (_skill.getId() > 2277 && _skill.getId() < 2286 && (_effected instanceof Servitor || (_effected instanceof Player && ((Player) _effected).getSummon() != null)))
+		if (_skill.getId() > 2277 && _skill.getId() < 2286 && (_effected instanceof Servitor || (_effected instanceof Player effectedPlayer && effectedPlayer.getSummon() != null)))
 			period /= 2;
 		
 		_period = period;
@@ -276,8 +276,8 @@ public abstract class AbstractEffect
 			case CREATED:
 				_state = EffectState.ACTING;
 				
-				if (getEffected() instanceof Player && _skill.isToggle())
-					getEffected().sendPacket(SystemMessage.getSystemMessage(SystemMessageId.USE_S1).addSkillName(_skill));
+				if (getEffected() instanceof Player player && _skill.isToggle())
+					player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.USE_S1).addSkillName(_skill));
 				
 				if (_period != 0)
 				{

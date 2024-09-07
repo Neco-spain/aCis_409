@@ -27,7 +27,7 @@ public class CharmTeleporter extends Quest
 		int npcId = npc.getNpcId();
 		if (npcId == WHIRPY)
 		{
-			if (player.getInventory().hasItems(DWARF_GATEKEEPER_TOKEN))
+			if (player.getInventory().hasItem(DWARF_GATEKEEPER_TOKEN))
 			{
 				takeItems(player, DWARF_GATEKEEPER_TOKEN, 1);
 				player.teleportTo(-80826, 149775, -3043, 0);
@@ -37,7 +37,7 @@ public class CharmTeleporter extends Quest
 		}
 		else if (npcId == TAMIL)
 		{
-			if (player.getInventory().hasItems(ORC_GATEKEEPER_CHARM))
+			if (player.getInventory().hasItem(ORC_GATEKEEPER_CHARM))
 			{
 				takeItems(player, ORC_GATEKEEPER_CHARM, 1);
 				player.teleportTo(-80826, 149775, -3043, 0);

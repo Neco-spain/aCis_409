@@ -119,10 +119,10 @@ public class Q354_ConquestOfAlligatorIsland extends Quest
 		
 		setItemsIds(ALLIGATOR_TOOTH, TORN_MAP_FRAGMENT);
 		
-		addStartNpc(30895); // Kluck
+		addQuestStart(30895); // Kluck
 		addTalkId(30895);
 		
-		addKillId(20804, 20805, 20806, 20807, 20808, 20991);
+		addMyDying(20804, 20805, 20806, 20807, 20808, 20991);
 	}
 	
 	@Override
@@ -141,7 +141,7 @@ public class Q354_ConquestOfAlligatorIsland extends Quest
 		}
 		else if (event.equalsIgnoreCase("30895-03.htm"))
 		{
-			if (player.getInventory().hasItems(TORN_MAP_FRAGMENT))
+			if (player.getInventory().hasItem(TORN_MAP_FRAGMENT))
 				htmltext = "30895-03a.htm";
 		}
 		else if (event.equalsIgnoreCase("30895-05.htm"))
@@ -196,7 +196,7 @@ public class Q354_ConquestOfAlligatorIsland extends Quest
 				break;
 			
 			case STARTED:
-				htmltext = (player.getInventory().hasItems(TORN_MAP_FRAGMENT)) ? "30895-03a.htm" : "30895-03.htm";
+				htmltext = (player.getInventory().hasItem(TORN_MAP_FRAGMENT)) ? "30895-03a.htm" : "30895-03.htm";
 				break;
 		}
 		
@@ -204,16 +204,14 @@ public class Q354_ConquestOfAlligatorIsland extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMemberState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		dropMultipleItems(st.getPlayer(), DROPLIST.get(npc.getNpcId()));
-		
-		return null;
 	}
 }

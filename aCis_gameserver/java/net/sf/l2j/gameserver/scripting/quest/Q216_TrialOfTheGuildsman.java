@@ -70,10 +70,10 @@ public class Q216_TrialOfTheGuildsman extends SecondClassQuest
 		
 		setItemsIds(RECIPE_JOURNEYMAN_RING, RECIPE_AMBER_BEAD, VALKON_RECOMMENDATION, MANDRAGORA_BERRY, ALTRAN_INSTRUCTIONS, ALTRAN_RECOMMENDATION_1, ALTRAN_RECOMMENDATION_2, NORMAN_INSTRUCTIONS, NORMAN_RECEIPT, DUNING_INSTRUCTIONS, DUNING_KEY, NORMAN_LIST, GRAY_BONE_POWDER, GRANITE_WHETSTONE, RED_PIGMENT, BRAIDED_YARN, JOURNEYMAN_GEM, PINTER_INSTRUCTIONS, AMBER_BEAD, AMBER_LUMP, JOURNEYMAN_DECO_BEADS, JOURNEYMAN_RING);
 		
-		addStartNpc(VALKON);
+		addQuestStart(VALKON);
 		addTalkId(VALKON, NORMAN, ALTRAN, PINTER, DUNING);
 		
-		addKillId(ANT, ANT_CAPTAIN, GRANITE_GOLEM, MANDRAGORA_SPROUT, MANDRAGORA_SAPLING, MANDRAGORA_BLOSSOM, SILENOS, STRAIN, GHOUL, DEAD_SEEKER, BREKA_ORC_SHAMAN, BREKA_ORC_OVERLORD, BREKA_ORC_WARRIOR);
+		addMyDying(ANT, ANT_CAPTAIN, GRANITE_GOLEM, MANDRAGORA_SPROUT, MANDRAGORA_SAPLING, MANDRAGORA_BLOSSOM, SILENOS, STRAIN, GHOUL, DEAD_SEEKER, BREKA_ORC_SHAMAN, BREKA_ORC_OVERLORD, BREKA_ORC_WARRIOR);
 	}
 	
 	@Override
@@ -87,7 +87,7 @@ public class Q216_TrialOfTheGuildsman extends SecondClassQuest
 		
 		if (event.equalsIgnoreCase("30103-06.htm"))
 		{
-			if (player.getInventory().getItemCount(57) >= 2000)
+			if (player.getAdena() >= 2000)
 			{
 				st.setState(QuestStatus.STARTED);
 				st.setCond(1);
@@ -218,11 +218,11 @@ public class Q216_TrialOfTheGuildsman extends SecondClassQuest
 					case NORMAN:
 						if (cond == 5)
 						{
-							if (player.getInventory().hasItems(ALTRAN_RECOMMENDATION_1))
+							if (player.getInventory().hasItem(ALTRAN_RECOMMENDATION_1))
 								htmltext = "30210-01.htm";
-							else if (player.getInventory().hasItems(NORMAN_RECEIPT))
+							else if (player.getInventory().hasItem(NORMAN_RECEIPT))
 								htmltext = "30210-05.htm";
-							else if (player.getInventory().hasItems(DUNING_INSTRUCTIONS))
+							else if (player.getInventory().hasItem(DUNING_INSTRUCTIONS))
 								htmltext = "30210-06.htm";
 							else if (player.getInventory().getItemCount(DUNING_KEY) == 30)
 							{
@@ -230,7 +230,7 @@ public class Q216_TrialOfTheGuildsman extends SecondClassQuest
 								playSound(player, SOUND_ITEMGET);
 								takeItems(player, DUNING_KEY, -1);
 							}
-							else if (player.getInventory().hasItems(NORMAN_LIST))
+							else if (player.getInventory().hasItem(NORMAN_LIST))
 							{
 								if (player.getInventory().getItemCount(GRAY_BONE_POWDER) == 70 && player.getInventory().getItemCount(GRANITE_WHETSTONE) == 70 && player.getInventory().getItemCount(RED_PIGMENT) == 70 && player.getInventory().getItemCount(BRAIDED_YARN) == 70)
 								{
@@ -260,9 +260,9 @@ public class Q216_TrialOfTheGuildsman extends SecondClassQuest
 					case DUNING:
 						if (cond == 5)
 						{
-							if (player.getInventory().hasItems(NORMAN_RECEIPT))
+							if (player.getInventory().hasItem(NORMAN_RECEIPT))
 								htmltext = "30688-01.htm";
-							else if (player.getInventory().hasItems(DUNING_INSTRUCTIONS))
+							else if (player.getInventory().hasItem(DUNING_INSTRUCTIONS))
 							{
 								if (player.getInventory().getItemCount(DUNING_KEY) < 30)
 									htmltext = "30688-03.htm";
@@ -281,9 +281,9 @@ public class Q216_TrialOfTheGuildsman extends SecondClassQuest
 					case PINTER:
 						if (cond == 5)
 						{
-							if (player.getInventory().hasItems(ALTRAN_RECOMMENDATION_2))
+							if (player.getInventory().hasItem(ALTRAN_RECOMMENDATION_2))
 								htmltext = (player.getStatus().getLevel() < 36) ? "30298-01.htm" : "30298-02.htm";
-							else if (player.getInventory().hasItems(PINTER_INSTRUCTIONS))
+							else if (player.getInventory().hasItem(PINTER_INSTRUCTIONS))
 							{
 								if (player.getInventory().getItemCount(AMBER_BEAD) < 70)
 									htmltext = "30298-06.htm";
@@ -304,7 +304,7 @@ public class Q216_TrialOfTheGuildsman extends SecondClassQuest
 								}
 							}
 						}
-						else if (player.getInventory().hasItems(JOURNEYMAN_DECO_BEADS))
+						else if (player.getInventory().hasItem(JOURNEYMAN_DECO_BEADS))
 							htmltext = "30298-08.htm";
 						break;
 				}
@@ -319,54 +319,48 @@ public class Q216_TrialOfTheGuildsman extends SecondClassQuest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
-			case MANDRAGORA_SPROUT:
-			case MANDRAGORA_SAPLING:
-			case MANDRAGORA_BLOSSOM:
+			case MANDRAGORA_SPROUT, MANDRAGORA_SAPLING, MANDRAGORA_BLOSSOM:
 				if (st.getCond() == 3 && dropItemsAlways(player, MANDRAGORA_BERRY, 1, 1))
 					st.setCond(4);
 				break;
 			
-			case BREKA_ORC_WARRIOR:
-			case BREKA_ORC_OVERLORD:
-			case BREKA_ORC_SHAMAN:
-				if (player.getInventory().hasItems(DUNING_INSTRUCTIONS))
+			case BREKA_ORC_WARRIOR, BREKA_ORC_OVERLORD, BREKA_ORC_SHAMAN:
+				if (player.getInventory().hasItem(DUNING_INSTRUCTIONS))
 					dropItemsAlways(player, DUNING_KEY, 1, 30);
 				break;
 			
-			case GHOUL:
-			case STRAIN:
-				if (player.getInventory().hasItems(NORMAN_LIST))
+			case GHOUL, STRAIN:
+				if (player.getInventory().hasItem(NORMAN_LIST))
 					dropItemsAlways(player, GRAY_BONE_POWDER, 5, 70);
 				break;
 			
 			case GRANITE_GOLEM:
-				if (player.getInventory().hasItems(NORMAN_LIST))
+				if (player.getInventory().hasItem(NORMAN_LIST))
 					dropItemsAlways(player, GRANITE_WHETSTONE, 7, 70);
 				break;
 			
 			case DEAD_SEEKER:
-				if (player.getInventory().hasItems(NORMAN_LIST))
+				if (player.getInventory().hasItem(NORMAN_LIST))
 					dropItemsAlways(player, RED_PIGMENT, 7, 70);
 				break;
 			
 			case SILENOS:
-				if (player.getInventory().hasItems(NORMAN_LIST))
+				if (player.getInventory().hasItem(NORMAN_LIST))
 					dropItemsAlways(player, BRAIDED_YARN, 10, 70);
 				break;
 			
-			case ANT:
-			case ANT_CAPTAIN:
-				if (player.getInventory().hasItems(PINTER_INSTRUCTIONS))
+			case ANT, ANT_CAPTAIN:
+				if (player.getInventory().hasItem(PINTER_INSTRUCTIONS))
 				{
 					// Different cases if player is a wannabe BH or WS.
 					if (dropItemsAlways(player, AMBER_BEAD, (player.getClassId() == ClassId.SCAVENGER && ((Monster) npc).getSpoilState().isActualSpoiler(player)) ? 10 : 5, 70))
@@ -375,7 +369,5 @@ public class Q216_TrialOfTheGuildsman extends SecondClassQuest
 				}
 				break;
 		}
-		
-		return null;
 	}
 }

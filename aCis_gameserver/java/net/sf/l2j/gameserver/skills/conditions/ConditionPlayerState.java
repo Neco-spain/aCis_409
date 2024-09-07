@@ -20,12 +20,10 @@ public class ConditionPlayerState extends Condition
 	@Override
 	public boolean testImpl(Creature effector, Creature effected, L2Skill skill, Item item)
 	{
-		final Player player = (effector instanceof Player) ? (Player) effector : null;
-		
 		switch (_check)
 		{
 			case RESTING:
-				return (player == null) ? !_required : player.isSitting() == _required;
+				return (effector instanceof Player player) ? player.isSitting() == _required : !_required;
 			
 			case MOVING:
 				return effector.isMoving() == _required;
@@ -46,7 +44,7 @@ public class ConditionPlayerState extends Condition
 				return effector.isInFrontOf(effected) == _required;
 			
 			case OLYMPIAD:
-				return (player == null) ? !_required : player.isInOlympiadMode() == _required;
+				return (effector instanceof Player player) ? player.isInOlympiadMode() == _required : !_required;
 		}
 		return !_required;
 	}

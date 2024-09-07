@@ -8,6 +8,7 @@ public final class RequestItemList extends L2GameClientPacket
 	@Override
 	protected void readImpl()
 	{
+		// Do nothing.
 	}
 	
 	@Override

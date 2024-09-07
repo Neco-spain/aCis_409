@@ -10,7 +10,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import net.sf.l2j.commons.pool.ThreadPool;
 
 import net.sf.l2j.gameserver.data.SkillTable;
-import net.sf.l2j.gameserver.data.manager.DayNightManager;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.network.SystemMessageId;
@@ -39,6 +38,7 @@ public final class GameTimeTaskManager implements Runnable
 	
 	private int _time;
 	protected boolean _isNight;
+	private long _startTime;
 	
 	protected GameTimeTaskManager()
 	{
@@ -50,6 +50,7 @@ public final class GameTimeTaskManager implements Runnable
 		
 		_time = (int) (System.currentTimeMillis() - cal.getTimeInMillis()) / MILLISECONDS_PER_GAME_MINUTE;
 		_isNight = isNight();
+		_startTime = System.currentTimeMillis();
 		
 		// Run task each 10 seconds.
 		ThreadPool.scheduleAtFixedRate(this, MILLISECONDS_PER_GAME_MINUTE, MILLISECONDS_PER_GAME_MINUTE);
@@ -74,9 +75,6 @@ public final class GameTimeTaskManager implements Runnable
 		{
 			// Change day/night.
 			_isNight = !_isNight;
-			
-			// Inform day/night spawn manager.
-			DayNightManager.getInstance().notifyChangeMode();
 			
 			// Set Shadow Sense skill to apply/remove effect from players.
 			skill = SkillTable.getInstance().getInfo(L2Skill.SKILL_SHADOW_SENSE, 1);
@@ -197,6 +195,15 @@ public final class GameTimeTaskManager implements Runnable
 	public final void remove(Creature player)
 	{
 		_players.remove(player);
+	}
+	
+	/**
+	 * This method is used as a monotonic clockwall.
+	 * @return The elapsed time since server startup, in seconds.
+	 */
+	public int getCurrentTick()
+	{
+		return (int) ((System.currentTimeMillis() - _startTime) / 1000);
 	}
 	
 	public static final GameTimeTaskManager getInstance()

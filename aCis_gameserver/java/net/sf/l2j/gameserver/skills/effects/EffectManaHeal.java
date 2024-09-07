@@ -33,12 +33,12 @@ public class EffectManaHeal extends AbstractEffect
 		
 		getEffected().getStatus().addMp(amount);
 		
-		if (getEffected() instanceof Player)
+		if (getEffected() instanceof Player targetPlayer)
 		{
-			if (getEffector() != getEffected())
-				getEffected().sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S2_MP_RESTORED_BY_S1).addCharName(getEffector()).addNumber((int) amount));
+			if (getEffector() != targetPlayer)
+				targetPlayer.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S2_MP_RESTORED_BY_S1).addCharName(getEffector()).addNumber((int) amount));
 			else
-				getEffected().sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_MP_RESTORED).addNumber((int) amount));
+				targetPlayer.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_MP_RESTORED).addNumber((int) amount));
 		}
 		return true;
 	}

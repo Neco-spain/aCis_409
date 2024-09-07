@@ -1,16 +1,17 @@
 package net.sf.l2j.gameserver.model.zone.type.subtype;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 
 import net.sf.l2j.commons.logging.CLogger;
 
-import net.sf.l2j.gameserver.enums.ScriptEventType;
+import net.sf.l2j.gameserver.enums.EventHandler;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
@@ -29,10 +30,11 @@ public abstract class ZoneType
 {
 	protected static final CLogger LOGGER = new CLogger(ZoneType.class.getName());
 	
-	private final int _id;
-	protected final Map<Integer, Creature> _characters = new ConcurrentHashMap<>();
+	protected final Set<Creature> _creatures = ConcurrentHashMap.newKeySet();
 	
-	private Map<ScriptEventType, List<Quest>> _questEvents;
+	private final int _id;
+	
+	private Map<EventHandler, List<Quest>> _questEvents;
 	private ZoneForm _zone;
 	
 	protected ZoneType(int id)
@@ -40,9 +42,9 @@ public abstract class ZoneType
 		_id = id;
 	}
 	
-	protected abstract void onEnter(Creature character);
+	protected abstract void onEnter(Creature creature);
 	
-	protected abstract void onExit(Creature character);
+	protected abstract void onExit(Creature creature);
 	
 	@Override
 	public String toString()
@@ -98,114 +100,109 @@ public abstract class ZoneType
 		return isInsideZone(object.getX(), object.getY(), object.getZ());
 	}
 	
-	public void visualizeZone(ExServerPrimitive debug, int z)
+	public void visualizeZone(ExServerPrimitive debug)
 	{
-		_zone.visualizeZone(toString(), debug, z);
+		_zone.visualizeZone(toString(), debug);
 	}
 	
 	/**
 	 * Update a {@link Creature} zone state.<br>
 	 * <br>
-	 * If the Creature is inside the zone, but not yet part of _characters {@link Map} :
+	 * If the {@link Creature} is inside the zone, but not yet part of _creatures {@link Set} :
 	 * <ul>
-	 * <li>Fire {@link Quest#notifyEnterZone}.</li>
-	 * <li>Add the Creature to the Map.</li>
+	 * <li>Fire {@link Quest#onZoneEnter}.</li>
+	 * <li>Add the {@link Creature} to the {@link Set}.</li>
 	 * <li>Fire zone onEnter() event.</li>
 	 * </ul>
-	 * If the Creature isn't inside the zone, and was part of _characters Map, we run {@link #removeCharacter(Creature)}.
-	 * @param character : The affected Creature.
+	 * If the {@link Creature} isn't inside the zone, and was part of _creatures {@link Set}, we run {@link #removeCreature(Creature)}.
+	 * @param creature : The affected {@link Creature}.
 	 */
-	public void revalidateInZone(Creature character)
+	public void revalidateInZone(Creature creature)
 	{
-		// If the character can't be affected by this zone, return.
-		if (!isAffected(character))
+		// If the creature can't be affected by this zone, return.
+		if (!isAffected(creature))
 			return;
 		
-		// If the character is inside the zone.
-		if (isInsideZone(character))
+		// If the creature is inside the zone.
+		if (isInsideZone(creature))
 		{
-			// We test if the character was part of the zone.
-			if (!_characters.containsKey(character.getObjectId()))
+			// We test if the creature is already registered.
+			if (_creatures.add(creature))
 			{
 				// Notify to scripts.
-				final List<Quest> quests = getQuestByEvent(ScriptEventType.ON_ENTER_ZONE);
-				if (quests != null)
-				{
-					for (Quest quest : quests)
-						quest.notifyEnterZone(character, this);
-				}
-				
-				// Register player.
-				_characters.put(character.getObjectId(), character);
+				for (Quest quest : getQuestByEvent(EventHandler.ZONE_ENTER))
+					quest.onZoneEnter(creature, this);
 				
 				// Notify Zone implementation.
-				onEnter(character);
+				onEnter(creature);
 			}
 		}
 		else
-			removeCharacter(character);
+			removeCreature(creature);
 	}
 	
 	/**
 	 * Remove a {@link Creature} from this zone.
 	 * <ul>
-	 * <li>Fire {@link Quest#notifyExitZone}.</li>
-	 * <li>Remove the Creature from the {@link Map}.</li>
+	 * <li>Fire {@link Quest#onZoneExit}.</li>
+	 * <li>Remove the {@link Creature} from the {@link Map}.</li>
 	 * <li>Fire zone onExit() event.</li>
 	 * </ul>
-	 * @param character : The Creature to remove.
+	 * @param creature : The {@link Creature} to remove.
 	 */
-	public void removeCharacter(Creature character)
+	public void removeCreature(Creature creature)
 	{
-		// We test and remove the character if he was part of the zone.
-		if (_characters.remove(character.getObjectId()) != null)
+		// We test and remove the creature if he was part of the zone.
+		if (_creatures.remove(creature))
 		{
 			// Notify to scripts.
-			final List<Quest> quests = getQuestByEvent(ScriptEventType.ON_EXIT_ZONE);
-			if (quests != null)
-			{
-				for (Quest quest : quests)
-					quest.notifyExitZone(character, this);
-			}
+			for (Quest quest : getQuestByEvent(EventHandler.ZONE_EXIT))
+				quest.onZoneExit(creature, this);
 			
 			// Notify Zone implementation.
-			onExit(character);
+			onExit(creature);
 		}
 	}
 	
 	/**
-	 * @param character : The Creature to test.
-	 * @return true if the {@link Creature} is in the zone _characters {@link Map}.
+	 * @param creature : The {@link Creature} to test.
+	 * @return true if the {@link Creature} is in the zone _creatures {@link Set}.
 	 */
-	public boolean isCharacterInZone(Creature character)
+	public boolean isInZone(Creature creature)
 	{
-		return _characters.containsKey(character.getObjectId());
+		return _creatures.contains(creature);
 	}
 	
-	public Collection<Creature> getCharacters()
+	public Set<Creature> getCreatures()
 	{
-		return _characters.values();
+		return _creatures;
 	}
 	
 	/**
-	 * @param <A> : The generic type.
-	 * @param type : The instance type to filter.
-	 * @return a {@link List} of filtered type {@link Creature}s within this zone. Generate a temporary List.
+	 * @param <A> : The object type must be an instance of WorldObject.
+	 * @param type : The class specifying object type.
+	 * @return a {@link List} of filtered type {@link Creature}s within this zone.
 	 */
-	@SuppressWarnings("unchecked")
 	public final <A> List<A> getKnownTypeInside(Class<A> type)
 	{
-		if (_characters.isEmpty())
+		if (_creatures.isEmpty())
 			return Collections.emptyList();
 		
-		List<A> result = new ArrayList<>();
+		return _creatures.stream().filter(type::isInstance).map(type::cast).toList();
+	}
+	
+	/**
+	 * @param <A> : The object type must be an instance of WorldObject.
+	 * @param type : The class specifying object type.
+	 * @param predicate : The {@link Predicate} to match.
+	 * @return a {@link List} of filtered type {@link Creature}s based on a {@link Predicate} within this zone.
+	 */
+	public final <A> List<A> getKnownTypeInside(Class<A> type, Predicate<A> predicate)
+	{
+		if (_creatures.isEmpty())
+			return Collections.emptyList();
 		
-		for (Creature obj : _characters.values())
-		{
-			if (type.isAssignableFrom(obj.getClass()))
-				result.add((A) obj);
-		}
-		return result;
+		return _creatures.stream().filter(o -> type.isInstance(o) && predicate.test(type.cast(o))).map(type::cast).toList();
 	}
 	
 	/**
@@ -215,33 +212,25 @@ public abstract class ZoneType
 	 * @param type : The EventType to test.
 	 * @param quest : The Quest to add.
 	 */
-	public void addQuestEvent(ScriptEventType type, Quest quest)
+	public void addQuestEvent(EventHandler type, Quest quest)
 	{
 		if (_questEvents == null)
-			_questEvents = new HashMap<>();
+			_questEvents = new EnumMap<>(EventHandler.class);
 		
-		List<Quest> eventList = _questEvents.get(type);
-		if (eventList == null)
-		{
-			eventList = new ArrayList<>();
-			eventList.add(quest);
-			
-			_questEvents.put(type, eventList);
-		}
-		else
-		{
-			eventList.remove(quest);
-			eventList.add(quest);
-		}
+		_questEvents.computeIfAbsent(type, k -> new ArrayList<>()).remove(quest);
+		_questEvents.get(type).add(quest);
 	}
 	
 	/**
 	 * @param type : The EventType to test.
-	 * @return the {@link List} of available {@link Quest}s associated to this zone for a given {@link ScriptEventType}.
+	 * @return the {@link List} of available {@link Quest}s associated to this zone for a given {@link EventHandler}.
 	 */
-	public List<Quest> getQuestByEvent(ScriptEventType type)
+	public List<Quest> getQuestByEvent(EventHandler type)
 	{
-		return (_questEvents == null) ? null : _questEvents.get(type);
+		if (_questEvents == null)
+			return Collections.emptyList();
+		
+		return _questEvents.getOrDefault(type, Collections.emptyList());
 	}
 	
 	/**
@@ -250,10 +239,10 @@ public abstract class ZoneType
 	 */
 	public void broadcastPacket(L2GameServerPacket packet)
 	{
-		for (Creature character : _characters.values())
+		for (Creature creature : _creatures)
 		{
-			if (character instanceof Player)
-				character.sendPacket(packet);
+			if (creature instanceof Player player)
+				player.sendPacket(packet);
 		}
 	}
 	
@@ -268,10 +257,10 @@ public abstract class ZoneType
 	}
 	
 	/**
-	 * @param character : The Creature to test.
+	 * @param creature : The {@link Creature} to test.
 	 * @return true if the given {@link Creature} is affected by this zone. Overriden in children classes.
 	 */
-	protected boolean isAffected(Creature character)
+	protected boolean isAffected(Creature creature)
 	{
 		return true;
 	}
@@ -282,23 +271,20 @@ public abstract class ZoneType
 	 * @param y : The Y parameter used as teleport location.
 	 * @param z : The Z parameter used as teleport location.
 	 */
-	public void movePlayersTo(int x, int y, int z)
+	public void instantTeleport(int x, int y, int z)
 	{
-		for (Player player : getKnownTypeInside(Player.class))
-		{
-			if (player.isOnline())
-				player.teleportTo(x, y, z, 0);
-		}
+		for (Player player : getKnownTypeInside(Player.class, Player::isOnline))
+			player.teleportTo(x, y, z, 0);
 	}
 	
 	/**
 	 * Teleport all {@link Player}s located in this {@link ZoneType} to a specific {@link Location}.
-	 * @see #movePlayersTo(int, int, int)
-	 * @param loc : The Location used as coords.
+	 * @see #instantTeleport(int, int, int)
+	 * @param loc : The {@link Location} used as coords.
 	 */
-	public void movePlayersTo(Location loc)
+	public void instantTeleport(Location loc)
 	{
-		movePlayersTo(loc.getX(), loc.getY(), loc.getZ());
+		instantTeleport(loc.getX(), loc.getY(), loc.getZ());
 	}
 	
 	/**

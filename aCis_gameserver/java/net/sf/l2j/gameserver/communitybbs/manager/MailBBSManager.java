@@ -16,6 +16,7 @@ import net.sf.l2j.commons.pool.ConnectionPool;
 
 import net.sf.l2j.gameserver.communitybbs.model.Mail;
 import net.sf.l2j.gameserver.data.cache.HtmCache;
+import net.sf.l2j.gameserver.data.manager.RelationManager;
 import net.sf.l2j.gameserver.data.sql.PlayerInfoTable;
 import net.sf.l2j.gameserver.enums.MailType;
 import net.sf.l2j.gameserver.model.World;
@@ -228,7 +229,7 @@ public class MailBBSManager extends BaseBBSManager
 				if (mail.isUnread())
 					sb.append("<font color=\"LEVEL\">");
 				
-				sb.append(StringUtil.trim(mail.getSubject(), 30)).append((mail.getSubject().length() > 30) ? "..." : "");
+				sb.append(StringUtil.trimAndDress(mail.getSubject(), 30));
 				
 				if (mail.isUnread())
 					sb.append("</font>");
@@ -415,13 +416,13 @@ public class MailBBSManager extends BaseBBSManager
 					// The recipient is on block mode.
 					if (recipientPlayer != null)
 					{
-						if (recipientPlayer.getBlockList().isBlockingAll())
+						if (recipientPlayer.isBlockingAll())
 						{
 							player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_BLOCKED_EVERYTHING).addString(recipientName));
 							continue;
 						}
 						
-						if (recipientPlayer.getBlockList().isInBlockList(player))
+						if (RelationManager.getInstance().isInBlockList(recipientPlayer, player))
 						{
 							player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_BLOCKED_YOU_CANNOT_MAIL).addString(recipientName));
 							continue;

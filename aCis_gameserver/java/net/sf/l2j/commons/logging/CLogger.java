@@ -48,9 +48,9 @@ public final class CLogger
 		_logger.logp(level, caller.getClassName(), caller.getMethodName(), format(String.valueOf(message), args), exception);
 	}
 	
-	public void log(LogRecord record)
+	public void log(LogRecord logRecord)
 	{
-		_logger.log(record);
+		_logger.log(logRecord);
 	}
 	
 	/**

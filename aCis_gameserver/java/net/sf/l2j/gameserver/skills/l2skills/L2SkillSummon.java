@@ -1,7 +1,6 @@
 package net.sf.l2j.gameserver.skills.l2skills;
 
 import net.sf.l2j.commons.data.StatSet;
-import net.sf.l2j.commons.math.MathUtil;
 
 import net.sf.l2j.gameserver.data.SkillTable;
 import net.sf.l2j.gameserver.data.xml.NpcData;
@@ -39,6 +38,7 @@ public class L2SkillSummon extends L2Skill
 	private final int _itemConsumeSteps;
 	
 	private static final int SUMMON_SOULLESS = 1278;
+	private static final int LIFE_CUBIC_FOR_BEGINNERS = 4338;
 	
 	public L2SkillSummon(StatSet set)
 	{
@@ -61,12 +61,10 @@ public class L2SkillSummon extends L2Skill
 		_itemConsumeSteps = set.getInteger("itemConsumeSteps", 0);
 	}
 	
-	public boolean checkCondition(Creature activeChar)
+	public boolean checkCondition(Creature creature)
 	{
-		if (activeChar instanceof Player)
+		if (creature instanceof Player player)
 		{
-			Player player = (Player) activeChar;
-			
 			if (isCubic())
 			{
 				// Player is always able to cast mass cubic skill
@@ -89,84 +87,96 @@ public class L2SkillSummon extends L2Skill
 					player.sendPacket(SystemMessageId.SUMMON_ONLY_ONE);
 					return false;
 				}
+				
+				if (player.getAttack().isAttackingNow())
+				{
+					player.sendPacket(SystemMessageId.YOU_CANNOT_SUMMON_IN_COMBAT);
+					return false;
+				}
+				
+				if (player.isInBoat())
+				{
+					player.sendPacket(SystemMessageId.NOT_CALL_PET_FROM_THIS_LOCATION);
+					return false;
+				}
 			}
 		}
-		return super.checkCondition(activeChar, null, false);
+		return super.checkCondition(creature, null, false);
 	}
 	
 	@Override
-	public void useSkill(Creature caster, WorldObject[] targets)
+	public void useSkill(Creature creature, WorldObject[] targets)
 	{
-		if (caster.isAlikeDead() || !(caster instanceof Player))
+		if (!(creature instanceof Player player) || player.isAlikeDead())
 			return;
-		
-		Player activeChar = (Player) caster;
 		
 		if (_npcId == 0)
 		{
-			activeChar.sendMessage("Summon skill " + getId() + " not described yet");
+			player.sendMessage("Summon skill " + getId() + " not described yet");
 			return;
 		}
 		
 		if (_isCubic)
 		{
 			int skillLevel = getLevel();
-			if (skillLevel > 100)
+			if (getId() == LIFE_CUBIC_FOR_BEGINNERS)
+				skillLevel = 8;
+			else if (skillLevel > 100)
 				skillLevel = Math.round(((getLevel() - 100) / 7) + 8);
 			
 			// Mass cubic skill.
 			if (targets.length > 1)
 			{
-				for (WorldObject obj : targets)
+				for (WorldObject target : targets)
 				{
-					if (!(obj instanceof Player))
+					if (!(target instanceof Player targetPlayer))
 						continue;
 					
-					((Player) obj).getCubicList().addOrRefreshCubic(_npcId, skillLevel, getPower(), _activationTime, _activationChance, _summonTotalLifeTime, (obj != activeChar));
+					targetPlayer.getCubicList().addOrRefreshCubic(_npcId, skillLevel, getPower(), _activationTime, _activationChance, _summonTotalLifeTime, (targetPlayer != player));
 				}
 			}
 			else
-				activeChar.getCubicList().addOrRefreshCubic(_npcId, skillLevel, getPower(), _activationTime, _activationChance, _summonTotalLifeTime, false);
+				player.getCubicList().addOrRefreshCubic(_npcId, skillLevel, getPower(), _activationTime, _activationChance, _summonTotalLifeTime, false);
 		}
 		else
 		{
-			if (activeChar.getSummon() != null || activeChar.isMounted())
+			if (player.getSummon() != null || player.isMounted())
 				return;
 			
-			Servitor summon;
-			NpcTemplate summonTemplate = NpcData.getInstance().getTemplate(_npcId);
+			final NpcTemplate summonTemplate = NpcData.getInstance().getTemplate(_npcId);
 			if (summonTemplate == null)
 			{
 				LOGGER.warn("Couldn't properly spawn with id {} ; the template is missing.", _npcId);
 				return;
 			}
 			
+			Servitor summon;
 			if (summonTemplate.isType("SiegeSummon"))
-				summon = new SiegeSummon(IdFactory.getInstance().getNextId(), summonTemplate, activeChar, this);
+				summon = new SiegeSummon(IdFactory.getInstance().getNextId(), summonTemplate, player, this);
 			else
-				summon = new Servitor(IdFactory.getInstance().getNextId(), summonTemplate, activeChar, this);
+				summon = new Servitor(IdFactory.getInstance().getNextId(), summonTemplate, player, this);
 			
-			activeChar.setSummon(summon);
+			player.setSummon(summon);
 			
 			summon.setName(summonTemplate.getName());
-			summon.setTitle(activeChar.getName());
+			summon.setTitle(player.getName());
 			summon.setExpPenalty(_expPenalty);
 			summon.getStatus().setMaxHpMp();
 			summon.forceRunStance();
 			
-			final SpawnLocation spawnLoc = activeChar.getPosition().clone();
+			final SpawnLocation spawnLoc = player.getPosition().clone();
 			spawnLoc.addStrictOffset(40);
-			spawnLoc.setHeadingTo(activeChar.getPosition());
-			spawnLoc.set(GeoEngine.getInstance().getValidLocation(activeChar, spawnLoc));
+			spawnLoc.setHeadingTo(player.getPosition());
+			spawnLoc.set(GeoEngine.getInstance().getValidLocation(player, spawnLoc));
 			
 			summon.spawnMe(spawnLoc);
 			summon.getAI().setFollowStatus(true);
 			
 			if (getId() == SUMMON_SOULLESS)
-				SkillTable.getInstance().getInfo(Summon.CONTRACT_PAYMENT, MathUtil.limit(getLevel() - 2, 1, 12)).getEffects(activeChar, activeChar);
+				SkillTable.getInstance().getInfo(Summon.CONTRACT_PAYMENT, Math.clamp(getLevel() - 2, 1, 12)).getEffects(player, player);
 		}
 		
-		activeChar.setChargedShot(activeChar.isChargedShot(ShotType.BLESSED_SPIRITSHOT) ? ShotType.BLESSED_SPIRITSHOT : ShotType.SPIRITSHOT, isStaticReuse());
+		player.setChargedShot(player.isChargedShot(ShotType.BLESSED_SPIRITSHOT) ? ShotType.BLESSED_SPIRITSHOT : ShotType.SPIRITSHOT, isStaticReuse());
 	}
 	
 	public final boolean isCubic()

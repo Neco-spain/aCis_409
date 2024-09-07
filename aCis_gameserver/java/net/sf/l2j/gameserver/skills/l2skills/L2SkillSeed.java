@@ -18,28 +18,26 @@ public class L2SkillSeed extends L2Skill
 	}
 	
 	@Override
-	public void useSkill(Creature caster, WorldObject[] targets)
+	public void useSkill(Creature creature, WorldObject[] targets)
 	{
-		if (caster.isAlikeDead())
+		if (creature.isAlikeDead())
 			return;
 		
-		// Update Seeds Effects
-		for (WorldObject obj : targets)
+		for (WorldObject target : targets)
 		{
-			if (!(obj instanceof Creature))
+			if (!(target instanceof Creature targetCreature))
 				continue;
 			
-			final Creature target = ((Creature) obj);
-			if (target.isAlikeDead() && getTargetType() != SkillTargetType.CORPSE_MOB)
+			if (targetCreature.isAlikeDead() && getTargetType() != SkillTargetType.CORPSE_MOB)
 				continue;
 			
-			EffectSeed oldEffect = (EffectSeed) target.getFirstEffect(getId());
+			EffectSeed oldEffect = (EffectSeed) targetCreature.getFirstEffect(getId());
 			if (oldEffect == null)
-				getEffects(caster, target);
+				getEffects(creature, targetCreature);
 			else
 				oldEffect.increasePower();
 			
-			for (AbstractEffect effect : target.getAllEffects())
+			for (AbstractEffect effect : targetCreature.getAllEffects())
 				if (effect.getEffectType() == EffectType.SEED)
 					effect.rescheduleEffect();
 		}

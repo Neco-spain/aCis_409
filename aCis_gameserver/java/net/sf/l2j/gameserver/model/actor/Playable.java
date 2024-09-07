@@ -10,8 +10,10 @@ import net.sf.l2j.gameserver.data.manager.CastleManager;
 import net.sf.l2j.gameserver.enums.AiEventType;
 import net.sf.l2j.gameserver.enums.SiegeSide;
 import net.sf.l2j.gameserver.enums.ZoneId;
+import net.sf.l2j.gameserver.enums.duels.DuelState;
 import net.sf.l2j.gameserver.enums.skills.EffectFlag;
 import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.model.actor.ai.type.PlayableAI;
 import net.sf.l2j.gameserver.model.actor.attack.PlayableAttack;
 import net.sf.l2j.gameserver.model.actor.cast.PlayableCast;
 import net.sf.l2j.gameserver.model.actor.container.npc.AggroInfo;
@@ -19,12 +21,17 @@ import net.sf.l2j.gameserver.model.actor.instance.Monster;
 import net.sf.l2j.gameserver.model.actor.instance.SiegeGuard;
 import net.sf.l2j.gameserver.model.actor.status.PlayableStatus;
 import net.sf.l2j.gameserver.model.actor.template.CreatureTemplate;
-import net.sf.l2j.gameserver.model.entity.Duel.DuelState;
-import net.sf.l2j.gameserver.model.entity.Siege;
+import net.sf.l2j.gameserver.model.entity.Duel;
+import net.sf.l2j.gameserver.model.group.CommandChannel;
+import net.sf.l2j.gameserver.model.group.Party;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.item.kind.EtcItem;
+import net.sf.l2j.gameserver.model.location.Location;
+import net.sf.l2j.gameserver.model.location.Point2D;
 import net.sf.l2j.gameserver.model.pledge.Clan;
+import net.sf.l2j.gameserver.model.residence.castle.Siege;
 import net.sf.l2j.gameserver.network.SystemMessageId;
+import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 import net.sf.l2j.gameserver.network.serverpackets.ExUseSharedGroupItem;
 import net.sf.l2j.gameserver.network.serverpackets.MagicSkillUse;
 import net.sf.l2j.gameserver.network.serverpackets.Revive;
@@ -46,13 +53,51 @@ public abstract class Playable extends Creature
 	}
 	
 	/**
-	 * @return The max weight that the {@link Playable} can carry.
+	 * @return The max weight this {@link Playable} can carry.
 	 */
 	public abstract int getWeightLimit();
 	
+	/**
+	 * @return The karma value of this {@link Playable} - in case of Summon, his owner.
+	 */
 	public abstract int getKarma();
 	
+	/**
+	 * @return The pvp flag value of this {@link Playable} - in case of Summon, his owner.
+	 */
 	public abstract byte getPvpFlag();
+	
+	/**
+	 * @return The {@link Clan} of this {@link Playable} - in case of Summon, his owner.
+	 */
+	public abstract Clan getClan();
+	
+	/**
+	 * @return The {@link Clan} id of this {@link Playable} - in case of Summon, his owner.
+	 */
+	public abstract int getClanId();
+	
+	/**
+	 * Add an {@link ItemInstance} to this {@link Playable}'s inventory.
+	 * @param item : The {@link ItemInstance} to add.
+	 * @param sendMessage : If true, send client message.
+	 */
+	public abstract void addItem(ItemInstance item, boolean sendMessage);
+	
+	/**
+	 * Add an item to this {@link Playable}.
+	 * @param itemId : The itemId of item to add.
+	 * @param count : The quantity of items to add.
+	 * @param sendMessage : Send {@link SystemMessage} client notification if set to true.
+	 * @return an {@link ItemInstance} of a newly generated item for this {@link Playable}, using itemId and count.
+	 */
+	public abstract ItemInstance addItem(int itemId, int count, boolean sendMessage);
+	
+	@Override
+	public PlayableAI<?> getAI()
+	{
+		return (PlayableAI<?>) _ai;
+	}
 	
 	@Override
 	public PlayableStatus<? extends Playable> getStatus()
@@ -128,7 +173,7 @@ public abstract class Playable extends Creature
 		
 		// Notify Quest of Playable's death
 		final Player actingPlayer = getActingPlayer();
-		actingPlayer.getQuestList().getQuests(Quest::isTriggeredOnDeath).forEach(q -> q.notifyDeath((killer == null ? this : killer), actingPlayer));
+		actingPlayer.getQuestList().getQuests(Quest::isTriggeredOnDeath).forEach(q -> q.onDeath((killer == null ? this : killer), actingPlayer));
 		
 		if (killer != null)
 		{
@@ -172,15 +217,10 @@ public abstract class Playable extends Creature
 		if (target == null || target == this)
 			return false;
 		
-		final Player player = getActingPlayer();
-		if (player == null || player.getKarma() != 0)
+		if (getKarma() != 0)
 			return false;
 		
-		final Player targetPlayer = target.getActingPlayer();
-		if (targetPlayer == null || targetPlayer == this)
-			return false;
-		
-		if (targetPlayer.getKarma() != 0 || targetPlayer.getPvpFlag() == 0)
+		if (target.getKarma() != 0 || target.getPvpFlag() == 0)
 			return false;
 		
 		return true;
@@ -223,6 +263,7 @@ public abstract class Playable extends Creature
 		updateAbnormalEffect();
 	}
 	
+	@Override
 	public boolean isSilentMoving()
 	{
 		return _effects.isAffected(EffectFlag.SILENT_MOVE);
@@ -341,38 +382,32 @@ public abstract class Playable extends Creature
 	 */
 	public boolean canCastOffensiveSkillOnPlayable(Playable target, L2Skill skill, boolean isCtrlPressed)
 	{
-		// No checks for players in Olympiad
 		final Player targetPlayer = target.getActingPlayer();
-		if (getActingPlayer().isInOlympiadMode() && targetPlayer.isInOlympiadMode() && getActingPlayer().getOlympiadGameId() == targetPlayer.getOlympiadGameId())
+		
+		// No cast upon self/owner.
+		if (targetPlayer == getActingPlayer())
+			return false;
+		
+		// No checks for players in Olympiad.
+		if (isInSameActiveOlympiadMatch(targetPlayer))
 			return true;
 		
-		// No checks for players in Duel
-		if (getActingPlayer().isInDuel() && targetPlayer.isInDuel() && getActingPlayer().getDuelId() == targetPlayer.getDuelId())
+		// No checks for players in Duel.
+		if (isInSameActiveDuel(targetPlayer))
 			return true;
 		
-		final boolean sameParty = isInParty() && targetPlayer.isInParty() && getParty().getLeader() == targetPlayer.getParty().getLeader();
-		final boolean sameCommandChannel = isInParty() && targetPlayer.isInParty() && getParty().getCommandChannel() != null && getParty().getCommandChannel().containsPlayer(targetPlayer);
+		final boolean sameParty = isInSameParty(targetPlayer);
+		final boolean sameCommandChannel = isInSameCommandChannel(targetPlayer);
 		
 		// No checks for Playables in arena.
 		if (isInArena() && target.isInArena() && !(sameParty || sameCommandChannel))
 			return true;
-		
-		final boolean sameClan = getActingPlayer().getClanId() > 0 && getActingPlayer().getClanId() == targetPlayer.getClanId();
-		final boolean sameAlliance = getActingPlayer().getAllyId() > 0 && getActingPlayer().getAllyId() == targetPlayer.getAllyId();
-		
-		boolean sameSiegeSide = false;
-		final Siege siege = CastleManager.getInstance().getActiveSiege(this);
-		if (siege != null)
-		{
-			sameSiegeSide = (siege.checkSides(targetPlayer.getClan(), SiegeSide.DEFENDER, SiegeSide.OWNER) && siege.checkSides(getActingPlayer().getClan(), SiegeSide.DEFENDER, SiegeSide.OWNER)) || (siege.checkSide(targetPlayer.getClan(), SiegeSide.ATTACKER) && siege.checkSide(getActingPlayer().getClan(), SiegeSide.ATTACKER));
-			sameSiegeSide &= target.isInsideZone(ZoneId.SIEGE) && isInsideZone(ZoneId.SIEGE);
-		}
-		
+			
 		// Players in the same CC/party/alliance/clan may only damage each other with ctrlPressed.
 		// If it's an AOE skill, only the mainTarget will be hit. PvpFlag / Karma do not influence these checks.
 		final boolean isMainTarget = getAI().getCurrentIntention().getFinalTarget() == target;
 		final boolean isCtrlDamagingTheMainTarget = isCtrlPressed && skill.isDamage() && isMainTarget;
-		if (sameParty || sameCommandChannel || sameClan || sameAlliance || sameSiegeSide)
+		if (sameParty || sameCommandChannel || isInSameClan(targetPlayer) || isInSameAlly(targetPlayer) || isInSameActiveSiegeSide(targetPlayer))
 			return isCtrlDamagingTheMainTarget;
 		
 		// If the target not from the same CC/party/alliance/clan/SiegeSide is in a PVP area, you can do anything.
@@ -398,10 +433,12 @@ public abstract class Playable extends Creature
 		// If the caster not from the same CC/party/alliance/clan is at war with the target, then With CTRL he may damage and debuff.
 		// CTRL is still necessary for damaging. You can do anything so long as you have CTRL pressed.
 		// pvpFlag / Karma do not influence these checks
-		final Clan aClan = getActingPlayer().getClan();
-		final Clan tClan = targetPlayer.getClan();
-		if (aClan != null && tClan != null && aClan.isAtWarWith(tClan.getClanId()) && tClan.isAtWarWith(aClan.getClanId()))
+		if (isAtWarWith(targetPlayer))
 			return isCtrlPressed;
+		
+		// If the target is not clan war enemy or pvpFlag / Karma do not
+		if (skill.isDebuff())
+			return false;
 		
 		return isCtrlDamagingTheMainTarget;
 	}
@@ -419,20 +456,18 @@ public abstract class Playable extends Creature
 		// SiegeGuards cannot attack defenders/owners
 		if (attacker instanceof SiegeGuard)
 		{
-			if (getActingPlayer().getClan() != null)
+			if (getClan() != null)
 			{
 				final Siege siege = CastleManager.getInstance().getActiveSiege(this);
-				if (siege != null && siege.checkSides(getActingPlayer().getClan(), SiegeSide.DEFENDER, SiegeSide.OWNER))
+				if (siege != null && siege.checkSides(getClan(), SiegeSide.DEFENDER, SiegeSide.OWNER))
 					return false;
 			}
 			
 			return true;
 		}
 		
-		if (attacker instanceof Playable)
+		if (attacker instanceof Playable attackerPlayable)
 		{
-			final Playable attackerPlayable = (Playable) attacker;
-			
 			// You cannot be attacked by a Playable in Olympiad before the start of the game.
 			if (getActingPlayer().isInOlympiadMode() && !getActingPlayer().isOlympiadStart())
 				return false;
@@ -462,32 +497,28 @@ public abstract class Playable extends Creature
 	public boolean isAttackableWithoutForceBy(Playable attacker)
 	{
 		final Player attackerPlayer = attacker.getActingPlayer();
-		if (attackerPlayer.isInOlympiadMode() && getActingPlayer().isInOlympiadMode() && getActingPlayer().isOlympiadStart() && attackerPlayer.getOlympiadGameId() == getActingPlayer().getOlympiadGameId())
+		
+		// No cast upon self/owner.
+		if (attackerPlayer == getActingPlayer())
+			return false;
+		
+		// No checks for players in Olympiad.
+		if (isInSameActiveOlympiadMatch(attackerPlayer))
 			return true;
 		
-		if (getActingPlayer().getDuelState() == DuelState.DUELLING && getActingPlayer().getDuelId() == attackerPlayer.getDuelId())
+		// No checks for players in Duel.
+		if (isInSameActiveDuel(attackerPlayer))
 			return true;
 		
-		final boolean sameParty = isInParty() && attackerPlayer.isInParty() && getParty().getLeader() == attackerPlayer.getParty().getLeader();
-		final boolean sameCommandChannel = isInParty() && attackerPlayer.isInParty() && getParty().getCommandChannel() != null && getParty().getCommandChannel().containsPlayer(attackerPlayer);
+		final boolean sameParty = isInSameParty(attackerPlayer);
+		final boolean sameCommandChannel = isInSameCommandChannel(attackerPlayer);
 		
 		// No checks for Playables in arena.
 		if (isInArena() && attacker.isInArena() && !(sameParty || sameCommandChannel))
 			return true;
 		
-		final boolean sameClan = getActingPlayer().getClanId() > 0 && getActingPlayer().getClanId() == attackerPlayer.getClanId();
-		final boolean sameAlliance = getActingPlayer().getAllyId() > 0 && getActingPlayer().getAllyId() == attackerPlayer.getAllyId();
-		
-		boolean sameSiegeSide = false;
-		final Siege siege = CastleManager.getInstance().getActiveSiege(this);
-		if (siege != null)
-		{
-			sameSiegeSide = (siege.checkSides(attackerPlayer.getClan(), SiegeSide.DEFENDER, SiegeSide.OWNER) && siege.checkSides(getActingPlayer().getClan(), SiegeSide.DEFENDER, SiegeSide.OWNER)) || (siege.checkSide(attackerPlayer.getClan(), SiegeSide.ATTACKER) && siege.checkSide(getActingPlayer().getClan(), SiegeSide.ATTACKER));
-			sameSiegeSide &= attacker.isInsideZone(ZoneId.SIEGE) && isInsideZone(ZoneId.SIEGE);
-		}
-		
 		// Players in the same CC/party/alliance/clan cannot attack without CTRL
-		if (sameParty || sameCommandChannel || sameClan || sameAlliance || sameSiegeSide)
+		if (sameParty || sameCommandChannel || isInSameClan(attackerPlayer) || isInSameAlly(attackerPlayer) || isInSameActiveSiegeSide(attackerPlayer))
 			return false;
 		
 		// CTRL is not needed if both are in a PVP area
@@ -520,11 +551,11 @@ public abstract class Playable extends Creature
 				return true;
 			
 			// Playables in Olympiad can be kept attacked.
-			if (targetPlayer.isInOlympiadMode() && getActingPlayer().isInOlympiadMode() && getActingPlayer().isOlympiadStart() && targetPlayer.getOlympiadGameId() == getActingPlayer().getOlympiadGameId())
+			if (isInSameActiveOlympiadMatch(targetPlayer))
 				return true;
 			
 			// Playables in Duel can be kept attacked.
-			if (getActingPlayer().getDuelState() == DuelState.DUELLING && getActingPlayer().getDuelId() == targetPlayer.getDuelId())
+			if (isInSameActiveDuel(targetPlayer))
 				return true;
 			
 			// Playables in a PVP area can be kept attacked.
@@ -543,31 +574,31 @@ public abstract class Playable extends Creature
 	@Override
 	public boolean testCursesOnAttack(Npc npc, int npcId)
 	{
-		if (Config.RAID_DISABLE_CURSE || !(npc instanceof Attackable))
+		if (Config.RAID_DISABLE_CURSE || !(npc instanceof Attackable attackable))
 			return false;
 		
 		// Petrification curse.
-		if (getStatus().getLevel() - npc.getStatus().getLevel() > 8)
+		if (getStatus().getLevel() - attackable.getStatus().getLevel() > 8)
 		{
 			final L2Skill curse = FrequentSkill.RAID_CURSE2.getSkill();
 			if (getFirstEffect(curse) == null)
 			{
-				broadcastPacket(new MagicSkillUse(npc, this, curse.getId(), curse.getLevel(), 300, 0));
-				curse.getEffects(npc, this);
+				broadcastPacket(new MagicSkillUse(attackable, this, curse.getId(), curse.getLevel(), 300, 0));
+				curse.getEffects(attackable, this);
 				
-				((Attackable) npc).getAggroList().stopHate(this);
+				attackable.getAI().getAggroList().stopHate(this);
 				return true;
 			}
 		}
 		
 		// Antistrider slow curse.
-		if (npc.getNpcId() == npcId && this instanceof Player && ((Player) this).isMounted())
+		if (attackable.getNpcId() == npcId && this instanceof Player player && player.isMounted())
 		{
 			final L2Skill curse = FrequentSkill.RAID_ANTI_STRIDER_SLOW.getSkill();
 			if (getFirstEffect(curse) == null)
 			{
-				broadcastPacket(new MagicSkillUse(npc, this, curse.getId(), curse.getLevel(), 300, 0));
-				curse.getEffects(npc, this);
+				broadcastPacket(new MagicSkillUse(attackable, player, curse.getId(), curse.getLevel(), 300, 0));
+				curse.getEffects(attackable, player);
 			}
 		}
 		return false;
@@ -599,18 +630,18 @@ public abstract class Playable extends Creature
 			for (final Creature target : targets)
 			{
 				// Must be called by a raid related Attackable.
-				if (!(target instanceof Attackable) || !target.isRaidRelated())
+				if (!(target instanceof Attackable targetAttackable) || !targetAttackable.isRaidRelated())
 					continue;
 				
-				if (getStatus().getLevel() - target.getStatus().getLevel() > 8)
+				if (getStatus().getLevel() - targetAttackable.getStatus().getLevel() > 8)
 				{
 					final L2Skill curse = FrequentSkill.RAID_CURSE2.getSkill();
 					if (getFirstEffect(curse) == null)
 					{
-						broadcastPacket(new MagicSkillUse(target, this, curse.getId(), curse.getLevel(), 300, 0));
-						curse.getEffects(target, this);
+						broadcastPacket(new MagicSkillUse(targetAttackable, this, curse.getId(), curse.getLevel(), 300, 0));
+						curse.getEffects(targetAttackable, this);
 						
-						((Attackable) target).getAggroList().stopHate(this);
+						targetAttackable.getAI().getAggroList().stopHate(this);
 						return true;
 					}
 				}
@@ -636,7 +667,7 @@ public abstract class Playable extends Creature
 					
 					if (getStatus().getLevel() - attackable.getStatus().getLevel() > 8)
 					{
-						final AggroInfo ai = attackable.getAggroList().get(target);
+						final AggroInfo ai = attackable.getAI().getAggroList().get(target);
 						if (ai != null && ai.getHate() > 0)
 						{
 							final L2Skill curse = FrequentSkill.RAID_CURSE.getSkill();
@@ -645,7 +676,7 @@ public abstract class Playable extends Creature
 								broadcastPacket(new MagicSkillUse(attackable, this, curse.getId(), curse.getLevel(), 300, 0));
 								curse.getEffects(attackable, this);
 								
-								attackable.getAggroList().stopHate(this);
+								attackable.getAI().getAggroList().stopHate(this);
 								return true;
 							}
 						}
@@ -654,5 +685,178 @@ public abstract class Playable extends Creature
 			}
 		}
 		return false;
+	}
+	
+	/**
+	 * @param playable : The {@link Playable} to test.
+	 * @return True if both this {@link Playable} and tested {@link Playable} share the same active {@link Duel}.
+	 */
+	public final boolean isInSameActiveDuel(Playable playable)
+	{
+		return getActingPlayer().getDuelState() == DuelState.DUELLING && playable.getActingPlayer().getDuelState() == DuelState.DUELLING && getActingPlayer().getDuelId() == playable.getActingPlayer().getDuelId();
+	}
+	
+	/**
+	 * @param playable : The {@link Playable} to test.
+	 * @return True if both this {@link Playable} and tested {@link Playable} share the same active {@link Duel}.
+	 */
+	public final boolean isInSameActiveOlympiadMatch(Playable playable)
+	{
+		return getActingPlayer().isOlympiadStart() && playable.getActingPlayer().isOlympiadStart() && getActingPlayer().getOlympiadGameId() == playable.getActingPlayer().getOlympiadGameId();
+	}
+	
+	/**
+	 * @param playable : The {@link Playable} to test.
+	 * @return True if both this {@link Playable} and tested {@link Playable} share the same {@link Party}.
+	 */
+	public final boolean isInSameParty(Playable playable)
+	{
+		return isInParty() && getParty().containsPlayer(playable.getActingPlayer());
+	}
+	
+	/**
+	 * @param playable : The {@link Playable} to test.
+	 * @return True if both this {@link Playable} and tested {@link Playable} share the same {@link CommandChannel}.
+	 */
+	public final boolean isInSameCommandChannel(Playable playable)
+	{
+		return isInParty() && getParty().getCommandChannel() != null && getParty().getCommandChannel().containsPlayer(playable.getActingPlayer());
+	}
+	
+	/**
+	 * @param playable : The {@link Playable} to test.
+	 * @return True if both this {@link Playable} and tested {@link Playable} share the same {@link Clan}.
+	 */
+	public final boolean isInSameClan(Playable playable)
+	{
+		return getClanId() > 0 && getClanId() == playable.getClanId();
+	}
+	
+	/**
+	 * @param playable : The {@link Playable} to test.
+	 * @return True if both this {@link Playable} and tested {@link Playable} share the same alliance id.
+	 */
+	public final boolean isInSameAlly(Playable playable)
+	{
+		return getActingPlayer().getAllyId() > 0 && getActingPlayer().getAllyId() == playable.getActingPlayer().getAllyId();
+	}
+	
+	/**
+	 * @param playable : The {@link Playable} to test.
+	 * @return True if and only if an active siege is set, where both this {@link Playable} and tested {@link Playable} share the same {@link SiegeSide}.
+	 */
+	public final boolean isInSameActiveSiegeSide(Playable playable)
+	{
+		// This or tested Playable isn't on a SIEGE zoneId, return false.
+		if (!isInsideZone(ZoneId.SIEGE) || !playable.isInsideZone(ZoneId.SIEGE))
+			return false;
+		
+		// No active siege is found, return false.
+		final Siege siege = CastleManager.getInstance().getActiveSiege(this);
+		if (siege == null)
+			return false;
+		
+		// Return true if both this and tested Playable share same side, false otherwise.
+		return !siege.isOnOppositeSide(getClan(), playable.getClan());
+	}
+	
+	/**
+	 * @param playable : The {@link Playable} to test.
+	 * @return True if this {@link Playable} is at war with tested {@link Playable}.
+	 */
+	public final boolean isAtWarWith(Playable playable)
+	{
+		final Clan aClan = getClan();
+		final Clan tClan = playable.getClan();
+		return aClan != null && tClan != null && aClan.isAtWarWith(tClan.getClanId()) && tClan.isAtWarWith(aClan.getClanId());
+	}
+	
+	@Override
+	public void fleeFrom(Creature attacker, int distance)
+	{
+		// No attacker or distance isn't noticeable ; return instantly.
+		if (attacker == null || attacker == this || distance < 10)
+			return;
+		
+		// Enforce running state.
+		forceRunStance();
+		
+		// Generate a Location and calculate the destination.
+		final Location loc = getPosition().clone();
+		loc.setFleeing(attacker.getPosition(), distance);
+		
+		// Try to move to the position.
+		getAI().tryToMoveTo(loc, null);
+	}
+	
+	@Override
+	public void moveUsingRandomOffset(int offset)
+	{
+		// Offset isn't noticeable ; return instantly.
+		if (offset < 10)
+			return;
+		
+		// Generate a new Location and calculate the destination.
+		final Location loc = getPosition().clone();
+		loc.addRandomOffset(offset);
+		
+		// Try to move to the position.
+		getAI().tryToMoveTo(loc, null);
+	}
+	
+	public ItemInstance checkItemManipulation(int objectId, int count)
+	{
+		return null;
+	}
+	
+	public ItemInstance transferItem(int objectId, int amount, Playable target)
+	{
+		final ItemInstance newItem = getInventory().transferItem(objectId, amount, target);
+		if (newItem == null)
+			return null;
+		
+		return newItem;
+	}
+	
+	public Boat getDockedBoat()
+	{
+		return getKnownType(Boat.class).stream().filter(b -> b.getEngine().getDock() != null).findFirst().orElse(null);
+	}
+	
+	public boolean tryToPassBoatEntrance(Point2D targetLoc)
+	{
+		final Boat boat = getDockedBoat();
+		if (boat == null || boat.getDock() == null)
+		{
+			sendPacket(ActionFailed.STATIC_PACKET);
+			return false;
+		}
+		
+		final Point2D point = boat.getDock().getBoardingPoint(getPosition(), targetLoc, isInBoat());
+		
+		if (point == null)
+		{
+			sendPacket(ActionFailed.STATIC_PACKET);
+			return false;
+		}
+		
+		moveToBoatEntrance(point, boat);
+		return true;
+	}
+	
+	public void moveToBoatEntrance(Point2D point, Boat boat)
+	{
+		final Location destination = new Location(point.getX(), point.getY(), -3624);
+		
+		if (distance2D(destination) > 50)
+		{
+			getAI().tryToMoveTo(destination, boat);
+			return;
+		}
+		
+		if (this instanceof Player player)
+			player.getBoatInfo().setCanBoard(true);
+		
+		sendPacket(ActionFailed.STATIC_PACKET);
 	}
 }

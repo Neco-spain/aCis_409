@@ -1,47 +1,51 @@
 package net.sf.l2j.gameserver.model.actor;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
-import net.sf.l2j.commons.math.MathUtil;
 import net.sf.l2j.commons.pool.ThreadPool;
 
-import net.sf.l2j.gameserver.data.xml.MapRegionData;
-import net.sf.l2j.gameserver.data.xml.MapRegionData.TeleportType;
+import net.sf.l2j.gameserver.data.xml.RestartPointData;
+import net.sf.l2j.gameserver.enums.RestartType;
 import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.enums.actors.OperateType;
+import net.sf.l2j.gameserver.enums.boats.BoatDock;
+import net.sf.l2j.gameserver.enums.boats.BoatState;
 import net.sf.l2j.gameserver.model.actor.ai.type.BoatAI;
-import net.sf.l2j.gameserver.model.actor.ai.type.CreatureAI;
 import net.sf.l2j.gameserver.model.actor.move.BoatMove;
 import net.sf.l2j.gameserver.model.actor.status.BoatStatus;
 import net.sf.l2j.gameserver.model.actor.template.CreatureTemplate;
+import net.sf.l2j.gameserver.model.boat.BoatEngine;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.item.kind.Weapon;
-import net.sf.l2j.gameserver.model.location.BoatEntrance;
 import net.sf.l2j.gameserver.model.location.Location;
-import net.sf.l2j.gameserver.model.location.Point2D;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.L2GameServerPacket;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.network.serverpackets.VehicleInfo;
 
 public class Boat extends Creature
 {
 	private final Set<Player> _passengers = ConcurrentHashMap.newKeySet();
-	private final List<BoatEntrance> _entrances = new ArrayList<>();
 	
-	private Runnable _engine;
-	
+	private BoatEngine _engine;
 	private Future<?> _payTask;
 	
 	public Boat(int objectId, CreatureTemplate template)
 	{
 		super(objectId, template);
-		
-		setAI(new BoatAI(this));
+	}
+	
+	@Override
+	public BoatAI getAI()
+	{
+		return (BoatAI) _ai;
+	}
+	
+	@Override
+	public void setAI()
+	{
+		_ai = new BoatAI(this);
 	}
 	
 	@Override
@@ -69,19 +73,15 @@ public class Boat extends Creature
 	}
 	
 	@Override
-	public void teleportTo(int x, int y, int z, int randomOffset)
+	public boolean teleportTo(int x, int y, int z, int randomOffset)
 	{
-		if (_payTask != null)
-		{
-			_payTask.cancel(false);
-			_payTask = null;
-		}
+		// Don't teleport if previous teleporting is not finished yet
+		if (!_isTeleporting.compareAndSet(false, true))
+			return false;
+		
+		stopPayTask();
 		
 		getMove().stop();
-		
-		setTeleporting(true);
-		
-		getAI().tryToActive();
 		
 		for (Player player : _passengers)
 			player.teleportTo(x, y, z, randomOffset);
@@ -91,16 +91,13 @@ public class Boat extends Creature
 		
 		onTeleported();
 		revalidateZone(true);
+		return true;
 	}
 	
 	@Override
 	public void deleteMe()
 	{
-		if (_payTask != null)
-		{
-			_payTask.cancel(false);
-			_payTask = null;
-		}
+		stopPayTask();
 		
 		_engine = null;
 		
@@ -118,6 +115,7 @@ public class Boat extends Creature
 	@Override
 	public void updateAbnormalEffect()
 	{
+		// Do nothing.
 	}
 	
 	@Override
@@ -145,18 +143,6 @@ public class Boat extends Creature
 	}
 	
 	@Override
-	public void setAI(CreatureAI newAI)
-	{
-		if (_ai == null)
-			_ai = newAI;
-	}
-	
-	@Override
-	public void detachAI()
-	{
-	}
-	
-	@Override
 	public void sendInfo(Player player)
 	{
 		player.sendPacket(new VehicleInfo(this));
@@ -168,15 +154,27 @@ public class Boat extends Creature
 		return true;
 	}
 	
-	public void registerEngine(Runnable r)
+	@Override
+	public void onInteract(Player actor)
 	{
-		_engine = r;
+		// Do nothing.
 	}
 	
-	public void runEngine(int delay)
+	@Override
+	public void onAction(Player player, boolean isCtrlPressed, boolean isShiftPressed)
 	{
-		if (_engine != null)
-			ThreadPool.schedule(_engine, delay);
+		// Do nothing.
+	}
+	
+	@Override
+	public boolean isAttackableBy(Creature attacker)
+	{
+		return false;
+	}
+	
+	public Set<Player> getPassengers()
+	{
+		return _passengers;
 	}
 	
 	/**
@@ -185,7 +183,7 @@ public class Boat extends Creature
 	public void oustPlayers()
 	{
 		for (Player player : _passengers)
-			oustPlayer(player, MapRegionData.getInstance().getLocationToTeleport(this, TeleportType.TOWN));
+			oustPlayer(player, RestartPointData.getInstance().getLocationToTeleport(player, RestartType.TOWN));
 	}
 	
 	/**
@@ -207,31 +205,26 @@ public class Boat extends Creature
 			player.broadcastUserInfo();
 		}
 		
-		player.setInsideZone(ZoneId.PEACE, false);
-		player.sendPacket(SystemMessageId.EXIT_PEACEFUL_ZONE);
-		
 		if (player.isOnline())
 			player.teleportTo(loc.getX(), loc.getY(), loc.getZ(), 0);
 		else
 		{
-			player.setBoat(null);
+			removePassenger(player);
+			
 			player.setXYZInvisible(loc);
 		}
 	}
 	
-	public Set<Player> getPassengers()
-	{
-		return _passengers;
-	}
-	
 	/**
 	 * Test and add a {@link Player} passenger to this {@link Boat} if conditions matched.
-	 * @param player : The Player to test.
+	 * @param player : The {@link Player} to test.
 	 */
 	public void addPassenger(Player player)
 	{
+		final Boat boat = player.getBoatInfo().getBoat();
+		
 		// Player is already set on another Boat, or isn't set on any Boat.
-		if (player.getBoat() == null || (player.getBoat() != null && player.getBoat() != this))
+		if (boat != this)
 			return;
 		
 		// Can't add the passenger.
@@ -239,162 +232,94 @@ public class Boat extends Creature
 			return;
 		
 		player.setInsideZone(ZoneId.PEACE, true);
+		player.setInsideZone(ZoneId.NO_SUMMON_FRIEND, true);
+		
 		player.sendPacket(SystemMessageId.ENTER_PEACEFUL_ZONE);
 	}
 	
-	public void broadcastToPassengers(L2GameServerPacket sm)
+	/**
+	 * Remove a {@link Player} passenger from this {@link Boat}.
+	 * @param player : The {@link Player} to test.
+	 */
+	public void removePassenger(Player player)
 	{
-		for (Player player : _passengers)
-			player.sendPacket(sm);
+		// Stop eventual running pay task.
+		stopPayTask();
+		
+		// Set the Player's Boat as null.
+		player.getBoatInfo().setBoat(null);
+		
+		// Set zones off.
+		player.setInsideZone(ZoneId.PEACE, false);
+		player.setInsideZone(ZoneId.NO_SUMMON_FRIEND, false);
+		
+		// Send message.
+		player.sendPacket(SystemMessageId.EXIT_PEACEFUL_ZONE);
+		
+		// Delete the Player from Boat passengers' list.
+		_passengers.remove(player);
 	}
 	
 	/**
-	 * Consume ticket(s) and teleport {@link Player}s located on this {@link Boat} if no correct ticket was found.<br>
-	 * <br>
-	 * Also clear {@link BoatEntrance} points. They will be refilled upon next Boat stop.
+	 * Consume passengers tickets from this {@link Boat} and teleport {@link Player}s if they don't own one.
 	 * @param itemId : The itemId to check.
-	 * @param count : The amount of tickets to have.
-	 * @param loc : The Location used as oust in case a Player can't pay.
+	 * @param loc : The {@link Location} used as oust in case a {@link Player} can't pay.
 	 */
-	public void payForRide(int itemId, int count, Location loc)
+	public void payForRide(int itemId, Location loc)
 	{
-		// Stop task if already running.
+		// Stop eventual running pay task.
+		stopPayTask();
+		
+		// No ticket set on server, don't bother running the pay task.
+		if (itemId <= 0)
+			return;
+		
+		// Start task after 5sec.
+		_payTask = ThreadPool.schedule(() ->
+		{
+			for (Player player : _passengers)
+			{
+				// Test if item can be destroyed. If not found, oust the Player out of the Boat.
+				if (player.destroyItemByItemId(itemId, 1, false))
+					player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_DISAPPEARED).addItemName(itemId));
+				else
+				{
+					oustPlayer(player, loc);
+					player.sendPacket(SystemMessageId.NOT_CORRECT_BOAT_TICKET);
+				}
+			}
+		}, 5000);
+	}
+	
+	/**
+	 * Stop task if already running.
+	 */
+	private void stopPayTask()
+	{
 		if (_payTask != null)
 		{
 			_payTask.cancel(false);
 			_payTask = null;
 		}
-		
-		// Retrieve initial List of Players.
-		final List<Player> passengers = getKnownTypeInRadius(Player.class, 1000);
-		
-		// Test and potentially add Players matching this boat criterias as passengers.
-		for (Player player : passengers)
-			addPassenger(player);
-		
-		// Start task after 5sec.
-		_payTask = ThreadPool.schedule(() ->
-		{
-			for (Player player : passengers)
-			{
-				// Valid passenger was found, check his ticket, if set on server.
-				if (player.getBoat() == this && _passengers.contains(player))
-				{
-					// No ticket set on server, don't bother checking.
-					if (itemId <= 0)
-						continue;
-					
-					// Item could be destroyed, we test next passenger.
-					if (player.destroyItemByItemId("Boat", itemId, count, this, false))
-					{
-						// Unsummon servitor/pet if existing (not retail, but simply logical, since they can't follow).
-						if (player.getSummon() != null)
-							player.getSummon().unSummon(player);
-						
-						if (count > 1)
-							player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S2_S1_DISAPPEARED).addItemName(itemId).addItemNumber(count));
-						else
-							player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_DISAPPEARED).addItemName(itemId));
-						
-						continue;
-					}
-				}
-				// The passenger isn't part of a Boat anymore, don't bother with him.
-				else if (!player.isInBoat())
-					continue;
-				
-				// Oust the Player out of the Boat.
-				oustPlayer(player, loc);
-				player.sendPacket(SystemMessageId.NOT_CORRECT_BOAT_TICKET);
-			}
-			
-			// Clear entrances points, as they won't be needed during travel.
-			_entrances.clear();
-		}, 5000);
 	}
 	
-	/**
-	 * Reset and generate anew this {@link Boat} {@link BoatEntrance}s.<br>
-	 * <br>
-	 * Used once when Boat is first spawned, and then on any subsequent dock stop.
-	 */
-	public void renewBoatEntrances()
+	public void setEngine(BoatEngine engine)
 	{
-		// Clear previous entries.
-		_entrances.clear();
-		
-		final int deckZ = -46;
-		final int absoluteZ = getZ() - 35;
-		final int yOffset = -53;
-		final int xOffset = 260;
-		
-		// Populating the dynamic list of boat entrances.
-		for (int i = 0; i < 16; i++)
-		{
-			final int y = yOffset - i * 10;
-			
-			// Left side entrance.
-			final Point2D leftPoint = getWorldPointFromBoatPoint(-xOffset, y);
-			_entrances.add(new BoatEntrance(new Location(leftPoint.getX(), leftPoint.getY(), absoluteZ), new Location(-xOffset + 60, y, deckZ)));
-			
-			// Right side entrance.
-			final Point2D rightPoint = getWorldPointFromBoatPoint(xOffset, y);
-			_entrances.add(new BoatEntrance(new Location(rightPoint.getX(), rightPoint.getY(), absoluteZ), new Location(xOffset - 60, y, deckZ)));
-		}
+		_engine = engine;
 	}
 	
-	/**
-	 * @param loc : The Location used as reference.
-	 * @return the closest {@link BoatEntrance} from the {@link Player} {@link Location} used as parameter.
-	 */
-	public BoatEntrance getClosestEntrance(Location loc)
+	public BoatEngine getEngine()
 	{
-		BoatEntrance closestEntrance = null;
-		double dist = Double.MAX_VALUE;
-		
-		for (BoatEntrance entrance : _entrances)
-		{
-			final double distEntrance = loc.distance2D(entrance.getOuterLocation());
-			if (distEntrance < dist)
-			{
-				closestEntrance = entrance;
-				dist = distEntrance;
-			}
-		}
-		return closestEntrance;
+		return _engine;
 	}
 	
-	/**
-	 * @param xOffset : The x offset used as reference.
-	 * @param yOffset : The y offset used as reference.
-	 * @return a {@link Point2D} based on this {@link Boat} position and heading, and from x/y offsets set as parameters.
-	 */
-	public Point2D getWorldPointFromBoatPoint(int xOffset, int yOffset)
+	public BoatDock getDock()
 	{
-		final double boatHeadingDegree = MathUtil.convertHeadingToDegree(getHeading());
-		
-		final double xRadians = Math.toRadians(boatHeadingDegree + 90);
-		final double yRadians = Math.toRadians(boatHeadingDegree + 180);
-		
-		final int deltaX = (int) Math.round(xOffset * Math.cos(xRadians) + yOffset * Math.cos(yRadians));
-		final int deltaY = (int) Math.round(yOffset * Math.sin(yRadians) + xOffset * Math.sin(xRadians));
-		
-		return new Point2D(getX() + deltaX, getY() + deltaY);
+		return (_engine == null) ? null : _engine.getDock();
 	}
 	
-	@Override
-	public void onInteract(Player actor)
+	public boolean isDocked()
 	{
-	}
-	
-	@Override
-	public void onAction(Player player, boolean isCtrlPressed, boolean isShiftPressed)
-	{
-	}
-	
-	@Override
-	public boolean isAttackableBy(Creature attacker)
-	{
-		return false;
+		return _engine != null && _engine.getState() == BoatState.DOCKED;
 	}
 }

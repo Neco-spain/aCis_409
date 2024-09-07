@@ -9,6 +9,7 @@ import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Folk;
 import net.sf.l2j.gameserver.model.holder.skillnode.EnchantSkillNode;
 import net.sf.l2j.gameserver.network.SystemMessageId;
+import net.sf.l2j.gameserver.network.serverpackets.SkillList;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.network.serverpackets.UserInfo;
 import net.sf.l2j.gameserver.skills.L2Skill;
@@ -67,7 +68,7 @@ public final class RequestExEnchantSkill extends L2GameClientPacket
 		}
 		
 		// Check item restriction, and try to consume item.
-		if (Config.ES_SP_BOOK_NEEDED && esn.getItem() != null && !player.destroyItemByItemId("SkillEnchant", esn.getItem().getId(), esn.getItem().getValue(), folk, true))
+		if (Config.ES_SP_BOOK_NEEDED && esn.getItem() != null && !player.destroyItemByItemId(esn.getItem().getId(), esn.getItem().getValue(), true))
 		{
 			player.sendPacket(SystemMessageId.YOU_DONT_HAVE_ALL_OF_THE_ITEMS_NEEDED_TO_ENCHANT_THAT_SKILL);
 			return;
@@ -88,7 +89,7 @@ public final class RequestExEnchantSkill extends L2GameClientPacket
 			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_HAVE_FAILED_TO_ENCHANT_THE_SKILL_S1).addSkillName(_skillId, _skillLevel));
 		}
 		
-		player.sendSkillList();
+		player.sendPacket(new SkillList(player));
 		player.sendPacket(new UserInfo(player));
 		
 		// Show enchant skill list.

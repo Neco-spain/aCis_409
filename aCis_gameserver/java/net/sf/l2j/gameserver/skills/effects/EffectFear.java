@@ -48,6 +48,9 @@ public class EffectFear extends AbstractEffect
 		if (getEffected() instanceof Folk || getEffected() instanceof SiegeFlag || getEffected() instanceof SiegeSummon)
 			return false;
 		
+		if (getEffected() instanceof Playable && ArraysUtil.contains(DOESNT_AFFECT_PLAYABLE, getSkill().getId()))
+			return false;
+		
 		if (getEffected().isAfraid())
 			return false;
 		

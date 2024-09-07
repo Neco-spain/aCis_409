@@ -8,27 +8,26 @@ import net.sf.l2j.gameserver.data.SkillTable.FrequentSkill;
 import net.sf.l2j.gameserver.data.manager.CastleManager;
 import net.sf.l2j.gameserver.data.manager.ClanHallManager;
 import net.sf.l2j.gameserver.data.manager.CoupleManager;
-import net.sf.l2j.gameserver.data.manager.DimensionalRiftManager;
 import net.sf.l2j.gameserver.data.manager.PetitionManager;
 import net.sf.l2j.gameserver.data.manager.SevenSignsManager;
 import net.sf.l2j.gameserver.data.xml.AdminData;
 import net.sf.l2j.gameserver.data.xml.AnnouncementData;
-import net.sf.l2j.gameserver.data.xml.MapRegionData.TeleportType;
 import net.sf.l2j.gameserver.enums.CabalType;
+import net.sf.l2j.gameserver.enums.RestartType;
 import net.sf.l2j.gameserver.enums.SealType;
 import net.sf.l2j.gameserver.enums.SiegeSide;
 import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.enums.actors.ClassRace;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.clanhall.ClanHall;
-import net.sf.l2j.gameserver.model.clanhall.SiegableHall;
-import net.sf.l2j.gameserver.model.entity.Castle;
-import net.sf.l2j.gameserver.model.entity.Siege;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
 import net.sf.l2j.gameserver.model.olympiad.Olympiad;
 import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.model.pledge.SubPledge;
+import net.sf.l2j.gameserver.model.residence.castle.Castle;
+import net.sf.l2j.gameserver.model.residence.castle.Siege;
+import net.sf.l2j.gameserver.model.residence.clanhall.ClanHall;
+import net.sf.l2j.gameserver.model.residence.clanhall.SiegableHall;
 import net.sf.l2j.gameserver.network.GameClient.GameClientState;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
@@ -47,6 +46,7 @@ import net.sf.l2j.gameserver.network.serverpackets.PledgeSkillList;
 import net.sf.l2j.gameserver.network.serverpackets.QuestList;
 import net.sf.l2j.gameserver.network.serverpackets.ShortCutInit;
 import net.sf.l2j.gameserver.network.serverpackets.SkillCoolTime;
+import net.sf.l2j.gameserver.network.serverpackets.SkillList;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.network.serverpackets.UserInfo;
 import net.sf.l2j.gameserver.scripting.Quest;
@@ -59,6 +59,7 @@ public class EnterWorld extends L2GameClientPacket
 	@Override
 	protected void readImpl()
 	{
+		// Do nothing.
 	}
 	
 	@Override
@@ -84,12 +85,9 @@ public class EnterWorld extends L2GameClientPacket
 				player.getAppearance().setVisible(false);
 			
 			if (Config.GM_STARTUP_BLOCK_ALL)
-				player.getBlockList().setInBlockingAll(true);
+				player.setInBlockingAll(true);
 			
-			if (Config.GM_STARTUP_AUTO_LIST && AdminData.getInstance().hasAccess("admin_gmlist", player.getAccessLevel()))
-				AdminData.getInstance().addGm(player, false);
-			else
-				AdminData.getInstance().addGm(player, true);
+			AdminData.getInstance().addGm(player, !(Config.GM_STARTUP_AUTO_LIST && AdminData.getInstance().hasAccess("admin_gmlist", player.getAccessLevel())));
 		}
 		
 		// Set dead status if applies
@@ -167,8 +165,6 @@ public class EnterWorld extends L2GameClientPacket
 			
 			for (SubPledge sp : clan.getAllSubPledges())
 				player.sendPacket(new PledgeShowMemberListAll(clan, sp.getId()));
-			
-			player.sendPacket(new UserInfo(player));
 		}
 		
 		// Updating Seal of Strife Buff/Debuff
@@ -198,16 +194,13 @@ public class EnterWorld extends L2GameClientPacket
 		player.setEnterWorldLoc(player.getX(), player.getY(), -16000);
 		
 		// Engage and notify partner.
-		if (Config.ALLOW_WEDDING)
+		for (Entry<Integer, IntIntHolder> coupleEntry : CoupleManager.getInstance().getCouples().entrySet())
 		{
-			for (Entry<Integer, IntIntHolder> coupleEntry : CoupleManager.getInstance().getCouples().entrySet())
+			final IntIntHolder couple = coupleEntry.getValue();
+			if (couple.getId() == objectId || couple.getValue() == objectId)
 			{
-				final IntIntHolder couple = coupleEntry.getValue();
-				if (couple.getId() == objectId || couple.getValue() == objectId)
-				{
-					player.setCoupleId(coupleEntry.getKey());
-					break;
-				}
+				player.setCoupleId(coupleEntry.getKey());
+				break;
 			}
 		}
 		
@@ -221,10 +214,10 @@ public class EnterWorld extends L2GameClientPacket
 			player.sendPacket(SystemMessage.getSystemMessage((GameTimeTaskManager.getInstance().isNight()) ? SystemMessageId.NIGHT_S1_EFFECT_APPLIES : SystemMessageId.DAY_S1_EFFECT_DISAPPEARS).addSkillName(L2Skill.SKILL_SHADOW_SENSE));
 		
 		// Notify quest for enterworld event, if quest allows it.
-		player.getQuestList().getQuests(Quest::isTriggeredOnEnterWorld).forEach(q -> q.notifyEnterWorld(player));
+		player.getQuestList().getQuests(Quest::isTriggeredOnEnterWorld).forEach(q -> q.onEnterWorld(player));
 		
 		player.sendPacket(new QuestList(player));
-		player.sendSkillList();
+		player.sendPacket(new SkillList(player));
 		player.sendPacket(new FriendList(player));
 		player.sendPacket(new UserInfo(player));
 		player.sendPacket(new ItemList(player, false));
@@ -248,7 +241,7 @@ public class EnterWorld extends L2GameClientPacket
 			final NpcHtmlMessage html = new NpcHtmlMessage(0);
 			html.setFile("data/html/clan_notice.htm");
 			html.replace("%clan_name%", clan.getName());
-			html.replace("%notice_text%", clan.getNotice().replaceAll("\r\n", "<br>").replaceAll("action", "").replaceAll("bypass", ""));
+			html.replace("%notice_text%", clan.getNotice().replaceAll("\r\n", "<br>").replace("action", "").replace("bypass", ""));
 			sendPacket(html);
 		}
 		else if (Config.SERVER_NEWS)
@@ -266,17 +259,14 @@ public class EnterWorld extends L2GameClientPacket
 		
 		// If player logs back in a stadium, port him in nearest town.
 		if (Olympiad.getInstance().playerInStadia(player))
-			player.teleportTo(TeleportType.TOWN);
-		
-		if (DimensionalRiftManager.getInstance().checkIfInRiftZone(player.getX(), player.getY(), player.getZ(), false))
-			DimensionalRiftManager.getInstance().teleportToWaitingRoom(player);
+			player.teleportTo(RestartType.TOWN);
 		
 		if (player.getClanJoinExpiryTime() > System.currentTimeMillis())
 			player.sendPacket(SystemMessageId.CLAN_MEMBERSHIP_TERMINATED);
 		
 		// Attacker or spectator logging into a siege zone will be ported at town.
 		if (player.isInsideZone(ZoneId.SIEGE) && player.getSiegeState() < 2)
-			player.teleportTo(TeleportType.TOWN);
+			player.teleportTo(RestartType.TOWN);
 		
 		// Tutorial
 		final QuestState qs = player.getQuestList().getQuestState("Tutorial");

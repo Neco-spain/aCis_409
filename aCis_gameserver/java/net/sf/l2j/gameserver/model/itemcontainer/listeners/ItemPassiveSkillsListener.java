@@ -8,17 +8,11 @@ import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.item.kind.Item;
 import net.sf.l2j.gameserver.model.item.kind.Weapon;
 import net.sf.l2j.gameserver.network.serverpackets.SkillCoolTime;
+import net.sf.l2j.gameserver.network.serverpackets.SkillList;
 import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class ItemPassiveSkillsListener implements OnEquipListener
 {
-	private static ItemPassiveSkillsListener instance = new ItemPassiveSkillsListener();
-	
-	public static ItemPassiveSkillsListener getInstance()
-	{
-		return instance;
-	}
-	
 	@Override
 	public void onEquip(Paperdoll slot, ItemInstance item, Playable actor)
 	{
@@ -28,20 +22,20 @@ public class ItemPassiveSkillsListener implements OnEquipListener
 		boolean update = false;
 		boolean updateTimeStamp = false;
 		
-		if (it instanceof Weapon)
+		if (it instanceof Weapon weapon)
 		{
 			// Apply augmentation bonuses on equip
 			if (item.isAugmented())
 				item.getAugmentation().applyBonus(player);
 			
 			// Verify if the grade penalty is occuring. If yes, then forget +4 dual skills and SA attached to weapon.
-			if (player.getSkillLevel(L2Skill.SKILL_EXPERTISE) < it.getCrystalType().getId())
+			if (player.getSkillLevel(L2Skill.SKILL_EXPERTISE) < weapon.getCrystalType().getId())
 				return;
 			
 			// Add skills bestowed from +4 Duals
 			if (item.getEnchantLevel() >= 4)
 			{
-				final L2Skill enchant4Skill = ((Weapon) it).getEnchant4Skill();
+				final L2Skill enchant4Skill = weapon.getEnchant4Skill();
 				if (enchant4Skill != null)
 				{
 					player.addSkill(enchant4Skill, false);
@@ -83,7 +77,7 @@ public class ItemPassiveSkillsListener implements OnEquipListener
 		
 		if (update)
 		{
-			player.sendSkillList();
+			player.sendPacket(new SkillList(player));
 			
 			if (updateTimeStamp)
 				player.sendPacket(new SkillCoolTime(player));
@@ -98,7 +92,7 @@ public class ItemPassiveSkillsListener implements OnEquipListener
 		
 		boolean update = false;
 		
-		if (it instanceof Weapon)
+		if (it instanceof Weapon weapon)
 		{
 			// Remove augmentation bonuses on unequip
 			if (item.isAugmented())
@@ -107,7 +101,7 @@ public class ItemPassiveSkillsListener implements OnEquipListener
 			// Remove skills bestowed from +4 Duals
 			if (item.getEnchantLevel() >= 4)
 			{
-				final L2Skill enchant4Skill = ((Weapon) it).getEnchant4Skill();
+				final L2Skill enchant4Skill = weapon.getEnchant4Skill();
 				if (enchant4Skill != null)
 				{
 					player.removeSkill(enchant4Skill.getId(), false, enchant4Skill.isPassive() || enchant4Skill.isToggle());
@@ -148,6 +142,16 @@ public class ItemPassiveSkillsListener implements OnEquipListener
 		}
 		
 		if (update)
-			player.sendSkillList();
+			player.sendPacket(new SkillList(player));
+	}
+	
+	public static final ItemPassiveSkillsListener getInstance()
+	{
+		return SingletonHolder.INSTANCE;
+	}
+	
+	private static class SingletonHolder
+	{
+		protected static final ItemPassiveSkillsListener INSTANCE = new ItemPassiveSkillsListener();
 	}
 }

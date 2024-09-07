@@ -7,6 +7,7 @@ import net.sf.l2j.gameserver.handler.ISkillHandler;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.skills.Formulas;
@@ -20,37 +21,36 @@ public class CpDamPercent implements ISkillHandler
 	};
 	
 	@Override
-	public void useSkill(Creature activeChar, L2Skill skill, WorldObject[] targets)
+	public void useSkill(Creature creature, L2Skill skill, WorldObject[] targets, ItemInstance item)
 	{
-		if (activeChar.isAlikeDead())
+		if (creature.isAlikeDead())
 			return;
 		
-		final boolean bsps = activeChar.isChargedShot(ShotType.BLESSED_SPIRITSHOT);
+		final boolean bsps = creature.isChargedShot(ShotType.BLESSED_SPIRITSHOT);
 		
 		for (WorldObject obj : targets)
 		{
-			if (!(obj instanceof Player))
+			if (!(obj instanceof Player targetPlayer))
 				continue;
 			
-			final Player target = ((Player) obj);
-			if (target.isDead() || target.isInvul())
+			if (targetPlayer.isDead() || targetPlayer.isInvul())
 				continue;
 			
-			final ShieldDefense sDef = Formulas.calcShldUse(activeChar, target, skill, false);
+			final ShieldDefense sDef = Formulas.calcShldUse(creature, targetPlayer, skill, false);
 			
-			int damage = (int) (target.getStatus().getCp() * (skill.getPower() / 100));
+			final int damage = (int) (targetPlayer.getStatus().getCp() * (skill.getPower() / 100));
 			
 			// Manage cast break of the target (calculating rate, sending message...)
-			Formulas.calcCastBreak(target, damage);
+			Formulas.calcCastBreak(targetPlayer, damage);
 			
-			skill.getEffects(activeChar, target, sDef, bsps);
-			activeChar.sendDamageMessage(target, damage, false, false, false);
-			target.getStatus().setCp(target.getStatus().getCp() - damage);
+			skill.getEffects(creature, targetPlayer, sDef, bsps);
+			creature.sendDamageMessage(targetPlayer, damage, false, false, false);
+			targetPlayer.getStatus().setCp(targetPlayer.getStatus().getCp() - damage);
 			
 			// Custom message to see Wrath damage on target
-			target.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_GAVE_YOU_S2_DMG).addCharName(activeChar).addNumber(damage));
+			targetPlayer.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_GAVE_YOU_S2_DMG).addCharName(creature).addNumber(damage));
 		}
-		activeChar.setChargedShot(ShotType.SOULSHOT, skill.isStaticReuse());
+		creature.setChargedShot(ShotType.SOULSHOT, skill.isStaticReuse());
 	}
 	
 	@Override

@@ -25,10 +25,10 @@ public class Q326_VanquishRemnants extends Quest
 		
 		setItemsIds(RED_CROSS_BADGE, BLUE_CROSS_BADGE, BLACK_CROSS_BADGE);
 		
-		addStartNpc(30435); // Leopold
+		addQuestStart(30435); // Leopold
 		addTalkId(30435);
 		
-		addKillId(20053, 20437, 20058, 20436, 20061, 20439, 20063, 20066, 20438);
+		addMyDying(20053, 20437, 20058, 20436, 20061, 20439, 20063, 20066, 20438);
 	}
 	
 	@Override
@@ -84,7 +84,7 @@ public class Q326_VanquishRemnants extends Quest
 					
 					if (badgesSum >= 100)
 					{
-						if (!player.getInventory().hasItems(BLACK_LION_MARK))
+						if (!player.getInventory().hasItem(BLACK_LION_MARK))
 						{
 							htmltext = "30435-06.htm";
 							giveItems(player, BLACK_LION_MARK, 1);
@@ -105,35 +105,27 @@ public class Q326_VanquishRemnants extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
-			case 20053:
-			case 20437:
-			case 20058:
+			case 20053, 20437, 20058:
 				dropItems(player, RED_CROSS_BADGE, 1, 0, 330000);
 				break;
 			
-			case 20436:
-			case 20061:
-			case 20439:
-			case 20063:
+			case 20436, 20061, 20439, 20063:
 				dropItems(player, BLUE_CROSS_BADGE, 1, 0, 160000);
 				break;
 			
-			case 20066:
-			case 20438:
+			case 20066, 20438:
 				dropItems(player, BLACK_CROSS_BADGE, 1, 0, 120000);
 				break;
 		}
-		
-		return null;
 	}
 }

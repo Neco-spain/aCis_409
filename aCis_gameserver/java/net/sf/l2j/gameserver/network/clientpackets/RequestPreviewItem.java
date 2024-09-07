@@ -1,6 +1,6 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.Map;
 
 import net.sf.l2j.commons.pool.ThreadPool;
@@ -72,7 +72,7 @@ public final class RequestPreviewItem extends L2GameClientPacket
 			return;
 		
 		// Get the current merchant targeted by the player
-		final Merchant merchant = (target instanceof Merchant) ? (Merchant) target : null;
+		final Merchant merchant = (target instanceof Merchant targetMerchant) ? targetMerchant : null;
 		if (merchant == null)
 			return;
 		
@@ -84,7 +84,7 @@ public final class RequestPreviewItem extends L2GameClientPacket
 		
 		_listId = buyList.getListId();
 		
-		final Map<Paperdoll, Integer> items = new HashMap<>();
+		final Map<Paperdoll, Integer> items = new EnumMap<>(Paperdoll.class);
 		for (int i = 0; i < _count; i++)
 		{
 			int itemId = _items[i];
@@ -114,7 +114,7 @@ public final class RequestPreviewItem extends L2GameClientPacket
 		}
 		
 		// Charge buyer and add tax to castle treasury if not owned by npc clan because a Try On is not Free
-		if (totalPrice < 0 || !player.reduceAdena("Wear", (int) totalPrice, player.getCurrentFolk(), true))
+		if (totalPrice < 0 || !player.reduceAdena((int) totalPrice, true))
 		{
 			player.sendPacket(SystemMessageId.YOU_NOT_ENOUGH_ADENA);
 			return;

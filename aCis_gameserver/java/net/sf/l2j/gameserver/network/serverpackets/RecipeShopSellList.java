@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.craft.ManufactureItem;
+import net.sf.l2j.gameserver.model.records.ManufactureItem;
 
 public class RecipeShopSellList extends L2GameServerPacket
 {
@@ -38,9 +38,9 @@ public class RecipeShopSellList extends L2GameServerPacket
 		
 		for (ManufactureItem item : _manufactureList)
 		{
-			writeD(item.getId());
+			writeD(item.recipeId());
 			writeD(0x00); // unknown
-			writeD(item.getValue());
+			writeD(item.cost());
 		}
 	}
 }

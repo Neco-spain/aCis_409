@@ -59,11 +59,8 @@ public class OlympiadManagerNpc extends Folk
 					filename = "noble_main.htm";
 				break;
 			
-			case 31690: // Monuments of Heroes
-			case 31769:
-			case 31770:
-			case 31771:
-			case 31772:
+			// Monuments of Heroes
+			case 31690, 31769, 31770, 31771, 31772:
 				if (player.isHero() || HeroManager.getInstance().isInactiveHero(player.getObjectId()))
 					filename = "hero_main.htm";
 				else
@@ -75,7 +72,7 @@ public class OlympiadManagerNpc extends Folk
 		html.setFile("data/html/olympiad/" + filename);
 		
 		// Hidden option for players who are in inactive mode.
-		if (filename == "hero_main.htm")
+		if (filename.equals("hero_main.htm"))
 		{
 			String hiddenText = "";
 			if (HeroManager.getInstance().isInactiveHero(player.getObjectId()))
@@ -154,7 +151,12 @@ public class OlympiadManagerNpc extends Folk
 					break;
 				
 				case 6: // request tokens reward
-					html.setFile(Olympiad.OLYMPIAD_HTML_PATH + ((Olympiad.getInstance().getNoblessePasses(player, false) > 0) ? "noble_settle.htm" : "noble_nopoints2.htm"));
+					points = Olympiad.getInstance().getNoblePoints(player.getObjectId());
+					if (points >= 50 || player.isHero() || HeroManager.getInstance().isInactiveHero(player.getObjectId()))
+						html.setFile(Olympiad.OLYMPIAD_HTML_PATH + "noble_settle.htm");
+					else
+						html.setFile(Olympiad.OLYMPIAD_HTML_PATH + "noble_nopoints2.htm");
+					
 					html.replace("%objectId%", getObjectId());
 					player.sendPacket(html);
 					break;
@@ -164,7 +166,9 @@ public class OlympiadManagerNpc extends Folk
 					break;
 				
 				case 10: // Give tokens to player
-					player.addItem("Olympiad", GATE_PASS, Olympiad.getInstance().getNoblessePasses(player, true), player, true);
+					points = Olympiad.getInstance().getNoblessePasses(player);
+					if (points > 0)
+						player.addItem(GATE_PASS, points, true);
 					break;
 				
 				default:

@@ -7,8 +7,9 @@ import net.sf.l2j.commons.lang.StringUtil;
 import net.sf.l2j.gameserver.data.manager.CastleManager;
 import net.sf.l2j.gameserver.handler.IAdminCommandHandler;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.entity.Castle;
+import net.sf.l2j.gameserver.model.location.SpawnLocation;
 import net.sf.l2j.gameserver.model.location.TowerSpawnLocation;
+import net.sf.l2j.gameserver.model.residence.castle.Castle;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
 import net.sf.l2j.gameserver.network.serverpackets.SiegeInfo;
@@ -32,11 +33,11 @@ public class AdminSiege implements IAdminCommandHandler
 		
 		final int paramCount = st.countTokens();
 		if (paramCount == 1)
-			castle = CastleManager.getInstance().getCastleByName(st.nextToken());
+			castle = CastleManager.getInstance().getCastleByAlias(st.nextToken());
 		else if (paramCount == 2)
 		{
 			param = st.nextToken();
-			castle = CastleManager.getInstance().getCastleByName(st.nextToken());
+			castle = CastleManager.getInstance().getCastleByAlias(st.nextToken());
 		}
 		
 		if (castle == null)
@@ -77,8 +78,13 @@ public class AdminSiege implements IAdminCommandHandler
 					player.sendMessage(castle.getName() + "'s castle certificates are reset.");
 					break;
 				
+				case "tax":
+					castle.updateTaxes();
+					player.sendMessage(castle.getName() + "'s taxes have been updated.");
+					break;
+				
 				default:
-					player.sendMessage("Usage: //castle [set|remove|certificates castleName].");
+					player.sendMessage("Usage: //castle [set|remove|certificates|tax castleName].");
 					break;
 			}
 		}
@@ -136,35 +142,49 @@ public class AdminSiege implements IAdminCommandHandler
 		final NpcHtmlMessage html = new NpcHtmlMessage(0);
 		html.setFile("data/html/admin/castle.htm");
 		html.replace("%castleName%", castle.getName());
+		html.replace("%castleAlias%", castle.getAlias());
 		html.replace("%circletId%", castle.getCircletId());
 		html.replace("%artifactId%", castle.getArtifacts().toString());
 		html.replace("%ticketsNumber%", castle.getTickets().size());
 		html.replace("%droppedTicketsNumber%", castle.getDroppedTickets().size());
-		html.replace("%npcsNumber%", castle.getRelatedNpcIds().size());
+		html.replace("%npcsNumber%", castle.getNpcs().size());
 		html.replace("%certificates%", castle.getLeftCertificates());
+		html.replace("%parent%", castle.getParentId());
+		html.replace("%aliveLifeTowers%", castle.getAliveLifeTowerCount());
+		
+		html.replace("%defaultTax%", castle.getDefaultTaxRate());
+		html.replace("%currentTax%", castle.getCurrentTaxPercent());
+		html.replace("%nextTax%", castle.getNextTaxPercent());
+		html.replace("%taxSysgetRate%", castle.getTaxSysgetRate());
+		html.replace("%taxRevenue%", StringUtil.formatNumber(castle.getTaxRevenue()));
+		html.replace("%tributeRate%", StringUtil.formatNumber(castle.getTributeRate()));
+		html.replace("%seedIncome%", StringUtil.formatNumber(castle.getSeedIncome()));
+		html.replace("%treasury%", StringUtil.formatNumber(castle.getTreasury()));
 		
 		final StringBuilder sb = new StringBuilder();
+		int index = 1;
+		
+		// Feed artifacts infos.
+		for (SpawnLocation spawn : castle.getArtifacts())
+		{
+			StringUtil.append(sb, "<a action=\"bypass -h admin_teleport ", spawn.toString().replace(",", ""), "\">[", index, "]</a>&nbsp;&nbsp;");
+			index++;
+		}
+		
+		html.replace("%artifacts%", sb.toString());
+		
+		// Cleanup the sb and the index to reuse it.
+		sb.setLength(0);
+		index = 1;
 		
 		// Feed Control Tower infos.
 		for (TowerSpawnLocation spawn : castle.getControlTowers())
 		{
-			final String teleLoc = spawn.toString().replaceAll(",", "");
-			StringUtil.append(sb, "<a action=\"bypass -h admin_teleport ", teleLoc, "\">", teleLoc, "</a><br1>");
+			StringUtil.append(sb, "<a action=\"bypass -h admin_teleport ", spawn.toString().replace(",", ""), "\">[", index, "]</a>&nbsp;&nbsp;");
+			index++;
 		}
 		
 		html.replace("%ct%", sb.toString());
-		
-		// Cleanup the sb to reuse it.
-		sb.setLength(0);
-		
-		// Feed Flame Tower infos.
-		for (TowerSpawnLocation towerSpawn : castle.getFlameTowers())
-		{
-			final String teleLoc = towerSpawn.toString().replaceAll(",", "");
-			StringUtil.append(sb, "<a action=\"bypass -h admin_teleport ", teleLoc, "\">", teleLoc, "</a><br1>");
-		}
-		
-		html.replace("%ft%", sb.toString());
 		
 		player.sendPacket(html);
 	}
@@ -185,7 +205,7 @@ public class AdminSiege implements IAdminCommandHandler
 		{
 			sb.append(((row % 2) == 0 ? "<table width=270 bgcolor=000000><tr>" : "<table width=270><tr>"));
 			
-			StringUtil.append(sb, "<td width=70><a action=\"bypass -h admin_siege ", castle.getName(), "\">", castle.getName(), "</a></td><td width=130>", castle.getSiege().getStatus(), "</td><td width=70 align=right><a action=\"bypass admin_siege list ", castle.getName(), "\">View Info.</a></td>");
+			StringUtil.append(sb, "<td width=100><a action=\"bypass -h admin_siege ", castle.getAlias(), "\">", castle.getName(), "</a></td><td width=130>", castle.getSiege().getStatus(), "</td><td width=40 align=right><a action=\"bypass admin_siege list ", castle.getAlias(), "\">View</a></td>");
 			
 			sb.append("</tr></table><img src=\"L2UI.SquareGray\" width=270 height=1>");
 			row++;

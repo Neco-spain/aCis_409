@@ -10,6 +10,7 @@ import net.sf.l2j.commons.pool.ThreadPool;
 import net.sf.l2j.gameserver.handler.IAdminCommandHandler;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.records.Sequence;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
 import net.sf.l2j.gameserver.network.serverpackets.SpecialCamera;
 
@@ -93,15 +94,15 @@ public class AdminMovieMaker implements IAdminCommandHandler
 							
 							final NpcHtmlMessage html = new NpcHtmlMessage(0);
 							html.setFile("data/html/admin/movie/edit_sequence.htm");
-							html.replace("%sId%", sequence._sequenceId);
-							html.replace("%sDist%", sequence._dist);
-							html.replace("%sYaw%", sequence._yaw);
-							html.replace("%sPitch%", sequence._pitch);
-							html.replace("%sTime%", sequence._time);
-							html.replace("%sDuration%", sequence._duration);
-							html.replace("%sTurn%", sequence._turn);
-							html.replace("%sRise%", sequence._rise);
-							html.replace("%sWidescreen%", sequence._widescreen);
+							html.replace("%sId%", sequence.sequenceId());
+							html.replace("%sDist%", sequence.dist());
+							html.replace("%sYaw%", sequence.yaw());
+							html.replace("%sPitch%", sequence.pitch());
+							html.replace("%sTime%", sequence.time());
+							html.replace("%sDuration%", sequence.duration());
+							html.replace("%sTurn%", sequence.turn());
+							html.replace("%sRise%", sequence.rise());
+							html.replace("%sWidescreen%", sequence.widescreen());
 							player.sendPacket(html);
 						}
 						else
@@ -114,18 +115,17 @@ public class AdminMovieMaker implements IAdminCommandHandler
 							}
 							
 							final WorldObject targetWorldObject = getTarget(WorldObject.class, player, true);
+							final int dist = Integer.parseInt(st.nextToken());
+							final int yaw = Integer.parseInt(st.nextToken());
+							final int pitch = Integer.parseInt(st.nextToken());
+							final int time = Integer.parseInt(st.nextToken());
+							final int duration = Integer.parseInt(st.nextToken());
+							final int turn = Integer.parseInt(st.nextToken());
+							final int rise = Integer.parseInt(st.nextToken());
+							final int widescreen = Integer.parseInt(st.nextToken());
 							
-							final Sequence sequence = _sequences.computeIfAbsent(sequenceId, s -> new Sequence());
-							sequence._sequenceId = sequenceId;
-							sequence._objectId = targetWorldObject.getObjectId();
-							sequence._dist = Integer.parseInt(st.nextToken());
-							sequence._yaw = Integer.parseInt(st.nextToken());
-							sequence._pitch = Integer.parseInt(st.nextToken());
-							sequence._time = Integer.parseInt(st.nextToken());
-							sequence._duration = Integer.parseInt(st.nextToken());
-							sequence._turn = Integer.parseInt(st.nextToken());
-							sequence._rise = Integer.parseInt(st.nextToken());
-							sequence._widescreen = Integer.parseInt(st.nextToken());
+							_sequences.computeIfAbsent(sequenceId, s -> new Sequence(sequenceId, targetWorldObject.getObjectId(), dist, yaw, pitch, time, duration, turn, rise, widescreen));
+							
 							mainHtm(player);
 						}
 					}
@@ -207,7 +207,7 @@ public class AdminMovieMaker implements IAdminCommandHandler
 		{
 			final StringBuilder sb = new StringBuilder();
 			for (Sequence sequence : _sequences.values())
-				StringUtil.append(sb, "<tr><td>", sequence._sequenceId, "</td><td>", sequence._dist, "</td><td>", sequence._yaw, "</td><td>", sequence._pitch, "</td><td>", sequence._time, "</td><td>", sequence._duration, "</td><td>", sequence._turn, "</td><td>", sequence._rise, "</td><td>", sequence._widescreen, "</td></tr>");
+				StringUtil.append(sb, "<tr><td>", sequence.sequenceId(), "</td><td>", sequence.dist(), "</td><td>", sequence.yaw(), "</td><td>", sequence.pitch(), "</td><td>", sequence.time(), "</td><td>", sequence.duration(), "</td><td>", sequence.turn(), "</td><td>", sequence.rise(), "</td><td>", sequence.widescreen(), "</td></tr>");
 			
 			html.setFile("data/html/admin/movie/main_notempty.htm");
 			html.replace("%sequences%", sb.toString());
@@ -236,21 +236,7 @@ public class AdminMovieMaker implements IAdminCommandHandler
 			}, timer);
 			
 			// Cumulate duration with previous sequences duration, since all ThreadPool are running in same time.
-			timer += sequence._duration - 100;
+			timer += sequence.duration() - 100;
 		}
-	}
-	
-	public class Sequence
-	{
-		public int _sequenceId;
-		public int _objectId;
-		public int _dist;
-		public int _yaw;
-		public int _pitch;
-		public int _time;
-		public int _duration;
-		public int _turn;
-		public int _rise;
-		public int _widescreen;
 	}
 }

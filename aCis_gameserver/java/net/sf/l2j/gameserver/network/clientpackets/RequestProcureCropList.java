@@ -72,7 +72,7 @@ public class RequestProcureCropList extends L2GameClientPacket
 			return;
 		}
 		
-		final int castleId = folk.getCastle().getCastleId();
+		final int castleId = folk.getCastle().getId();
 		
 		// Calculate summary values
 		int slots = 0;
@@ -139,10 +139,10 @@ public class RequestProcureCropList extends L2GameClientPacket
 			}
 			
 			final CropProcure cp = i.getCropProcure();
-			if (!cp.decreaseAmount(i.getValue()) || (fee > 0 && !player.reduceAdena("Manor", fee, folk, true)) || !player.destroyItem("Manor", i.getObjectId(), i.getValue(), folk, true))
+			if (!cp.decreaseAmount(i.getValue()) || (fee > 0 && !player.reduceAdena(fee, true)) || !player.destroyItem(i.getObjectId(), i.getValue(), true))
 				continue;
 			
-			player.addItem("Manor", i.getRewardId(), rewardItemCount, folk, true);
+			player.addItem(i.getRewardId(), rewardItemCount, true);
 		}
 	}
 	
@@ -188,7 +188,7 @@ public class RequestProcureCropList extends L2GameClientPacket
 		public final int getRewardId()
 		{
 			if (_rewardId == 0)
-				_rewardId = CastleManorManager.getInstance().getSeedByCrop(_cp.getId()).getReward(_cp.getReward());
+				_rewardId = CastleManorManager.getInstance().getSeedRewardByCrop(_cp.getId(), _cp.getReward());
 			
 			return _rewardId;
 		}

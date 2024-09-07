@@ -3,7 +3,6 @@ package net.sf.l2j.gameserver.handler.skillhandlers;
 import net.sf.l2j.commons.util.ArraysUtil;
 
 import net.sf.l2j.gameserver.data.SkillTable;
-import net.sf.l2j.gameserver.data.manager.DuelManager;
 import net.sf.l2j.gameserver.enums.AiEventType;
 import net.sf.l2j.gameserver.enums.items.ShotType;
 import net.sf.l2j.gameserver.enums.skills.EffectType;
@@ -16,6 +15,7 @@ import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.ClanHallManagerNpc;
+import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.skills.AbstractEffect;
@@ -44,9 +44,9 @@ public class Continuous implements ISkillHandler
 	};
 	
 	@Override
-	public void useSkill(Creature activeChar, L2Skill skill, WorldObject[] targets)
+	public void useSkill(Creature creature, L2Skill skill, WorldObject[] targets, ItemInstance item)
 	{
-		final Player player = activeChar.getActingPlayer();
+		final Player player = creature.getActingPlayer();
 		
 		if (skill.getEffectId() != 0)
 		{
@@ -55,49 +55,45 @@ public class Continuous implements ISkillHandler
 				skill = sk;
 		}
 		
-		final boolean bsps = activeChar.isChargedShot(ShotType.BLESSED_SPIRITSHOT);
+		final boolean bsps = creature.isChargedShot(ShotType.BLESSED_SPIRITSHOT);
 		
 		for (WorldObject obj : targets)
 		{
-			if (!(obj instanceof Creature))
+			if (!(obj instanceof Creature targetCreature))
 				continue;
 			
-			Creature target = ((Creature) obj);
-			if (Formulas.calcSkillReflect(target, skill) == Formulas.SKILL_REFLECT_SUCCEED)
-				target = activeChar;
+			if (Formulas.calcSkillReflect(targetCreature, skill) == Formulas.SKILL_REFLECT_SUCCEED)
+				targetCreature = creature;
 			
 			switch (skill.getSkillType())
 			{
 				case BUFF:
 					// Target under buff immunity.
-					if (target.getFirstEffect(EffectType.BLOCK_BUFF) != null)
+					if (targetCreature.getFirstEffect(EffectType.BLOCK_BUFF) != null)
 						continue;
 					
 					// Player holding a cursed weapon can't be buffed and can't buff
-					if (!(activeChar instanceof ClanHallManagerNpc) && target != activeChar)
+					if (!(creature instanceof ClanHallManagerNpc) && targetCreature != creature)
 					{
-						if (target instanceof Player)
-						{
-							if (((Player) target).isCursedWeaponEquipped())
-								continue;
-						}
-						else if (player != null && player.isCursedWeaponEquipped())
+						if (targetCreature instanceof Player targetPlayer && targetPlayer.isCursedWeaponEquipped())
+							continue;
+						
+						if (player != null && player.isCursedWeaponEquipped())
 							continue;
 					}
 					break;
 				
-				case HOT:
-				case MPHOT:
-					if (activeChar.isInvul())
+				case HOT, MPHOT:
+					if (creature.isInvul())
 						continue;
 					break;
 				case FEAR:
-					if (target instanceof Playable && ArraysUtil.contains(EffectFear.DOESNT_AFFECT_PLAYABLE, skill.getId()))
+					if (targetCreature instanceof Playable && ArraysUtil.contains(EffectFear.DOESNT_AFFECT_PLAYABLE, skill.getId()))
 						continue;
 			}
 			
 			// Target under debuff immunity.
-			if (skill.isOffensive() && target.getFirstEffect(EffectType.BLOCK_DEBUFF) != null)
+			if (skill.isOffensive() && targetCreature.getFirstEffect(EffectType.BLOCK_DEBUFF) != null)
 				continue;
 			
 			boolean acted = true;
@@ -105,58 +101,49 @@ public class Continuous implements ISkillHandler
 			
 			if (skill.isOffensive() || skill.isDebuff())
 			{
-				sDef = Formulas.calcShldUse(activeChar, target, skill, false);
-				acted = Formulas.calcSkillSuccess(activeChar, target, skill, sDef, bsps);
+				sDef = Formulas.calcShldUse(creature, targetCreature, skill, false);
+				acted = Formulas.calcSkillSuccess(creature, targetCreature, skill, sDef, bsps);
 			}
 			
 			if (acted)
 			{
 				// TODO Not necessary
 				if (skill.isToggle())
-					target.stopSkillEffects(skill.getId());
-					
-				// if this is a debuff let the duel manager know about it so the debuff
-				// can be removed after the duel (player & target must be in the same duel)
-				if (target instanceof Player && ((Player) target).isInDuel() && (skill.getSkillType() == SkillType.DEBUFF || skill.getSkillType() == SkillType.BUFF) && player != null && player.getDuelId() == ((Player) target).getDuelId())
-				{
-					for (AbstractEffect buff : skill.getEffects(activeChar, target, sDef, bsps))
-						if (buff != null)
-							DuelManager.getInstance().onBuff(((Player) target), buff);
-				}
-				else
-					skill.getEffects(activeChar, target, sDef, bsps);
+					targetCreature.stopSkillEffects(skill.getId());
+				
+				skill.getEffects(creature, targetCreature, sDef, bsps);
 				
 				if (skill.getSkillType() == SkillType.AGGDEBUFF)
 				{
-					if (target instanceof Attackable)
-						target.getAI().notifyEvent(AiEventType.AGGRESSION, activeChar, (int) skill.getPower());
-					else if (target instanceof Playable)
+					if (targetCreature instanceof Attackable targetAttackable)
+						targetAttackable.getAI().notifyEvent(AiEventType.AGGRESSION, creature, (int) skill.getPower());
+					else if (targetCreature instanceof Playable targetPlayable)
 					{
-						if (target.getTarget() == activeChar)
-							target.getAI().tryToAttack(activeChar, false, false);
+						if (targetPlayable.getTarget() == creature)
+							targetPlayable.getAI().tryToAttack(creature, false, false);
 						else
-							target.setTarget(activeChar);
+							targetPlayable.setTarget(creature);
 					}
 				}
 			}
 			else
-				activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.ATTACK_FAILED));
+				creature.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.ATTACK_FAILED));
 			
 			// Possibility of a lethal strike
-			Formulas.calcLethalHit(activeChar, target, skill);
+			Formulas.calcLethalHit(creature, targetCreature, skill);
 		}
 		
 		if (skill.hasSelfEffects())
 		{
-			final AbstractEffect effect = activeChar.getFirstEffect(skill.getId());
+			final AbstractEffect effect = creature.getFirstEffect(skill.getId());
 			if (effect != null && effect.isSelfEffect())
 				effect.exit();
 			
-			skill.getEffectsSelf(activeChar);
+			skill.getEffectsSelf(creature);
 		}
 		
 		if (!skill.isPotion() && !skill.isToggle())
-			activeChar.setChargedShot(bsps ? ShotType.BLESSED_SPIRITSHOT : ShotType.SPIRITSHOT, skill.isStaticReuse());
+			creature.setChargedShot(bsps ? ShotType.BLESSED_SPIRITSHOT : ShotType.SPIRITSHOT, skill.isStaticReuse());
 	}
 	
 	@Override

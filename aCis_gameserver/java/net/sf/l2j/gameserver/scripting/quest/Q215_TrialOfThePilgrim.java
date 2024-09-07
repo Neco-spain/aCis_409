@@ -55,10 +55,10 @@ public class Q215_TrialOfThePilgrim extends SecondClassQuest
 		
 		setItemsIds(BOOK_OF_SAGE, VOUCHER_OF_TRIAL, SPIRIT_OF_FLAME, ESSENCE_OF_FLAME, BOOK_OF_GERALD, GRAY_BADGE, PICTURE_OF_NAHIR, HAIR_OF_NAHIR, STATUE_OF_EINHASAD, BOOK_OF_DARKNESS, DEBRIS_OF_WILLOW, TAG_OF_RUMOR);
 		
-		addStartNpc(SANTIAGO);
+		addQuestStart(SANTIAGO);
 		addTalkId(SANTIAGO, TANAPI, ANCESTOR_MARTANKUS, GAURI_TWINKLEROCK, DORF, GERALD, PRIMOS, PETRON, ANDELLIA, URUHA, CASIAN);
 		
-		addKillId(LAVA_SALAMANDER, NAHIR, BLACK_WILLOW);
+		addMyDying(LAVA_SALAMANDER, NAHIR, BLACK_WILLOW);
 	}
 	
 	@Override
@@ -89,7 +89,7 @@ public class Q215_TrialOfThePilgrim extends SecondClassQuest
 		}
 		else if (event.equalsIgnoreCase("30650-02.htm"))
 		{
-			if (player.getInventory().getItemCount(57) >= 100000)
+			if (player.getAdena() >= 100000)
 			{
 				playSound(player, SOUND_ITEMGET);
 				takeItems(player, 57, 100000);
@@ -208,7 +208,7 @@ public class Q215_TrialOfThePilgrim extends SecondClassQuest
 					case DORF:
 						if (cond == 7)
 						{
-							htmltext = (!player.getInventory().hasItems(BOOK_OF_GERALD)) ? "30651-01.htm" : "30651-02.htm";
+							htmltext = (!player.getInventory().hasItem(BOOK_OF_GERALD)) ? "30651-01.htm" : "30651-02.htm";
 							st.setCond(8);
 							playSound(player, SOUND_MIDDLE);
 							takeItems(player, TAG_OF_RUMOR, 1);
@@ -219,9 +219,9 @@ public class Q215_TrialOfThePilgrim extends SecondClassQuest
 						break;
 					
 					case GERALD:
-						if (cond == 7 && !player.getInventory().hasItems(BOOK_OF_GERALD))
+						if (cond == 7 && !player.getInventory().hasItem(BOOK_OF_GERALD))
 							htmltext = "30650-01.htm";
-						else if (cond == 8 && player.getInventory().hasItems(BOOK_OF_GERALD))
+						else if (cond == 8 && player.getInventory().hasItem(BOOK_OF_GERALD))
 						{
 							htmltext = "30650-04.htm";
 							playSound(player, SOUND_ITEMGET);
@@ -320,13 +320,13 @@ public class Q215_TrialOfThePilgrim extends SecondClassQuest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
@@ -345,7 +345,5 @@ public class Q215_TrialOfThePilgrim extends SecondClassQuest
 					st.setCond(14);
 				break;
 		}
-		
-		return null;
 	}
 }

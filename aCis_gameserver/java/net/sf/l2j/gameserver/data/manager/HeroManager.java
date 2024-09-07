@@ -25,10 +25,9 @@ import net.sf.l2j.gameserver.enums.actors.ClassId;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
-import net.sf.l2j.gameserver.model.entity.Castle;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
-import net.sf.l2j.gameserver.model.olympiad.Olympiad;
 import net.sf.l2j.gameserver.model.pledge.Clan;
+import net.sf.l2j.gameserver.model.residence.castle.Castle;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
 import net.sf.l2j.gameserver.network.serverpackets.PledgeShowInfoUpdate;
@@ -54,6 +53,9 @@ public class HeroManager
 	private static final String UPDATE_MESSAGE = "UPDATE heroes SET message=? WHERE char_id=?";
 	private static final String DELETE_ITEMS = "DELETE FROM items WHERE item_id IN (6842, 6611, 6612, 6613, 6614, 6615, 6616, 6617, 6618, 6619, 6620, 6621) AND owner_id NOT IN (SELECT obj_Id FROM characters WHERE accesslevel > 0)";
 	
+	public static final String CHAR_ID = "char_id";
+	public static final String CLASS_ID = "class_id";
+	public static final String CHAR_NAME = "char_name";
 	public static final String COUNT = "count";
 	public static final String PLAYED = "played";
 	public static final String CLAN_NAME = "clan_name";
@@ -87,11 +89,11 @@ public class HeroManager
 			{
 				while (rs.next())
 				{
-					final int objectId = rs.getInt(Olympiad.CHAR_ID);
+					final int objectId = rs.getInt(CHAR_ID);
 					
 					final StatSet hero = new StatSet();
-					hero.set(Olympiad.CHAR_NAME, rs.getString(Olympiad.CHAR_NAME));
-					hero.set(Olympiad.CLASS_ID, rs.getInt(Olympiad.CLASS_ID));
+					hero.set(CHAR_NAME, rs.getString(CHAR_NAME));
+					hero.set(CLASS_ID, rs.getInt(CLASS_ID));
 					hero.set(COUNT, rs.getInt(COUNT));
 					hero.set(PLAYED, rs.getInt(PLAYED));
 					hero.set(ACTIVE, rs.getInt(ACTIVE));
@@ -146,11 +148,11 @@ public class HeroManager
 			{
 				while (rs.next())
 				{
-					final int objectId = rs.getInt(Olympiad.CHAR_ID);
+					final int objectId = rs.getInt(CHAR_ID);
 					
 					final StatSet hero = new StatSet();
-					hero.set(Olympiad.CHAR_NAME, rs.getString(Olympiad.CHAR_NAME));
-					hero.set(Olympiad.CLASS_ID, rs.getInt(Olympiad.CLASS_ID));
+					hero.set(CHAR_NAME, rs.getString(CHAR_NAME));
+					hero.set(CLASS_ID, rs.getInt(CLASS_ID));
 					hero.set(COUNT, rs.getInt(COUNT));
 					hero.set(PLAYED, rs.getInt(PLAYED));
 					hero.set(ACTIVE, rs.getInt(ACTIVE));
@@ -424,7 +426,7 @@ public class HeroManager
 		
 		for (Map.Entry<Integer, StatSet> hero : _heroes.entrySet())
 		{
-			if (hero.getValue().getInteger(Olympiad.CLASS_ID) == classId)
+			if (hero.getValue().getInteger(CLASS_ID) == classId)
 				return hero.getKey();
 		}
 		return 0;
@@ -452,8 +454,7 @@ public class HeroManager
 		
 		if (!mainList.isEmpty())
 		{
-			List<StatSet> list = new ArrayList<>();
-			list.addAll(mainList);
+			List<StatSet> list = new ArrayList<>(mainList);
 			Collections.reverse(list);
 			
 			boolean color = true;
@@ -580,7 +581,7 @@ public class HeroManager
 		// If heroes exist, do special operations on them before computing new heroes.
 		for (StatSet set : _heroes.values())
 		{
-			final Player worldPlayer = World.getInstance().getPlayer(set.getString(Olympiad.CHAR_NAME));
+			final Player worldPlayer = World.getInstance().getPlayer(set.getString(CHAR_NAME));
 			if (worldPlayer == null)
 				continue;
 			
@@ -600,7 +601,7 @@ public class HeroManager
 				if (!item.isHeroItem())
 					continue;
 				
-				worldPlayer.destroyItem("Hero", item, null, true);
+				worldPlayer.destroyItem(item, true);
 			}
 			
 			worldPlayer.broadcastUserInfo();
@@ -625,9 +626,9 @@ public class HeroManager
 					if (rs.next())
 					{
 						final StatSet hero = new StatSet();
-						hero.set(Olympiad.CLASS_ID, id.getId());
-						hero.set(Olympiad.CHAR_ID, rs.getInt(Olympiad.CHAR_ID));
-						hero.set(Olympiad.CHAR_NAME, rs.getString(Olympiad.CHAR_NAME));
+						hero.set(CLASS_ID, id.getId());
+						hero.set(CHAR_ID, rs.getInt(CHAR_ID));
+						hero.set(CHAR_NAME, rs.getString(CHAR_NAME));
 						
 						newHeroes.add(hero);
 					}
@@ -650,7 +651,7 @@ public class HeroManager
 		
 		for (StatSet hero : newHeroes)
 		{
-			final int objectId = hero.getInteger(Olympiad.CHAR_ID);
+			final int objectId = hero.getInteger(CHAR_ID);
 			
 			StatSet set = _completeHeroes.get(objectId);
 			if (set != null)
@@ -662,8 +663,8 @@ public class HeroManager
 			else
 			{
 				set = new StatSet();
-				set.set(Olympiad.CHAR_NAME, hero.getString(Olympiad.CHAR_NAME));
-				set.set(Olympiad.CLASS_ID, hero.getInteger(Olympiad.CLASS_ID));
+				set.set(CHAR_NAME, hero.getString(CHAR_NAME));
+				set.set(CLASS_ID, hero.getInteger(CLASS_ID));
 				set.set(COUNT, 1);
 				set.set(PLAYED, 1);
 				set.set(ACTIVE, 0);
@@ -699,7 +700,7 @@ public class HeroManager
 				final StatSet hero = heroEntry.getValue();
 				
 				ps.setInt(1, heroId);
-				ps.setInt(2, hero.getInteger(Olympiad.CLASS_ID));
+				ps.setInt(2, hero.getInteger(CLASS_ID));
 				ps.setInt(3, hero.getInteger(COUNT));
 				ps.setInt(4, hero.getInteger(PLAYED));
 				ps.setInt(5, hero.getInteger(ACTIVE));

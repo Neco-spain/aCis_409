@@ -1,7 +1,7 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.gameserver.enums.StatusType;
+import net.sf.l2j.gameserver.enums.PrivilegeType;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Folk;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
@@ -9,11 +9,7 @@ import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.itemcontainer.ClanWarehouse;
 import net.sf.l2j.gameserver.model.itemcontainer.ItemContainer;
 import net.sf.l2j.gameserver.model.itemcontainer.PcWarehouse;
-import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.EnchantResult;
-import net.sf.l2j.gameserver.network.serverpackets.InventoryUpdate;
-import net.sf.l2j.gameserver.network.serverpackets.StatusUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public final class SendWarehouseWithdrawList extends L2GameClientPacket
@@ -60,12 +56,7 @@ public final class SendWarehouseWithdrawList extends L2GameClientPacket
 			return;
 		}
 		
-		if (player.getActiveEnchantItem() != null)
-		{
-			player.setActiveEnchantItem(null);
-			player.sendPacket(EnchantResult.CANCELLED);
-			player.sendPacket(SystemMessageId.ENCHANT_SCROLL_CANCELLED);
-		}
+		player.cancelActiveEnchant();
 		
 		final ItemContainer warehouse = player.getActiveWarehouse();
 		if (warehouse == null)
@@ -81,20 +72,18 @@ public final class SendWarehouseWithdrawList extends L2GameClientPacket
 			return;
 		}
 		
-		// Alt game - Karma punishment
 		if (!Config.KARMA_PLAYER_CAN_USE_WH && player.getKarma() > 0)
 			return;
 		
-		if (Config.MEMBERS_CAN_WITHDRAW_FROM_CLANWH)
+		if (warehouse instanceof ClanWarehouse)
 		{
-			if (warehouse instanceof ClanWarehouse && !player.hasClanPrivileges(Clan.CP_CL_VIEW_WAREHOUSE))
-				return;
-		}
-		else
-		{
-			if (warehouse instanceof ClanWarehouse && !player.isClanLeader())
+			if (Config.MEMBERS_CAN_WITHDRAW_FROM_CLANWH)
 			{
-				// this msg is for depositing but maybe good to send some msg?
+				if (!player.hasClanPrivileges(PrivilegeType.SP_WAREHOUSE_SEARCH))
+					return;
+			}
+			else if (!player.isClanLeader())
+			{
 				player.sendPacket(SystemMessageId.ONLY_CLAN_LEADER_CAN_RETRIEVE_ITEMS_FROM_CLAN_WAREHOUSE);
 				return;
 			}
@@ -133,29 +122,13 @@ public final class SendWarehouseWithdrawList extends L2GameClientPacket
 		}
 		
 		// Proceed to the transfer
-		InventoryUpdate playerIU = new InventoryUpdate();
 		for (IntIntHolder i : _items)
 		{
 			ItemInstance oldItem = warehouse.getItemByObjectId(i.getId());
 			if (oldItem == null || oldItem.getCount() < i.getValue())
-				return;
+				continue;
 			
-			final ItemInstance newItem = warehouse.transferItem(warehouse.getName(), i.getId(), i.getValue(), player.getInventory(), player, folk);
-			if (newItem == null)
-				return;
-			
-			if (newItem.getCount() > i.getValue())
-				playerIU.addModifiedItem(newItem);
-			else
-				playerIU.addNewItem(newItem);
+			warehouse.transferItem(i.getId(), i.getValue(), player);
 		}
-		
-		// Send updated item list to the player
-		player.sendPacket(playerIU);
-		
-		// Update current load status on player
-		StatusUpdate su = new StatusUpdate(player);
-		su.addAttribute(StatusType.CUR_LOAD, player.getCurrentWeight());
-		player.sendPacket(su);
 	}
 }

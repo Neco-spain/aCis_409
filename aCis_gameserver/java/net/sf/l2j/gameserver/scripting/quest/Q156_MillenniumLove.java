@@ -24,7 +24,7 @@ public class Q156_MillenniumLove extends Quest
 		
 		setItemsIds(LILITH_LETTER, THEON_DIARY);
 		
-		addStartNpc(LILITH);
+		addQuestStart(LILITH);
 		addTalkId(LILITH, BAENEDES);
 	}
 	
@@ -79,9 +79,9 @@ public class Q156_MillenniumLove extends Quest
 				switch (npc.getNpcId())
 				{
 					case LILITH:
-						if (player.getInventory().hasItems(LILITH_LETTER))
+						if (player.getInventory().hasItem(LILITH_LETTER))
 							htmltext = "30368-05.htm";
-						else if (player.getInventory().hasItems(THEON_DIARY))
+						else if (player.getInventory().hasItem(THEON_DIARY))
 						{
 							htmltext = "30368-06.htm";
 							takeItems(player, THEON_DIARY, 1);
@@ -93,9 +93,9 @@ public class Q156_MillenniumLove extends Quest
 						break;
 					
 					case BAENEDES:
-						if (player.getInventory().hasItems(LILITH_LETTER))
+						if (player.getInventory().hasItem(LILITH_LETTER))
 							htmltext = "30369-01.htm";
-						else if (player.getInventory().hasItems(THEON_DIARY))
+						else if (player.getInventory().hasItem(THEON_DIARY))
 							htmltext = "30369-04.htm";
 						break;
 				}

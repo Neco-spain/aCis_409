@@ -53,14 +53,14 @@ public class Q125_TheNameOfEvil_1 extends Quest
 		
 		setItemsIds(ORNITHOMIMUS_CLAW, DEINONYCHUS_BONE, EPITAPH_OF_WISDOM, GAZKH_FRAGMENT);
 		
-		addStartNpc(MUSHIKA);
+		addQuestStart(MUSHIKA);
 		addTalkId(MUSHIKA, KARAKAWEI, ULU_KAIMU, BALU_KAIMU, CHUTA_KAIMU);
 		
 		for (int i : ORNITHOMIMUS)
-			addKillId(i);
+			addMyDying(i);
 		
 		for (int i : DEINONYCHUS)
-			addKillId(i);
+			addMyDying(i);
 	}
 	
 	@Override
@@ -183,7 +183,7 @@ public class Q125_TheNameOfEvil_1 extends Quest
 					case ULU_KAIMU:
 						if (cond == 5)
 						{
-							npc.getAI().tryToCast(npc, 5089, 1);
+							npc.getAI().addCastDesire(npc, 5089, 1, 1000000);
 							htmltext = "32119-01.htm";
 						}
 						else if (cond == 6)
@@ -193,7 +193,7 @@ public class Q125_TheNameOfEvil_1 extends Quest
 					case BALU_KAIMU:
 						if (cond == 6)
 						{
-							npc.getAI().tryToCast(npc, 5089, 1);
+							npc.getAI().addCastDesire(npc, 5089, 1, 1000000);
 							htmltext = "32120-01.htm";
 						}
 						else if (cond == 7)
@@ -203,7 +203,7 @@ public class Q125_TheNameOfEvil_1 extends Quest
 					case CHUTA_KAIMU:
 						if (cond == 7)
 						{
-							npc.getAI().tryToCast(npc, 5089, 1);
+							npc.getAI().addCastDesire(npc, 5089, 1, 1000000);
 							htmltext = "32121-01.htm";
 						}
 						else if (cond == 8)
@@ -221,13 +221,13 @@ public class Q125_TheNameOfEvil_1 extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerCondition(player, npc, 3);
 		if (st == null)
-			return null;
+			return;
 		
 		final int npcId = npc.getNpcId();
 		if (ArraysUtil.contains(ORNITHOMIMUS, npcId))
@@ -240,6 +240,5 @@ public class Q125_TheNameOfEvil_1 extends Quest
 			if (dropItems(player, DEINONYCHUS_BONE, 1, 2, 50000) && player.getInventory().getItemCount(ORNITHOMIMUS_CLAW) == 2)
 				st.setCond(4);
 		}
-		return null;
 	}
 }

@@ -4,15 +4,15 @@ import net.sf.l2j.gameserver.model.pledge.Clan;
 
 public class ManagePledgePower extends L2GameServerPacket
 {
-	private final int _action;
-	private final Clan _clan;
 	private final int _rank;
+	private final int _action;
+	private final int _privs;
 	
 	public ManagePledgePower(Clan clan, int action, int rank)
 	{
-		_clan = clan;
-		_action = action;
 		_rank = rank;
+		_action = action;
+		_privs = clan.getPrivilegesByRank(_rank);
 	}
 	
 	@Override
@@ -21,6 +21,6 @@ public class ManagePledgePower extends L2GameServerPacket
 		writeC(0x30);
 		writeD(_rank);
 		writeD(_action);
-		writeD(_clan.getPrivilegesByRank(_rank));
+		writeD(_privs);
 	}
 }

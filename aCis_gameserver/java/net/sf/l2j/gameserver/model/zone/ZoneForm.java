@@ -15,7 +15,7 @@ public abstract class ZoneForm
 	
 	public abstract int getHighZ(); // New fishing patch makes use of that to get the Z for the hook
 	
-	public abstract void visualizeZone(String info, ExServerPrimitive debug, int z);
+	public abstract void visualizeZone(String info, ExServerPrimitive debug);
 	
 	protected boolean lineSegmentsIntersect(int ax1, int ay1, int ax2, int ay2, int bx1, int by1, int bx2, int by2)
 	{

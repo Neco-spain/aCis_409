@@ -1,7 +1,6 @@
 package net.sf.l2j.gameserver.skills.effects;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -159,17 +158,7 @@ public class EffectTemplate
 		{
 			return (AbstractEffect) _constructor.newInstance(this, skill, target, caster);
 		}
-		catch (IllegalAccessException e)
-		{
-			LOGGER.error("", e);
-			return null;
-		}
-		catch (InstantiationException e)
-		{
-			LOGGER.error("", e);
-			return null;
-		}
-		catch (InvocationTargetException e)
+		catch (Exception e)
 		{
 			LOGGER.error("Error creating new instance of {}.", e, _func);
 			return null;

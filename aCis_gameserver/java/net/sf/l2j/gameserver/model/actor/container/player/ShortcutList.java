@@ -3,6 +3,7 @@ package net.sf.l2j.gameserver.model.actor.container.player;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.List;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.Predicate;
 
@@ -208,21 +209,42 @@ public class ShortcutList extends ConcurrentSkipListMap<Integer, Shortcut>
 	}
 	
 	/**
-	 * Refresh all occurences of a given {@link Shortcut} based on its {@link ShortcutType} and related id.
-	 * @param id : The id related to the {@link Shortcut} to delete.
+	 * Refresh all occurences of {@link Shortcut}s based on a {@link Predicate}.
+	 * @param predicate : The {@link Predicate} to use as filter.
 	 * @param level : The new level to set.
-	 * @param type : The {@link ShortcutType} to affect.
 	 */
-	public void refreshShortcuts(int id, int level, ShortcutType type)
+	public void refreshShortcuts(Predicate<Shortcut> predicate, int level)
 	{
-		for (Shortcut shortcut : values())
+		// Retrieve shortcuts matching the Predicate.
+		final List<Shortcut> shortcuts = values().stream().filter(predicate).toList();
+		if (shortcuts.isEmpty())
+			return;
+		
+		// For each shortcut, if level > 0, set the level (used on by SKILL) and refresh the client. Save each shortcut on db.
+		try (Connection con = ConnectionPool.getConnection();
+			PreparedStatement ps = con.prepareStatement(INSERT_SHORTCUT))
 		{
-			if (shortcut.getId() == id && shortcut.getType() == type)
+			for (Shortcut s : shortcuts)
 			{
-				shortcut.setLevel(level);
+				if (level > 0)
+					s.setLevel(level);
 				
-				_owner.sendPacket(new ShortCutRegister(_owner, shortcut));
+				_owner.sendPacket(new ShortCutRegister(_owner, s));
+				
+				ps.setInt(1, _owner.getObjectId());
+				ps.setInt(2, s.getSlot());
+				ps.setInt(3, s.getPage());
+				ps.setString(4, s.getType().toString());
+				ps.setInt(5, s.getId());
+				ps.setInt(6, s.getLevel());
+				ps.setInt(7, _owner.getClassIndex());
+				ps.addBatch();
 			}
+			ps.executeBatch();
+		}
+		catch (Exception e)
+		{
+			LOGGER.error("Couldn't store shortcuts.", e);
 		}
 	}
 	

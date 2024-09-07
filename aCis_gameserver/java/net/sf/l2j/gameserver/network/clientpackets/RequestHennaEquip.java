@@ -2,8 +2,8 @@ package net.sf.l2j.gameserver.network.clientpackets;
 
 import net.sf.l2j.gameserver.data.xml.HennaData;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.item.Henna;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
+import net.sf.l2j.gameserver.model.records.Henna;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.HennaInfo;
 import net.sf.l2j.gameserver.network.serverpackets.UserInfo;
@@ -41,7 +41,7 @@ public final class RequestHennaEquip extends L2GameClientPacket
 			return;
 		}
 		
-		final ItemInstance ownedDyes = player.getInventory().getItemByItemId(henna.getDyeId());
+		final ItemInstance ownedDyes = player.getInventory().getItemByItemId(henna.dyeId());
 		final int count = (ownedDyes == null) ? 0 : ownedDyes.getCount();
 		
 		if (count < Henna.DRAW_AMOUNT)
@@ -51,11 +51,11 @@ public final class RequestHennaEquip extends L2GameClientPacket
 		}
 		
 		// reduceAdena sends a message.
-		if (!player.reduceAdena("Henna", henna.getDrawPrice(), player.getCurrentFolk(), true))
+		if (!player.reduceAdena(henna.drawPrice(), true))
 			return;
 		
 		// destroyItemByItemId sends a message.
-		if (!player.destroyItemByItemId("Henna", henna.getDyeId(), Henna.DRAW_AMOUNT, player, true))
+		if (!player.destroyItemByItemId(henna.dyeId(), Henna.DRAW_AMOUNT, true))
 			return;
 		
 		final boolean success = player.getHennaList().add(henna);

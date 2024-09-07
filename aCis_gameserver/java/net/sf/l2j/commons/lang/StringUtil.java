@@ -11,8 +11,15 @@ import java.util.regex.PatternSyntaxException;
 
 import net.sf.l2j.commons.logging.CLogger;
 
+import net.sf.l2j.gameserver.model.actor.Creature;
+
 public final class StringUtil
 {
+	private StringUtil()
+	{
+		throw new IllegalStateException("Utility class");
+	}
+	
 	public static final String DIGITS = "0123456789";
 	public static final String LOWER_CASE_LETTERS = "abcdefghijklmnopqrstuvwxyz";
 	public static final String UPPER_CASE_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -201,5 +208,55 @@ public final class StringUtil
 			return defaultValue;
 		
 		return trim(s, maxWidth);
+	}
+	
+	/**
+	 * Trim the {@link String} set as parameter to the amount of characters set as second parameter. Add "..." in the end of the {@link String}.
+	 * @param s : The {@link String} to trim.
+	 * @param maxWidth : The maximum length.
+	 * @return The trimmed {@link String} followed by "...".
+	 */
+	public static String trimAndDress(String s, int maxWidth)
+	{
+		if (s.length() > maxWidth)
+		{
+			s = s.substring(0, maxWidth - 3);
+			s += "...";
+		}
+		return s;
+	}
+	
+	/**
+	 * @param timestamp : The {@link String} to format.
+	 * @return a timestamp in seconds, based on a {@link String} set as parameter.
+	 */
+	public static final int getTimeStamp(String timestamp)
+	{
+		if (timestamp == null)
+			return 0;
+		
+		if (timestamp.equalsIgnoreCase("no"))
+			return -1;
+		
+		if (timestamp.endsWith("hour"))
+			return Integer.parseInt(timestamp.split("hour")[0]) * 3600;
+		
+		if (timestamp.endsWith("min"))
+			return Integer.parseInt(timestamp.split("min")[0]) * 60;
+		
+		if (timestamp.endsWith("sec"))
+			return Integer.parseInt(timestamp.split("sec")[0]);
+		
+		return 0;
+	}
+	
+	public static String getCreatureDescription(StringBuilder sb, Creature creature)
+	{
+		if (creature == null)
+			return "none";
+		
+		final String teleLoc = creature.getPosition().toString().replace(",", "");
+		
+		return "<a action=\"bypass admin_teleport " + teleLoc + "\">" + trimAndDress(creature.getName(), 12) + "</a>";
 	}
 }

@@ -50,4 +50,14 @@ public class IntIntHolder
 	{
 		return SkillTable.getInstance().getInfo(_id, _value);
 	}
+	
+	/**
+	 * @param id : The int to test as id.
+	 * @param value : The int to test as value.
+	 * @return True if both values equal, false otherwise.
+	 */
+	public final boolean equals(int id, int value)
+	{
+		return _id == id && _value == value;
+	}
 }

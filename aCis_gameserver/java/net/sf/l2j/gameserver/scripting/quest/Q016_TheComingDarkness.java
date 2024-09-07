@@ -27,7 +27,7 @@ public class Q016_TheComingDarkness extends Quest
 		
 		setItemsIds(CRYSTAL_OF_SEAL);
 		
-		addStartNpc(HIERARCH);
+		addQuestStart(HIERARCH);
 		addTalkId(HIERARCH, EVIL_ALTAR_1, EVIL_ALTAR_2, EVIL_ALTAR_3, EVIL_ALTAR_4, EVIL_ALTAR_5);
 	}
 	
@@ -110,7 +110,7 @@ public class Q016_TheComingDarkness extends Quest
 						}
 						else
 						{
-							if (player.getInventory().hasItems(CRYSTAL_OF_SEAL))
+							if (player.getInventory().hasItem(CRYSTAL_OF_SEAL))
 								htmltext = "31517-3.htm";
 							else
 							{
@@ -120,16 +120,12 @@ public class Q016_TheComingDarkness extends Quest
 						}
 						break;
 					
-					case EVIL_ALTAR_1:
-					case EVIL_ALTAR_2:
-					case EVIL_ALTAR_3:
-					case EVIL_ALTAR_4:
-					case EVIL_ALTAR_5:
+					case EVIL_ALTAR_1, EVIL_ALTAR_2, EVIL_ALTAR_3, EVIL_ALTAR_4, EVIL_ALTAR_5:
 						final int condAltar = npcId - 31511;
 						
 						if (cond == condAltar)
 						{
-							if (player.getInventory().hasItems(CRYSTAL_OF_SEAL))
+							if (player.getInventory().hasItem(CRYSTAL_OF_SEAL))
 								htmltext = npcId + "-0.htm";
 							else
 								htmltext = "altar_nocrystal.htm";

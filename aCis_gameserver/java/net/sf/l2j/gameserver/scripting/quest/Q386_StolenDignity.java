@@ -24,35 +24,7 @@ public class Q386_StolenDignity extends Quest
 	// Items
 	private static final int STOLEN_INFERNIUM_ORE = 6363;
 	
-	private static final Map<Integer, Integer> CHANCES = new HashMap<>();
-	{
-		CHANCES.put(20970, 208000); // Soldier of Ancient Times
-		CHANCES.put(20971, 299000); // Warrior of Ancient Times
-		CHANCES.put(20958, 170000); // Death Agent
-		CHANCES.put(20960, 149000); // Bloody Ghost
-		CHANCES.put(20963, 199000); // Bloody Lord
-		CHANCES.put(20670, 202000); // Crimson Drake
-		CHANCES.put(21114, 352000); // Cursed Guardian
-		CHANCES.put(20959, 273000); // Dark Guard
-		CHANCES.put(21020, 478000); // Fallen Orc Shaman
-		CHANCES.put(21258, 487000); // Fallen Orc Shaman (trans)
-		CHANCES.put(21003, 173000); // Grave Lich
-		CHANCES.put(20969, 205000); // Giant's Shadow
-		CHANCES.put(21108, 245000); // Glow Wisp
-		CHANCES.put(21005, 211000); // Grave Predator
-		CHANCES.put(21116, 487000); // Hames Orc Overlord
-		CHANCES.put(21113, 370000); // Hames Orc Sniper
-		CHANCES.put(20954, 184000); // Hungered Corpse
-		CHANCES.put(20671, 211000); // Kadios
-		CHANCES.put(21110, 260000); // Marsh Predator
-		CHANCES.put(20967, 257000); // Past Creature
-		CHANCES.put(20956, 216000); // Past Knight
-		CHANCES.put(21021, 234000); // Sharp Talon Tiger
-		CHANCES.put(21259, 487000); // Fallen Orc Shaman
-		CHANCES.put(20974, 440000); // Spiteful Soul Leader
-		CHANCES.put(20975, 390000); // Spiteful Soul Wizard
-		CHANCES.put(21001, 214000); // Wretched Archer
-	}
+	private static final Map<Integer, Integer> CHANCES = HashMap.newHashMap(26);
 	
 	private static final int[] REWARDS =
 	{
@@ -84,11 +56,38 @@ public class Q386_StolenDignity extends Quest
 	{
 		super(386, "Stolen Dignity");
 		
-		addStartNpc(ROMP);
+		CHANCES.put(20970, 208000); // Soldier of Ancient Times
+		CHANCES.put(20971, 299000); // Warrior of Ancient Times
+		CHANCES.put(20958, 170000); // Death Agent
+		CHANCES.put(20960, 149000); // Bloody Ghost
+		CHANCES.put(20963, 199000); // Bloody Lord
+		CHANCES.put(20670, 202000); // Crimson Drake
+		CHANCES.put(21114, 352000); // Cursed Guardian
+		CHANCES.put(20959, 273000); // Dark Guard
+		CHANCES.put(21020, 478000); // Fallen Orc Shaman
+		CHANCES.put(21258, 487000); // Fallen Orc Shaman (trans)
+		CHANCES.put(21003, 173000); // Grave Lich
+		CHANCES.put(20969, 205000); // Giant's Shadow
+		CHANCES.put(21108, 245000); // Glow Wisp
+		CHANCES.put(21005, 211000); // Grave Predator
+		CHANCES.put(21116, 487000); // Hames Orc Overlord
+		CHANCES.put(21113, 370000); // Hames Orc Sniper
+		CHANCES.put(20954, 184000); // Hungered Corpse
+		CHANCES.put(20671, 211000); // Kadios
+		CHANCES.put(21110, 260000); // Marsh Predator
+		CHANCES.put(20967, 257000); // Past Creature
+		CHANCES.put(20956, 216000); // Past Knight
+		CHANCES.put(21021, 234000); // Sharp Talon Tiger
+		CHANCES.put(21259, 487000); // Fallen Orc Shaman
+		CHANCES.put(20974, 440000); // Spiteful Soul Leader
+		CHANCES.put(20975, 390000); // Spiteful Soul Wizard
+		CHANCES.put(21001, 214000); // Wretched Archer
+		
+		addQuestStart(ROMP);
 		addTalkId(ROMP);
 		
 		for (int npcId : CHANCES.keySet())
-			addKillId(npcId);
+			addMyDying(npcId);
 	}
 	
 	@Override
@@ -181,18 +180,22 @@ public class Q386_StolenDignity extends Quest
 						winningLines++;
 				}
 				
-				if (winningLines == 3)
+				switch (winningLines)
 				{
-					htmltext = getHtmlText("30843-22.htm");
-					giveItems(player, Rnd.get(REWARDS), 4);
+					case 3:
+						htmltext = getHtmlText("30843-22.htm");
+						giveItems(player, Rnd.get(REWARDS), 4);
+						break;
+					
+					case 0:
+						htmltext = getHtmlText("30843-24.htm");
+						giveItems(player, Rnd.get(REWARDS), 10);
+						break;
+					
+					default:
+						htmltext = getHtmlText("30843-23.htm");
+						break;
 				}
-				else if (winningLines == 0)
-				{
-					htmltext = getHtmlText("30843-24.htm");
-					giveItems(player, Rnd.get(REWARDS), 10);
-				}
-				else
-					htmltext = getHtmlText("30843-23.htm");
 				
 				for (int i = 1; i < 10; i++)
 				{
@@ -228,17 +231,15 @@ public class Q386_StolenDignity extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMemberState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		dropItems(st.getPlayer(), STOLEN_INFERNIUM_ORE, 1, 0, CHANCES.get(npc.getNpcId()));
-		
-		return null;
 	}
 	
 	private static final String fillBoard(QuestState st, String htmltext)

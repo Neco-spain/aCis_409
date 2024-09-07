@@ -9,10 +9,10 @@ import net.sf.l2j.gameserver.data.xml.ItemData;
 import net.sf.l2j.gameserver.enums.actors.ClassId;
 import net.sf.l2j.gameserver.enums.actors.ClassRace;
 import net.sf.l2j.gameserver.enums.actors.Sex;
-import net.sf.l2j.gameserver.model.holder.ItemTemplateHolder;
 import net.sf.l2j.gameserver.model.holder.skillnode.GeneralSkillNode;
 import net.sf.l2j.gameserver.model.item.kind.Weapon;
 import net.sf.l2j.gameserver.model.location.Location;
+import net.sf.l2j.gameserver.model.records.NewbieItem;
 
 /**
  * A datatype extending {@link CreatureTemplate}, used to retain Player template informations such as classId, specific collision values for female, hp/mp/cp tables, etc.<br>
@@ -44,7 +44,7 @@ public class PlayerTemplate extends CreatureTemplate
 	private final double[] _mpRegenTable;
 	private final double[] _cpRegenTable;
 	
-	private final List<ItemTemplateHolder> _items;
+	private final List<NewbieItem> _items;
 	private final List<GeneralSkillNode> _skills;
 	
 	private final Weapon _fists;
@@ -169,9 +169,9 @@ public class PlayerTemplate extends CreatureTemplate
 	}
 	
 	/**
-	 * @return the {@link List} of {@link ItemTemplateHolder}s holding the starter equipment informations for this {@link PlayerTemplate}.
+	 * @return the {@link List} of {@link NewbieItem}s holding the starter equipment informations for this {@link PlayerTemplate}.
 	 */
-	public final List<ItemTemplateHolder> getItems()
+	public final List<NewbieItem> getItems()
 	{
 		return _items;
 	}

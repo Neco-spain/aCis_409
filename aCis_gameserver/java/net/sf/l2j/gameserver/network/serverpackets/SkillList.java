@@ -3,34 +3,21 @@ package net.sf.l2j.gameserver.network.serverpackets;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.records.SkillInfo;
+import net.sf.l2j.gameserver.skills.L2Skill;
+
 public final class SkillList extends L2GameServerPacket
 {
-	private final List<Skill> _skills;
+	private final List<SkillInfo> _skills = new ArrayList<>();
 	
-	static class Skill
+	public SkillList(Player player)
 	{
-		public int id;
-		public int level;
-		public boolean passive;
-		public boolean disabled;
+		final boolean isWearingFormalWear = player.isWearingFormalWear();
+		final boolean isClanDisabled = player.getClan() != null && player.getClan().getReputationScore() < 0;
 		
-		Skill(int pId, int pLevel, boolean pPassive, boolean pDisabled)
-		{
-			id = pId;
-			level = pLevel;
-			passive = pPassive;
-			disabled = pDisabled;
-		}
-	}
-	
-	public SkillList()
-	{
-		_skills = new ArrayList<>();
-	}
-	
-	public void addSkill(int id, int level, boolean passive, boolean disabled)
-	{
-		_skills.add(new Skill(id, level, passive, disabled));
+		for (final L2Skill skill : player.getSkills().values())
+			_skills.add(new SkillInfo(skill.getId(), skill.getLevel(), skill.isPassive(), isWearingFormalWear || (skill.isClanSkill() && isClanDisabled)));
 	}
 	
 	@Override
@@ -39,12 +26,12 @@ public final class SkillList extends L2GameServerPacket
 		writeC(0x58);
 		writeD(_skills.size());
 		
-		for (Skill temp : _skills)
+		for (SkillInfo temp : _skills)
 		{
-			writeD(temp.passive ? 1 : 0);
-			writeD(temp.level);
-			writeD(temp.id);
-			writeC(temp.disabled ? 1 : 0);
+			writeD(temp.isPassive() ? 1 : 0);
+			writeD(temp.level());
+			writeD(temp.id());
+			writeC(temp.isDisabled() ? 1 : 0);
 		}
 	}
 }

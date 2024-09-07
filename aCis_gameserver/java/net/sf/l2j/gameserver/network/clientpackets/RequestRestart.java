@@ -15,6 +15,7 @@ public final class RequestRestart extends L2GameClientPacket
 	@Override
 	protected void readImpl()
 	{
+		// Do nothing.
 	}
 	
 	@Override
@@ -67,7 +68,7 @@ public final class RequestRestart extends L2GameClientPacket
 		sendPacket(RestartResponse.valueOf(true));
 		
 		// send char list
-		final CharSelectInfo cl = new CharSelectInfo(client.getAccountName(), client.getSessionId().playOkID1);
+		final CharSelectInfo cl = new CharSelectInfo(client.getAccountName(), client.getSessionId().playOkId1());
 		sendPacket(cl);
 		client.setCharSelectSlot(cl.getCharacterSlots());
 	}

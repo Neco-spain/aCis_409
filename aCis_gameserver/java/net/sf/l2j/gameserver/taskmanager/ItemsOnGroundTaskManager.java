@@ -14,21 +14,20 @@ import net.sf.l2j.commons.pool.ThreadPool;
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.manager.CastleManager;
 import net.sf.l2j.gameserver.data.manager.CursedWeaponManager;
-import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Playable;
-import net.sf.l2j.gameserver.model.entity.Castle;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
+import net.sf.l2j.gameserver.model.residence.castle.Castle;
 
 /**
- * Destroys item on ground after specified time. When server is about to shutdown/restart, saves all dropped items in to SQL. Loads them during server start.
+ * Destroy items on ground after specified time. When server is about to shutdown/restart, saves all dropped items in to SQL. Load them during server start.
  */
 public final class ItemsOnGroundTaskManager implements Runnable
 {
 	private static final CLogger LOGGER = new CLogger(ItemsOnGroundTaskManager.class.getName());
 	
 	private static final String LOAD_ITEMS = "SELECT object_id,item_id,count,enchant_level,x,y,z,time FROM items_on_ground";
-	private static final String DELETE_ITEMS = "DELETE FROM items_on_ground";
+	private static final String TRUNCATE_ITEMS = "TRUNCATE items_on_ground";
 	private static final String SAVE_ITEMS = "INSERT INTO items_on_ground(object_id,item_id,count,enchant_level,x,y,z,time) VALUES(?,?,?,?,?,?,?,?)";
 	
 	private final Map<ItemInstance, Long> _items = new ConcurrentHashMap<>();
@@ -41,7 +40,7 @@ public final class ItemsOnGroundTaskManager implements Runnable
 		// Load all items.
 		try (Connection con = ConnectionPool.getConnection();
 			PreparedStatement st = con.prepareStatement(LOAD_ITEMS);
-			PreparedStatement st2 = con.prepareStatement(DELETE_ITEMS);
+			PreparedStatement st2 = con.prepareStatement(TRUNCATE_ITEMS);
 			ResultSet rs = st.executeQuery())
 		{
 			// Get current time.
@@ -49,21 +48,8 @@ public final class ItemsOnGroundTaskManager implements Runnable
 			
 			while (rs.next())
 			{
-				// Create new item.
-				final ItemInstance item = new ItemInstance(rs.getInt(1), rs.getInt(2));
-				World.getInstance().addObject(item);
-				
-				// Check and set count.
-				final int count = rs.getInt(3);
-				if (item.isStackable() && count > 1)
-					item.setCount(count);
-				
-				// Check and set enchant.
-				final int enchant = rs.getInt(4);
-				if (enchant > 0)
-					item.setEnchantLevel(enchant);
-				
-				// Spawn item in the world.
+				// Create new item and spawn it in the world.
+				final ItemInstance item = new ItemInstance(rs.getInt(1), rs.getInt(2), rs.getInt(3), rs.getInt(4));
 				item.spawnMe(rs.getInt(5), rs.getInt(6), rs.getInt(7));
 				
 				// If item is on a Castle ground, verify if it's an allowed ticket. If yes, add it to associated castle.
@@ -113,14 +99,14 @@ public final class ItemsOnGroundTaskManager implements Runnable
 	}
 	
 	/**
-	 * Adds {@link ItemInstance} to the ItemAutoDestroyTask.
-	 * @param item : {@link ItemInstance} to be added and checked.
-	 * @param actor : {@link Creature} who dropped the item.
+	 * Add the {@link ItemInstance} set as parameter. Calculate its destroy time based on the multiple associated {@link Config}s.
+	 * @param item : The {@link ItemInstance} to add.
+	 * @param creature : The {@link Creature} who dropped the item.
 	 */
-	public final void add(ItemInstance item, Creature actor)
+	public final void add(ItemInstance item, Creature creature)
 	{
 		// Actor doesn't exist or item is protected, don't bother with the item (e.g. Cursed Weapons).
-		if (actor == null || item.isDestroyProtected())
+		if (creature == null || item.isDestroyProtected())
 			return;
 		
 		long dropTime = 0;
@@ -142,7 +128,7 @@ public final class ItemsOnGroundTaskManager implements Runnable
 		}
 		
 		// Item was dropped by playable, apply the multiplier.
-		if (actor instanceof Playable)
+		if (creature instanceof Playable)
 			dropTime *= Config.PLAYER_DROPPED_ITEM_MULTIPLIER;
 		
 		// If drop time exists, set real drop time.
@@ -154,8 +140,8 @@ public final class ItemsOnGroundTaskManager implements Runnable
 	}
 	
 	/**
-	 * Removes {@link ItemInstance} from the ItemAutoDestroyTask.
-	 * @param item : {@link ItemInstance} to be removed.
+	 * Remove the {@link ItemInstance} set as parameter.
+	 * @param item : The {@link ItemInstance} to remove.
 	 */
 	public final void remove(ItemInstance item)
 	{

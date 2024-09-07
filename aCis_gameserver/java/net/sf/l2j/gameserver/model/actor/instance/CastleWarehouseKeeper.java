@@ -26,17 +26,22 @@ public class CastleWarehouseKeeper extends WarehouseKeeper
 		
 		final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
 		
-		final NpcTalkCond condition = getNpcTalkCond(player);
-		if (condition == NpcTalkCond.NONE)
-			html.setFile("data/html/castlewarehouse/castlewarehouse-no.htm");
-		else if (condition == NpcTalkCond.UNDER_SIEGE)
-			html.setFile("data/html/castlewarehouse/castlewarehouse-busy.htm");
-		else
+		switch (getNpcTalkCond(player))
 		{
-			if (val == 0)
-				html.setFile("data/html/castlewarehouse/castlewarehouse.htm");
-			else
-				html.setFile("data/html/castlewarehouse/castlewarehouse-" + val + ".htm");
+			case NONE:
+				html.setFile("data/html/castlewarehouse/castlewarehouse-no.htm");
+				break;
+			
+			case UNDER_SIEGE:
+				html.setFile("data/html/castlewarehouse/castlewarehouse-busy.htm");
+				break;
+			
+			default:
+				if (val == 0)
+					html.setFile("data/html/castlewarehouse/castlewarehouse.htm");
+				else
+					html.setFile("data/html/castlewarehouse/castlewarehouse-" + val + ".htm");
+				break;
 		}
 		html.replace("%objectId%", getObjectId());
 		html.replace("%npcname%", getName());

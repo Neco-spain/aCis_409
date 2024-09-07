@@ -1,20 +1,13 @@
 package net.sf.l2j.gameserver.model.actor;
 
-import java.util.List;
-
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.xml.ItemData;
 import net.sf.l2j.gameserver.enums.TeamType;
-import net.sf.l2j.gameserver.enums.actors.NpcSkillType;
 import net.sf.l2j.gameserver.enums.items.ActionType;
 import net.sf.l2j.gameserver.enums.items.ShotType;
 import net.sf.l2j.gameserver.handler.IItemHandler;
 import net.sf.l2j.gameserver.handler.ItemHandler;
-import net.sf.l2j.gameserver.model.actor.ai.type.CreatureAI;
 import net.sf.l2j.gameserver.model.actor.ai.type.SummonAI;
-import net.sf.l2j.gameserver.model.actor.container.npc.AggroInfo;
-import net.sf.l2j.gameserver.model.actor.instance.FriendlyMonster;
-import net.sf.l2j.gameserver.model.actor.instance.Guard;
 import net.sf.l2j.gameserver.model.actor.instance.Pet;
 import net.sf.l2j.gameserver.model.actor.move.SummonMove;
 import net.sf.l2j.gameserver.model.actor.status.SummonStatus;
@@ -24,6 +17,7 @@ import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.item.kind.Weapon;
 import net.sf.l2j.gameserver.model.itemcontainer.PetInventory;
 import net.sf.l2j.gameserver.model.olympiad.OlympiadGameManager;
+import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.AbstractNpcInfo.SummonInfo;
 import net.sf.l2j.gameserver.network.serverpackets.L2GameServerPacket;
@@ -44,12 +38,12 @@ public abstract class Summon extends Playable
 	
 	public static final int CONTRACT_PAYMENT = 4140;
 	
-	public Summon(int objectId, NpcTemplate template, Player owner)
+	protected Summon(int objectId, NpcTemplate template, Player owner)
 	{
 		super(objectId, template);
 		
 		// Calculate passive skills stats.
-		for (L2Skill skill : template.getSkills(NpcSkillType.PASSIVE))
+		for (L2Skill skill : template.getPassives())
 			addStatFuncs(skill.getStatFuncs(this));
 		
 		// Set the magical circle animation.
@@ -60,6 +54,18 @@ public abstract class Summon extends Playable
 	}
 	
 	public abstract int getSummonType();
+	
+	@Override
+	public SummonAI getAI()
+	{
+		return (SummonAI) _ai;
+	}
+	
+	@Override
+	public void setAI()
+	{
+		_ai = new SummonAI(this);
+	}
 	
 	@Override
 	public SummonStatus<? extends Summon> getStatus()
@@ -86,22 +92,6 @@ public abstract class Summon extends Playable
 	}
 	
 	@Override
-	public CreatureAI getAI()
-	{
-		CreatureAI ai = _ai;
-		if (ai == null)
-		{
-			synchronized (this)
-			{
-				ai = _ai;
-				if (ai == null)
-					_ai = ai = new SummonAI(this);
-			}
-		}
-		return ai;
-	}
-	
-	@Override
 	public NpcTemplate getTemplate()
 	{
 		return (NpcTemplate) super.getTemplate();
@@ -118,16 +108,13 @@ public abstract class Summon extends Playable
 	@Override
 	public void updateAbnormalEffect()
 	{
-		for (Player player : getKnownType(Player.class))
-			player.sendPacket(new SummonInfo(this, player, 1));
+		forEachKnownType(Player.class, player -> player.sendPacket(new SummonInfo(this, player, 1)));
 	}
 	
-	/**
-	 * @return Returns the mountable.
-	 */
-	public boolean isMountable()
+	@Override
+	public boolean isGM()
 	{
-		return false;
+		return _owner.isGM();
 	}
 	
 	@Override
@@ -164,28 +151,13 @@ public abstract class Summon extends Playable
 	@Override
 	public final int getKarma()
 	{
-		return (getOwner() != null) ? getOwner().getKarma() : 0;
+		return (_owner != null) ? _owner.getKarma() : 0;
 	}
 	
 	@Override
 	public final byte getPvpFlag()
 	{
-		return (getOwner() != null) ? getOwner().getPvpFlag() : 0;
-	}
-	
-	public final TeamType getTeam()
-	{
-		return (getOwner() != null) ? getOwner().getTeam() : TeamType.NONE;
-	}
-	
-	public final Player getOwner()
-	{
-		return _owner;
-	}
-	
-	public final int getNpcId()
-	{
-		return getTemplate().getNpcId();
+		return (_owner != null) ? _owner.getPvpFlag() : 0;
 	}
 	
 	@Override
@@ -194,45 +166,23 @@ public abstract class Summon extends Playable
 		return 0;
 	}
 	
-	public int getSoulShotsPerHit()
-	{
-		return getTemplate().getSsCount();
-	}
-	
-	public int getSpiritShotsPerHit()
-	{
-		return getTemplate().getSpsCount();
-	}
-	
 	@Override
 	public boolean doDie(Creature killer)
 	{
 		if (!super.doDie(killer))
 			return false;
 		
-		// Refresh aggro list of all Attackables which were hit by that Summon.
-		for (Attackable attackable : getKnownType(Attackable.class))
-		{
-			if (attackable.isDead())
-				continue;
-			
-			final boolean isGuard = attackable instanceof Guard || attackable instanceof FriendlyMonster;
-			if (this instanceof Pet && isGuard)
-				continue;
-			
-			final AggroInfo info = attackable.getAggroList().get(this);
-			if (info != null && (!isGuard || info.getDamage() > 0))
-				attackable.getAggroList().addDamageHate(getOwner(), 0, 1);
-		}
+		// Revive popup request if phoenix blessing buff was on.
+		if (isPhoenixBlessed())
+			_owner.reviveRequest(_owner, null, true);
 		
 		// Disable beastshots
-		for (int itemId : getOwner().getAutoSoulShot())
+		for (int itemId : _owner.getAutoSoulShot())
 		{
 			switch (ItemData.getInstance().getTemplate(itemId).getDefaultAction())
 			{
-				case summon_soulshot:
-				case summon_spiritshot:
-					getOwner().disableAutoShot(itemId);
+				case summon_soulshot, summon_spiritshot:
+					_owner.disableAutoShot(itemId);
 					break;
 			}
 		}
@@ -245,88 +195,13 @@ public abstract class Summon extends Playable
 		if (_owner.getSummon() != this)
 			return;
 		
-		// Remove Contract Payment effect from owner.
-		_owner.stopSkillEffects(CONTRACT_PAYMENT);
-		
 		deleteMe(_owner);
-	}
-	
-	public void deleteMe(Player owner)
-	{
-		owner.setSummon(null);
-		owner.sendPacket(new PetDelete(getSummonType(), getObjectId()));
-		
-		decayMe();
-		deleteMe();
-	}
-	
-	@Override
-	public void deleteMe()
-	{
-		super.deleteMe();
-		
-		// We stop effects here and not higher in hierarchy, because Players need to keep their effects.
-		stopAllEffects();
-	}
-	
-	public void unSummon(Player owner)
-	{
-		if (isVisible() && !isDead())
-		{
-			// Abort attack, cast and move.
-			abortAll(true);
-			
-			getStatus().stopHpMpRegeneration();
-			stopAllEffects();
-			store();
-			
-			owner.setSummon(null);
-			owner.sendPacket(new PetDelete(getSummonType(), getObjectId()));
-			
-			decayMe();
-			
-			// Remove Contract Payment effect from owner.
-			_owner.stopSkillEffects(CONTRACT_PAYMENT);
-			
-			// Disable beastshots
-			for (int itemId : owner.getAutoSoulShot())
-			{
-				switch (ItemData.getInstance().getTemplate(itemId).getDefaultAction())
-				{
-					case summon_soulshot:
-					case summon_spiritshot:
-						owner.disableAutoShot(itemId);
-						break;
-				}
-			}
-			
-			super.deleteMe();
-		}
-	}
-	
-	public int getAttackRange()
-	{
-		return 36;
-	}
-	
-	public int getControlItemId()
-	{
-		return 0;
-	}
-	
-	public Weapon getActiveWeapon()
-	{
-		return null;
 	}
 	
 	@Override
 	public PetInventory getInventory()
 	{
 		return null;
-	}
-	
-	public void store()
-	{
 	}
 	
 	@Override
@@ -353,28 +228,18 @@ public abstract class Summon extends Playable
 		return null;
 	}
 	
-	/**
-	 * Return True if the L2Summon is invulnerable or if the summoner is in spawn protection.<BR>
-	 * <BR>
-	 */
 	@Override
 	public boolean isInvul()
 	{
-		return super.isInvul() || getOwner().isSpawnProtected();
+		return super.isInvul() || _owner.isSpawnProtected();
 	}
 	
-	/**
-	 * Return the Party of its owner, or null.
-	 */
 	@Override
 	public Party getParty()
 	{
 		return (_owner == null) ? null : _owner.getParty();
 	}
 	
-	/**
-	 * Return True if the Summon owner has a Party in progress.
-	 */
 	@Override
 	public boolean isInParty()
 	{
@@ -400,19 +265,14 @@ public abstract class Summon extends Playable
 		}
 	}
 	
-	public void setOwner(Player newOwner)
-	{
-		_owner = newOwner;
-	}
-	
 	@Override
 	public void sendDamageMessage(Creature target, int damage, boolean mcrit, boolean pcrit, boolean miss)
 	{
-		if (miss || getOwner() == null)
+		if (miss || _owner == null)
 			return;
 		
 		// Prevents the double spam of system messages, if the target is the owning player.
-		if (target.getObjectId() != getOwner().getObjectId())
+		if (target.getObjectId() != _owner.getObjectId())
 		{
 			if (pcrit || mcrit)
 				sendPacket(SystemMessageId.CRITICAL_HIT_BY_PET);
@@ -427,8 +287,8 @@ public abstract class Summon extends Playable
 			else
 				sendPacket(SystemMessage.getSystemMessage(SystemMessageId.PET_HIT_FOR_S1_DAMAGE).addNumber(damage));
 			
-			if (getOwner().isInOlympiadMode() && target instanceof Player && ((Player) target).isInOlympiadMode() && ((Player) target).getOlympiadGameId() == getOwner().getOlympiadGameId())
-				OlympiadGameManager.getInstance().notifyCompetitorDamage(getOwner(), damage);
+			if (_owner.isInOlympiadMode() && target instanceof Player targetPlayer && targetPlayer.isInOlympiadMode() && targetPlayer.getOlympiadGameId() == _owner.getOlympiadGameId())
+				OlympiadGameManager.getInstance().notifyCompetitorDamage(_owner, damage);
 		}
 	}
 	
@@ -441,33 +301,235 @@ public abstract class Summon extends Playable
 	@Override
 	public boolean isInCombat()
 	{
-		return getOwner() != null && getOwner().isInCombat();
+		return _owner != null && _owner.isInCombat();
 	}
 	
 	@Override
 	public Player getActingPlayer()
 	{
-		return getOwner();
+		return _owner;
 	}
 	
 	@Override
-	public String toString()
+	public void sendPacket(L2GameServerPacket packet)
 	{
-		return super.toString() + "(" + getNpcId() + ") Owner: " + getOwner();
-	}
-	
-	@Override
-	public void sendPacket(L2GameServerPacket mov)
-	{
-		if (getOwner() != null)
-			getOwner().sendPacket(mov);
+		if (_owner != null)
+			_owner.sendPacket(packet);
 	}
 	
 	@Override
 	public void sendPacket(SystemMessageId id)
 	{
-		if (getOwner() != null)
-			getOwner().sendPacket(id);
+		if (_owner != null)
+			_owner.sendPacket(id);
+	}
+	
+	@Override
+	public void deleteMe()
+	{
+		super.deleteMe();
+		
+		// We stop effects here and not higher in hierarchy, because Players need to keep their effects.
+		stopAllEffects();
+	}
+	
+	@Override
+	public void onSpawn()
+	{
+		super.onSpawn();
+		
+		// Need it only for "crests on summons" custom.
+		if (Config.SHOW_SUMMON_CREST)
+			sendPacket(new SummonInfo(this, _owner, 0));
+		
+		sendPacket(new RelationChanged(this, _owner.getRelation(_owner), false));
+		broadcastRelationsChanges();
+		
+		forceSeeCreature();
+	}
+	
+	@Override
+	public void broadcastRelationsChanges()
+	{
+		_owner.forEachKnownType(Player.class, player -> player.sendPacket(new RelationChanged(this, _owner.getRelation(player), isAttackableWithoutForceBy(player))));
+	}
+	
+	@Override
+	public void sendInfo(Player player)
+	{
+		// Check if the Player is the owner of the Pet
+		if (player == _owner)
+		{
+			player.sendPacket(new PetInfo(this, 0));
+			
+			// The PetInfo packet wipes the PartySpelled (list of active spells' icons). Re-add them
+			updateEffectIcons(true);
+			
+			// Reset Pet inventory.
+			if (this instanceof Pet)
+				player.sendPacket(new PetItemList(this));
+		}
+		else
+			player.sendPacket(new SummonInfo(this, player, 0));
+	}
+	
+	@Override
+	public void stopAllEffects()
+	{
+		super.stopAllEffects();
+		
+		sendPetInfosToOwner();
+	}
+	
+	@Override
+	public void stopAllEffectsExceptThoseThatLastThroughDeath()
+	{
+		super.stopAllEffectsExceptThoseThatLastThroughDeath();
+		
+		sendPetInfosToOwner();
+	}
+	
+	@Override
+	public boolean isChargedShot(ShotType type)
+	{
+		return (_shotsMask & type.getMask()) == type.getMask();
+	}
+	
+	@Override
+	public void setChargedShot(ShotType type, boolean charged)
+	{
+		if (charged)
+			_shotsMask |= type.getMask();
+		else
+			_shotsMask &= ~type.getMask();
+	}
+	
+	@Override
+	public void rechargeShots(boolean physical, boolean magic)
+	{
+		if (_owner.getAutoSoulShot() == null || _owner.getAutoSoulShot().isEmpty())
+			return;
+		
+		for (int itemId : _owner.getAutoSoulShot())
+		{
+			ItemInstance item = _owner.getInventory().getItemByItemId(itemId);
+			if (item != null)
+			{
+				if (magic && item.getItem().getDefaultAction() == ActionType.summon_spiritshot)
+				{
+					final IItemHandler handler = ItemHandler.getInstance().getHandler(item.getEtcItem());
+					if (handler != null)
+						handler.useItem(_owner, item, false);
+				}
+				
+				if (physical && item.getItem().getDefaultAction() == ActionType.summon_soulshot)
+				{
+					final IItemHandler handler = ItemHandler.getInstance().getHandler(item.getEtcItem());
+					if (handler != null)
+						handler.useItem(_owner, item, false);
+				}
+			}
+			else
+				_owner.removeAutoSoulShot(itemId);
+		}
+	}
+	
+	@Override
+	public int getSkillLevel(int skillId)
+	{
+		final L2Skill skill = getSkill(skillId);
+		return (skill == null) ? 0 : skill.getLevel();
+	}
+	
+	@Override
+	public L2Skill getSkill(int skillId)
+	{
+		return getTemplate().getSkills().values().stream().filter(s -> s.getId() == skillId).findFirst().orElse(null);
+	}
+	
+	@Override
+	public void onTeleported()
+	{
+		super.onTeleported();
+		
+		// Need it only for "crests on summons" custom.
+		if (Config.SHOW_SUMMON_CREST)
+			sendPacket(new SummonInfo(this, _owner, 0));
+	}
+	
+	@Override
+	public Clan getClan()
+	{
+		return (_owner != null) ? _owner.getClan() : null;
+	}
+	
+	@Override
+	public int getClanId()
+	{
+		return (_owner != null) ? _owner.getClanId() : 0;
+	}
+	
+	@Override
+	public boolean checkIfPvP(Playable target)
+	{
+		if (target == _owner)
+			return false;
+		
+		return super.checkIfPvP(target);
+	}
+	
+	public final TeamType getTeam()
+	{
+		return (_owner != null) ? _owner.getTeam() : TeamType.NONE;
+	}
+	
+	public final Player getOwner()
+	{
+		return _owner;
+	}
+	
+	public void setOwner(Player newOwner)
+	{
+		_owner = newOwner;
+	}
+	
+	public boolean isMountable()
+	{
+		return false;
+	}
+	
+	public final int getNpcId()
+	{
+		return getTemplate().getNpcId();
+	}
+	
+	public int getSoulShotsPerHit()
+	{
+		return getTemplate().getSsCount();
+	}
+	
+	public int getSpiritShotsPerHit()
+	{
+		return getTemplate().getSpsCount();
+	}
+	
+	public int getAttackRange()
+	{
+		return 36;
+	}
+	
+	public int getControlItemId()
+	{
+		return 0;
+	}
+	
+	public Weapon getActiveWeapon()
+	{
+		return null;
+	}
+	
+	public void store()
+	{
 	}
 	
 	public int getWeapon()
@@ -478,6 +540,49 @@ public abstract class Summon extends Playable
 	public int getArmor()
 	{
 		return 0;
+	}
+	
+	public void deleteMe(Player owner)
+	{
+		doUnsummon(owner);
+	}
+	
+	public void unSummon(Player owner)
+	{
+		if (!isVisible() || isDead())
+			return;
+		
+		doUnsummon(owner);
+	}
+	
+	private void doUnsummon(Player owner)
+	{
+		abortAll(true);
+		
+		getStatus().stopHpMpRegeneration();
+		stopAllEffects();
+		store();
+		
+		owner.setSummon(null);
+		owner.sendPacket(new PetDelete(getSummonType(), getObjectId()));
+		
+		decayMe();
+		
+		// Remove Contract Payment effect from owner.
+		_owner.stopSkillEffects(CONTRACT_PAYMENT);
+		
+		// Disable beastshots
+		for (int itemId : owner.getAutoSoulShot())
+		{
+			switch (ItemData.getInstance().getTemplate(itemId).getDefaultAction())
+			{
+				case summon_soulshot, summon_spiritshot:
+					owner.disableAutoShot(itemId);
+					break;
+			}
+		}
+		
+		super.deleteMe();
 	}
 	
 	public void updateAndBroadcastStatusAndInfos(int val)
@@ -503,131 +608,6 @@ public abstract class Summon extends Playable
 		sendPacket(new PetStatusUpdate(this));
 		
 		if (isVisible())
-		{
-			for (Player player : getKnownType(Player.class))
-			{
-				if (player == getOwner())
-					continue;
-				
-				player.sendPacket(new SummonInfo(this, player, val));
-			}
-		}
-	}
-	
-	@Override
-	public void onSpawn()
-	{
-		super.onSpawn();
-		
-		// Need it only for "crests on summons" custom.
-		if (Config.SHOW_SUMMON_CREST)
-			sendPacket(new SummonInfo(this, getOwner(), 0));
-		
-		sendPacket(new RelationChanged(this, getOwner().getRelation(getOwner()), false));
-		broadcastRelationsChanges();
-	}
-	
-	@Override
-	public void broadcastRelationsChanges()
-	{
-		for (Player player : getOwner().getKnownType(Player.class))
-			player.sendPacket(new RelationChanged(this, getOwner().getRelation(player), isAttackableWithoutForceBy(player)));
-	}
-	
-	@Override
-	public void sendInfo(Player player)
-	{
-		// Check if the Player is the owner of the Pet
-		if (player == getOwner())
-		{
-			player.sendPacket(new PetInfo(this, 0));
-			
-			// The PetInfo packet wipes the PartySpelled (list of active spells' icons). Re-add them
-			updateEffectIcons(true);
-			
-			if (this instanceof Pet)
-				player.sendPacket(new PetItemList(this));
-		}
-		else
-			player.sendPacket(new SummonInfo(this, player, 0));
-	}
-	
-	@Override
-	public boolean isChargedShot(ShotType type)
-	{
-		return (_shotsMask & type.getMask()) == type.getMask();
-	}
-	
-	@Override
-	public void setChargedShot(ShotType type, boolean charged)
-	{
-		if (charged)
-			_shotsMask |= type.getMask();
-		else
-			_shotsMask &= ~type.getMask();
-	}
-	
-	@Override
-	public void rechargeShots(boolean physical, boolean magic)
-	{
-		if (getOwner().getAutoSoulShot() == null || getOwner().getAutoSoulShot().isEmpty())
-			return;
-		
-		for (int itemId : getOwner().getAutoSoulShot())
-		{
-			ItemInstance item = getOwner().getInventory().getItemByItemId(itemId);
-			if (item != null)
-			{
-				if (magic && item.getItem().getDefaultAction() == ActionType.summon_spiritshot)
-				{
-					final IItemHandler handler = ItemHandler.getInstance().getHandler(item.getEtcItem());
-					if (handler != null)
-						handler.useItem(getOwner(), item, false);
-				}
-				
-				if (physical && item.getItem().getDefaultAction() == ActionType.summon_soulshot)
-				{
-					final IItemHandler handler = ItemHandler.getInstance().getHandler(item.getEtcItem());
-					if (handler != null)
-						handler.useItem(getOwner(), item, false);
-				}
-			}
-			else
-				getOwner().removeAutoSoulShot(itemId);
-		}
-	}
-	
-	@Override
-	public int getSkillLevel(int skillId)
-	{
-		for (List<L2Skill> list : getTemplate().getSkills().values())
-		{
-			for (L2Skill skill : list)
-				if (skill.getId() == skillId)
-					return skill.getLevel();
-		}
-		return 0;
-	}
-	
-	@Override
-	public L2Skill getSkill(int skillId)
-	{
-		for (List<L2Skill> list : getTemplate().getSkills().values())
-		{
-			for (L2Skill skill : list)
-				if (skill.getId() == skillId)
-					return skill;
-		}
-		return null;
-	}
-	
-	@Override
-	public void onTeleported()
-	{
-		super.onTeleported();
-		
-		// Need it only for "crests on summons" custom.
-		if (Config.SHOW_SUMMON_CREST)
-			sendPacket(new SummonInfo(this, getOwner(), 0));
+			forEachKnownType(Player.class, player -> player != _owner, player -> player.sendPacket(new SummonInfo(this, player, val)));
 	}
 }

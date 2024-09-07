@@ -5,24 +5,24 @@ import java.util.Map;
 
 import net.sf.l2j.gameserver.data.manager.CastleManager;
 import net.sf.l2j.gameserver.data.manager.CastleManorManager;
-import net.sf.l2j.gameserver.model.entity.Castle;
 import net.sf.l2j.gameserver.model.manor.CropProcure;
+import net.sf.l2j.gameserver.model.residence.castle.Castle;
 
 public class ExShowProcureCropDetail extends L2GameServerPacket
 {
+	private final Map<Integer, CropProcure> _castleCrops = new HashMap<>();
+	
 	private final int _cropId;
-	private final Map<Integer, CropProcure> _castleCrops;
 	
 	public ExShowProcureCropDetail(int cropId)
 	{
 		_cropId = cropId;
-		_castleCrops = new HashMap<>();
 		
-		for (Castle c : CastleManager.getInstance().getCastles())
+		for (Castle castle : CastleManager.getInstance().getCastles())
 		{
-			final CropProcure cropItem = CastleManorManager.getInstance().getCropProcure(c.getCastleId(), cropId, false);
+			final CropProcure cropItem = CastleManorManager.getInstance().getCropProcure(castle.getId(), cropId, false);
 			if (cropItem != null && cropItem.getAmount() > 0)
-				_castleCrops.put(c.getCastleId(), cropItem);
+				_castleCrops.put(castle.getId(), cropItem);
 		}
 	}
 	

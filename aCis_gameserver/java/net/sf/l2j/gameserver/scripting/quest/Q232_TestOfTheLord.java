@@ -67,10 +67,10 @@ public class Q232_TestOfTheLord extends SecondClassQuest
 		
 		setItemsIds(VARKEES_CHARM, TANTUS_CHARM, HATOS_CHARM, TAKUNA_CHARM, CHIANTA_CHARM, MANAKIAS_ORDERS, BREKA_ORC_FANG, MANAKIAS_AMULET, HUGE_ORC_FANG, SUMARIS_LETTER, URUTU_BLADE, TIMAK_ORC_SKULL, SWORD_INTO_SKULL, NERUGA_AXE_BLADE, AXE_OF_CEREMONY, MARSH_SPIDER_FEELER, MARSH_SPIDER_FEET, HANDIWORK_SPIDER_BROOCH, MONSTEREYE_CORNEA, MONSTEREYE_WOODCARVING, BEAR_FANG_NECKLACE, MARTANKUS_CHARM, RAGNA_ORC_HEAD, RAGNA_CHIEF_NOTICE, IMMORTAL_FLAME);
 		
-		addStartNpc(KAKAI);
+		addQuestStart(KAKAI);
 		addTalkId(KAKAI, CHIANTA, HATOS, SOMAK, SUMARI, TAKUNA, TANTUS, JAKAL, VARKEES, MANAKIA, ANCESTOR_MARTANKUS, FIRST_ORC);
 		
-		addKillId(20233, 20269, 20270, 20564, 20583, 20584, 20585, 20586, 20587, 20588, 20778, 20779);
+		addMyDying(20233, 20269, 20270, 20564, 20583, 20584, 20585, 20586, 20587, 20588, 20778, 20779);
 	}
 	
 	@Override
@@ -197,11 +197,11 @@ public class Q232_TestOfTheLord extends SecondClassQuest
 				switch (npc.getNpcId())
 				{
 					case VARKEES:
-						if (player.getInventory().hasItems(HUGE_ORC_FANG))
+						if (player.getInventory().hasItem(HUGE_ORC_FANG))
 							htmltext = "30566-05.htm";
-						else if (player.getInventory().hasItems(VARKEES_CHARM))
+						else if (player.getInventory().hasItem(VARKEES_CHARM))
 						{
-							if (player.getInventory().hasItems(MANAKIAS_AMULET))
+							if (player.getInventory().hasItem(MANAKIAS_AMULET))
 							{
 								htmltext = "30566-04.htm";
 								takeItems(player, VARKEES_CHARM, -1);
@@ -224,11 +224,11 @@ public class Q232_TestOfTheLord extends SecondClassQuest
 						break;
 					
 					case MANAKIA:
-						if (player.getInventory().hasItems(HUGE_ORC_FANG))
+						if (player.getInventory().hasItem(HUGE_ORC_FANG))
 							htmltext = "30515-05.htm";
-						else if (player.getInventory().hasItems(MANAKIAS_AMULET))
+						else if (player.getInventory().hasItem(MANAKIAS_AMULET))
 							htmltext = "30515-04.htm";
-						else if (player.getInventory().hasItems(MANAKIAS_ORDERS))
+						else if (player.getInventory().hasItem(MANAKIAS_ORDERS))
 						{
 							if (player.getInventory().getItemCount(BREKA_ORC_FANG) >= 20)
 							{
@@ -250,9 +250,9 @@ public class Q232_TestOfTheLord extends SecondClassQuest
 						break;
 					
 					case TANTUS:
-						if (player.getInventory().hasItems(AXE_OF_CEREMONY))
+						if (player.getInventory().hasItem(AXE_OF_CEREMONY))
 							htmltext = "30567-05.htm";
-						else if (player.getInventory().hasItems(TANTUS_CHARM))
+						else if (player.getInventory().hasItem(TANTUS_CHARM))
 						{
 							if (player.getInventory().getItemCount(BONE_ARROW) >= 1000)
 							{
@@ -278,13 +278,13 @@ public class Q232_TestOfTheLord extends SecondClassQuest
 						break;
 					
 					case JAKAL:
-						if (player.getInventory().hasItems(AXE_OF_CEREMONY))
+						if (player.getInventory().hasItem(AXE_OF_CEREMONY))
 							htmltext = "30558-05.htm";
-						else if (player.getInventory().hasItems(NERUGA_AXE_BLADE))
+						else if (player.getInventory().hasItem(NERUGA_AXE_BLADE))
 							htmltext = "30558-04.htm";
-						else if (player.getInventory().hasItems(TANTUS_CHARM))
+						else if (player.getInventory().hasItem(TANTUS_CHARM))
 						{
-							if (player.getInventory().getItemCount(57) >= 1000)
+							if (player.getAdena() >= 1000)
 								htmltext = "30558-01.htm";
 							else
 								htmltext = "30558-03.htm";
@@ -292,11 +292,11 @@ public class Q232_TestOfTheLord extends SecondClassQuest
 						break;
 					
 					case HATOS:
-						if (player.getInventory().hasItems(SWORD_INTO_SKULL))
+						if (player.getInventory().hasItem(SWORD_INTO_SKULL))
 							htmltext = "30568-05.htm";
-						else if (player.getInventory().hasItems(HATOS_CHARM))
+						else if (player.getInventory().hasItem(HATOS_CHARM))
 						{
-							if (player.getInventory().hasItems(URUTU_BLADE) && player.getInventory().getItemCount(TIMAK_ORC_SKULL) >= 10)
+							if (player.getInventory().hasItem(URUTU_BLADE) && player.getInventory().getItemCount(TIMAK_ORC_SKULL) >= 10)
 							{
 								htmltext = "30568-04.htm";
 								takeItems(player, HATOS_CHARM, 1);
@@ -320,11 +320,11 @@ public class Q232_TestOfTheLord extends SecondClassQuest
 						break;
 					
 					case SUMARI:
-						if (player.getInventory().hasItems(URUTU_BLADE))
+						if (player.getInventory().hasItem(URUTU_BLADE))
 							htmltext = "30564-03.htm";
-						else if (player.getInventory().hasItems(SUMARIS_LETTER))
+						else if (player.getInventory().hasItem(SUMARIS_LETTER))
 							htmltext = "30564-02.htm";
-						else if (player.getInventory().hasItems(HATOS_CHARM))
+						else if (player.getInventory().hasItem(HATOS_CHARM))
 						{
 							htmltext = "30564-01.htm";
 							giveItems(player, SUMARIS_LETTER, 1);
@@ -333,11 +333,11 @@ public class Q232_TestOfTheLord extends SecondClassQuest
 						break;
 					
 					case SOMAK:
-						if (player.getInventory().hasItems(SWORD_INTO_SKULL))
+						if (player.getInventory().hasItem(SWORD_INTO_SKULL))
 							htmltext = "30510-03.htm";
-						else if (player.getInventory().hasItems(URUTU_BLADE))
+						else if (player.getInventory().hasItem(URUTU_BLADE))
 							htmltext = "30510-02.htm";
-						else if (player.getInventory().hasItems(SUMARIS_LETTER))
+						else if (player.getInventory().hasItem(SUMARIS_LETTER))
 						{
 							htmltext = "30510-01.htm";
 							takeItems(player, SUMARIS_LETTER, 1);
@@ -347,9 +347,9 @@ public class Q232_TestOfTheLord extends SecondClassQuest
 						break;
 					
 					case TAKUNA:
-						if (player.getInventory().hasItems(HANDIWORK_SPIDER_BROOCH))
+						if (player.getInventory().hasItem(HANDIWORK_SPIDER_BROOCH))
 							htmltext = "30641-05.htm";
-						else if (player.getInventory().hasItems(TAKUNA_CHARM))
+						else if (player.getInventory().hasItem(TAKUNA_CHARM))
 						{
 							if (player.getInventory().getItemCount(MARSH_SPIDER_FEELER) >= 10 && player.getInventory().getItemCount(MARSH_SPIDER_FEET) >= 10)
 							{
@@ -375,9 +375,9 @@ public class Q232_TestOfTheLord extends SecondClassQuest
 						break;
 					
 					case CHIANTA:
-						if (player.getInventory().hasItems(MONSTEREYE_WOODCARVING))
+						if (player.getInventory().hasItem(MONSTEREYE_WOODCARVING))
 							htmltext = "30642-05.htm";
-						else if (player.getInventory().hasItems(CHIANTA_CHARM))
+						else if (player.getInventory().hasItem(CHIANTA_CHARM))
 						{
 							if (player.getInventory().getItemCount(MONSTEREYE_CORNEA) >= 20)
 							{
@@ -463,64 +463,60 @@ public class Q232_TestOfTheLord extends SecondClassQuest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
 			case 20564:
-				if (player.getInventory().hasItems(CHIANTA_CHARM))
+				if (player.getInventory().hasItem(CHIANTA_CHARM))
 					dropItemsAlways(player, MONSTEREYE_CORNEA, 1, 20);
 				break;
 			
-			case 20583:
-			case 20584:
-			case 20585:
-				if (player.getInventory().hasItems(HATOS_CHARM))
+			case 20583, 20584, 20585:
+				if (player.getInventory().hasItem(HATOS_CHARM))
 					dropItems(player, TIMAK_ORC_SKULL, 1, 10, 710000);
 				break;
 			
 			case 20586:
-				if (player.getInventory().hasItems(HATOS_CHARM))
+				if (player.getInventory().hasItem(HATOS_CHARM))
 					dropItems(player, TIMAK_ORC_SKULL, 1, 10, 810000);
 				break;
 			
-			case 20587:
-			case 20588:
-				if (player.getInventory().hasItems(HATOS_CHARM))
+			case 20587, 20588:
+				if (player.getInventory().hasItem(HATOS_CHARM))
 					dropItemsAlways(player, TIMAK_ORC_SKULL, 1, 10);
 				break;
 			
 			case 20233:
-				if (player.getInventory().hasItems(TAKUNA_CHARM))
+				if (player.getInventory().hasItem(TAKUNA_CHARM))
 					dropItemsAlways(player, (player.getInventory().getItemCount(MARSH_SPIDER_FEELER) >= 10) ? MARSH_SPIDER_FEET : MARSH_SPIDER_FEELER, 1, 10);
 				break;
 			
 			case 20269:
-				if (player.getInventory().hasItems(MANAKIAS_ORDERS))
+				if (player.getInventory().hasItem(MANAKIAS_ORDERS))
 					dropItems(player, BREKA_ORC_FANG, 1, 20, 410000);
 				break;
 			
 			case 20270:
-				if (player.getInventory().hasItems(MANAKIAS_ORDERS))
+				if (player.getInventory().hasItem(MANAKIAS_ORDERS))
 					dropItems(player, BREKA_ORC_FANG, 1, 20, 510000);
 				break;
 			
-			case 20778:
-			case 20779:
-				if (player.getInventory().hasItems(MARTANKUS_CHARM))
+			case 20778, 20779:
+				if (player.getInventory().hasItem(MARTANKUS_CHARM))
 				{
-					if (!player.getInventory().hasItems(RAGNA_CHIEF_NOTICE))
+					if (!player.getInventory().hasItem(RAGNA_CHIEF_NOTICE))
 					{
 						playSound(player, SOUND_MIDDLE);
 						giveItems(player, RAGNA_CHIEF_NOTICE, 1);
 					}
-					else if (!player.getInventory().hasItems(RAGNA_ORC_HEAD))
+					else if (!player.getInventory().hasItem(RAGNA_ORC_HEAD))
 					{
 						st.setCond(5);
 						playSound(player, SOUND_MIDDLE);
@@ -529,7 +525,5 @@ public class Q232_TestOfTheLord extends SecondClassQuest
 				}
 				break;
 		}
-		
-		return null;
 	}
 }

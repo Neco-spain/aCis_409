@@ -18,12 +18,12 @@ public class PlayableAttack<T extends Playable> extends CreatureAttack<T>
 	}
 	
 	@Override
-	public boolean canDoAttack(Creature target)
+	public boolean canAttack(Creature target)
 	{
-		if (!super.canDoAttack(target))
+		if (!super.canAttack(target))
 			return false;
 		
-		if (target instanceof Playable)
+		if (target instanceof Playable targetPlayable)
 		{
 			if (_actor.isInsideZone(ZoneId.PEACE))
 			{
@@ -31,7 +31,7 @@ public class PlayableAttack<T extends Playable> extends CreatureAttack<T>
 				return false;
 			}
 			
-			if (target.isInsideZone(ZoneId.PEACE))
+			if (targetPlayable.isInsideZone(ZoneId.PEACE))
 			{
 				_actor.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.TARGET_IN_PEACEZONE));
 				return false;
@@ -39,5 +39,13 @@ public class PlayableAttack<T extends Playable> extends CreatureAttack<T>
 		}
 		
 		return true;
+	}
+	
+	@Override
+	public void stop()
+	{
+		super.stop();
+		
+		_actor.getAI().tryToIdle();
 	}
 }

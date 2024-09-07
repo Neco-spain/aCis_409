@@ -4,7 +4,6 @@ import java.util.concurrent.Future;
 
 import net.sf.l2j.commons.pool.ThreadPool;
 
-import net.sf.l2j.gameserver.data.xml.MapRegionData;
 import net.sf.l2j.gameserver.enums.SayType;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
@@ -50,7 +49,7 @@ public class CastleGatekeeper extends Folk
 		
 		if (_teleportTask == null)
 		{
-			if (getCastle().getSiege().isInProgress() && getCastle().getSiege().getControlTowerCount() == 0)
+			if (getCastle().getSiege().isInProgress() && getCastle().getAliveLifeTowerCount() == 0)
 				html.setFile("data/html/castleteleporter/MassGK-2.htm");
 			else
 				html.setFile("data/html/castleteleporter/MassGK.htm");
@@ -71,16 +70,7 @@ public class CastleGatekeeper extends Folk
 	{
 		// Region talk is only done during an active siege.
 		if (getCastle().getSiege().isInProgress())
-		{
-			final NpcSay cs = new NpcSay(this, SayType.SHOUT, "The defenders of " + getCastle().getName() + " castle have been teleported to the inner castle.");
-			final int region = MapRegionData.getInstance().getMapRegion(getX(), getY());
-			
-			for (Player player : World.getInstance().getPlayers())
-			{
-				if (region == MapRegionData.getInstance().getMapRegion(player.getX(), player.getY()))
-					player.sendPacket(cs);
-			}
-		}
+			World.broadcastToSameRegion(this, new NpcSay(this, SayType.SHOUT, "The defenders of " + getCastle().getName() + " castle have been teleported to the inner castle."));
 		
 		// Oust all related players.
 		getCastle().oustAllPlayers();
@@ -94,6 +84,6 @@ public class CastleGatekeeper extends Folk
 	 */
 	private final int getTeleportDelay()
 	{
-		return (getCastle().getSiege().isInProgress() && getCastle().getSiege().getControlTowerCount() == 0) ? 480 : 30;
+		return (getCastle().getSiege().isInProgress() && getCastle().getAliveLifeTowerCount() == 0) ? 480 : 30;
 	}
 }

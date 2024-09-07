@@ -7,6 +7,7 @@ import net.sf.l2j.commons.lang.StringUtil;
 
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.records.ScoreData;
 import net.sf.l2j.gameserver.scripting.Quest;
 
 public class EchoCrystal extends Quest
@@ -44,15 +45,16 @@ public class EchoCrystal extends Quest
 			final ScoreData sd = SCORES.get(score);
 			if (sd != null)
 			{
-				if (player.getInventory().getItemCount(score) == 0)
-					htmltext = npc.getNpcId() + "-" + sd.getNoScoreMsg() + ".htm";
+				if (!player.getInventory().hasItem(score))
+					htmltext = npc.getNpcId() + "-" + sd.noScoreMsg() + ".htm";
 				else if (player.getInventory().getItemCount(ADENA) < COST)
-					htmltext = npc.getNpcId() + "-" + sd.getNoAdenaMsg() + ".htm";
+					htmltext = npc.getNpcId() + "-" + sd.noAdenaMsg() + ".htm";
 				else
 				{
+					htmltext = npc.getNpcId() + "-" + sd.okMsg() + ".htm";
+					
 					takeItems(player, ADENA, COST);
-					giveItems(player, sd.getCrystalId(), 1);
-					htmltext = npc.getNpcId() + "-" + sd.getOkMsg() + ".htm";
+					giveItems(player, sd.crystalId(), 1);
 				}
 			}
 		}
@@ -64,41 +66,5 @@ public class EchoCrystal extends Quest
 	public String onTalk(Npc npc, Player player)
 	{
 		return "1.htm";
-	}
-	
-	private class ScoreData
-	{
-		private final int _crystalId;
-		private final String _okMsg;
-		private final String _noAdenaMsg;
-		private final String _noScoreMsg;
-		
-		public ScoreData(int crystalId, String okMsg, String noAdenaMsg, String noScoreMsg)
-		{
-			_crystalId = crystalId;
-			_okMsg = okMsg;
-			_noAdenaMsg = noAdenaMsg;
-			_noScoreMsg = noScoreMsg;
-		}
-		
-		public int getCrystalId()
-		{
-			return _crystalId;
-		}
-		
-		public String getOkMsg()
-		{
-			return _okMsg;
-		}
-		
-		public String getNoAdenaMsg()
-		{
-			return _noAdenaMsg;
-		}
-		
-		public String getNoScoreMsg()
-		{
-			return _noScoreMsg;
-		}
 	}
 }

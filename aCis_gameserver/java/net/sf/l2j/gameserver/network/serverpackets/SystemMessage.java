@@ -2,6 +2,7 @@ package net.sf.l2j.gameserver.network.serverpackets;
 
 import java.util.Arrays;
 
+import net.sf.l2j.gameserver.data.sql.PlayerInfoTable;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
@@ -112,6 +113,11 @@ public final class SystemMessage extends L2GameServerPacket
 		return this;
 	}
 	
+	public final SystemMessage addCharName(final int objectId)
+	{
+		return addString(PlayerInfoTable.getInstance().getPlayerName(objectId));
+	}
+	
 	public final SystemMessage addCharName(final Creature cha)
 	{
 		return addString(cha.getName());
@@ -185,11 +191,7 @@ public final class SystemMessage extends L2GameServerPacket
 					writeS((String) param.getObject());
 					break;
 				
-				case TYPE_ITEM_NUMBER:
-				case TYPE_ITEM_NAME:
-				case TYPE_CASTLE_NAME:
-				case TYPE_NUMBER:
-				case TYPE_NPC_NAME:
+				case TYPE_ITEM_NUMBER, TYPE_ITEM_NAME, TYPE_CASTLE_NAME, TYPE_NUMBER, TYPE_NPC_NAME:
 					writeD((Integer) param.getObject());
 					break;
 				

@@ -6,6 +6,7 @@ import java.util.Map;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.location.Location;
+import net.sf.l2j.gameserver.model.records.TutorialEvent;
 import net.sf.l2j.gameserver.scripting.Quest;
 import net.sf.l2j.gameserver.scripting.QuestState;
 
@@ -21,22 +22,34 @@ public class Tutorial extends Quest
 	private static final String QUEST_NAME_107 = "Q107_MercilessPunishment";
 	private static final String QUEST_NAME_108 = "Q108_JumbleTumbleDiamondFuss";
 	
-	private static final Map<Integer, Event> EVENTS = new HashMap<>();
-	{
-		EVENTS.put(0, new Event("tutorial_voice_001a", "tutorial_human_fighter001.htm", "tutorial_human_fighter007.htm", new Location(-71424, 258336, -3109), "tutorial_fighter017.htm", new Location(-83020, 242553, -3718), "tutorial_newbie003a.htm", "tutorial_21.htm", Location.DUMMY_LOC));
-		EVENTS.put(10, new Event("tutorial_voice_001b", "tutorial_human_mage001.htm", "tutorial_human_mage007.htm", new Location(-91036, 248044, -3568), "tutorial_mage017.htm", Location.DUMMY_LOC, "tutorial_newbie003a.htm", "tutorial_21a.htm", new Location(-84981, 244764, -3726)));
-		EVENTS.put(18, new Event("tutorial_voice_001c", "tutorial_elven_fighter001.htm", "tutorial_elf007.htm", new Location(46112, 41200, -3504), "tutorial_fighter017.htm", new Location(45061, 52468, -2796), "tutorial_newbie003b.htm", "tutorial_21b.htm", Location.DUMMY_LOC));
-		EVENTS.put(25, new Event("tutorial_voice_001d", "tutorial_elven_mage001.htm", "tutorial_elf007.htm", new Location(46112, 41200, -3504), "tutorial_mage017.htm", Location.DUMMY_LOC, "tutorial_newbie003b.htm", "tutorial_21c.htm", new Location(45701, 52459, -2796)));
-		EVENTS.put(31, new Event("tutorial_voice_001e", "tutorial_delf_fighter001.htm", "tutorial_delf007.htm", new Location(28384, 11056, -4233), "tutorial_fighter017.htm", new Location(10447, 14620, -4242), "tutorial_newbie003c.htm", "tutorial_21g.htm", Location.DUMMY_LOC));
-		EVENTS.put(38, new Event("tutorial_voice_001f", "tutorial_delf_mage001.htm", "tutorial_delf007.htm", new Location(28384, 11056, -4233), "tutorial_mage017.htm", Location.DUMMY_LOC, "tutorial_newbie003c.htm", "tutorial_21h.htm", new Location(10344, 14445, -4242)));
-		EVENTS.put(44, new Event("tutorial_voice_001g", "tutorial_orc_fighter001.htm", "tutorial_orc007.htm", new Location(-56736, -113680, -672), "tutorial_orc_fighter017.htm", new Location(-46389, -113905, -21), "tutorial_newbie003d.htm", "tutorial_21d.htm", Location.DUMMY_LOC));
-		EVENTS.put(49, new Event("tutorial_voice_001h", "tutorial_orc_mage001.htm", "tutorial_orc007.htm", new Location(-56736, -113680, -672), "tutorial_mage017.htm", Location.DUMMY_LOC, "tutorial_newbie003d.htm", "tutorial_21e.htm", new Location(-46225, -113312, -21)));
-		EVENTS.put(53, new Event("tutorial_voice_001i", "tutorial_dwarven_fighter001.htm", "tutorial_dwarven_fighter007.htm", new Location(108567, -173994, -406), "tutorial_dwarven017.htm", new Location(115271, -182692, -1445), "tutorial_newbie003e.htm", "tutorial_21f.htm", Location.DUMMY_LOC));
-	}
+	private static final Map<Integer, TutorialEvent> EVENTS = HashMap.newHashMap(9);
 	
-	// table for Tutorial Close Link (26) 2nd class transfer [raceId, html]
-	private static final Map<Integer, String> TCLa = new HashMap<>();
+	// Table for Tutorial Close Link (26) 2nd class transfer [raceId, html]
+	private static final Map<Integer, String> TCLa = HashMap.newHashMap(18);
+	
+	// Table for Tutorial Close Link (23) 2nd class transfer [raceId, html]
+	private static final Map<Integer, String> TCLb = HashMap.newHashMap(11);
+	
+	// Table for Tutorial Close Link (24) 2nd class transfer [raceId, html]
+	private static final Map<Integer, String> TCLc = HashMap.newHashMap(11);
+	
+	private static final int TUTORIAL_GUIDE = 5588;
+	private static final int BLUE_GEMSTONE = 6353;
+	
+	public Tutorial()
 	{
+		super(-1, "feature");
+		
+		EVENTS.put(0, new TutorialEvent("tutorial_voice_001a", "tutorial_human_fighter001.htm", "tutorial_human_fighter007.htm", new Location(-71424, 258336, -3109), "tutorial_fighter017.htm", new Location(-83020, 242553, -3718), "tutorial_newbie003a.htm", "tutorial_21.htm", Location.DUMMY_LOC));
+		EVENTS.put(10, new TutorialEvent("tutorial_voice_001b", "tutorial_human_mage001.htm", "tutorial_human_mage007.htm", new Location(-91036, 248044, -3568), "tutorial_mage017.htm", Location.DUMMY_LOC, "tutorial_newbie003a.htm", "tutorial_21a.htm", new Location(-84981, 244764, -3726)));
+		EVENTS.put(18, new TutorialEvent("tutorial_voice_001c", "tutorial_elven_fighter001.htm", "tutorial_elf007.htm", new Location(46112, 41200, -3504), "tutorial_fighter017.htm", new Location(45061, 52468, -2796), "tutorial_newbie003b.htm", "tutorial_21b.htm", Location.DUMMY_LOC));
+		EVENTS.put(25, new TutorialEvent("tutorial_voice_001d", "tutorial_elven_mage001.htm", "tutorial_elf007.htm", new Location(46112, 41200, -3504), "tutorial_mage017.htm", Location.DUMMY_LOC, "tutorial_newbie003b.htm", "tutorial_21c.htm", new Location(45701, 52459, -2796)));
+		EVENTS.put(31, new TutorialEvent("tutorial_voice_001e", "tutorial_delf_fighter001.htm", "tutorial_delf007.htm", new Location(28384, 11056, -4233), "tutorial_fighter017.htm", new Location(10447, 14620, -4242), "tutorial_newbie003c.htm", "tutorial_21g.htm", Location.DUMMY_LOC));
+		EVENTS.put(38, new TutorialEvent("tutorial_voice_001f", "tutorial_delf_mage001.htm", "tutorial_delf007.htm", new Location(28384, 11056, -4233), "tutorial_mage017.htm", Location.DUMMY_LOC, "tutorial_newbie003c.htm", "tutorial_21h.htm", new Location(10344, 14445, -4242)));
+		EVENTS.put(44, new TutorialEvent("tutorial_voice_001g", "tutorial_orc_fighter001.htm", "tutorial_orc007.htm", new Location(-56736, -113680, -672), "tutorial_orc_fighter017.htm", new Location(-46389, -113905, -21), "tutorial_newbie003d.htm", "tutorial_21d.htm", Location.DUMMY_LOC));
+		EVENTS.put(49, new TutorialEvent("tutorial_voice_001h", "tutorial_orc_mage001.htm", "tutorial_orc007.htm", new Location(-56736, -113680, -672), "tutorial_mage017.htm", Location.DUMMY_LOC, "tutorial_newbie003d.htm", "tutorial_21e.htm", new Location(-46225, -113312, -21)));
+		EVENTS.put(53, new TutorialEvent("tutorial_voice_001i", "tutorial_dwarven_fighter001.htm", "tutorial_dwarven_fighter007.htm", new Location(108567, -173994, -406), "tutorial_dwarven017.htm", new Location(115271, -182692, -1445), "tutorial_newbie003e.htm", "tutorial_21f.htm", Location.DUMMY_LOC));
+		
 		TCLa.put(1, "tutorial_22w.htm");
 		TCLa.put(4, "tutorial_22.htm");
 		TCLa.put(7, "tutorial_22b.htm");
@@ -55,11 +68,7 @@ public class Tutorial extends Quest
 		TCLa.put(50, "tutorial_22k.htm");
 		TCLa.put(54, "tutorial_22l.htm");
 		TCLa.put(56, "tutorial_22m.htm");
-	}
-	
-	// table for Tutorial Close Link (23) 2nd class transfer [raceId, html]
-	private static final Map<Integer, String> TCLb = new HashMap<>();
-	{
+		
 		TCLb.put(4, "tutorial_22aa.htm");
 		TCLb.put(7, "tutorial_22ba.htm");
 		TCLb.put(11, "tutorial_22ca.htm");
@@ -71,11 +80,7 @@ public class Tutorial extends Quest
 		TCLb.put(35, "tutorial_22oa.htm");
 		TCLb.put(39, "tutorial_22pa.htm");
 		TCLb.put(50, "tutorial_22ka.htm");
-	}
-	
-	// table for Tutorial Close Link (24) 2nd class transfer [raceId, html]
-	private static final Map<Integer, String> TCLc = new HashMap<>();
-	{
+		
 		TCLc.put(4, "tutorial_22ab.htm");
 		TCLc.put(7, "tutorial_22bb.htm");
 		TCLc.put(11, "tutorial_22cb.htm");
@@ -87,14 +92,6 @@ public class Tutorial extends Quest
 		TCLc.put(35, "tutorial_22ob.htm");
 		TCLc.put(39, "tutorial_22pb.htm");
 		TCLc.put(50, "tutorial_22kb.htm");
-	}
-	
-	private static final int TUTORIAL_GUIDE = 5588;
-	private static final int BLUE_GEMSTONE = 6353;
-	
-	public Tutorial()
-	{
-		super(-1, "feature");
 	}
 	
 	@Override
@@ -109,20 +106,20 @@ public class Tutorial extends Quest
 			final int Ex = st.getInteger("Ex");
 			if (Ex == -2)
 			{
-				final Event evt = EVENTS.get(player.getClassId().getId());
+				final TutorialEvent evt = EVENTS.get(player.getClassId().getId());
 				if (evt == null)
 					return null;
 				
-				if (!player.getInventory().hasItems(TUTORIAL_GUIDE))
+				if (!player.getInventory().hasItem(TUTORIAL_GUIDE))
 					giveItems(player, TUTORIAL_GUIDE, 1);
 				
 				st.set("Ex", -3);
-				playTutorialVoice(player, evt._initialVoice);
+				playTutorialVoice(player, evt.initialVoice());
 				
 				cancelQuestTimers("QT");
 				startQuestTimer("QT", null, player, 30000);
 				
-				showTutorialHTML(player, evt._initialHtm);
+				showTutorialHTML(player, evt.initialHtm());
 			}
 			else if (Ex == -3)
 			{
@@ -157,7 +154,7 @@ public class Tutorial extends Quest
 				{
 					case 0:
 						st.set("Ex", -2);
-						st.set("ucMemo", 0);
+						st.set("ucMemo", 1);
 						
 						startQuestTimer("QT", null, player, 10000);
 						break;
@@ -192,7 +189,7 @@ public class Tutorial extends Quest
 					case 3:
 						if (st.getInteger("Ex") == 2)
 							showQuestionMark(player, 3);
-						else if (player.getInventory().hasItems(BLUE_GEMSTONE))
+						else if (player.getInventory().hasItem(BLUE_GEMSTONE))
 							showQuestionMark(player, 5);
 						
 						playSound(player, SOUND_TUTORIAL);
@@ -310,8 +307,7 @@ public class Tutorial extends Quest
 						html = "tutorial_28.htm";
 						break;
 					
-					case 29:
-					case 30:
+					case 29, 30:
 						html = "tutorial_07a.htm";
 						break;
 				}
@@ -347,14 +343,14 @@ public class Tutorial extends Quest
 				case 8:
 					if (level < 6)
 					{
-						final Event evt = EVENTS.get(classId);
+						final TutorialEvent evt = EVENTS.get(classId);
 						if (evt == null)
 							return null;
 						
-						html = evt._ce8Htm;
+						html = evt.ce8Htm();
 						st.set("Ex", -5);
 						st.set("ucMemo", 1);
-						player.getRadarList().addMarker(evt._ce8Loc);
+						player.getRadarList().addMarker(evt.ce8Loc());
 						playSound(player, SOUND_TUTORIAL);
 						playTutorialVoice(player, "tutorial_voice_007");
 					}
@@ -403,9 +399,9 @@ public class Tutorial extends Quest
 								playSound(player, SOUND_TUTORIAL);
 								playTutorialVoice(player, "tutorial_voice_019");
 								
-								final Event evt = EVENTS.get(classId);
+								final TutorialEvent evt = EVENTS.get(classId);
 								if (evt != null)
-									player.getRadarList().addMarker(evt._ce47Loc);
+									player.getRadarList().addMarker(evt.ce47Loc());
 							}
 							break;
 						
@@ -539,14 +535,14 @@ public class Tutorial extends Quest
 			switch (Integer.valueOf(event.substring(2)))
 			{
 				case 1:
-					Event evt = EVENTS.get(classId);
+					TutorialEvent evt = EVENTS.get(classId);
 					if (evt == null)
 						return null;
 					
-					html = evt._ce8Htm;
+					html = evt.ce8Htm();
 					st.set("Ex", -5);
 					st.set("ucMemo", 2);
-					player.getRadarList().addMarker(evt._ce8Loc);
+					player.getRadarList().addMarker(evt.ce8Loc());
 					playTutorialVoice(player, "tutorial_voice_007");
 					break;
 				
@@ -561,18 +557,15 @@ public class Tutorial extends Quest
 							html = "tutorial_human_mage008.htm";
 							break;
 						
-						case ELVEN_FIGHTER:
-						case ELVEN_MYSTIC:
+						case ELVEN_FIGHTER, ELVEN_MYSTIC:
 							html = "tutorial_elf008.htm";
 							break;
 						
-						case DARK_FIGHTER:
-						case DARK_MYSTIC:
+						case DARK_FIGHTER, DARK_MYSTIC:
 							html = "tutorial_delf008.htm";
 							break;
 						
-						case ORC_FIGHTER:
-						case ORC_MYSTIC:
+						case ORC_FIGHTER, ORC_MYSTIC:
 							html = "tutorial_orc008.htm";
 							break;
 						
@@ -597,7 +590,7 @@ public class Tutorial extends Quest
 						return null;
 					
 					html = "tutorial_11.htm";
-					player.getRadarList().addMarker(evt._ce8Loc);
+					player.getRadarList().addMarker(evt.ce8Loc());
 					break;
 				
 				case 7:
@@ -614,9 +607,9 @@ public class Tutorial extends Quest
 					if (evt == null)
 						return null;
 					
-					html = evt._qmc9Htm;
-					if (!evt._qmc9Loc.equals(Location.DUMMY_LOC))
-						player.getRadarList().addMarker(evt._qmc9Loc);
+					html = evt.qmc9Htm();
+					if (!evt.qmc9Loc().equals(Location.DUMMY_LOC))
+						player.getRadarList().addMarker(evt.qmc9Loc());
 					break;
 				
 				case 10:
@@ -630,8 +623,7 @@ public class Tutorial extends Quest
 							html = "tutorial_mage020.htm";
 							break;
 						
-						case ELF:
-						case DARK_ELF:
+						case ELF, DARK_ELF:
 							html = "tutorial_mage_elf020.htm";
 							break;
 						
@@ -651,7 +643,7 @@ public class Tutorial extends Quest
 					if (evt == null)
 						return null;
 					
-					html = evt._qmc35Htm;
+					html = evt.qmc35Htm();
 					break;
 				
 				case 15:
@@ -683,7 +675,7 @@ public class Tutorial extends Quest
 					if (evt == null)
 						return null;
 					
-					html = evt._qmc24Htm;
+					html = evt.qmc24Htm();
 					break;
 				
 				case 25:
@@ -697,8 +689,7 @@ public class Tutorial extends Quest
 							html = "tutorial_newbie002b.htm";
 							break;
 						
-						case ELVEN_FIGHTER:
-						case ELVEN_MYSTIC:
+						case ELVEN_FIGHTER, ELVEN_MYSTIC:
 							html = "tutorial_newbie002c.htm";
 							break;
 						
@@ -710,8 +701,7 @@ public class Tutorial extends Quest
 							html = "tutorial_newbie002d.htm";
 							break;
 						
-						case ORC_FIGHTER:
-						case ORC_MYSTIC:
+						case ORC_FIGHTER, ORC_MYSTIC:
 							html = "tutorial_newbie002f.htm";
 							break;
 						
@@ -734,44 +724,5 @@ public class Tutorial extends Quest
 			showTutorialHTML(player, html);
 		
 		return null;
-	}
-	
-	private class Event
-	{
-		public String _initialVoice;
-		public String _initialHtm;
-		
-		public String _ce8Htm;
-		public Location _ce8Loc;
-		
-		public String _qmc9Htm;
-		public Location _qmc9Loc;
-		
-		public String _qmc24Htm;
-		
-		public String _qmc35Htm;
-		
-		public Location _ce47Loc;
-		
-		public Event(String initialVoice, String initialHtm, String ce8Htm, Location ce8Loc, String qmc9Htm, Location qmc9Loc, String qmc24Htm, String qmc35Htm, Location ce47Loc)
-		{
-			_initialVoice = initialVoice;
-			_initialHtm = initialHtm;
-			
-			_ce8Htm = ce8Htm;
-			_ce8Loc = ce8Loc;
-			
-			// Informations for Question Mark Clicked (9) learning skills.
-			_qmc9Htm = qmc9Htm;
-			_qmc9Loc = qmc9Loc;
-			
-			// Informations for Question Mark Clicked (24) available Benefits.
-			_qmc24Htm = qmc24Htm;
-			
-			// Informations for Question Mark Clicked (35) 1st class transfer.
-			_qmc35Htm = qmc35Htm;
-			
-			_ce47Loc = ce47Loc;
-		}
 	}
 }

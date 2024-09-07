@@ -33,9 +33,10 @@ public class Q023_LidiasHeart extends Quest
 		
 		setItemsIds(SILVER_KEY, LIDIA_DIARY, SILVER_SPEAR);
 		
-		addStartNpc(INNOCENTIN);
+		addQuestStart(INNOCENTIN);
 		addTalkId(INNOCENTIN, BROKEN_BOOKSHELF, GHOST_OF_VON_HELLMANN, VIOLET, BOX, TOMBSTONE);
-		addDecayId(GHOST_OF_VON_HELLMANN);
+		
+		addDecayed(GHOST_OF_VON_HELLMANN);
 	}
 	
 	@Override
@@ -61,10 +62,10 @@ public class Q023_LidiasHeart extends Quest
 		}
 		else if (event.equalsIgnoreCase("31526-05.htm"))
 		{
-			if (!player.getInventory().hasItems(LIDIA_HAIRPIN))
+			if (!player.getInventory().hasItem(LIDIA_HAIRPIN))
 			{
 				giveItems(player, LIDIA_HAIRPIN, 1);
-				if (player.getInventory().hasItems(LIDIA_DIARY))
+				if (player.getInventory().hasItem(LIDIA_DIARY))
 				{
 					st.setCond(4);
 					playSound(player, SOUND_MIDDLE);
@@ -75,10 +76,10 @@ public class Q023_LidiasHeart extends Quest
 		}
 		else if (event.equalsIgnoreCase("31526-11.htm"))
 		{
-			if (!player.getInventory().hasItems(LIDIA_DIARY))
+			if (!player.getInventory().hasItem(LIDIA_DIARY))
 			{
 				giveItems(player, LIDIA_DIARY, 1);
-				if (player.getInventory().hasItems(LIDIA_HAIRPIN))
+				if (player.getInventory().hasItem(LIDIA_HAIRPIN))
 				{
 					st.setCond(4);
 					playSound(player, SOUND_MIDDLE);
@@ -149,17 +150,6 @@ public class Q023_LidiasHeart extends Quest
 	}
 	
 	@Override
-	public String onDecay(Npc npc)
-	{
-		if (npc == _ghost)
-		{
-			_ghost = null;
-		}
-		
-		return null;
-	}
-	
-	@Override
 	public String onTalk(Npc npc, Player player)
 	{
 		String htmltext = getNoQuestMsg();
@@ -213,9 +203,9 @@ public class Q023_LidiasHeart extends Quest
 						}
 						else if (cond == 3)
 						{
-							if (!player.getInventory().hasItems(LIDIA_DIARY))
-								htmltext = (!player.getInventory().hasItems(LIDIA_HAIRPIN)) ? "31526-02.htm" : "31526-06.htm";
-							else if (!player.getInventory().hasItems(LIDIA_HAIRPIN))
+							if (!player.getInventory().hasItem(LIDIA_DIARY))
+								htmltext = (!player.getInventory().hasItem(LIDIA_HAIRPIN)) ? "31526-02.htm" : "31526-06.htm";
+							else if (!player.getInventory().hasItem(LIDIA_HAIRPIN))
 								htmltext = "31526-12.htm";
 						}
 						else if (cond > 3)
@@ -251,7 +241,7 @@ public class Q023_LidiasHeart extends Quest
 							htmltext = "31386-02.htm";
 						else if (cond == 10)
 						{
-							if (player.getInventory().hasItems(SILVER_SPEAR))
+							if (player.getInventory().hasItem(SILVER_SPEAR))
 							{
 								htmltext = "31386-03.htm";
 								takeItems(player, SILVER_SPEAR, 1);
@@ -285,5 +275,14 @@ public class Q023_LidiasHeart extends Quest
 		}
 		
 		return htmltext;
+	}
+	
+	@Override
+	public void onDecayed(Npc npc)
+	{
+		if (npc == _ghost)
+		{
+			_ghost = null;
+		}
 	}
 }

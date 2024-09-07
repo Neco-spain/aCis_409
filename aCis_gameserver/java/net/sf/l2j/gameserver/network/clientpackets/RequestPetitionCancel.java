@@ -16,6 +16,7 @@ public final class RequestPetitionCancel extends L2GameClientPacket
 	@Override
 	protected void readImpl()
 	{
+		// Do nothing.
 	}
 	
 	@Override

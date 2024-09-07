@@ -55,10 +55,10 @@ public class Q105_SkirmishWithTheOrcs extends Quest
 		
 		setItemsIds(KENDELL_ORDER_1, KENDELL_ORDER_2, KENDELL_ORDER_3, KENDELL_ORDER_4, KENDELL_ORDER_5, KENDELL_ORDER_6, KENDELL_ORDER_7, KENDELL_ORDER_8, KABOO_CHIEF_TORC_1, KABOO_CHIEF_TORC_2);
 		
-		addStartNpc(30218); // Kendell
+		addQuestStart(30218); // Kendell
 		addTalkId(30218);
 		
-		addKillId(KABOO_CHIEF_UOPH, KABOO_CHIEF_KRACHA, KABOO_CHIEF_BATOH, KABOO_CHIEF_TANUKIA, KABOO_CHIEF_TUREL, KABOO_CHIEF_ROKO, KABOO_CHIEF_KAMUT, KABOO_CHIEF_MURTIKA);
+		addMyDying(KABOO_CHIEF_UOPH, KABOO_CHIEF_KRACHA, KABOO_CHIEF_BATOH, KABOO_CHIEF_TANUKIA, KABOO_CHIEF_TUREL, KABOO_CHIEF_ROKO, KABOO_CHIEF_KAMUT, KABOO_CHIEF_MURTIKA);
 	}
 	
 	@Override
@@ -158,21 +158,18 @@ public class Q105_SkirmishWithTheOrcs extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
-			case KABOO_CHIEF_UOPH:
-			case KABOO_CHIEF_KRACHA:
-			case KABOO_CHIEF_BATOH:
-			case KABOO_CHIEF_TANUKIA:
-				if (st.getCond() == 1 && player.getInventory().hasItems(npc.getNpcId() - 25223)) // npcId - 25223 = itemId to verify.
+			case KABOO_CHIEF_UOPH, KABOO_CHIEF_KRACHA, KABOO_CHIEF_BATOH, KABOO_CHIEF_TANUKIA:
+				if (st.getCond() == 1 && player.getInventory().hasItem(npc.getNpcId() - 25223)) // npcId - 25223 = itemId to verify.
 				{
 					st.setCond(2);
 					playSound(player, SOUND_MIDDLE);
@@ -180,9 +177,8 @@ public class Q105_SkirmishWithTheOrcs extends Quest
 				}
 				break;
 			
-			case KABOO_CHIEF_TUREL:
-			case KABOO_CHIEF_ROKO:
-				if (st.getCond() == 3 && player.getInventory().hasItems(npc.getNpcId() - 25224)) // npcId - 25224 = itemId to verify.
+			case KABOO_CHIEF_TUREL, KABOO_CHIEF_ROKO:
+				if (st.getCond() == 3 && player.getInventory().hasItem(npc.getNpcId() - 25224)) // npcId - 25224 = itemId to verify.
 				{
 					st.setCond(4);
 					playSound(player, SOUND_MIDDLE);
@@ -190,9 +186,8 @@ public class Q105_SkirmishWithTheOrcs extends Quest
 				}
 				break;
 			
-			case KABOO_CHIEF_KAMUT:
-			case KABOO_CHIEF_MURTIKA:
-				if (st.getCond() == 3 && player.getInventory().hasItems(npc.getNpcId() - 25225)) // npcId - 25225 = itemId to verify.
+			case KABOO_CHIEF_KAMUT, KABOO_CHIEF_MURTIKA:
+				if (st.getCond() == 3 && player.getInventory().hasItem(npc.getNpcId() - 25225)) // npcId - 25225 = itemId to verify.
 				{
 					st.setCond(4);
 					playSound(player, SOUND_MIDDLE);
@@ -200,7 +195,5 @@ public class Q105_SkirmishWithTheOrcs extends Quest
 				}
 				break;
 		}
-		
-		return null;
 	}
 }

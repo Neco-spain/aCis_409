@@ -89,7 +89,7 @@ public class ZoneNPoly extends ZoneForm
 	}
 	
 	@Override
-	public void visualizeZone(String info, ExServerPrimitive debug, int z)
+	public void visualizeZone(String info, ExServerPrimitive debug)
 	{
 		final int z1 = _z1 - 32;
 		final int z2 = _z2 - 32;
@@ -98,13 +98,16 @@ public class ZoneNPoly extends ZoneForm
 		{
 			int nextIndex = i + 1;
 			
-			// ending point to first one
+			// Ending point to first one.
 			if (nextIndex == _x.length)
 				nextIndex = 0;
 			
-			debug.addLine(info + " MinZ", Color.GREEN, true, _x[i], _y[i], z1, _x[nextIndex], _y[nextIndex], z1);
-			debug.addLine(info, Color.YELLOW, true, _x[i], _y[i], z, _x[nextIndex], _y[nextIndex], z);
-			debug.addLine(info + " MaxZ", Color.RED, true, _x[i], _y[i], z2, _x[nextIndex], _y[nextIndex], z2);
+			// Floors - min/max.
+			debug.addLine(info, Color.GREEN, true, _x[i], _y[i], z1, _x[nextIndex], _y[nextIndex], z1);
+			debug.addLine(info, Color.RED, true, _x[i], _y[i], z2, _x[nextIndex], _y[nextIndex], z2);
+			
+			// Vertical line.
+			debug.addLine("", Color.YELLOW, true, _x[i], _y[i], z1, _x[i], _y[i], z2);
 		}
 	}
 }

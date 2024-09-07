@@ -26,10 +26,10 @@ public class Q298_LizardmensConspiracy extends Quest
 		
 		setItemsIds(PATROL_REPORT, WHITE_GEM, RED_GEM);
 		
-		addStartNpc(PRAGA);
+		addQuestStart(PRAGA);
 		addTalkId(PRAGA, ROHMER);
 		
-		addKillId(20926, 20927, 20922, 20923, 20924);
+		addMyDying(20926, 20927, 20922, 20923, 20924);
 	}
 	
 	@Override
@@ -92,7 +92,7 @@ public class Q298_LizardmensConspiracy extends Quest
 					
 					case ROHMER:
 						if (st.getCond() == 1)
-							htmltext = (player.getInventory().hasItems(PATROL_REPORT)) ? "30344-0.htm" : "30344-0a.htm";
+							htmltext = (player.getInventory().hasItem(PATROL_REPORT)) ? "30344-0.htm" : "30344-0a.htm";
 						else
 							htmltext = "30344-2.htm";
 						break;
@@ -104,13 +104,13 @@ public class Q298_LizardmensConspiracy extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMember(player, npc, 2);
 		if (st == null)
-			return null;
+			return;
 		
 		player = st.getPlayer();
 		switch (npc.getNpcId())
@@ -130,13 +130,10 @@ public class Q298_LizardmensConspiracy extends Quest
 					st.setCond(3);
 				break;
 			
-			case 20926:
-			case 20927:
+			case 20926, 20927:
 				if (dropItems(player, RED_GEM, 1, 50, 400000) && player.getInventory().getItemCount(WHITE_GEM) >= 50)
 					st.setCond(3);
 				break;
 		}
-		
-		return null;
 	}
 }

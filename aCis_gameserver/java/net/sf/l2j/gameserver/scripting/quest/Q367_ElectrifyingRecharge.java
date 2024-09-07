@@ -34,10 +34,10 @@ public class Q367_ElectrifyingRecharge extends Quest
 		
 		setItemsIds(INITIAL_TITAN_LAMP, TITAN_LAMP_1, TITAN_LAMP_2, TITAN_LAMP_3, FINAL_TITAN_LAMP, BROKEN_TITAN_LAMP);
 		
-		addStartNpc(LORAIN);
+		addQuestStart(LORAIN);
 		addTalkId(LORAIN);
 		
-		addAttackId(CATHEROK);
+		addAttacked(CATHEROK);
 	}
 	
 	@Override
@@ -81,7 +81,7 @@ public class Q367_ElectrifyingRecharge extends Quest
 				final int cond = st.getCond();
 				if (cond == 1)
 				{
-					if (player.getInventory().hasItems(BROKEN_TITAN_LAMP))
+					if (player.getInventory().hasItem(BROKEN_TITAN_LAMP))
 					{
 						htmltext = "30673-05.htm";
 						takeItems(player, BROKEN_TITAN_LAMP, -1);
@@ -135,42 +135,42 @@ public class Q367_ElectrifyingRecharge extends Quest
 	}
 	
 	@Override
-	public String onAttack(Npc npc, Creature attacker, int damage, L2Skill skill)
+	public void onAttacked(Npc npc, Creature attacker, int damage, L2Skill skill)
 	{
 		Player player = attacker.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMember(player, npc, 1);
 		if (st == null)
-			return null;
+			return;
 		
 		// For every occurred attack, the NPC tries to cast skillId 4072. The only restrictions are inherent skill restriction (mp cost, skill reuse, etc).
-		npc.getAI().tryToCast(player, 4072, 1);
+		npc.getAI().addCastDesire(player, 4072, 1, 1000000);
 		
 		player = st.getPlayer();
-		if (!player.getInventory().hasItems(FINAL_TITAN_LAMP))
+		if (!player.getInventory().hasItem(FINAL_TITAN_LAMP))
 		{
 			final int i0 = Rnd.get(37);
 			if (i0 == 0)
 			{
-				if (player.getInventory().hasItems(INITIAL_TITAN_LAMP))
+				if (player.getInventory().hasItem(INITIAL_TITAN_LAMP))
 				{
 					takeItems(player, INITIAL_TITAN_LAMP, -1);
 					giveItems(player, TITAN_LAMP_1, 1);
 					playSound(player, SOUND_ITEMGET);
 				}
-				else if (player.getInventory().hasItems(TITAN_LAMP_1))
+				else if (player.getInventory().hasItem(TITAN_LAMP_1))
 				{
 					takeItems(player, TITAN_LAMP_1, -1);
 					giveItems(player, TITAN_LAMP_2, 1);
 					playSound(player, SOUND_ITEMGET);
 				}
-				else if (player.getInventory().hasItems(TITAN_LAMP_2))
+				else if (player.getInventory().hasItem(TITAN_LAMP_2))
 				{
 					takeItems(player, TITAN_LAMP_2, -1);
 					giveItems(player, TITAN_LAMP_3, 1);
 					playSound(player, SOUND_ITEMGET);
 				}
-				else if (player.getInventory().hasItems(TITAN_LAMP_3))
+				else if (player.getInventory().hasItem(TITAN_LAMP_3))
 				{
 					st.setCond(2);
 					playSound(player, SOUND_MIDDLE);
@@ -178,7 +178,7 @@ public class Q367_ElectrifyingRecharge extends Quest
 					giveItems(player, FINAL_TITAN_LAMP, 1);
 				}
 			}
-			else if (i0 == 1 && !player.getInventory().hasItems(BROKEN_TITAN_LAMP))
+			else if (i0 == 1 && !player.getInventory().hasItem(BROKEN_TITAN_LAMP))
 			{
 				takeItems(player, INITIAL_TITAN_LAMP, -1);
 				takeItems(player, TITAN_LAMP_1, -1);
@@ -188,6 +188,5 @@ public class Q367_ElectrifyingRecharge extends Quest
 				playSound(player, SOUND_ITEMGET);
 			}
 		}
-		return null;
 	}
 }

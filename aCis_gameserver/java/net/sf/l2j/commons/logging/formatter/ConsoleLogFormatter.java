@@ -9,13 +9,13 @@ import net.sf.l2j.commons.logging.MasterFormatter;
 public class ConsoleLogFormatter extends MasterFormatter
 {
 	@Override
-	public String format(LogRecord record)
+	public String format(LogRecord logRecord)
 	{
 		final StringWriter sw = new StringWriter();
-		sw.append(record.getMessage());
+		sw.append(logRecord.getMessage());
 		sw.append(CRLF);
 		
-		final Throwable throwable = record.getThrown();
+		final Throwable throwable = logRecord.getThrown();
 		if (throwable != null)
 			throwable.printStackTrace(new PrintWriter(sw));
 		

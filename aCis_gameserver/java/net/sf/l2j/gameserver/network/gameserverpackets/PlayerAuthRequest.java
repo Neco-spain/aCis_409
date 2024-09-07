@@ -8,10 +8,10 @@ public class PlayerAuthRequest extends GameServerBasePacket
 	{
 		writeC(0x05);
 		writeS(account);
-		writeD(key.playOkID1);
-		writeD(key.playOkID2);
-		writeD(key.loginOkID1);
-		writeD(key.loginOkID2);
+		writeD(key.playOkId1());
+		writeD(key.playOkId2());
+		writeD(key.loginOkId1());
+		writeD(key.loginOkId2());
 	}
 	
 	@Override

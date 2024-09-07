@@ -31,26 +31,25 @@ public class Q162_CurseOfTheUndergroundFortress extends Quest
 	private static final int BONE_SHIELD = 625;
 	
 	// Drop chances
-	private static final Map<Integer, Integer> CHANCES = new HashMap<>();
+	private static final Map<Integer, Integer> CHANCES = HashMap.newHashMap(6);
+	
+	public Q162_CurseOfTheUndergroundFortress()
 	{
+		super(162, "Curse of the Underground Fortress");
+		
 		CHANCES.put(SHADE_HORROR, 250000);
 		CHANCES.put(DARK_TERROR, 260000);
 		CHANCES.put(MIST_TERROR, 230000);
 		CHANCES.put(DUNGEON_SKELETON_ARCHER, 250000);
 		CHANCES.put(DUNGEON_SKELETON, 230000);
 		CHANCES.put(DREAD_SOLDIER, 260000);
-	}
-	
-	public Q162_CurseOfTheUndergroundFortress()
-	{
-		super(162, "Curse of the Underground Fortress");
 		
 		setItemsIds(BONE_FRAGMENT, ELF_SKULL);
 		
-		addStartNpc(30147); // Unoren
+		addQuestStart(30147); // Unoren
 		addTalkId(30147);
 		
-		addKillId(SHADE_HORROR, DARK_TERROR, MIST_TERROR, DUNGEON_SKELETON_ARCHER, DUNGEON_SKELETON, DREAD_SOLDIER);
+		addMyDying(SHADE_HORROR, DARK_TERROR, MIST_TERROR, DUNGEON_SKELETON_ARCHER, DUNGEON_SKELETON, DREAD_SOLDIER);
 	}
 	
 	@Override
@@ -115,33 +114,27 @@ public class Q162_CurseOfTheUndergroundFortress extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerCondition(player, npc, 1);
 		if (st == null)
-			return null;
+			return;
 		
 		final int npcId = npc.getNpcId();
 		
 		switch (npcId)
 		{
-			case DUNGEON_SKELETON:
-			case DUNGEON_SKELETON_ARCHER:
-			case DREAD_SOLDIER:
+			case DUNGEON_SKELETON, DUNGEON_SKELETON_ARCHER, DREAD_SOLDIER:
 				if (dropItems(player, BONE_FRAGMENT, 1, 10, CHANCES.get(npcId)) && player.getInventory().getItemCount(ELF_SKULL) >= 3)
 					st.setCond(2);
 				break;
 			
-			case SHADE_HORROR:
-			case DARK_TERROR:
-			case MIST_TERROR:
+			case SHADE_HORROR, DARK_TERROR, MIST_TERROR:
 				if (dropItems(player, ELF_SKULL, 1, 3, CHANCES.get(npcId)) && player.getInventory().getItemCount(BONE_FRAGMENT) >= 10)
 					st.setCond(2);
 				break;
 		}
-		
-		return null;
 	}
 }

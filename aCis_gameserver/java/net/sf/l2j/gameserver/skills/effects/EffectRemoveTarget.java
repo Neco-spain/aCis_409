@@ -31,6 +31,7 @@ public class EffectRemoveTarget extends AbstractEffect
 	@Override
 	public void onExit()
 	{
+		// Do nothing.
 	}
 	
 	@Override

@@ -2,14 +2,10 @@ package net.sf.l2j.gameserver.scripting.script.feature;
 
 import net.sf.l2j.commons.lang.StringUtil;
 
-import net.sf.l2j.gameserver.data.SkillTable.FrequentSkill;
-import net.sf.l2j.gameserver.data.xml.TeleportData;
+import net.sf.l2j.gameserver.enums.EventHandler;
 import net.sf.l2j.gameserver.enums.TeleportType;
-import net.sf.l2j.gameserver.model.WorldObject;
-import net.sf.l2j.gameserver.model.actor.Attackable;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Npc;
-import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.group.Party;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
@@ -26,6 +22,7 @@ import net.sf.l2j.gameserver.skills.L2Skill;
  * <ul>
  * <li>Varka Orc Village functions</li>
  * <li>Quests failures && alliance downgrade if you kill an allied mob.</li>
+ * <li>Petrification effect in case an allied player helps a neutral or enemy.</li>
  * </ul>
  */
 public class VarkaSilenosSupport extends Quest
@@ -97,11 +94,7 @@ public class VarkaSilenosSupport extends Quest
 		addFirstTalkId(ASHAS, NARAN, UDAN, DIYABU, HAGOS, SHIKON, TERANU);
 		addTalkId(UDAN, HAGOS, TERANU);
 		
-		// Verify if the killer didn't kill an allied mob. Test his party aswell.
-		addKillId(VARKAS);
-		
-		// Verify if an allied is healing/buff an enemy. Petrify him if it's the case.
-		addSkillSeeId(VARKAS);
+		addEventIds(VARKAS, EventHandler.ATTACKED, EventHandler.CLAN_ATTACKED, EventHandler.MY_DYING, EventHandler.SEE_SPELL);
 	}
 	
 	@Override
@@ -116,8 +109,7 @@ public class VarkaSilenosSupport extends Quest
 			{
 				htmltext = "31379-4.htm";
 				takeItems(player, SEED, buff.getValue());
-				npc.getAI().tryToCast(player, buff.getId(), 1);
-				npc.getStatus().setMaxHpMp();
+				npc.getAI().addCastDesire(player, buff.getId(), 1, 1000000);
 			}
 		}
 		else if (event.equals("Withdraw"))
@@ -136,11 +128,11 @@ public class VarkaSilenosSupport extends Quest
 			switch (player.getAllianceWithVarkaKetra())
 			{
 				case -4:
-					TeleportData.getInstance().showTeleportList(player, npc, TeleportType.STANDARD);
+					npc.showTeleportWindow(player, TeleportType.STANDARD);
 					return null;
 				
 				case -5:
-					TeleportData.getInstance().showTeleportList(player, npc, TeleportType.ALLY);
+					npc.showTeleportWindow(player, TeleportType.ALLY);
 					return null;
 			}
 		}
@@ -178,7 +170,7 @@ public class VarkaSilenosSupport extends Quest
 					htmltext = "31379-1.htm";
 				else if (allianceLevel < -2)
 				{
-					if (player.getInventory().hasItems(SEED))
+					if (player.getInventory().hasItem(SEED))
 						htmltext = "31379-4.htm";
 					else
 						htmltext = "31379-2.htm";
@@ -202,10 +194,11 @@ public class VarkaSilenosSupport extends Quest
 					case -1:
 						htmltext = "31381-1.htm";
 						break;
-					case -2:
-					case -3:
+					
+					case -2, -3:
 						htmltext = "31381-2.htm";
 						break;
+					
 					default:
 						if (allianceLevel >= 0)
 							htmltext = "31381-no.htm";
@@ -223,13 +216,15 @@ public class VarkaSilenosSupport extends Quest
 					case -2:
 						htmltext = "31382-1.htm";
 						break;
-					case -3:
-					case -4:
+					
+					case -3, -4:
 						htmltext = "31382-2.htm";
 						break;
+					
 					case -5:
 						htmltext = "31382-3.htm";
 						break;
+					
 					default:
 						htmltext = "31382-no.htm";
 						break;
@@ -252,7 +247,31 @@ public class VarkaSilenosSupport extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onAttacked(Npc npc, Creature attacker, int damage, L2Skill skill)
+	{
+		final Player player = attacker.getActingPlayer();
+		if (player != null && player.isAlliedWithVarka())
+		{
+			npc.getAI().addCastDesire(attacker, 4515, 1, 1000000);
+			npc.getAI().getAggroList().remove(attacker);
+		}
+		super.onAttacked(npc, attacker, damage, skill);
+	}
+	
+	@Override
+	public void onClanAttacked(Npc caller, Npc called, Creature attacker, int damage, L2Skill skill)
+	{
+		final Player player = attacker.getActingPlayer();
+		if (player != null && player.isAlliedWithVarka())
+		{
+			called.getAI().addCastDesire(attacker, 4515, 1, 1000000);
+			called.getAI().getAggroList().remove(attacker);
+		}
+		super.onClanAttacked(caller, called, attacker, damage, skill);
+	}
+	
+	@Override
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		if (player != null)
@@ -266,63 +285,26 @@ public class VarkaSilenosSupport extends Quest
 			else
 				testVarkaDemote(player);
 		}
-		return null;
+		super.onMyDying(npc, killer);
 	}
 	
 	@Override
-	public String onSkillSee(Npc npc, Player caster, L2Skill skill, Creature[] targets, boolean isPet)
+	public void onSeeSpell(Npc npc, Player caster, L2Skill skill, Creature[] targets, boolean isPet)
 	{
-		// Caster is an allied.
-		if (caster.isAlliedWithVarka())
+		if (skill.getAggroPoints() > 0 && caster.isAlliedWithVarka())
 		{
-			// Caster's skill is a positive effect ? Go further.
-			switch (skill.getSkillType())
-			{
-				case BUFF:
-				case HEAL:
-				case HEAL_PERCENT:
-				case HEAL_STATIC:
-				case BALANCE_LIFE:
-				case HOT:
-					for (Creature target : targets)
-					{
-						// Target isn't a summon nor a player, is dead or is current caster, we drop check.
-						if (!(target instanceof Playable) || target.isDead() || target == caster)
-							continue;
-						
-						// Retrieve the player behind that target.
-						final Player player = target.getActingPlayer();
-						
-						// If player is neutral or enemy, go further.
-						if (!(player.isAlliedWithVarka()))
-						{
-							// If the NPC got that player registered in aggro list, go further.
-							if (((Attackable) npc).getAggroList().containsKey(player))
-							{
-								// Save current target for future use.
-								final WorldObject oldTarget = npc.getTarget();
-								
-								// Curse the heretic or his pet.
-								npc.getAI().tryToCast((isPet && player.getSummon() != null) ? caster.getSummon() : caster, FrequentSkill.VARKA_KETRA_PETRIFICATION.getSkill());
-								
-								// Revert to old target && drop the loop.
-								npc.setTarget(oldTarget);
-								break;
-							}
-						}
-					}
-					break;
-			}
+			final Creature trueCaster = (isPet && caster.getSummon() != null) ? caster.getSummon() : caster;
+			
+			npc.getAI().addCastDesire(trueCaster, 4515, 1, 1000000);
+			npc.getAI().getAggroList().remove(trueCaster);
 		}
-		
-		// Continue normal behavior.
-		return super.onSkillSee(npc, caster, skill, targets, isPet);
+		super.onSeeSpell(npc, caster, skill, targets, isPet);
 	}
 	
 	/**
 	 * That method drops current alliance and retrograde badge.<BR>
-	 * If any Varka quest is in progress, it stops the quest (and drop all related qItems) :
-	 * @param player The player to check.
+	 * If any Varka quest is in progress, it stops the quest (and drop all related qItems).
+	 * @param player : The {@link Player} to check.
 	 */
 	private static void testVarkaDemote(Player player)
 	{
@@ -340,11 +322,11 @@ public class VarkaSilenosSupport extends Quest
 				if (item != null)
 				{
 					// Destroy the badge.
-					player.destroyItemByItemId("Quest", i, item.getCount(), player, true);
+					player.destroyItemByItemId(i, item.getCount(), true);
 					
 					// Badge lvl 1 ; no addition of badge of lower level.
 					if (i != 7221)
-						player.addItem("Quest", i - 1, 1, player, true);
+						giveItems(player, i - 1, 1);
 					
 					break;
 				}

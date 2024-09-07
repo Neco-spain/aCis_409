@@ -11,8 +11,9 @@ public final class AggroInfo
 {
 	private final Creature _attacker;
 	
-	private int _damage;
-	private int _hate;
+	private double _damage;
+	private double _hate;
+	private long _timestamp;
 	
 	public AggroInfo(Creature attacker)
 	{
@@ -25,8 +26,8 @@ public final class AggroInfo
 		if (this == obj)
 			return true;
 		
-		if (obj instanceof AggroInfo)
-			return (((AggroInfo) obj).getAttacker() == _attacker);
+		if (obj instanceof AggroInfo ai)
+			return ai.getAttacker() == _attacker;
 		
 		return false;
 	}
@@ -48,28 +49,38 @@ public final class AggroInfo
 		return _attacker;
 	}
 	
-	public int getDamage()
+	public double getDamage()
 	{
 		return _damage;
 	}
 	
-	public void addDamage(int value)
+	public void addDamage(double value)
 	{
-		_damage = (int) Math.min(_damage + (long) value, 999999999);
+		_damage = Math.min(_damage + value, 999999999);
 	}
 	
-	public int getHate()
+	public double getHate()
 	{
 		return _hate;
 	}
 	
-	public void addHate(int value)
+	public void addHate(double value)
 	{
-		_hate = (int) Math.min(_hate + (long) value, 999999999);
+		_hate = Math.min(_hate + value, 999999999);
 	}
 	
 	public void stopHate()
 	{
 		_hate = 0;
+	}
+	
+	public long getTimestamp()
+	{
+		return _timestamp;
+	}
+	
+	public void setTimestamp(long timestamp)
+	{
+		_timestamp = timestamp;
 	}
 }

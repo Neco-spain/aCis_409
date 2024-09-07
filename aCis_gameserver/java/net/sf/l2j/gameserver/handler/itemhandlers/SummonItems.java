@@ -22,10 +22,8 @@ public class SummonItems implements IItemHandler
 	@Override
 	public void useItem(Playable playable, ItemInstance item, boolean forceUse)
 	{
-		if (!(playable instanceof Player))
+		if (!(playable instanceof Player player))
 			return;
-		
-		final Player player = (Player) playable;
 		
 		if (player.isSitting())
 		{
@@ -53,6 +51,12 @@ public class SummonItems implements IItemHandler
 			return;
 		}
 		
+		if (player.isInBoat())
+		{
+			player.sendPacket(SystemMessageId.NOT_CALL_PET_FROM_THIS_LOCATION);
+			return;
+		}
+		
 		final NpcTemplate npcTemplate = NpcData.getInstance().getTemplate(sitem.getId());
 		if (npcTemplate == null)
 			return;
@@ -67,7 +71,7 @@ public class SummonItems implements IItemHandler
 					return;
 				}
 				
-				if (!player.destroyItem("Summon", item, 1, null, false))
+				if (!player.destroyItem(item, 1, false))
 					return;
 				
 				player.getMove().stop();
@@ -76,7 +80,6 @@ public class SummonItems implements IItemHandler
 				{
 					final Spawn spawn = new Spawn(npcTemplate);
 					spawn.setLoc(player.getPosition());
-					spawn.setRespawnState(false);
 					
 					final Npc npc = spawn.doSpawn(true);
 					npc.setTitle(player.getName());

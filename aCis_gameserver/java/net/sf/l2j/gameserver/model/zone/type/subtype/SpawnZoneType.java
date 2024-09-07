@@ -1,7 +1,7 @@
 package net.sf.l2j.gameserver.model.zone.type.subtype;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
@@ -15,9 +15,9 @@ import net.sf.l2j.gameserver.model.location.Location;
  */
 public abstract class SpawnZoneType extends ZoneType
 {
-	private Map<SpawnType, List<Location>> _spawns = new HashMap<>();
+	private Map<SpawnType, List<Location>> _spawns = new EnumMap<>(SpawnType.class);
 	
-	public SpawnZoneType(int id)
+	protected SpawnZoneType(int id)
 	{
 		super(id);
 	}

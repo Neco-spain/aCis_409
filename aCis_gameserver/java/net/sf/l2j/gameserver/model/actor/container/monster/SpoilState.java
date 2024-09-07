@@ -1,26 +1,21 @@
 package net.sf.l2j.gameserver.model.actor.container.monster;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Monster;
-import net.sf.l2j.gameserver.model.holder.IntIntHolder;
 
 /**
  * A container holding all related informations of a {@link Monster} spoil state.<br>
  * <br>
  * A spoil occurs when a {@link Player} procs a spoil skill over a Monster.
  */
-public class SpoilState extends ArrayList<IntIntHolder>
+public class SpoilState extends HashMap<Integer, Integer>
 {
 	private static final long serialVersionUID = 1L;
 	
 	private int _spoilerId;
-	
-	public SpoilState()
-	{
-	}
 	
 	public int getSpoilerId()
 	{

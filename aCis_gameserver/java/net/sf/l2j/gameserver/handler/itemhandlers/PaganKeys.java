@@ -17,32 +17,29 @@ public class PaganKeys implements IItemHandler
 	@Override
 	public void useItem(Playable playable, ItemInstance item, boolean forceUse)
 	{
-		if (!(playable instanceof Player))
+		if (!(playable instanceof Player player))
 			return;
 		
-		final Player player = (Player) playable;
 		final WorldObject target = player.getTarget();
 		
-		if (!(target instanceof Door))
+		if (!(target instanceof Door targetDoor))
 		{
 			player.sendPacket(SystemMessageId.INVALID_TARGET);
 			player.sendPacket(ActionFailed.STATIC_PACKET);
 			return;
 		}
 		
-		final Door door = (Door) target;
-		
-		if (!(player.isIn3DRadius(door, Npc.INTERACTION_DISTANCE)))
+		if (!player.isIn3DRadius(targetDoor, Npc.INTERACTION_DISTANCE))
 		{
 			player.sendPacket(SystemMessageId.DIST_TOO_FAR_CASTING_STOPPED);
 			player.sendPacket(ActionFailed.STATIC_PACKET);
 			return;
 		}
 		
-		if (!playable.destroyItem("Consume", item.getObjectId(), 1, null, true))
+		if (!playable.destroyItem(item.getObjectId(), 1, true))
 			return;
 		
-		final int doorId = door.getDoorId();
+		final int doorId = targetDoor.getDoorId();
 		
 		switch (item.getItemId())
 		{
@@ -59,14 +56,7 @@ public class PaganKeys implements IItemHandler
 			case 8273:
 				switch (doorId)
 				{
-					case 19160002:
-					case 19160003:
-					case 19160004:
-					case 19160005:
-					case 19160006:
-					case 19160007:
-					case 19160008:
-					case 19160009:
+					case 19160002, 19160003, 19160004, 19160005, 19160006, 19160007, 19160008, 19160009:
 						DoorData.getInstance().getDoor(doorId).openMe();
 						break;
 					
@@ -79,8 +69,7 @@ public class PaganKeys implements IItemHandler
 			case 8275:
 				switch (doorId)
 				{
-					case 19160012:
-					case 19160013:
+					case 19160012, 19160013:
 						DoorData.getInstance().getDoor(doorId).openMe();
 						break;
 					

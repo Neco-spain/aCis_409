@@ -16,16 +16,16 @@ public class NoRestartZone extends ZoneType
 	}
 	
 	@Override
-	protected void onEnter(final Creature character)
+	protected void onEnter(final Creature creature)
 	{
-		if (character instanceof Player)
-			character.setInsideZone(ZoneId.NO_RESTART, true);
+		if (creature instanceof Player player)
+			player.setInsideZone(ZoneId.NO_RESTART, true);
 	}
 	
 	@Override
-	protected void onExit(final Creature character)
+	protected void onExit(final Creature creature)
 	{
-		if (character instanceof Player)
-			character.setInsideZone(ZoneId.NO_RESTART, false);
+		if (creature instanceof Player player)
+			player.setInsideZone(ZoneId.NO_RESTART, false);
 	}
 }

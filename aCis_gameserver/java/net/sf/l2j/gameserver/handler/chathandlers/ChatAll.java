@@ -20,10 +20,9 @@ public class ChatAll implements IChatHandler
 			return;
 		
 		final CreatureSay cs = new CreatureSay(player, type, text);
-		for (Player knownPlayer : player.getKnownTypeInRadius(Player.class, 1250))
-			knownPlayer.sendPacket(cs);
 		
 		player.sendPacket(cs);
+		player.forEachKnownTypeInRadius(Player.class, 1250, p -> p.sendPacket(cs));
 	}
 	
 	@Override

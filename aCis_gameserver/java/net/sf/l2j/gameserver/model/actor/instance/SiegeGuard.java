@@ -6,8 +6,6 @@ import net.sf.l2j.gameserver.model.actor.Attackable;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.actor.ai.type.CreatureAI;
-import net.sf.l2j.gameserver.model.actor.ai.type.SiegeGuardAI;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
 
 /**
@@ -18,22 +16,6 @@ public final class SiegeGuard extends Attackable
 	public SiegeGuard(int objectId, NpcTemplate template)
 	{
 		super(objectId, template);
-	}
-	
-	@Override
-	public CreatureAI getAI()
-	{
-		CreatureAI ai = _ai;
-		if (ai == null)
-		{
-			synchronized (this)
-			{
-				ai = _ai;
-				if (ai == null)
-					_ai = ai = new SiegeGuardAI(this);
-			}
-		}
-		return ai;
 	}
 	
 	@Override
@@ -62,30 +44,26 @@ public final class SiegeGuard extends Attackable
 	}
 	
 	@Override
-	public boolean hasRandomAnimation()
-	{
-		return false;
-	}
-	
-	@Override
 	public boolean returnHome()
 	{
-		// TODO Is this necessary?
-		if (isDead())
+		// Do nothing if no spawn location exists, or already in drift range of spawn location.
+		if (getSpawnLocation() == null || isIn2DRadius(getSpawnLocation(), getDriftRange()))
 			return false;
 		
-		// TODO is getSpawn() necessary?
-		if (getSpawn() != null && !isIn2DRadius(getSpawn().getLoc(), getDriftRange()))
-		{
-			getAggroList().cleanAllHate();
-			
-			setIsReturningToSpawnPoint(true);
-			forceRunStance();
-			getAI().tryToMoveTo(getSpawn().getLoc(), null);
-			return true;
-		}
+		getAI().getAggroList().cleanAllHate();
 		
-		return false;
+		forceRunStance();
+		
+		// Move to the position.
+		if (getMove().getGeoPathFailCount() >= 10)
+		{
+			teleportTo(getSpawnLocation(), 0);
+			getMove().resetGeoPathFailCount();
+		}
+		else
+			getAI().addMoveToDesire(getSpawnLocation(), 1000000);
+		
+		return true;
 	}
 	
 	@Override
@@ -107,8 +85,8 @@ public final class SiegeGuard extends Attackable
 		if (player == null || player.isAlikeDead())
 			return false;
 		
-		// Check if the target isn't GM on hide mode.
-		if (player.isGM() && !player.getAppearance().isVisible())
+		// Check if the target is invisible.
+		if (!player.getAppearance().isVisible())
 			return false;
 		
 		// Check if the target isn't in silent move mode AND too far

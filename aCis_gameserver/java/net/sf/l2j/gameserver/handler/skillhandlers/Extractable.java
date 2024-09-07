@@ -8,6 +8,7 @@ import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
+import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.skills.L2Skill;
 import net.sf.l2j.gameserver.skills.extractable.ExtractableProductItem;
@@ -22,39 +23,38 @@ public class Extractable implements ISkillHandler
 	};
 	
 	@Override
-	public void useSkill(Creature activeChar, L2Skill skill, WorldObject[] targets)
+	public void useSkill(Creature creature, L2Skill skill, WorldObject[] targets, ItemInstance item)
 	{
-		if (!(activeChar instanceof Player))
+		if (!(creature instanceof Player player))
 			return;
 		
 		final ExtractableSkill exItem = skill.getExtractableSkill();
-		if (exItem == null || exItem.getProductItems().isEmpty())
+		if (exItem == null || exItem.productItems().isEmpty())
 		{
 			LOGGER.warn("Missing informations for extractable skill id: {}.", skill.getId());
 			return;
 		}
 		
-		final Player player = activeChar.getActingPlayer();
-		
 		int chance = Rnd.get(100000);
 		boolean created = false;
-		for (ExtractableProductItem expi : exItem.getProductItems())
+		
+		for (ExtractableProductItem expi : exItem.productItems())
 		{
-			chance -= (int) (expi.getChance() * 1000);
+			chance -= (int) (expi.chance() * 1000);
 			if (chance >= 0)
 				continue;
 			
 			// The inventory is full, terminate.
-			if (!player.getInventory().validateCapacityByItemIds(expi.getItems()))
+			if (!player.getInventory().validateCapacityByItemIds(expi.items()))
 			{
 				player.sendPacket(SystemMessageId.SLOTS_FULL);
 				return;
 			}
 			
 			// Inventory has space, create all items.
-			for (IntIntHolder item : expi.getItems())
+			for (IntIntHolder iih : expi.items())
 			{
-				player.addItem("Extract", item.getId(), item.getValue(), player, true);
+				player.addItem(iih.getId(), iih.getValue(), true);
 				created = true;
 			}
 			

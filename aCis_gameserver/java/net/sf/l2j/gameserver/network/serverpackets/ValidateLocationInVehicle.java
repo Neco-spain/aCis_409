@@ -12,8 +12,8 @@ public class ValidateLocationInVehicle extends L2GameServerPacket
 	public ValidateLocationInVehicle(Player player)
 	{
 		_objectId = player.getObjectId();
-		_boatId = player.getBoat().getObjectId();
-		_loc = player.getBoatPosition();
+		_boatId = player.getBoatInfo().getBoat().getObjectId();
+		_loc = player.getBoatInfo().getBoatPosition().clone();
 	}
 	
 	@Override
@@ -22,9 +22,7 @@ public class ValidateLocationInVehicle extends L2GameServerPacket
 		writeC(0x73);
 		writeD(_objectId);
 		writeD(_boatId);
-		writeD(_loc.getX());
-		writeD(_loc.getY());
-		writeD(_loc.getZ());
+		writeLoc(_loc);
 		writeD(_loc.getHeading());
 	}
 }

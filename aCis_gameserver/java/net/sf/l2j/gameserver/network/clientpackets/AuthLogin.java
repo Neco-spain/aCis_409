@@ -1,7 +1,6 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
 import net.sf.l2j.gameserver.LoginServerThread;
-import net.sf.l2j.gameserver.network.SessionKey;
 
 public final class AuthLogin extends L2GameClientPacket
 {
@@ -24,13 +23,6 @@ public final class AuthLogin extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
-		if (getClient().getAccountName() != null)
-			return;
-		
-		getClient().setAccountName(_loginName);
-		getClient().setSessionId(new SessionKey(_loginKey1, _loginKey2, _playKey1, _playKey2));
-		
-		// Add the client.
-		LoginServerThread.getInstance().addClient(_loginName, getClient());
+		LoginServerThread.getInstance().addClient(_loginName, _loginKey1, _loginKey2, _playKey1, _playKey2, getClient());
 	}
 }

@@ -42,10 +42,10 @@ public class Q404_PathToAHumanWizard extends Quest
 		
 		setItemsIds(MAP_OF_LUSTER, KEY_OF_FLAME, FLAME_EARING, BROKEN_BRONZE_MIRROR, WIND_FEATHER, WIND_BANGEL, RAMA_DIARY, SPARKLE_PEBBLE, WATER_NECKLACE, RUST_GOLD_COIN, RED_SOIL, EARTH_RING);
 		
-		addStartNpc(PARINA);
+		addQuestStart(PARINA);
 		addTalkId(PARINA, EARTH_SNAKE, WASTELAND_LIZARDMAN, FLAME_SALAMANDER, WIND_SYLPH, WATER_UNDINE);
 		
-		addKillId(20021, 20359, 27030);
+		addMyDying(20021, 20359, 27030);
 	}
 	
 	@Override
@@ -89,7 +89,7 @@ public class Q404_PathToAHumanWizard extends Quest
 					htmltext = (player.getClassId() == ClassId.HUMAN_WIZARD) ? "30391-02a.htm" : "30391-01.htm";
 				else if (player.getStatus().getLevel() < 19)
 					htmltext = "30391-02.htm";
-				else if (player.getInventory().hasItems(BEAD_OF_SEASON))
+				else if (player.getInventory().hasItem(BEAD_OF_SEASON))
 					htmltext = "30391-03.htm";
 				else
 					htmltext = "30391-04.htm";
@@ -221,13 +221,13 @@ public class Q404_PathToAHumanWizard extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
@@ -246,7 +246,5 @@ public class Q404_PathToAHumanWizard extends Quest
 					st.setCond(12);
 				break;
 		}
-		
-		return null;
 	}
 }

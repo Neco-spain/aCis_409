@@ -1,6 +1,6 @@
 package net.sf.l2j.gameserver.model.zone.type;
 
-import net.sf.l2j.gameserver.data.xml.MapRegionData.TeleportType;
+import net.sf.l2j.gameserver.enums.RestartType;
 import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
@@ -11,7 +11,6 @@ import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ExOlympiadMatchEnd;
 import net.sf.l2j.gameserver.network.serverpackets.ExOlympiadUserInfo;
 import net.sf.l2j.gameserver.network.serverpackets.L2GameServerPacket;
-import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 /**
  * A zone extending {@link SpawnZoneType}, used for olympiad event.<br>
@@ -28,74 +27,73 @@ public class OlympiadStadiumZone extends SpawnZoneType
 	}
 	
 	@Override
-	protected final void onEnter(Creature character)
+	protected final void onEnter(Creature creature)
 	{
-		character.setInsideZone(ZoneId.NO_SUMMON_FRIEND, true);
-		character.setInsideZone(ZoneId.NO_RESTART, true);
+		creature.setInsideZone(ZoneId.NO_SUMMON_FRIEND, true);
+		creature.setInsideZone(ZoneId.NO_RESTART, true);
 		
 		if (_task != null && _task.isBattleStarted())
 		{
-			character.setInsideZone(ZoneId.PVP, true);
-			if (character instanceof Player)
+			creature.setInsideZone(ZoneId.PVP, true);
+			
+			if (creature instanceof Player player)
 			{
-				character.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.ENTERED_COMBAT_ZONE));
-				_task.getGame().sendOlympiadInfo(character);
+				player.sendPacket(SystemMessageId.ENTERED_COMBAT_ZONE);
+				
+				_task.getGame().sendOlympiadInfo(player);
 			}
 		}
 		
 		// Only participants, observers and GMs are allowed.
-		final Player player = character.getActingPlayer();
+		final Player player = creature.getActingPlayer();
 		if (player != null && !player.isGM() && !player.isInOlympiadMode() && !player.isInObserverMode())
 		{
 			final Summon summon = player.getSummon();
 			if (summon != null)
 				summon.unSummon(player);
 			
-			player.teleportTo(TeleportType.TOWN);
+			player.teleportTo(RestartType.TOWN);
 		}
 	}
 	
 	@Override
-	protected final void onExit(Creature character)
+	protected final void onExit(Creature creature)
 	{
-		character.setInsideZone(ZoneId.NO_SUMMON_FRIEND, false);
-		character.setInsideZone(ZoneId.NO_RESTART, false);
+		creature.setInsideZone(ZoneId.NO_SUMMON_FRIEND, false);
+		creature.setInsideZone(ZoneId.NO_RESTART, false);
 		
 		if (_task != null && _task.isBattleStarted())
 		{
-			character.setInsideZone(ZoneId.PVP, false);
+			creature.setInsideZone(ZoneId.PVP, false);
 			
-			if (character instanceof Player)
+			if (creature instanceof Player player)
 			{
-				character.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.LEFT_COMBAT_ZONE));
-				character.sendPacket(ExOlympiadMatchEnd.STATIC_PACKET);
+				player.sendPacket(SystemMessageId.LEFT_COMBAT_ZONE);
+				player.sendPacket(ExOlympiadMatchEnd.STATIC_PACKET);
 			}
 		}
 	}
 	
-	public final void updateZoneStatusForCharactersInside()
+	public final void updateZoneStatus()
 	{
 		if (_task == null)
 			return;
 		
-		final boolean battleStarted = _task.isBattleStarted();
-		final SystemMessage sm = SystemMessage.getSystemMessage((battleStarted) ? SystemMessageId.ENTERED_COMBAT_ZONE : SystemMessageId.LEFT_COMBAT_ZONE);
-		
-		for (Creature character : _characters.values())
+		for (Creature creature : _creatures)
 		{
-			if (battleStarted)
+			if (_task.isBattleStarted())
 			{
-				character.setInsideZone(ZoneId.PVP, true);
-				if (character instanceof Player)
-					character.sendPacket(sm);
+				creature.setInsideZone(ZoneId.PVP, true);
+				if (creature instanceof Player player)
+					player.sendPacket(SystemMessageId.ENTERED_COMBAT_ZONE);
 			}
 			else
 			{
-				character.setInsideZone(ZoneId.PVP, false);
-				if (character instanceof Player)
+				creature.setInsideZone(ZoneId.PVP, false);
+				if (creature instanceof Player player)
 				{
-					character.sendPacket(sm);
-					character.sendPacket(ExOlympiadMatchEnd.STATIC_PACKET);
+					player.sendPacket(SystemMessageId.LEFT_COMBAT_ZONE);
+					player.sendPacket(ExOlympiadMatchEnd.STATIC_PACKET);
 				}
 			}
 		}

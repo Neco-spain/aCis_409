@@ -16,16 +16,16 @@ public class HqZone extends ZoneType
 	}
 	
 	@Override
-	protected void onEnter(final Creature character)
+	protected void onEnter(final Creature creature)
 	{
-		if (character instanceof Player)
-			character.setInsideZone(ZoneId.HQ, true);
+		if (creature instanceof Player player)
+			player.setInsideZone(ZoneId.HQ, true);
 	}
 	
 	@Override
-	protected void onExit(final Creature character)
+	protected void onExit(final Creature creature)
 	{
-		if (character instanceof Player)
-			character.setInsideZone(ZoneId.HQ, false);
+		if (creature instanceof Player player)
+			player.setInsideZone(ZoneId.HQ, false);
 	}
 }

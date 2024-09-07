@@ -5,15 +5,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
 import net.sf.l2j.commons.lang.StringUtil;
 import net.sf.l2j.commons.random.Rnd;
 import net.sf.l2j.commons.util.ArraysUtil;
 
+import net.sf.l2j.gameserver.enums.EventHandler;
 import net.sf.l2j.gameserver.enums.Paperdoll;
 import net.sf.l2j.gameserver.enums.QuestStatus;
-import net.sf.l2j.gameserver.enums.ScriptEventType;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
@@ -766,7 +765,7 @@ public class Q335_SongOfTheHunter extends Quest
 			for (int i = 0; i < _spawnCount; i++)
 			{
 				final Npc newNpc = addSpawn(_spawnId, npc, true, 300000, true);
-				newNpc.forceAttack(player, 200);
+				newNpc.getAI().addAttackDesire(player, 200);
 				
 				if (_message != null)
 					newNpc.broadcastNpcSay(_message);
@@ -892,14 +891,14 @@ public class Q335_SongOfTheHunter extends Quest
 		
 		setItemsIds(CYBELLIN_DAGGER, LICENSE_1, LICENSE_2, LAUREL_LEAF_PIN, TEST_INSTRUCTIONS_1, TEST_INSTRUCTIONS_2, CYBELLIN_REQUEST, BASILISK_SCALE, KARUT_WEED, HAKA_HEAD, JAKA_HEAD, MARKA_HEAD, ALEPH_SKIN, INDIGO_RUNESTONE, SPORESEA_SEED, ORC_TOTEM, TRISALIM_SILK, AMBROSIUS_FRUIT, BALEFIRE_CRYSTAL, IMPERIAL_ARROWHEAD, ATHU_HEAD, LANKA_HEAD, TRISKA_HEAD, MOTURA_HEAD, KALATH_HEAD, BLOOD_CRYSTAL_01, BLOOD_CRYSTAL_02, BLOOD_CRYSTAL_03, BLOOD_CRYSTAL_04, BLOOD_CRYSTAL_05, BLOOD_CRYSTAL_06, BLOOD_CRYSTAL_07, BLOOD_CRYSTAL_08, BLOOD_CRYSTAL_09, BLOOD_CRYSTAL_10, BROKEN_BLOOD, REQUEST_1ST_1C, REQUEST_1ST_2C, REQUEST_1ST_3C, REQUEST_1ST_4C, REQUEST_1ST_5C, REQUEST_1ST_6C, REQUEST_1ST_7C, REQUEST_1ST_8C, REQUEST_1ST_9C, REQUEST_1ST_10C, REQUEST_1ST_11C, REQUEST_1ST_12C, REQUEST_1ST_1B, REQUEST_1ST_2B, REQUEST_1ST_3B, REQUEST_1ST_4B, REQUEST_1ST_5B, REQUEST_1ST_6B, REQUEST_1ST_1A, REQUEST_1ST_2A, REQUEST_1ST_3A, REQUEST_2ND_1C, REQUEST_2ND_2C, REQUEST_2ND_3C, REQUEST_2ND_4C, REQUEST_2ND_5C, REQUEST_2ND_6C, REQUEST_2ND_7C, REQUEST_2ND_8C, REQUEST_2ND_9C, REQUEST_2ND_10C, REQUEST_2ND_11C, REQUEST_2ND_12C, REQUEST_2ND_1B, REQUEST_2ND_2B, REQUEST_2ND_3B, REQUEST_2ND_4B, REQUEST_2ND_5B, REQUEST_2ND_6B, REQUEST_2ND_1A, REQUEST_2ND_2A, REQUEST_2ND_3A, CHARM_OF_KADESH, TIMAK_JADE_NECKLACE, ENCHANTED_GOLEM_SHARD, GIANT_MONSTER_EYE_MEAT, DIRE_WYRM_EGG, GRD_BASILISK_TALON, REVENANT_CHAINS, WINDSUS_TUSK, GRANDIS_SKULL, TAIK_OBSIDIAN_AMULET, KARUL_BUGBEAR_HEAD, TAMLIN_IVORY_CHARM, FANG_OF_NARAK, ENCHANTED_GARGOYLE_HORN, COILED_SERPENT_TOTEM, TOTEM_OF_KADESH, KAIKI_HEAD, KRONBE_VENOM_SAC, EVA_CHARM, TITAN_TABLET, BOOK_OF_SHUNAIMAN, ROTTING_TREE_SPORES, TRISALIM_VENOM_SAC, TAIK_ORC_TOTEM, HARIT_BARBED_NECKLACE, COIN_OF_OLD_EMPIRE, SKIN_OF_FARCRAN, TEMPEST_SHARD, TSUNAMI_SHARD, SATYR_MANE, HAMADRYAD_SHARD, VANOR_SILENOS_MANE, TALK_BUGBEAR_TOTEM, OKUN_HEAD, KAKRAN_HEAD, NARCISSUS_SOULSTONE, DEPRIVE_EYE, UNICORN_HORN, KERUNO_GOLD_MANE, SKULL_OF_EXECUTED, BUST_OF_TRAVIS, SWORD_OF_CADMUS);
 		
-		addStartNpc(GREY);
+		addQuestStart(GREY);
 		addTalkId(GREY, TOR, CYBELLIN);
 		
-		addEventIds(GREY_TEST_1_DROPLIST.keySet(), ScriptEventType.ON_KILL);
-		addEventIds(GREY_TEST_2_DROPLIST.keySet(), ScriptEventType.ON_KILL);
-		addEventIds(TOR_REQUEST_DROPLIST.stream().map(TorRequestDroplist::getMonster).collect(Collectors.toList()), ScriptEventType.ON_KILL);
-		addEventIds(TOR_REQUEST_SPAWN.stream().map(TorRequestSpawn::getMonster).collect(Collectors.toList()), ScriptEventType.ON_KILL);
-		addEventIds(CYBELLIN_REQUEST_DROPLIST, ScriptEventType.ON_KILL);
+		addEventIds(GREY_TEST_1_DROPLIST.keySet(), EventHandler.MY_DYING);
+		addEventIds(GREY_TEST_2_DROPLIST.keySet(), EventHandler.MY_DYING);
+		addEventIds(TOR_REQUEST_DROPLIST.stream().map(TorRequestDroplist::getMonster).toList(), EventHandler.MY_DYING);
+		addEventIds(TOR_REQUEST_SPAWN.stream().map(TorRequestSpawn::getMonster).toList(), EventHandler.MY_DYING);
+		addEventIds(CYBELLIN_REQUEST_DROPLIST, EventHandler.MY_DYING);
 	}
 	
 	@Override
@@ -1126,20 +1125,20 @@ public class Q335_SongOfTheHunter extends Quest
 		{
 			boolean sound = false;
 			
-			if (!player.getInventory().hasItems(CYBELLIN_REQUEST))
+			if (!player.getInventory().hasItem(CYBELLIN_REQUEST))
 			{
 				giveItems(player, CYBELLIN_REQUEST, 1);
 				sound = true;
 			}
 			
-			if (!player.getInventory().hasItems(CYBELLIN_DAGGER))
+			if (!player.getInventory().hasItem(CYBELLIN_DAGGER))
 			{
 				giveItems(player, CYBELLIN_DAGGER, 1);
 				sound = true;
 			}
 			
 			takeItems(player, BROKEN_BLOOD, -1);
-			if (!player.getInventory().hasItems(BLOOD_CRYSTAL_01))
+			if (!player.getInventory().hasItem(BLOOD_CRYSTAL_01))
 			{
 				giveItems(player, BLOOD_CRYSTAL_01, 1);
 				sound = true;
@@ -1156,7 +1155,7 @@ public class Q335_SongOfTheHunter extends Quest
 			{
 				final int bloodCrystal = entry.getKey();
 				
-				if (player.getInventory().hasItems(bloodCrystal))
+				if (player.getInventory().hasItem(bloodCrystal))
 				{
 					takeItems(player, bloodCrystal, -1);
 					rewardItems(player, ADENA, entry.getValue());
@@ -1273,7 +1272,7 @@ public class Q335_SongOfTheHunter extends Quest
 									// hunting license 1 - multiple options
 									if (player.getStatus().getLevel() >= 45)
 									{
-										if (player.getInventory().hasItems(TEST_INSTRUCTIONS_2))
+										if (player.getInventory().hasItem(TEST_INSTRUCTIONS_2))
 											htmltext = "30745-03.htm";
 										else
 											htmltext = "30745-03a.htm";
@@ -1316,20 +1315,20 @@ public class Q335_SongOfTheHunter extends Quest
 							if (st.getInteger("cybellin") == 0)
 								htmltext = "30746-02.htm";
 							// Has Blood Crystal 1
-							else if (player.getInventory().hasItems(BLOOD_CRYSTAL_01))
+							else if (player.getInventory().hasItem(BLOOD_CRYSTAL_01))
 								htmltext = "30746-04.htm";
 							// Has Blood Crystal 2-9
 							else if (player.getInventory().hasAtLeastOneItem(BLOOD_CRYSTAL_02, BLOOD_CRYSTAL_03, BLOOD_CRYSTAL_04, BLOOD_CRYSTAL_05, BLOOD_CRYSTAL_06, BLOOD_CRYSTAL_07, BLOOD_CRYSTAL_08, BLOOD_CRYSTAL_09))
 								htmltext = "30746-05.htm";
 							// Has Blood Crystal 10
-							else if (player.getInventory().hasItems(BLOOD_CRYSTAL_10))
+							else if (player.getInventory().hasItem(BLOOD_CRYSTAL_10))
 							{
 								htmltext = "30746-05a.htm";
 								takeItems(player, BLOOD_CRYSTAL_10, -1);
 								rewardItems(player, ADENA, CYBELLIN_REQUEST_REWARDS.get(BLOOD_CRYSTAL_10));
 							}
 							// Has Broken Blood
-							else if (player.getInventory().hasItems(BROKEN_BLOOD))
+							else if (player.getInventory().hasItem(BROKEN_BLOOD))
 							{
 								htmltext = "30746-09.htm";
 								takeItems(player, BROKEN_BLOOD, -1);
@@ -1347,13 +1346,13 @@ public class Q335_SongOfTheHunter extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final int npcId = npc.getNpcId();
 		final int cond = st.getCond();
@@ -1370,15 +1369,15 @@ public class Q335_SongOfTheHunter extends Quest
 			// Breka Orc Warrior summons sequentially 3 Breka Bandits
 			else if (npcId == BREKA_ORC_WARRIOR && Rnd.get(100) < 20) // 10% C4, 20% GF
 			{
-				if (!player.getInventory().hasItems(HAKA_HEAD))
+				if (!player.getInventory().hasItem(HAKA_HEAD))
 					addSpawn(BREKA_OVERLORD_HAKA, npc, true, 300000, true);
-				else if (!player.getInventory().hasItems(JAKA_HEAD))
+				else if (!player.getInventory().hasItem(JAKA_HEAD))
 					addSpawn(BREKA_OVERLORD_JAKA, npc, true, 300000, true);
-				else if (!player.getInventory().hasItems(MARKA_HEAD))
+				else if (!player.getInventory().hasItem(MARKA_HEAD))
 					addSpawn(BREKA_OVERLORD_MARKA, npc, true, 300000, true);
 			}
 			// Windsus summons Windsus Aleph
-			else if (npcId == WINDSUS && !player.getInventory().hasItems(ALEPH_SKIN) && Rnd.get(100) < 20) // 10% C4, 20% GF
+			else if (npcId == WINDSUS && !player.getInventory().hasItem(ALEPH_SKIN) && Rnd.get(100) < 20) // 10% C4, 20% GF
 				addSpawn(WINDSUS_ALEPH, npc, true, 300000, true);
 		}
 		// Hunter license 1 or 2
@@ -1392,15 +1391,15 @@ public class Q335_SongOfTheHunter extends Quest
 					dropItems(player, dropData[0], 1, dropData[1], dropData[2]);
 				else if (npcId == TARLK_BUGBEAR_WARRIOR && Rnd.get(100) < 20) // 10% C4, 20% GF
 				{
-					if (!player.getInventory().hasItems(ATHU_HEAD))
+					if (!player.getInventory().hasItem(ATHU_HEAD))
 						addSpawn(TARLK_RAIDER_ATHU, npc, true, 300000, true);
-					else if (!player.getInventory().hasItems(LANKA_HEAD))
+					else if (!player.getInventory().hasItem(LANKA_HEAD))
 						addSpawn(TARLK_RAIDER_LANKA, npc, true, 300000, true);
-					else if (!player.getInventory().hasItems(TRISKA_HEAD))
+					else if (!player.getInventory().hasItem(TRISKA_HEAD))
 						addSpawn(TARLK_RAIDER_TRISKA, npc, true, 300000, true);
-					else if (!player.getInventory().hasItems(MOTURA_HEAD))
+					else if (!player.getInventory().hasItem(MOTURA_HEAD))
 						addSpawn(TARLK_RAIDER_MOTURA, npc, true, 300000, true);
-					else if (!player.getInventory().hasItems(KALATH_HEAD))
+					else if (!player.getInventory().hasItem(KALATH_HEAD))
 						addSpawn(TARLK_RAIDER_KALATH, npc, true, 300000, true);
 				}
 			}
@@ -1432,7 +1431,7 @@ public class Q335_SongOfTheHunter extends Quest
 				
 				for (int bloodCrystal : CYBELLIN_REQUEST_REWARDS.keySet())
 				{
-					if (bloodCrystal == BLOOD_CRYSTAL_10 || !player.getInventory().hasItems(bloodCrystal))
+					if (bloodCrystal == BLOOD_CRYSTAL_10 || !player.getInventory().hasItem(bloodCrystal))
 						continue;
 					
 					// Delete actual crystal.
@@ -1456,8 +1455,6 @@ public class Q335_SongOfTheHunter extends Quest
 				}
 			}
 		}
-		
-		return null;
 	}
 	
 	/**

@@ -28,10 +28,10 @@ public class Q365_DevilsLegacy extends Quest
 		
 		setItemsIds(PIRATE_TREASURE_CHEST);
 		
-		addStartNpc(RANDOLF);
+		addQuestStart(RANDOLF);
 		addTalkId(RANDOLF, COLLOB);
 		
-		addKillId(20836, 20845, 21629, 21630); // Pirate Zombie && Pirate Zombie Captain.
+		addMyDying(20836, 20845, 21629, 21630); // Pirate Zombie && Pirate Zombie Captain.
 	}
 	
 	@Override
@@ -55,9 +55,9 @@ public class Q365_DevilsLegacy extends Quest
 		}
 		else if (event.equalsIgnoreCase("30092-05.htm"))
 		{
-			if (!player.getInventory().hasItems(PIRATE_TREASURE_CHEST))
+			if (!player.getInventory().hasItem(PIRATE_TREASURE_CHEST))
 				htmltext = "30092-02.htm";
-			else if (player.getInventory().getItemCount(57) < 600)
+			else if (player.getAdena() < 600)
 				htmltext = "30092-03.htm";
 			else
 			{
@@ -132,7 +132,7 @@ public class Q365_DevilsLegacy extends Quest
 				switch (npc.getNpcId())
 				{
 					case RANDOLF:
-						if (!player.getInventory().hasItems(PIRATE_TREASURE_CHEST))
+						if (!player.getInventory().hasItem(PIRATE_TREASURE_CHEST))
 							htmltext = "30095-03.htm";
 						else
 						{
@@ -155,16 +155,14 @@ public class Q365_DevilsLegacy extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMemberState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		dropItems(st.getPlayer(), PIRATE_TREASURE_CHEST, 1, 0, (npc.getNpcId() == 20836) ? 360000 : 520000);
-		
-		return null;
 	}
 }

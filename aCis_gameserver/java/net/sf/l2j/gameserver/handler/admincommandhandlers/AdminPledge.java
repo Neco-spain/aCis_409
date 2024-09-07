@@ -6,6 +6,7 @@ import net.sf.l2j.gameserver.data.sql.ClanTable;
 import net.sf.l2j.gameserver.handler.IAdminCommandHandler;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.pledge.Clan;
+import net.sf.l2j.gameserver.model.pledge.ClanMember;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.GMViewPledgeInfo;
 
@@ -109,11 +110,29 @@ public class AdminPledge implements IAdminCommandHandler
 							player.sendMessage("Invalid number parameter for //pledge rep.");
 						}
 					}
+					else if (action.startsWith("transfer"))
+					{
+						final ClanMember member = targetClan.getClanMember(targetPlayer.getObjectId());
+						if (member == null)
+						{
+							player.sendMessage(targetPlayer.getName() + " can't be set as the new Clan leader of " + targetClan.getName() + ".");
+							return;
+						}
+						
+						if (targetClan.getLeader() == member)
+						{
+							player.sendMessage(targetPlayer.getName() + " is already the Clan leader of " + targetClan.getName() + ".");
+							return;
+						}
+						
+						targetClan.setNewLeader(member);
+						player.sendMessage("You set " + member.getName() + " as the new Clan leader of " + targetClan.getName() + ".");
+					}
 				}
 			}
 			catch (Exception e)
 			{
-				player.sendMessage("Usage: //pledge create|dismiss|info|level|rep");
+				player.sendMessage("Usage: //pledge create|dismiss|info|level|rep|transfer");
 			}
 		}
 		sendFile(player, "game_menu.htm");

@@ -6,10 +6,9 @@ import net.sf.l2j.commons.logging.CLogger;
 import net.sf.l2j.commons.util.ArraysUtil;
 
 import net.sf.l2j.gameserver.data.SkillTable;
-import net.sf.l2j.gameserver.data.xml.MapRegionData;
+import net.sf.l2j.gameserver.data.xml.RestartPointData;
 import net.sf.l2j.gameserver.enums.MessageType;
 import net.sf.l2j.gameserver.enums.OlympiadType;
-import net.sf.l2j.gameserver.enums.SpawnType;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.Summon;
@@ -19,12 +18,12 @@ import net.sf.l2j.gameserver.model.holder.IntIntHolder;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.location.Location;
 import net.sf.l2j.gameserver.model.pledge.Clan;
+import net.sf.l2j.gameserver.model.restart.RestartPoint;
 import net.sf.l2j.gameserver.model.zone.type.OlympiadStadiumZone;
-import net.sf.l2j.gameserver.model.zone.type.TownZone;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ExOlympiadMode;
-import net.sf.l2j.gameserver.network.serverpackets.InventoryUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.L2GameServerPacket;
+import net.sf.l2j.gameserver.network.serverpackets.SkillList;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.skills.L2Skill;
 
@@ -34,12 +33,6 @@ import net.sf.l2j.gameserver.skills.L2Skill;
 public abstract class AbstractOlympiadGame
 {
 	protected static final CLogger LOGGER = new CLogger(AbstractOlympiadGame.class.getName());
-	
-	protected static final String POINTS = "olympiad_points";
-	protected static final String COMP_DONE = "competitions_done";
-	protected static final String COMP_WON = "competitions_won";
-	protected static final String COMP_LOST = "competitions_lost";
-	protected static final String COMP_DRAWN = "competitions_drawn";
 	
 	protected final int _stadiumId;
 	
@@ -193,14 +186,14 @@ public abstract class AbstractOlympiadGame
 	
 	protected final void addPointsToParticipant(Participant par, int points)
 	{
-		par.updateStat(POINTS, points);
+		par.getNoble().updatePoints(points);
 		
 		broadcastPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_HAS_GAINED_S2_OLYMPIAD_POINTS).addString(par.getName()).addNumber(points));
 	}
 	
 	protected final void removePointsFromParticipant(Participant par, int points)
 	{
-		par.updateStat(POINTS, -points);
+		par.getNoble().updatePoints(-points);
 		
 		broadcastPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_HAS_LOST_S2_OLYMPIAD_POINTS).addString(par.getName()).addNumber(points));
 	}
@@ -239,7 +232,7 @@ public abstract class AbstractOlympiadGame
 			return SystemMessage.getSystemMessage(SystemMessageId.THE_GAME_HAS_BEEN_CANCELLED_BECAUSE_THE_OTHER_PARTY_DOES_NOT_MEET_THE_REQUIREMENTS_FOR_JOINING_THE_GAME);
 		}
 		
-		if (player.getStatus().isOverburden())
+		if (player.isOverweight())
 		{
 			player.sendPacket(SystemMessageId.SINCE_80_PERCENT_OR_MORE_OF_YOUR_INVENTORY_SLOTS_ARE_FULL_YOU_CANNOT_PARTICIPATE_IN_THE_OLYMPIAD);
 			return SystemMessage.getSystemMessage(SystemMessageId.THE_GAME_HAS_BEEN_CANCELLED_BECAUSE_THE_OTHER_PARTY_DOES_NOT_MEET_THE_REQUIREMENTS_FOR_JOINING_THE_GAME);
@@ -303,7 +296,7 @@ public abstract class AbstractOlympiadGame
 		// Remove Hero Skills
 		if (player.isHero())
 		{
-			for (L2Skill skill : SkillTable.getHeroSkills())
+			for (L2Skill skill : SkillTable.getInstance().getHeroSkills())
 				player.removeSkill(skill.getId(), false);
 		}
 		
@@ -352,7 +345,7 @@ public abstract class AbstractOlympiadGame
 		if (item != null)
 			item.unChargeAllShots();
 		
-		player.sendSkillList();
+		player.sendPacket(new SkillList(player));
 	}
 	
 	/**
@@ -428,10 +421,10 @@ public abstract class AbstractOlympiadGame
 		// Add Hero skills.
 		if (player.isHero())
 		{
-			for (L2Skill skill : SkillTable.getHeroSkills())
+			for (L2Skill skill : SkillTable.getInstance().getHeroSkills())
 				player.addSkill(skill, false);
 		}
-		player.sendSkillList();
+		player.sendPacket(new SkillList(player));
 	}
 	
 	/**
@@ -440,19 +433,17 @@ public abstract class AbstractOlympiadGame
 	 */
 	protected static final void portPlayerBack(Player player)
 	{
-		if (player == null)
+		// If player is null or saved Location is empty, return.
+		if (player == null || player.getSavedLocation().equals(Location.DUMMY_LOC))
 			return;
 		
-		// Retrieve the initial Location.
-		Location loc = player.getSavedLocation();
-		if (loc.equals(Location.DUMMY_LOC))
-			return;
+		// Search nearest RestartPoint using saved Location.
+		final RestartPoint rp = RestartPointData.getInstance().getRestartPoint(player.getSavedLocation());
 		
-		final TownZone town = MapRegionData.getTown(loc.getX(), loc.getY(), loc.getZ());
-		if (town != null)
-			loc = town.getRndSpawn(SpawnType.NORMAL);
+		// Teleport the Player in one random Location took from RestartPoint. If not found, use saved Location directly.
+		player.teleportTo((rp != null) ? rp.getRandomPoint() : player.getSavedLocation(), 0);
 		
-		player.teleportTo(loc, 0);
+		// Reset saved Location.
 		player.getSavedLocation().clean();
 	}
 	
@@ -466,16 +457,13 @@ public abstract class AbstractOlympiadGame
 		if (player == null || !player.isOnline() || ArraysUtil.isEmpty(reward))
 			return;
 		
-		final InventoryUpdate iu = new InventoryUpdate();
 		for (IntIntHolder it : reward)
 		{
-			final ItemInstance item = player.getInventory().addItem("Olympiad", it.getId(), it.getValue(), player, null);
+			final ItemInstance item = player.getInventory().addItem(it.getId(), it.getValue());
 			if (item == null)
 				continue;
 			
-			iu.addModifiedItem(item);
 			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.EARNED_S2_S1_S).addItemName(it.getId()).addNumber(it.getValue()));
 		}
-		player.sendPacket(iu);
 	}
 }

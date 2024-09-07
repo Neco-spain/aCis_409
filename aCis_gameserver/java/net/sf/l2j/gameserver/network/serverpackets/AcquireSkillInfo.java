@@ -3,29 +3,15 @@ package net.sf.l2j.gameserver.network.serverpackets;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.sf.l2j.gameserver.model.records.SkillRequirement;
+
 public class AcquireSkillInfo extends L2GameServerPacket
 {
-	private final List<Req> _reqs;
+	private final List<SkillRequirement> _reqs;
 	private final int _id;
 	private final int _level;
 	private final int _spCost;
 	private final int _mode;
-	
-	private static class Req
-	{
-		public int itemId;
-		public int count;
-		public int type;
-		public int unk;
-		
-		public Req(int pType, int pItemId, int pCount, int pUnk)
-		{
-			itemId = pItemId;
-			type = pType;
-			count = pCount;
-			unk = pUnk;
-		}
-	}
 	
 	public AcquireSkillInfo(int id, int level, int spCost, int mode)
 	{
@@ -38,7 +24,7 @@ public class AcquireSkillInfo extends L2GameServerPacket
 	
 	public void addRequirement(int type, int id, int count, int unk)
 	{
-		_reqs.add(new Req(type, id, count, unk));
+		_reqs.add(new SkillRequirement(type, id, count, unk));
 	}
 	
 	@Override
@@ -52,12 +38,12 @@ public class AcquireSkillInfo extends L2GameServerPacket
 		
 		writeD(_reqs.size());
 		
-		for (Req temp : _reqs)
+		for (SkillRequirement temp : _reqs)
 		{
-			writeD(temp.type);
-			writeD(temp.itemId);
-			writeD(temp.count);
-			writeD(temp.unk);
+			writeD(temp.type());
+			writeD(temp.itemId());
+			writeD(temp.count());
+			writeD(temp.unk());
 		}
 	}
 }

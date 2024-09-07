@@ -50,8 +50,8 @@ public class AdminDoor implements IAdminCommandHandler
 	
 	private static void testDoor(Player player, WorldObject worldObject, boolean isOpenCondition)
 	{
-		if (worldObject instanceof Door)
-			((Door) worldObject).changeState(isOpenCondition, false);
+		if (worldObject instanceof Door door)
+			door.changeState(isOpenCondition, false);
 		else
 			player.sendPacket(SystemMessageId.INVALID_TARGET);
 	}

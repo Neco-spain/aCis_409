@@ -39,7 +39,7 @@ import net.sf.l2j.loginserver.network.serverpackets.ServerBasePacket;
 
 public class GameServerThread extends Thread
 {
-	protected static final CLogger LOGGER = new CLogger(GameServerThread.class.getName());
+	private static final CLogger LOGGER = new CLogger(GameServerThread.class.getName());
 	
 	private final Set<String> _accountsOnGameServer = new HashSet<>();
 	
@@ -106,7 +106,7 @@ public class GameServerThread extends Thread
 				lengthHi = _in.read();
 				length = lengthHi * 256 + lengthLo;
 				
-				if (lengthHi < 0 || _connection.isClosed())
+				if (lengthHi < 0 || length < 2 || _connection.isClosed())
 					break;
 				
 				byte[] data = new byte[length - 2];
@@ -120,20 +120,14 @@ public class GameServerThread extends Thread
 				}
 				
 				if (receivedBytes != length - 2)
-				{
-					LOGGER.warn("Incomplete packet is sent to the server, closing connection.");
 					break;
-				}
 				
 				// Decrypt if we have a key.
 				_blowfish.decrypt(data, 0, data.length);
 				
 				checksumOk = NewCrypt.verifyChecksum(data);
 				if (!checksumOk)
-				{
-					LOGGER.warn("Incorrect packet checksum, closing connection.");
 					return;
-				}
 				
 				int packetType = data[0] & 0xff;
 				switch (packetType)
@@ -433,5 +427,10 @@ public class GameServerThread extends Thread
 	private int getServerId()
 	{
 		return (_gsi == null) ? -1 : _gsi.getId();
+	}
+	
+	public String getConnectionIp()
+	{
+		return _connectionIp;
 	}
 }

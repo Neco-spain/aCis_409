@@ -3,11 +3,11 @@ package net.sf.l2j.gameserver.skills;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.StringTokenizer;
 
 import net.sf.l2j.commons.data.StatSet;
 import net.sf.l2j.commons.logging.CLogger;
-import net.sf.l2j.commons.math.MathUtil;
 
 import net.sf.l2j.gameserver.data.SkillTable;
 import net.sf.l2j.gameserver.enums.items.ArmorType;
@@ -26,7 +26,6 @@ import net.sf.l2j.gameserver.model.actor.Attackable;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.actor.Summon;
 import net.sf.l2j.gameserver.model.actor.instance.Cubic;
 import net.sf.l2j.gameserver.model.actor.instance.Door;
 import net.sf.l2j.gameserver.model.actor.instance.SiegeFlag;
@@ -394,6 +393,28 @@ public abstract class L2Skill implements IChanceSkillTrigger
 		}
 	}
 	
+	@Override
+	public int hashCode()
+	{
+		return Objects.hash(_id, _level);
+	}
+	
+	@Override
+	public boolean equals(Object obj)
+	{
+		if (this == obj)
+			return true;
+		
+		if (obj == null)
+			return false;
+		
+		if (getClass() != obj.getClass())
+			return false;
+		
+		final L2Skill other = (L2Skill) obj;
+		return _id == other._id && _level == other._level;
+	}
+	
 	public abstract void useSkill(Creature caster, WorldObject[] targets);
 	
 	public final boolean isPotion()
@@ -547,8 +568,7 @@ public abstract class L2Skill implements IChanceSkillTrigger
 		// Allow damage dealing skills having proper resist even without specified effectPower.
 		switch (_skillType)
 		{
-			case PDAM:
-			case MDAM:
+			case PDAM, MDAM:
 				return 20;
 			
 			default:
@@ -828,10 +848,7 @@ public abstract class L2Skill implements IChanceSkillTrigger
 	{
 		switch (_skillType)
 		{
-			case BLOW:
-			case PDAM:
-			case STUN:
-			case CHARGEDAM:
+			case BLOW, PDAM, STUN, CHARGEDAM:
 				return true;
 		}
 		return false;
@@ -1042,8 +1059,8 @@ public abstract class L2Skill implements IChanceSkillTrigger
 			mask |= weapon.getItemType().mask();
 		
 		final Item shield = activeChar.getSecondaryWeaponItem();
-		if (shield instanceof Armor)
-			mask |= ((ArmorType) shield.getItemType()).mask();
+		if (shield instanceof Armor armor)
+			mask |= armor.getItemType().mask();
 		
 		if ((mask & weaponsAllowed) != 0)
 			return true;
@@ -1079,27 +1096,6 @@ public abstract class L2Skill implements IChanceSkillTrigger
 				return false;
 			}
 		}
-		return true;
-	}
-	
-	public final boolean addSummon(Creature caster, Player owner, boolean isDead)
-	{
-		final Summon summon = owner.getSummon();
-		
-		if (summon == null)
-			return false;
-		
-		return addCharacter(caster, summon, isDead);
-	}
-	
-	public final boolean addCharacter(Creature caster, Creature target, boolean isDead)
-	{
-		if (isDead != target.isDead())
-			return false;
-		
-		if (_skillRadius > 0 && !MathUtil.checkIfInRange(_skillRadius, caster, target, true))
-			return false;
-		
 		return true;
 	}
 	
@@ -1151,16 +1147,26 @@ public abstract class L2Skill implements IChanceSkillTrigger
 		if (effected instanceof Door || effected instanceof SiegeFlag || effected.isDead())
 			return Collections.emptyList();
 		
-		if (effector != effected && (isOffensive() || isDebuff()))
+		// If caster isn't the target.
+		if (effector != effected)
 		{
-			if (effected.isInvul())
+			// Check range distance.
+			if (getEffectRange() > 0 && effector != null && !effector.isIn3DRadius(effected, getEffectRange()))
 				return Collections.emptyList();
 			
-			if (effector != null)
+			if (isOffensive() || isDebuff())
 			{
-				final Player effectorPlayer = effector.getActingPlayer();
-				if (effectorPlayer != null && !effectorPlayer.getAccessLevel().canGiveDamage())
+				// Check if target is invulnerable.
+				if (effected.isInvul())
 					return Collections.emptyList();
+				
+				// Check if caster can give damage.
+				if (effector != null)
+				{
+					final Player effectorPlayer = effector.getActingPlayer();
+					if (effectorPlayer != null && !effectorPlayer.getAccessLevel().canGiveDamage())
+						return Collections.emptyList();
+				}
 			}
 		}
 		
@@ -1187,8 +1193,8 @@ public abstract class L2Skill implements IChanceSkillTrigger
 				}
 			}
 			// display fail message only for effects with icons
-			else if (template.showIcon() && effector instanceof Player)
-				((Player) effector).sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(effected).addSkillName(this));
+			else if (template.showIcon() && effector instanceof Player player)
+				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(effected).addSkillName(this));
 		}
 		return effects;
 	}
@@ -1200,41 +1206,7 @@ public abstract class L2Skill implements IChanceSkillTrigger
 	
 	public final List<AbstractEffect> getEffects(Cubic effector, Creature effected, ShieldDefense sDef, boolean isBlessedSpiritShot)
 	{
-		if (!hasEffects() || isPassive())
-			return Collections.emptyList();
-		
-		if (effector.getOwner() != effected && (isDebuff() || isOffensive()))
-		{
-			if (effected.isInvul())
-				return Collections.emptyList();
-			
-			if (!effector.getOwner().getAccessLevel().canGiveDamage())
-				return Collections.emptyList();
-		}
-		
-		// Perfect block, don't bother going further.
-		if (sDef == ShieldDefense.PERFECT)
-			return Collections.emptyList();
-		
-		final List<AbstractEffect> effects = new ArrayList<>(_effectTemplates.size());
-		
-		for (EffectTemplate template : _effectTemplates)
-		{
-			boolean success = true;
-			if (template.getEffectPower() > -1)
-				success = Formulas.calcEffectSuccess(effector.getOwner(), effected, template, this, isBlessedSpiritShot);
-			
-			if (success)
-			{
-				final AbstractEffect effect = template.getEffect(effector.getOwner(), effected, this);
-				if (effect != null)
-				{
-					effect.scheduleEffect();
-					effects.add(effect);
-				}
-			}
-		}
-		return effects;
+		return getEffects(effector.getOwner(), effected, sDef, isBlessedSpiritShot);
 	}
 	
 	public final List<AbstractEffect> getEffectsSelf(Creature effector)

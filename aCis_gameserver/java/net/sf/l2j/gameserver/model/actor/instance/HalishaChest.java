@@ -18,10 +18,4 @@ public final class HalishaChest extends Monster
 	{
 		return true;
 	}
-	
-	@Override
-	public boolean hasRandomAnimation()
-	{
-		return false;
-	}
 }

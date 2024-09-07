@@ -5,7 +5,6 @@ import net.sf.l2j.commons.random.Rnd;
 import net.sf.l2j.gameserver.enums.QuestStatus;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.location.Location;
 import net.sf.l2j.gameserver.model.location.SpawnLocation;
 import net.sf.l2j.gameserver.scripting.Quest;
 import net.sf.l2j.gameserver.scripting.QuestState;
@@ -41,10 +40,8 @@ public class Q652_AnAgedExAdventurer extends Quest
 	{
 		super(652, "An Aged Ex-Adventurer");
 		
-		addStartNpc(TANTAN);
+		addQuestStart(TANTAN);
 		addTalkId(TANTAN, SARA);
-		
-		addSpawn(TANTAN, 78355, -1325, -3659, 0, false, 0, false);
 	}
 	
 	@Override
@@ -64,8 +61,7 @@ public class Q652_AnAgedExAdventurer extends Quest
 				playSound(player, SOUND_ACCEPT);
 				takeItems(player, SOULSHOT_C, 100);
 				
-				npc.getAI().tryToMoveTo(new Location(85326, 7869, -3620), null);
-				startQuestTimer("apparition_npc", npc, null, 6000);
+				startQuestTimer("65201", npc, null, 3000);
 			}
 			else
 			{
@@ -80,7 +76,7 @@ public class Q652_AnAgedExAdventurer extends Quest
 	@Override
 	public String onTimer(String name, Npc npc, Player player)
 	{
-		if (name.equalsIgnoreCase("apparition_npc"))
+		if (name.equalsIgnoreCase("65201"))
 		{
 			int chance = Rnd.get(5);
 			

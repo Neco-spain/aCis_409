@@ -23,33 +23,7 @@ public class Q631_DeliciousTopChoiceMeat extends Quest
 	private static final int TOP_QUALITY_MEAT = 7546;
 	
 	// Drop chances
-	private static final Map<Integer, Integer> CHANCES = new HashMap<>();
-	{
-		CHANCES.put(21460, 601000);
-		CHANCES.put(21461, 480000);
-		CHANCES.put(21462, 447000);
-		CHANCES.put(21463, 808000);
-		CHANCES.put(21464, 447000);
-		CHANCES.put(21465, 808000);
-		CHANCES.put(21466, 447000);
-		CHANCES.put(21467, 808000);
-		CHANCES.put(21479, 477000);
-		CHANCES.put(21480, 863000);
-		CHANCES.put(21481, 477000);
-		CHANCES.put(21482, 863000);
-		CHANCES.put(21483, 477000);
-		CHANCES.put(21484, 863000);
-		CHANCES.put(21485, 477000);
-		CHANCES.put(21486, 863000);
-		CHANCES.put(21498, 509000);
-		CHANCES.put(21499, 920000);
-		CHANCES.put(21500, 509000);
-		CHANCES.put(21501, 920000);
-		CHANCES.put(21502, 509000);
-		CHANCES.put(21503, 920000);
-		CHANCES.put(21504, 509000);
-		CHANCES.put(21505, 920000);
-	}
+	private static final Map<Integer, Integer> CHANCES = HashMap.newHashMap(24);
 	
 	// Rewards
 	private static final int[][] REWARDS =
@@ -84,13 +58,38 @@ public class Q631_DeliciousTopChoiceMeat extends Quest
 	{
 		super(631, "Delicious Top Choice Meat");
 		
+		CHANCES.put(21460, 601000);
+		CHANCES.put(21461, 480000);
+		CHANCES.put(21462, 447000);
+		CHANCES.put(21463, 808000);
+		CHANCES.put(21464, 447000);
+		CHANCES.put(21465, 808000);
+		CHANCES.put(21466, 447000);
+		CHANCES.put(21467, 808000);
+		CHANCES.put(21479, 477000);
+		CHANCES.put(21480, 863000);
+		CHANCES.put(21481, 477000);
+		CHANCES.put(21482, 863000);
+		CHANCES.put(21483, 477000);
+		CHANCES.put(21484, 863000);
+		CHANCES.put(21485, 477000);
+		CHANCES.put(21486, 863000);
+		CHANCES.put(21498, 509000);
+		CHANCES.put(21499, 920000);
+		CHANCES.put(21500, 509000);
+		CHANCES.put(21501, 920000);
+		CHANCES.put(21502, 509000);
+		CHANCES.put(21503, 920000);
+		CHANCES.put(21504, 509000);
+		CHANCES.put(21505, 920000);
+		
 		setItemsIds(TOP_QUALITY_MEAT);
 		
-		addStartNpc(TUNATUN);
+		addQuestStart(TUNATUN);
 		addTalkId(TUNATUN);
 		
 		for (int npcId : CHANCES.keySet())
-			addKillId(npcId);
+			addMyDying(npcId);
 	}
 	
 	@Override
@@ -173,17 +172,15 @@ public class Q631_DeliciousTopChoiceMeat extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMember(player, npc, 1);
 		if (st == null)
-			return null;
+			return;
 		
 		if (dropItems(st.getPlayer(), TOP_QUALITY_MEAT, 1, 120, CHANCES.get(npc.getNpcId())))
 			st.setCond(2);
-		
-		return null;
 	}
 }

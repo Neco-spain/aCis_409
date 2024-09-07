@@ -43,10 +43,10 @@ public class Q104_SpiritOfMirrors extends Quest
 		
 		setItemsIds(GALLINS_OAK_WAND, WAND_SPIRITBOUND_1, WAND_SPIRITBOUND_2, WAND_SPIRITBOUND_3);
 		
-		addStartNpc(GALLINT);
+		addQuestStart(GALLINT);
 		addTalkId(GALLINT, ARNOLD, JOHNSTONE, KENYOS);
 		
-		addKillId(27003, 27004, 27005);
+		addMyDying(27003, 27004, 27005);
 	}
 	
 	@Override
@@ -125,9 +125,7 @@ public class Q104_SpiritOfMirrors extends Quest
 						}
 						break;
 					
-					case KENYOS:
-					case JOHNSTONE:
-					case ARNOLD:
+					case KENYOS, JOHNSTONE, ARNOLD:
 						htmltext = npc.getNpcId() + "-01.htm";
 						if (cond == 1)
 						{
@@ -147,20 +145,20 @@ public class Q104_SpiritOfMirrors extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		if (player.getInventory().getItemIdFrom(Paperdoll.RHAND) == GALLINS_OAK_WAND)
 		{
 			switch (npc.getNpcId())
 			{
 				case 27003:
-					if (!player.getInventory().hasItems(WAND_SPIRITBOUND_1))
+					if (!player.getInventory().hasItem(WAND_SPIRITBOUND_1))
 					{
 						takeItems(player, GALLINS_OAK_WAND, 1);
 						giveItems(player, WAND_SPIRITBOUND_1, 1);
@@ -176,7 +174,7 @@ public class Q104_SpiritOfMirrors extends Quest
 					break;
 				
 				case 27004:
-					if (!player.getInventory().hasItems(WAND_SPIRITBOUND_2))
+					if (!player.getInventory().hasItem(WAND_SPIRITBOUND_2))
 					{
 						takeItems(player, GALLINS_OAK_WAND, 1);
 						giveItems(player, WAND_SPIRITBOUND_2, 1);
@@ -192,7 +190,7 @@ public class Q104_SpiritOfMirrors extends Quest
 					break;
 				
 				case 27005:
-					if (!player.getInventory().hasItems(WAND_SPIRITBOUND_3))
+					if (!player.getInventory().hasItem(WAND_SPIRITBOUND_3))
 					{
 						takeItems(player, GALLINS_OAK_WAND, 1);
 						giveItems(player, WAND_SPIRITBOUND_3, 1);
@@ -208,7 +206,5 @@ public class Q104_SpiritOfMirrors extends Quest
 					break;
 			}
 		}
-		
-		return null;
 	}
 }

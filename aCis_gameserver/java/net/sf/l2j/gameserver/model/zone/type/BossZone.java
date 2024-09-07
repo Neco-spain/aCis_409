@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import net.sf.l2j.commons.pool.ConnectionPool;
 
-import net.sf.l2j.gameserver.data.xml.MapRegionData.TeleportType;
+import net.sf.l2j.gameserver.enums.RestartType;
 import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.model.actor.Attackable;
 import net.sf.l2j.gameserver.model.actor.Creature;
@@ -75,14 +75,13 @@ public class BossZone extends ZoneType
 	}
 	
 	@Override
-	protected void onEnter(Creature character)
+	protected void onEnter(Creature creature)
 	{
-		character.setInsideZone(ZoneId.BOSS, true);
+		creature.setInsideZone(ZoneId.BOSS, true);
 		
-		if (character instanceof Player)
+		if (creature instanceof Player player)
 		{
-			// Get player and set zone info.
-			final Player player = (Player) character;
+			// Set zone info.
 			player.setInsideZone(ZoneId.NO_SUMMON_FRIEND, true);
 			
 			// Skip other checks for GM or if no invade time is set.
@@ -107,33 +106,32 @@ public class BossZone extends ZoneType
 			if (_oustLoc[0] != 0 && _oustLoc[1] != 0 && _oustLoc[2] != 0)
 				player.teleportTo(_oustLoc[0], _oustLoc[1], _oustLoc[2], 0);
 			else
-				player.teleportTo(TeleportType.TOWN);
+				player.teleportTo(RestartType.TOWN);
 		}
-		else if (character instanceof Summon)
+		else if (creature instanceof Summon summon)
 		{
-			final Player player = ((Summon) character).getOwner();
+			final Player player = summon.getOwner();
 			if (player != null)
 			{
 				if (_allowedPlayers.contains(player.getObjectId()) || player.isGM() || _invadeTime == 0)
 					return;
 				
 				// Remove summon.
-				((Summon) character).unSummon(player);
+				summon.unSummon(player);
 			}
 		}
 	}
 	
 	@Override
-	protected void onExit(Creature character)
+	protected void onExit(Creature creature)
 	{
-		character.setInsideZone(ZoneId.BOSS, false);
+		creature.setInsideZone(ZoneId.BOSS, false);
 		
-		if (character instanceof Playable)
+		if (creature instanceof Playable)
 		{
-			if (character instanceof Player)
+			if (creature instanceof Player player)
 			{
-				// Get player and set zone info.
-				final Player player = (Player) character;
+				// Set zone info.
 				player.setInsideZone(ZoneId.NO_SUMMON_FRIEND, false);
 				
 				// Skip other checks for GM or if no invade time is set.
@@ -163,7 +161,7 @@ public class BossZone extends ZoneType
 			}
 			
 			// If playables aren't found, force all bosses to return to spawnpoint.
-			if (!_characters.isEmpty())
+			if (!_creatures.isEmpty())
 			{
 				if (!getKnownTypeInside(Playable.class).isEmpty())
 					return;
@@ -177,8 +175,8 @@ public class BossZone extends ZoneType
 				}
 			}
 		}
-		else if (character instanceof Attackable && character.isRaidRelated())
-			((Attackable) character).returnHome();
+		else if (creature instanceof Attackable attackable && attackable.isRaidRelated())
+			attackable.returnHome();
 	}
 	
 	/**
@@ -230,7 +228,7 @@ public class BossZone extends ZoneType
 	}
 	
 	/**
-	 * @return the list of all allowed {@link Player}s objectIds.
+	 * @return the {@link Set} of all allowed {@link Player}s objectIds.
 	 */
 	public Set<Integer> getAllowedPlayers()
 	{
@@ -238,8 +236,8 @@ public class BossZone extends ZoneType
 	}
 	
 	/**
-	 * Teleport all {@link Player}s located in this {@link BossZone} to a specific location, as listed on {@link #_oustLoc}. Clear both containers holding Players informations.
-	 * @return the List of all Players who have been forced to teleport.
+	 * Teleport all {@link Player}s located in this {@link BossZone} to a specific location, as listed on {@link #_oustLoc}. Clear both containers holding {@link Player}s informations.
+	 * @return the {@link List} of all {@link Player}s who have been forced to teleport.
 	 */
 	public List<Player> oustAllPlayers()
 	{
@@ -254,7 +252,7 @@ public class BossZone extends ZoneType
 				if (_oustLoc[0] != 0 && _oustLoc[1] != 0 && _oustLoc[2] != 0)
 					player.teleportTo(_oustLoc[0], _oustLoc[1], _oustLoc[2], 0);
 				else
-					player.teleportTo(TeleportType.TOWN);
+					player.teleportTo(RestartType.TOWN);
 			}
 		}
 		_allowedPlayersEntryTime.clear();

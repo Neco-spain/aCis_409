@@ -1,7 +1,6 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
-import net.sf.l2j.gameserver.model.clanhall.ClanHall;
-import net.sf.l2j.gameserver.model.clanhall.ClanHallFunction;
+import net.sf.l2j.gameserver.model.residence.clanhall.ClanHall;
 
 public class ClanHallDecoration extends L2GameServerPacket
 {
@@ -19,107 +18,39 @@ public class ClanHallDecoration extends L2GameServerPacket
 		writeD(_ch.getId());
 		
 		// FUNC_RESTORE_HP
-		ClanHallFunction chf = _ch.getFunction(ClanHall.FUNC_RESTORE_HP);
-		if (chf == null || chf.getLvl() == 0)
-			writeC(0);
-		else if ((_ch.getGrade() == 0 && chf.getLvl() < 220) || (_ch.getGrade() == 1 && chf.getLvl() < 160) || (_ch.getGrade() == 2 && chf.getLvl() < 260) || (_ch.getGrade() == 3 && chf.getLvl() < 300))
-			writeC(1);
-		else
-			writeC(2);
+		writeC(_ch.getDecoDepth(ClanHall.FUNC_RESTORE_HP));
 		
 		// FUNC_RESTORE_MP
-		chf = _ch.getFunction(ClanHall.FUNC_RESTORE_MP);
-		if (chf == null || chf.getLvl() == 0)
-		{
-			writeC(0);
-			writeC(0);
-		}
-		else if (((_ch.getGrade() == 0 || _ch.getGrade() == 1) && chf.getLvl() < 25) || (_ch.getGrade() == 2 && chf.getLvl() < 30) || (_ch.getGrade() == 3 && chf.getLvl() < 40))
-		{
-			writeC(1);
-			writeC(1);
-		}
-		else
-		{
-			writeC(2);
-			writeC(2);
-		}
+		writeC(_ch.getDecoDepth(ClanHall.FUNC_RESTORE_MP));
+		
+		// NOT USED - Statue
+		writeC(0);
 		
 		// FUNC_RESTORE_EXP
-		chf = _ch.getFunction(ClanHall.FUNC_RESTORE_EXP);
-		if (chf == null || chf.getLvl() == 0)
-			writeC(0);
-		else if ((_ch.getGrade() == 0 && chf.getLvl() < 25) || (_ch.getGrade() == 1 && chf.getLvl() < 30) || (_ch.getGrade() == 2 && chf.getLvl() < 40) || (_ch.getGrade() == 3 && chf.getLvl() < 50))
-			writeC(1);
-		else
-			writeC(2);
+		writeC(_ch.getDecoDepth(ClanHall.FUNC_RESTORE_EXP));
 		
 		// FUNC_TELEPORT
-		chf = _ch.getFunction(ClanHall.FUNC_TELEPORT);
-		if (chf == null || chf.getLvl() == 0)
-			writeC(0);
-		else if (chf.getLvl() < 2)
-			writeC(1);
-		else
-			writeC(2);
+		writeC(_ch.getDecoDepth(ClanHall.FUNC_TELEPORT));
 		
+		// NOT USED - Crystal
 		writeC(0);
 		
 		// CURTAINS
-		chf = _ch.getFunction(ClanHall.FUNC_DECO_CURTAINS);
-		if (chf == null || chf.getLvl() == 0)
-			writeC(0);
-		else if (chf.getLvl() <= 1)
-			writeC(1);
-		else
-			writeC(2);
+		writeC(_ch.getDecoDepth(ClanHall.FUNC_DECO_CURTAINS));
 		
-		// FUNC_ITEM_CREATE
-		chf = _ch.getFunction(ClanHall.FUNC_ITEM_CREATE);
-		if (chf == null || chf.getLvl() == 0)
-			writeC(0);
-		else if ((_ch.getGrade() == 0 && chf.getLvl() < 2) || chf.getLvl() < 3)
-			writeC(1);
-		else
-			writeC(2);
+		// NOT USED - Hangings
+		writeC(0);
 		
 		// FUNC_SUPPORT
-		chf = _ch.getFunction(ClanHall.FUNC_SUPPORT);
-		if (chf == null || chf.getLvl() == 0)
-		{
-			writeC(0);
-			writeC(0);
-		}
-		else if ((_ch.getGrade() == 0 && chf.getLvl() < 2) || (_ch.getGrade() == 1 && chf.getLvl() < 4) || (_ch.getGrade() == 2 && chf.getLvl() < 5) || (_ch.getGrade() == 3 && chf.getLvl() < 8))
-		{
-			writeC(1);
-			writeC(1);
-		}
-		else
-		{
-			writeC(2);
-			writeC(2);
-		}
+		writeC(_ch.getDecoDepth(ClanHall.FUNC_SUPPORT_MAGIC));
+		
+		// NOT USED - Flag
+		writeC(0);
 		
 		// Front Plateform
-		chf = _ch.getFunction(ClanHall.FUNC_DECO_FRONTPLATEFORM);
-		if (chf == null || chf.getLvl() == 0)
-			writeC(0);
-		else if (chf.getLvl() <= 1)
-			writeC(1);
-		else
-			writeC(2);
+		writeC(_ch.getDecoDepth(ClanHall.FUNC_DECO_FIXTURES));
 		
 		// FUNC_ITEM_CREATE
-		chf = _ch.getFunction(ClanHall.FUNC_ITEM_CREATE);
-		if (chf == null || chf.getLvl() == 0)
-			writeC(0);
-		else if ((_ch.getGrade() == 0 && chf.getLvl() < 2) || chf.getLvl() < 3)
-			writeC(1);
-		else
-			writeC(2);
-		
-		writeD(0);
-		writeD(0);
+		writeC(_ch.getDecoDepth(ClanHall.FUNC_CREATE_ITEM));
 	}
 }

@@ -6,8 +6,8 @@ import java.util.logging.LogRecord;
 public class ChatFilter implements Filter
 {
 	@Override
-	public boolean isLoggable(LogRecord record)
+	public boolean isLoggable(LogRecord logRecord)
 	{
-		return record.getLoggerName().equals("chat");
+		return logRecord.getLoggerName().equals("chat");
 	}
 }

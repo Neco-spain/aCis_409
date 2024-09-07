@@ -41,35 +41,35 @@ public class MotherTreeZone extends ZoneType
 	}
 	
 	@Override
-	protected boolean isAffected(Creature character)
+	protected boolean isAffected(Creature creature)
 	{
-		if (_race > -1 && character instanceof Player)
-			return _race == ((Player) character).getRace().ordinal();
+		if (_race > -1 && creature instanceof Player player)
+			return _race == player.getRace().ordinal();
 		
 		return true;
 	}
 	
 	@Override
-	protected void onEnter(Creature character)
+	protected void onEnter(Creature creature)
 	{
-		if (character instanceof Player)
+		if (creature instanceof Player player)
 		{
-			character.setInsideZone(ZoneId.MOTHER_TREE, true);
+			player.setInsideZone(ZoneId.MOTHER_TREE, true);
 			
 			if (_enterMsg != 0)
-				character.sendPacket(SystemMessage.getSystemMessage(_enterMsg));
+				player.sendPacket(SystemMessage.getSystemMessage(_enterMsg));
 		}
 	}
 	
 	@Override
-	protected void onExit(Creature character)
+	protected void onExit(Creature creature)
 	{
-		if (character instanceof Player)
+		if (creature instanceof Player player)
 		{
-			character.setInsideZone(ZoneId.MOTHER_TREE, false);
+			player.setInsideZone(ZoneId.MOTHER_TREE, false);
 			
 			if (_leaveMsg != 0)
-				character.sendPacket(SystemMessage.getSystemMessage(_leaveMsg));
+				player.sendPacket(SystemMessage.getSystemMessage(_leaveMsg));
 		}
 	}
 	

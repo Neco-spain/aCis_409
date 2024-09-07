@@ -28,10 +28,10 @@ public class Q347_GoGetTheCalculator extends Quest
 		
 		setItemsIds(GEMSTONE_BEAST_CRYSTAL, CALCULATOR_QUEST);
 		
-		addStartNpc(BRUNON);
+		addQuestStart(BRUNON);
 		addTalkId(BRUNON, SILVERA, SPIRON, BALANKI);
 		
-		addKillId(20540);
+		addMyDying(20540);
 	}
 	
 	@Override
@@ -50,7 +50,7 @@ public class Q347_GoGetTheCalculator extends Quest
 		}
 		else if (event.equalsIgnoreCase("30533-03.htm"))
 		{
-			if (player.getInventory().getItemCount(57) >= 100)
+			if (player.getAdena() >= 100)
 			{
 				htmltext = "30533-02.htm";
 				takeItems(player, 57, 100);
@@ -109,7 +109,7 @@ public class Q347_GoGetTheCalculator extends Quest
 				switch (npc.getNpcId())
 				{
 					case BRUNON:
-						htmltext = (!player.getInventory().hasItems(CALCULATOR_QUEST)) ? "30526-06.htm" : "30526-07.htm";
+						htmltext = (!player.getInventory().hasItem(CALCULATOR_QUEST)) ? "30526-06.htm" : "30526-07.htm";
 						break;
 					
 					case SPIRON:
@@ -153,16 +153,14 @@ public class Q347_GoGetTheCalculator extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerCondition(player, npc, 5);
 		if (st == null)
-			return null;
+			return;
 		
 		dropItems(player, GEMSTONE_BEAST_CRYSTAL, 1, 10, 500000);
-		
-		return null;
 	}
 }

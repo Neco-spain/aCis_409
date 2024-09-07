@@ -14,13 +14,15 @@ public class FishingZone extends ZoneType
 	}
 	
 	@Override
-	protected void onEnter(Creature character)
+	protected void onEnter(Creature creature)
 	{
+		// Do nothing.
 	}
 	
 	@Override
-	protected void onExit(Creature character)
+	protected void onExit(Creature creature)
 	{
+		// Do nothing.
 	}
 	
 	public int getWaterZ()

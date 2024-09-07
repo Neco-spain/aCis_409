@@ -21,12 +21,11 @@ public class FishingSkill implements ISkillHandler
 	};
 	
 	@Override
-	public void useSkill(Creature activeChar, L2Skill skill, WorldObject[] targets)
+	public void useSkill(Creature creature, L2Skill skill, WorldObject[] targets, ItemInstance item)
 	{
-		if (!(activeChar instanceof Player))
+		if (!(creature instanceof Player player))
 			return;
 		
-		final Player player = (Player) activeChar;
 		final boolean isReelingSkill = skill.getSkillType() == SkillType.REELING;
 		
 		if (!player.getFishingStance().isUnderFishCombat())
@@ -36,11 +35,11 @@ public class FishingSkill implements ISkillHandler
 			return;
 		}
 		
-		final ItemInstance fishingRod = activeChar.getActiveWeaponInstance();
+		final ItemInstance fishingRod = creature.getActiveWeaponInstance();
 		if (fishingRod == null || fishingRod.getItem().getItemType() != WeaponType.FISHINGROD)
 			return;
 		
-		final int ssBonus = (activeChar.isChargedShot(ShotType.FISH_SOULSHOT)) ? 2 : 1;
+		final int ssBonus = (creature.isChargedShot(ShotType.FISH_SOULSHOT)) ? 2 : 1;
 		final double gradeBonus = 1 + fishingRod.getItem().getCrystalType().getId() * 0.1;
 		
 		int damage = (int) (skill.getPower() * gradeBonus * ssBonus);

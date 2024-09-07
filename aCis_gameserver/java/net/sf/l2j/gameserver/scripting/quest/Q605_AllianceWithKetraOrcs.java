@@ -20,49 +20,9 @@ public class Q605_AllianceWithKetraOrcs extends Quest
 	private static final String QUEST_NAME = "Q605_AllianceWithKetraOrcs";
 	private static final String qn2 = "Q606_WarWithVarkaSilenos";
 	
-	private static final Map<Integer, Integer> CHANCES = new HashMap<>();
-	{
-		CHANCES.put(21350, 500000);
-		CHANCES.put(21351, 500000);
-		CHANCES.put(21353, 509000);
-		CHANCES.put(21354, 521000);
-		CHANCES.put(21355, 519000);
-		CHANCES.put(21357, 500000);
-		CHANCES.put(21358, 500000);
-		CHANCES.put(21360, 509000);
-		CHANCES.put(21361, 518000);
-		CHANCES.put(21362, 518000);
-		CHANCES.put(21364, 527000);
-		CHANCES.put(21365, 500000);
-		CHANCES.put(21366, 500000);
-		CHANCES.put(21368, 508000);
-		CHANCES.put(21369, 628000);
-		CHANCES.put(21370, 604000);
-		CHANCES.put(21371, 627000);
-		CHANCES.put(21372, 604000);
-		CHANCES.put(21373, 649000);
-		CHANCES.put(21374, 626000);
-		CHANCES.put(21375, 626000);
-	}
+	private static final Map<Integer, Integer> CHANCES = HashMap.newHashMap(21);
 	
-	private static final Map<Integer, Integer> CHANCES_MANE = new HashMap<>();
-	{
-		CHANCES_MANE.put(21350, 500000);
-		CHANCES_MANE.put(21353, 510000);
-		CHANCES_MANE.put(21354, 522000);
-		CHANCES_MANE.put(21355, 519000);
-		CHANCES_MANE.put(21357, 529000);
-		CHANCES_MANE.put(21358, 529000);
-		CHANCES_MANE.put(21360, 539000);
-		CHANCES_MANE.put(21362, 548000);
-		CHANCES_MANE.put(21364, 558000);
-		CHANCES_MANE.put(21365, 568000);
-		CHANCES_MANE.put(21366, 568000);
-		CHANCES_MANE.put(21368, 568000);
-		CHANCES_MANE.put(21369, 664000);
-		CHANCES_MANE.put(21371, 713000);
-		CHANCES_MANE.put(21373, 738000);
-	}
+	private static final Map<Integer, Integer> CHANCES_MANE = HashMap.newHashMap(15);
 	
 	// Quest Items
 	private static final int VARKA_BADGE_SOLDIER = 7216;
@@ -84,13 +44,51 @@ public class Q605_AllianceWithKetraOrcs extends Quest
 	{
 		super(605, "Alliance with Ketra Orcs");
 		
+		CHANCES.put(21350, 500000);
+		CHANCES.put(21351, 500000);
+		CHANCES.put(21353, 509000);
+		CHANCES.put(21354, 521000);
+		CHANCES.put(21355, 519000);
+		CHANCES.put(21357, 500000);
+		CHANCES.put(21358, 500000);
+		CHANCES.put(21360, 509000);
+		CHANCES.put(21361, 518000);
+		CHANCES.put(21362, 518000);
+		CHANCES.put(21364, 527000);
+		CHANCES.put(21365, 500000);
+		CHANCES.put(21366, 500000);
+		CHANCES.put(21368, 508000);
+		CHANCES.put(21369, 628000);
+		CHANCES.put(21370, 604000);
+		CHANCES.put(21371, 627000);
+		CHANCES.put(21372, 604000);
+		CHANCES.put(21373, 649000);
+		CHANCES.put(21374, 626000);
+		CHANCES.put(21375, 626000);
+		
+		CHANCES_MANE.put(21350, 500000);
+		CHANCES_MANE.put(21353, 510000);
+		CHANCES_MANE.put(21354, 522000);
+		CHANCES_MANE.put(21355, 519000);
+		CHANCES_MANE.put(21357, 529000);
+		CHANCES_MANE.put(21358, 529000);
+		CHANCES_MANE.put(21360, 539000);
+		CHANCES_MANE.put(21362, 548000);
+		CHANCES_MANE.put(21364, 558000);
+		CHANCES_MANE.put(21365, 568000);
+		CHANCES_MANE.put(21366, 568000);
+		CHANCES_MANE.put(21368, 568000);
+		CHANCES_MANE.put(21369, 664000);
+		CHANCES_MANE.put(21371, 713000);
+		CHANCES_MANE.put(21373, 738000);
+		
 		setItemsIds(VARKA_BADGE_SOLDIER, VARKA_BADGE_OFFICER, VARKA_BADGE_CAPTAIN);
 		
-		addStartNpc(31371); // Wahkan
+		addQuestStart(31371); // Wahkan
 		addTalkId(31371);
 		
 		for (int mobs : CHANCES.keySet())
-			addKillId(mobs);
+			addMyDying(mobs);
 	}
 	
 	@Override
@@ -111,7 +109,7 @@ public class Q605_AllianceWithKetraOrcs extends Quest
 				playSound(player, SOUND_ACCEPT);
 				for (int i = KETRA_ALLIANCE_1; i <= KETRA_ALLIANCE_5; i++)
 				{
-					if (player.getInventory().hasItems(i))
+					if (player.getInventory().hasItem(i))
 					{
 						st.setCond(i - 7209);
 						player.setAllianceWithVarkaKetra(i - 7210);
@@ -249,14 +247,14 @@ public class Q605_AllianceWithKetraOrcs extends Quest
 				}
 				else if (cond == 4)
 				{
-					if (player.getInventory().getItemCount(VARKA_BADGE_SOLDIER) < 300 || player.getInventory().getItemCount(VARKA_BADGE_OFFICER) < 300 || player.getInventory().getItemCount(VARKA_BADGE_CAPTAIN) < 200 || !player.getInventory().hasItems(TOTEM_OF_VALOR))
+					if (player.getInventory().getItemCount(VARKA_BADGE_SOLDIER) < 300 || player.getInventory().getItemCount(VARKA_BADGE_OFFICER) < 300 || player.getInventory().getItemCount(VARKA_BADGE_CAPTAIN) < 200 || !player.getInventory().hasItem(TOTEM_OF_VALOR))
 						htmltext = "31371-21.htm";
 					else
 						htmltext = "31371-22.htm";
 				}
 				else if (cond == 5)
 				{
-					if (player.getInventory().getItemCount(VARKA_BADGE_SOLDIER) < 400 || player.getInventory().getItemCount(VARKA_BADGE_OFFICER) < 400 || player.getInventory().getItemCount(VARKA_BADGE_CAPTAIN) < 200 || !player.getInventory().hasItems(TOTEM_OF_WISDOM))
+					if (player.getInventory().getItemCount(VARKA_BADGE_SOLDIER) < 400 || player.getInventory().getItemCount(VARKA_BADGE_OFFICER) < 400 || player.getInventory().getItemCount(VARKA_BADGE_CAPTAIN) < 200 || !player.getInventory().hasItem(TOTEM_OF_WISDOM))
 						htmltext = "31371-17.htm";
 					else
 					{
@@ -281,13 +279,13 @@ public class Q605_AllianceWithKetraOrcs extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMemberState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		player = st.getPlayer();
 		final int npcId = npc.getNpcId();
@@ -297,20 +295,16 @@ public class Q605_AllianceWithKetraOrcs extends Quest
 		if (st2 != null && Rnd.nextBoolean() && CHANCES_MANE.containsKey(npcId))
 		{
 			dropItems(player, VARKA_MANE, 1, 0, CHANCES_MANE.get(npcId));
-			return null;
+			return;
 		}
 		
 		final int cond = st.getCond();
 		if (cond == 6)
-			return null;
+			return;
 		
 		switch (npcId)
 		{
-			case 21350:
-			case 21351:
-			case 21353:
-			case 21354:
-			case 21355:
+			case 21350, 21351, 21353, 21354, 21355:
 				if (cond == 1)
 					dropItems(player, VARKA_BADGE_SOLDIER, 1, 100, CHANCES.get(npcId));
 				else if (cond == 2)
@@ -321,14 +315,7 @@ public class Q605_AllianceWithKetraOrcs extends Quest
 					dropItems(player, VARKA_BADGE_SOLDIER, 1, 400, CHANCES.get(npcId));
 				break;
 			
-			case 21357:
-			case 21358:
-			case 21360:
-			case 21361:
-			case 21362:
-			case 21364:
-			case 21369:
-			case 21370:
+			case 21357, 21358, 21360, 21361, 21362, 21364, 21369, 21370:
 				if (cond == 2)
 					dropItems(player, VARKA_BADGE_OFFICER, 1, 100, CHANCES.get(npcId));
 				else if (cond == 3)
@@ -339,21 +326,12 @@ public class Q605_AllianceWithKetraOrcs extends Quest
 					dropItems(player, VARKA_BADGE_OFFICER, 1, 400, CHANCES.get(npcId));
 				break;
 			
-			case 21365:
-			case 21366:
-			case 21368:
-			case 21371:
-			case 21372:
-			case 21373:
-			case 21374:
-			case 21375:
+			case 21365, 21366, 21368, 21371, 21372, 21373, 21374, 21375:
 				if (cond == 3)
 					dropItems(player, VARKA_BADGE_CAPTAIN, 1, 100, CHANCES.get(npcId));
 				else if (cond == 4 || cond == 5)
 					dropItems(player, VARKA_BADGE_CAPTAIN, 1, 200, CHANCES.get(npcId));
 				break;
 		}
-		
-		return null;
 	}
 }

@@ -17,11 +17,9 @@ public class ConditionPlayerInvSize extends Condition
 	@Override
 	public boolean testImpl(Creature effector, Creature effected, L2Skill skill, Item item)
 	{
-		if (effector instanceof Player)
-		{
-			final Player player = (Player) effector;
+		if (effector instanceof Player player)
 			return player.getInventory().getSize() <= (player.getStatus().getInventoryLimit() - _size);
-		}
+		
 		return true;
 	}
 }

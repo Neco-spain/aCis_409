@@ -15,63 +15,67 @@ public abstract class GameServerBasePacket
 	
 	protected void writeD(int value)
 	{
-		_bao.write(value & 0xff);
-		_bao.write(value >> 8 & 0xff);
-		_bao.write(value >> 16 & 0xff);
-		_bao.write(value >> 24 & 0xff);
+		_bao.write(value & 0xFF);
+		_bao.write(value >> 8 & 0xFF);
+		_bao.write(value >> 16 & 0xFF);
+		_bao.write(value >> 24 & 0xFF);
 	}
 	
 	protected void writeH(int value)
 	{
-		_bao.write(value & 0xff);
-		_bao.write(value >> 8 & 0xff);
+		_bao.write(value & 0xFF);
+		_bao.write(value >> 8 & 0xFF);
 	}
 	
 	protected void writeC(int value)
 	{
-		_bao.write(value & 0xff);
+		_bao.write(value & 0xFF);
 	}
 	
 	protected void writeF(double org)
 	{
 		long value = Double.doubleToRawLongBits(org);
 		_bao.write((int) (value & 0xff));
-		_bao.write((int) (value >> 8 & 0xff));
-		_bao.write((int) (value >> 16 & 0xff));
-		_bao.write((int) (value >> 24 & 0xff));
-		_bao.write((int) (value >> 32 & 0xff));
-		_bao.write((int) (value >> 40 & 0xff));
-		_bao.write((int) (value >> 48 & 0xff));
-		_bao.write((int) (value >> 56 & 0xff));
+		_bao.write((int) (value >> 8 & 0xFF));
+		_bao.write((int) (value >> 16 & 0xFF));
+		_bao.write((int) (value >> 24 & 0xFF));
+		_bao.write((int) (value >> 32 & 0xFF));
+		_bao.write((int) (value >> 40 & 0xFF));
+		_bao.write((int) (value >> 48 & 0xFF));
+		_bao.write((int) (value >> 56 & 0xFF));
 	}
 	
 	protected void writeS(String text)
 	{
-		try
+		if (text != null && !text.isEmpty())
 		{
-			if (text != null)
+			try
 			{
 				_bao.write(text.getBytes(StandardCharsets.UTF_16LE));
 			}
-		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
+			catch (Exception e)
+			{
+				e.printStackTrace();
+			}
 		}
 		
+		// Write the null terminator.
 		_bao.write(0);
 		_bao.write(0);
 	}
 	
 	protected void writeB(byte[] array)
 	{
-		try
+		if (array != null && array.length > 0)
 		{
-			_bao.write(array);
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
+			try
+			{
+				_bao.write(array);
+			}
+			catch (IOException e)
+			{
+				e.printStackTrace();
+			}
 		}
 	}
 	
@@ -82,15 +86,15 @@ public abstract class GameServerBasePacket
 	
 	public byte[] getBytes()
 	{
-		writeD(0x00); // reserve for checksum
+		// Reserve 4 bytes for a checksum (currently just writing 0).
+		writeD(0x00);
 		
+		// Padding to ensure the byte array size is a multiple of 8.
 		int padding = _bao.size() % 8;
 		if (padding != 0)
 		{
 			for (int i = padding; i < 8; i++)
-			{
 				writeC(0x00);
-			}
 		}
 		
 		return _bao.toByteArray();

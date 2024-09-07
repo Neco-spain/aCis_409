@@ -56,11 +56,11 @@ public class Q325_GrimCollector extends Quest
 		
 		setItemsIds(ZOMBIE_HEAD, ZOMBIE_HEART, ZOMBIE_LIVER, SKULL, RIB_BONE, SPINE, ARM_BONE, THIGH_BONE, COMPLETE_SKELETON, ANATOMY_DIAGRAM);
 		
-		addStartNpc(CURTIS);
+		addQuestStart(CURTIS);
 		addTalkId(CURTIS, VARSAK, SAMED);
 		
 		for (int npcId : DROPLIST.keySet())
-			addKillId(npcId);
+			addMyDying(npcId);
 	}
 	
 	private static int getNumberOfPieces(Player player)
@@ -77,7 +77,7 @@ public class Q325_GrimCollector extends Quest
 			if (count > 10)
 				reward += 1629;
 			
-			if (player.getInventory().hasItems(COMPLETE_SKELETON))
+			if (player.getInventory().hasItem(COMPLETE_SKELETON))
 				reward += 543;
 			
 			takeItems(player, ZOMBIE_HEAD, -1);
@@ -174,18 +174,18 @@ public class Q325_GrimCollector extends Quest
 				switch (npc.getNpcId())
 				{
 					case CURTIS:
-						htmltext = (!player.getInventory().hasItems(ANATOMY_DIAGRAM)) ? "30336-04.htm" : "30336-05.htm";
+						htmltext = (!player.getInventory().hasItem(ANATOMY_DIAGRAM)) ? "30336-04.htm" : "30336-05.htm";
 						break;
 					
 					case SAMED:
-						if (!player.getInventory().hasItems(ANATOMY_DIAGRAM))
+						if (!player.getInventory().hasItem(ANATOMY_DIAGRAM))
 							htmltext = "30434-01.htm";
 						else
 						{
 							if (getNumberOfPieces(player) == 0)
 								htmltext = "30434-04.htm";
 							else
-								htmltext = (!player.getInventory().hasItems(COMPLETE_SKELETON)) ? "30434-05.htm" : "30434-08.htm";
+								htmltext = (!player.getInventory().hasItem(COMPLETE_SKELETON)) ? "30434-05.htm" : "30434-08.htm";
 						}
 						break;
 					
@@ -200,15 +200,15 @@ public class Q325_GrimCollector extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
-		if (player.getInventory().hasItems(ANATOMY_DIAGRAM))
+		if (player.getInventory().hasItem(ANATOMY_DIAGRAM))
 		{
 			final int chance = Rnd.get(100);
 			for (IntIntHolder drop : DROPLIST.get(npc.getNpcId()))
@@ -220,7 +220,5 @@ public class Q325_GrimCollector extends Quest
 				}
 			}
 		}
-		
-		return null;
 	}
 }

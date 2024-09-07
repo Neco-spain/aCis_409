@@ -8,6 +8,7 @@ public class RequestRecordInfo extends L2GameClientPacket
 	@Override
 	protected void readImpl()
 	{
+		// Do nothing.
 	}
 	
 	@Override

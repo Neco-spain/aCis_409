@@ -20,6 +20,30 @@ public final class ServerObjectInfo extends L2GameServerPacket
 	
 	private final boolean _isAttackable;
 	
+	private final int _type;
+	private final int _effect;
+	
+	public ServerObjectInfo(Npc npc, Creature actor, int type, int effect)
+	{
+		_npc = npc;
+		
+		_idTemplate = _npc.getTemplate().getIdTemplate();
+		_name = _npc.getName();
+		
+		_x = _npc.getX();
+		_y = _npc.getY();
+		_z = _npc.getZ();
+		_heading = _npc.getHeading();
+		
+		_collisionHeight = _npc.getCollisionHeight();
+		_collisionRadius = _npc.getCollisionRadius();
+		
+		_isAttackable = _npc.isAttackableBy(actor);
+		
+		_type = type;
+		_effect = effect;
+	}
+	
 	public ServerObjectInfo(Npc npc, Creature actor)
 	{
 		_npc = npc;
@@ -36,6 +60,9 @@ public final class ServerObjectInfo extends L2GameServerPacket
 		_collisionRadius = _npc.getCollisionRadius();
 		
 		_isAttackable = _npc.isAttackableBy(actor);
+		
+		_type = 1;
+		_effect = 0;
 	}
 	
 	@Override
@@ -56,7 +83,7 @@ public final class ServerObjectInfo extends L2GameServerPacket
 		writeF(_collisionHeight);
 		writeD((int) (_isAttackable ? _npc.getStatus().getHp() : 0));
 		writeD(_isAttackable ? _npc.getStatus().getMaxHp() : 0);
-		writeD(0x01); // object type
-		writeD(0x00); // special effects
+		writeD(_type);
+		writeD(_effect);
 	}
 }

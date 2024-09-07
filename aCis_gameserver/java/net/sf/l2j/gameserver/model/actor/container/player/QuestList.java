@@ -6,13 +6,12 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import net.sf.l2j.commons.logging.CLogger;
 import net.sf.l2j.commons.pool.ConnectionPool;
 
 import net.sf.l2j.gameserver.data.xml.ScriptData;
-import net.sf.l2j.gameserver.enums.ScriptEventType;
+import net.sf.l2j.gameserver.enums.EventHandler;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Npc;
@@ -72,7 +71,7 @@ public final class QuestList extends ArrayList<QuestState>
 	 */
 	public List<QuestState> getAllQuests(boolean completed)
 	{
-		return stream().filter(qs -> qs.getQuest().isRealQuest() && (qs.isStarted() || (qs.isCompleted() && completed))).collect(Collectors.toList());
+		return stream().filter(qs -> qs.getQuest().isRealQuest() && (qs.isStarted() || (qs.isCompleted() && completed))).toList();
 	}
 	
 	/**
@@ -81,7 +80,7 @@ public final class QuestList extends ArrayList<QuestState>
 	 */
 	public List<Quest> getQuests(Predicate<Quest> predicate)
 	{
-		return stream().map(QuestState::getQuest).filter(predicate).collect(Collectors.toList());
+		return stream().map(QuestState::getQuest).filter(predicate).toList();
 	}
 	
 	/**
@@ -129,14 +128,12 @@ public final class QuestList extends ArrayList<QuestState>
 			return;
 		
 		final WorldObject object = World.getInstance().getObject(getLastQuestNpcObjectId());
-		if (!(object instanceof Npc) || !_player.isIn3DRadius(object, Npc.INTERACTION_DISTANCE))
+		if (!(object instanceof Npc npc) || !_player.isIn3DRadius(npc, Npc.INTERACTION_DISTANCE))
 			return;
 		
-		final Npc npc = (Npc) object;
-		
-		for (Quest script : npc.getTemplate().getEventQuests(ScriptEventType.ON_TALK))
+		for (Quest script : npc.getTemplate().getEventQuests(EventHandler.TALKED))
 		{
-			if (script == null || !script.equals(quest))
+			if (!script.equals(quest))
 				continue;
 			
 			quest.notifyEvent(event, npc, _player);

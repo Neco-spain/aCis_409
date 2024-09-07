@@ -38,11 +38,11 @@ public class Q114_ResurrectionOfAnOldManager extends Quest
 		
 		setItemsIds(LETTER, DETECTOR, DETECTOR_2, STARSTONE, STARSTONE_2);
 		
-		addStartNpc(YUMI);
+		addQuestStart(YUMI);
 		addTalkId(YUMI, WENDY, BOX, STONE, NEWYEAR);
 		
-		addKillId(GOLEM);
-		addDecayId(GOLEM);
+		addDecayed(GOLEM);
+		addMyDying(GOLEM);
 	}
 	
 	@Override
@@ -191,7 +191,7 @@ public class Q114_ResurrectionOfAnOldManager extends Quest
 			{
 				_golem = addSpawn(GOLEM, 96977, -110625, -3322, 0, true, 300000, true);
 				_golem.broadcastNpcSay(NpcStringId.ID_11450, player.getName());
-				_golem.forceAttack(player, 2000);
+				_golem.getAI().addAttackDesire(player, 2000);
 			}
 			else
 				htmltext = "32047-19a.htm";
@@ -241,7 +241,7 @@ public class Q114_ResurrectionOfAnOldManager extends Quest
 		}
 		else if (event.equalsIgnoreCase("32047-38.htm"))
 		{
-			if (player.getInventory().getItemCount(57) >= 3000)
+			if (player.getAdena() >= 3000)
 			{
 				st.setCond(26);
 				playSound(player, SOUND_MIDDLE);
@@ -460,7 +460,7 @@ public class Q114_ResurrectionOfAnOldManager extends Quest
 	}
 	
 	@Override
-	public String onDecay(Npc npc)
+	public void onDecayed(Npc npc)
 	{
 		if (npc == _golem)
 		{
@@ -469,23 +469,19 @@ public class Q114_ResurrectionOfAnOldManager extends Quest
 			
 			_golem = null;
 		}
-		
-		return null;
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerCondition(player, npc, 10);
 		if (st == null)
-			return null;
+			return;
 		
 		st.setCond(11);
 		playSound(player, SOUND_MIDDLE);
 		npc.broadcastNpcSay(NpcStringId.ID_11452);
-		
-		return null;
 	}
 }

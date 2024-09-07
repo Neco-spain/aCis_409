@@ -27,8 +27,12 @@ public class Q378_MagnificentFeast extends Quest
 	private static final int RITRON_DESSERT = 5959;
 	
 	// Rewards
-	private static final Map<String, int[]> REWARDS = new HashMap<>();
+	private static final Map<String, int[]> REWARDS = HashMap.newHashMap(9);
+	
+	public Q378_MagnificentFeast()
 	{
+		super(378, "Magnificent Feast");
+		
 		REWARDS.put("9", new int[]
 		{
 			847,
@@ -83,13 +87,8 @@ public class Q378_MagnificentFeast extends Quest
 			1,
 			2200
 		});
-	}
-	
-	public Q378_MagnificentFeast()
-	{
-		super(378, "Magnificent Feast");
 		
-		addStartNpc(RANSPO);
+		addQuestStart(RANSPO);
 		addTalkId(RANSPO);
 	}
 	
@@ -109,7 +108,7 @@ public class Q378_MagnificentFeast extends Quest
 		}
 		else if (event.equalsIgnoreCase("30594-4a.htm"))
 		{
-			if (player.getInventory().hasItems(WINE_15))
+			if (player.getInventory().hasItem(WINE_15))
 			{
 				st.setCond(2);
 				st.set("score", 1);
@@ -121,7 +120,7 @@ public class Q378_MagnificentFeast extends Quest
 		}
 		else if (event.equalsIgnoreCase("30594-4b.htm"))
 		{
-			if (player.getInventory().hasItems(WINE_30))
+			if (player.getInventory().hasItem(WINE_30))
 			{
 				st.setCond(2);
 				st.set("score", 2);
@@ -133,7 +132,7 @@ public class Q378_MagnificentFeast extends Quest
 		}
 		else if (event.equalsIgnoreCase("30594-4c.htm"))
 		{
-			if (player.getInventory().hasItems(WINE_60))
+			if (player.getInventory().hasItem(WINE_60))
 			{
 				st.setCond(2);
 				st.set("score", 4);
@@ -145,7 +144,7 @@ public class Q378_MagnificentFeast extends Quest
 		}
 		else if (event.equalsIgnoreCase("30594-6.htm"))
 		{
-			if (player.getInventory().hasItems(MUSICAL_SCORE))
+			if (player.getInventory().hasItem(MUSICAL_SCORE))
 			{
 				st.setCond(3);
 				playSound(player, SOUND_MIDDLE);
@@ -159,7 +158,7 @@ public class Q378_MagnificentFeast extends Quest
 			int score = st.getInteger("score");
 			if (event.equalsIgnoreCase("30594-8a.htm"))
 			{
-				if (player.getInventory().hasItems(SALAD_RECIPE))
+				if (player.getInventory().hasItem(SALAD_RECIPE))
 				{
 					st.setCond(4);
 					st.set("score", score + 8);
@@ -171,7 +170,7 @@ public class Q378_MagnificentFeast extends Quest
 			}
 			else if (event.equalsIgnoreCase("30594-8b.htm"))
 			{
-				if (player.getInventory().hasItems(SAUCE_RECIPE))
+				if (player.getInventory().hasItem(SAUCE_RECIPE))
 				{
 					st.setCond(4);
 					st.set("score", score + 16);
@@ -183,7 +182,7 @@ public class Q378_MagnificentFeast extends Quest
 			}
 			else if (event.equalsIgnoreCase("30594-8c.htm"))
 			{
-				if (player.getInventory().hasItems(STEAK_RECIPE))
+				if (player.getInventory().hasItem(STEAK_RECIPE))
 				{
 					st.setCond(4);
 					st.set("score", score + 32);
@@ -217,13 +216,13 @@ public class Q378_MagnificentFeast extends Quest
 				if (cond == 1)
 					htmltext = "30594-3.htm";
 				else if (cond == 2)
-					htmltext = (!player.getInventory().hasItems(MUSICAL_SCORE)) ? "30594-5.htm" : "30594-5a.htm";
+					htmltext = (!player.getInventory().hasItem(MUSICAL_SCORE)) ? "30594-5.htm" : "30594-5a.htm";
 				else if (cond == 3)
 					htmltext = "30594-7.htm";
 				else if (cond == 4)
 				{
 					final String score = st.get("score");
-					if (REWARDS.containsKey(score) && player.getInventory().hasItems(RITRON_DESSERT))
+					if (REWARDS.containsKey(score) && player.getInventory().hasItem(RITRON_DESSERT))
 					{
 						htmltext = "30594-10.htm";
 						

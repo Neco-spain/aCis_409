@@ -27,7 +27,7 @@ public class ConditionElementSeed extends Condition
 		int[] seeds = new int[3];
 		for (int i = 0; i < seeds.length; i++)
 		{
-			seeds[i] = (effector.getFirstEffect(SEED_SKILLS[i]) instanceof EffectSeed ? ((EffectSeed) effector.getFirstEffect(SEED_SKILLS[i])).getPower() : 0);
+			seeds[i] = (effector.getFirstEffect(SEED_SKILLS[i]) instanceof EffectSeed effect) ? effect.getPower() : 0;
 			if (seeds[i] >= _requiredSeeds[i])
 				seeds[i] -= _requiredSeeds[i];
 			else

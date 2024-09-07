@@ -1,31 +1,34 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
+import net.sf.l2j.gameserver.model.actor.container.player.BoatInfo;
+import net.sf.l2j.gameserver.model.location.Location;
 import net.sf.l2j.gameserver.model.location.SpawnLocation;
 
 public class GetOnVehicle extends L2GameServerPacket
 {
 	private final int _objectId;
 	private final int _boatId;
-	private final int _x;
-	private final int _y;
-	private final int _z;
+	private final Location _location = new Location(0, 0, 0);
 	
 	public GetOnVehicle(int objectId, int boatId, int x, int y, int z)
 	{
 		_objectId = objectId;
 		_boatId = boatId;
-		_x = x;
-		_y = y;
-		_z = z;
+		_location.set(x, y, z);
 	}
 	
 	public GetOnVehicle(int objectId, int boatId, SpawnLocation loc)
 	{
 		_objectId = objectId;
 		_boatId = boatId;
-		_x = loc.getX();
-		_y = loc.getY();
-		_z = loc.getZ();
+		_location.set(loc);
+	}
+	
+	public GetOnVehicle(BoatInfo info)
+	{
+		_objectId = info.getPlayer().getObjectId();
+		_boatId = info.getBoat().getObjectId();
+		_location.set(info.getBoatPosition());
 	}
 	
 	@Override
@@ -34,8 +37,6 @@ public class GetOnVehicle extends L2GameServerPacket
 		writeC(0x5C);
 		writeD(_objectId);
 		writeD(_boatId);
-		writeD(_x);
-		writeD(_y);
-		writeD(_z);
+		writeLoc(_location);
 	}
 }

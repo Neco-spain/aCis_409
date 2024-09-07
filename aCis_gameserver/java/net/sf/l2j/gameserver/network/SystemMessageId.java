@@ -3812,7 +3812,7 @@ public final class SystemMessageId
 	 * ID: 681<br>
 	 * Message: The clan does not own a clan hall.
 	 */
-	// CLAN_HAS_NO_CLAN_HALL(681) // Doesn't exist in Hellbound anymore
+	public static final SystemMessageId CLAN_HAS_NO_CLAN_HALL;
 	
 	/**
 	 * ID: 683<br>
@@ -4398,7 +4398,7 @@ public final class SystemMessageId
 	
 	/**
 	 * ID: 790<br>
-	 * Message: The finals are finished.
+	 * Message: The finals have begun.
 	 */
 	public static final SystemMessageId CLANHALL_SIEGE_FINALS_BEGUN;
 	
@@ -12434,6 +12434,7 @@ public final class SystemMessageId
 		SUBMITTED_A_BID = new SystemMessageId(678);
 		CANCELED_BID = new SystemMessageId(679);
 		CANNOT_PARTICIPATE_IN_AUCTION = new SystemMessageId(680);
+		CLAN_HAS_NO_CLAN_HALL = new SystemMessageId(681);
 		SWEEP_NOT_ALLOWED = new SystemMessageId(683);
 		CANNOT_POSITION_MERCS_DURING_SIEGE = new SystemMessageId(684);
 		CANNOT_DECLARE_WAR_ON_ALLY = new SystemMessageId(685);
@@ -13809,7 +13810,9 @@ public final class SystemMessageId
 	private static final int parseMessageParameters(final String name)
 	{
 		int paramCount = 0;
-		char s1, c2;
+		char s1;
+		char c2;
+		
 		for (int i = 0; i < name.length() - 1; i++)
 		{
 			s1 = name.charAt(i);
@@ -13846,7 +13849,7 @@ public final class SystemMessageId
 		{
 			return (SystemMessageId) SystemMessageId.class.getField(name).get(null);
 		}
-		catch (final Exception e)
+		catch (Exception e)
 		{
 			return null;
 		}

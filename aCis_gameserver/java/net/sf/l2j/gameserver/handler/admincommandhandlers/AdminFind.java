@@ -1,19 +1,24 @@
 package net.sf.l2j.gameserver.handler.admincommandhandlers;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
-import java.util.stream.Collectors;
 
 import net.sf.l2j.commons.data.Pagination;
 import net.sf.l2j.commons.lang.StringUtil;
 
+import net.sf.l2j.gameserver.data.xml.ItemData;
+import net.sf.l2j.gameserver.data.xml.NpcData;
 import net.sf.l2j.gameserver.handler.IAdminCommandHandler;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
+import net.sf.l2j.gameserver.model.item.kind.Item;
 import net.sf.l2j.gameserver.network.GameClient;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
@@ -22,8 +27,7 @@ public class AdminFind implements IAdminCommandHandler
 {
 	private static final String[] ADMIN_COMMANDS =
 	{
-		"admin_find",
-		"admin_list"
+		"admin_find"
 	};
 	
 	@Override
@@ -35,50 +39,46 @@ public class AdminFind implements IAdminCommandHandler
 		if (command.startsWith("admin_find"))
 		{
 			final int paramCount = st.countTokens();
-			if (paramCount == 0)
+			if (paramCount < 1)
 			{
-				listAllPlayers(player, 1);
+				listPlayers(player, 1, "");
 				return;
 			}
 			
-			String param = null;
-			String nameIpOrPage = null;
-			
-			if (paramCount == 1)
-				nameIpOrPage = st.nextToken();
-			else if (paramCount == 2)
-			{
-				param = st.nextToken();
-				nameIpOrPage = st.nextToken();
-			}
-			
-			if (nameIpOrPage != null && StringUtil.isDigit(nameIpOrPage))
-			{
-				listAllPlayers(player, Integer.parseInt(nameIpOrPage));
-				return;
-			}
-			
-			if (param == null)
-			{
-				listAllPlayers(player, 1);
-				return;
-			}
+			final String param = st.nextToken();
+			final String nameIpOrPage = (paramCount > 1) ? st.nextToken() : "";
+			final String search = (paramCount > 2) ? st.nextToken().toLowerCase() : "";
 			
 			switch (param)
 			{
 				case "player":
+					if (paramCount < 2)
+					{
+						listPlayers(player, 1, "");
+						return;
+					}
+					
 					try
 					{
-						listPlayersPerName(player, nameIpOrPage);
+						if (StringUtil.isDigit(nameIpOrPage))
+							listPlayers(player, Integer.parseInt(nameIpOrPage), search);
+						else
+							listPlayers(player, 1, nameIpOrPage);
 					}
 					catch (Exception e)
 					{
 						player.sendMessage("Usage: //find player name");
-						listAllPlayers(player, 1);
+						listPlayers(player, 1, "");
 					}
 					break;
 				
 				case "ip":
+					if (paramCount < 2)
+					{
+						listPlayersPerIp(player, "127.0.0.1");
+						return;
+					}
+					
 					try
 					{
 						listPlayersPerIp(player, nameIpOrPage);
@@ -86,11 +86,16 @@ public class AdminFind implements IAdminCommandHandler
 					catch (Exception e)
 					{
 						player.sendMessage("Usage: //find ip 111.222.333.444");
-						listAllPlayers(player, 1);
 					}
 					break;
 				
 				case "account":
+					if (paramCount < 2)
+					{
+						listPlayersPerAccount(player, player.getName());
+						return;
+					}
+					
 					try
 					{
 						listPlayersPerAccount(player, nameIpOrPage);
@@ -98,7 +103,6 @@ public class AdminFind implements IAdminCommandHandler
 					catch (Exception e)
 					{
 						player.sendMessage("Usage: //find account name");
-						listAllPlayers(player, 1);
 					}
 					break;
 				
@@ -119,17 +123,50 @@ public class AdminFind implements IAdminCommandHandler
 						listDualbox(player, 2);
 					}
 					break;
-			}
-		}
-		else if (command.startsWith("admin_list"))
-		{
-			try
-			{
-				listAllPlayers(player, Integer.parseInt(st.nextToken()));
-			}
-			catch (Exception e)
-			{
-				player.sendMessage("Usage: //list page");
+				
+				case "item":
+					if (paramCount < 2)
+					{
+						listItems(player, 1, "");
+						return;
+					}
+					
+					try
+					{
+						if (StringUtil.isDigit(nameIpOrPage))
+							listItems(player, Integer.parseInt(nameIpOrPage), command.split(nameIpOrPage, 2)[1].trim());
+						else
+							listItems(player, 1, command.split(param, 2)[1].trim());
+					}
+					catch (Exception e)
+					{
+						listItems(player, 1, command.split(param, 2)[1].trim());
+					}
+					break;
+				
+				case "npc":
+					if (paramCount < 2)
+					{
+						listNpcs(player, 1, "");
+						return;
+					}
+					
+					try
+					{
+						if (StringUtil.isDigit(nameIpOrPage))
+							listNpcs(player, Integer.parseInt(nameIpOrPage), command.split(nameIpOrPage, 2)[1].trim());
+						else
+							listNpcs(player, 1, command.split(param, 2)[1].trim());
+					}
+					catch (Exception e)
+					{
+						listNpcs(player, 1, command.split(param, 2)[1].trim());
+					}
+					break;
+				
+				default:
+					player.sendMessage("Usage: //find [account|dualbox|ip|item|npc|player name/id]");
+					break;
 			}
 		}
 	}
@@ -138,74 +175,29 @@ public class AdminFind implements IAdminCommandHandler
 	 * Find all {@link Player}s and paginate them, then send back the results to the {@link Player}.
 	 * @param player : The {@link Player} to send back results.
 	 * @param page : The page to show.
+	 * @param search : The {@link String} used as search.
 	 */
-	private static void listAllPlayers(Player player, int page)
+	private static void listPlayers(Player player, int page, String search)
 	{
-		final NpcHtmlMessage html = new NpcHtmlMessage(0);
-		html.setFile("data/html/admin/charlist.htm");
+		// Generate data.
+		final Pagination<Player> list = new Pagination<>(World.getInstance().getPlayers().stream(), page, PAGE_LIMIT_12, p -> p.getName().toLowerCase().contains(search));
+		list.append("<html><body>");
 		
-		final Pagination<Player> list = new Pagination<>(World.getInstance().getPlayers().stream(), page, PAGE_LIMIT_15);
+		list.generateSearch("bypass admin_find player", 45);
+		list.append("<br1><table width=280 height=26><tr><td width=140>Name</td><td width=120>Class</td><td width=20>Lvl</td></tr></table>");
 		
-		final StringBuilder sb = new StringBuilder(2000);
 		for (Player targetPlayer : list)
-			StringUtil.append(sb, "<tr><td><a action=\"bypass -h admin_debug ", targetPlayer.getName(), "\">", targetPlayer.getName(), "</a></td><td>", targetPlayer.getTemplate().getClassName(), "</td><td>", targetPlayer.getStatus().getLevel(), "</td></tr>");
+		{
+			list.append(((list.indexOf(targetPlayer) % 2) == 0 ? "<table width=280 height=22 bgcolor=000000><tr>" : "<table width=280><tr>"));
+			list.append("<td width=140><a action=\"bypass -h admin_debug ", targetPlayer.getName(), "\">", targetPlayer.getName(), "</a></td><td width=120>", targetPlayer.getTemplate().getClassName(), "</td><td width=20>", targetPlayer.getStatus().getLevel(), "</td>");
+			list.append("</tr></table><img src=\"L2UI.SquareGray\" width=280 height=1>");
+		}
+		list.generateSpace(22);
+		list.generatePages("bypass admin_find player %page% " + search);
+		list.append("</body></html>");
 		
-		html.replace("%players%", sb.toString());
-		
-		sb.setLength(0);
-		
-		list.generateSpace(sb);
-		list.generatePages(sb, "bypass admin_list %page%");
-		
-		html.replace("%pages%", sb.toString());
-		player.sendPacket(html);
-	}
-	
-	/**
-	 * Find all {@link Player}s using their names and related to a tested {@link String}, and send back the results to the {@link Player}.
-	 * @param player : The {@link Player} to send back results.
-	 * @param partOfName : The {@link String} name - or part of it - to search.
-	 */
-	private static void listPlayersPerName(Player player, String partOfName)
-	{
 		final NpcHtmlMessage html = new NpcHtmlMessage(0);
-		html.setFile("data/html/admin/charfind.htm");
-		
-		int charactersFound = 0;
-		
-		final StringBuilder sb = new StringBuilder();
-		for (Player worldPlayer : World.getInstance().getPlayers())
-		{
-			String name = worldPlayer.getName();
-			if (name.toLowerCase().contains(partOfName.toLowerCase()))
-			{
-				charactersFound++;
-				StringUtil.append(sb, "<tr><td><a action=\"bypass -h admin_debug ", name, "\">", name, "</a></td><td>", worldPlayer.getTemplate().getClassName(), "</td><td>", worldPlayer.getStatus().getLevel(), "</td></tr>");
-			}
-			
-			if (charactersFound > 20)
-				break;
-		}
-		html.replace("%results%", sb.toString());
-		
-		// Cleanup sb.
-		sb.setLength(0);
-		
-		// Second use of sb.
-		if (charactersFound == 0)
-			sb.append("s. Please try again.");
-		else if (charactersFound > 20)
-		{
-			html.replace("%number%", " more than 20.");
-			sb.append("s.<br>Please refine your search to see all of the results.");
-		}
-		else if (charactersFound == 1)
-			sb.append(".");
-		else
-			sb.append("s.");
-		
-		html.replace("%number%", charactersFound);
-		html.replace("%end%", sb.toString());
+		html.setHtml(list.getContent());
 		player.sendPacket(html);
 	}
 	
@@ -319,7 +311,7 @@ public class AdminFind implements IAdminCommandHandler
 			}
 		}
 		
-		final List<String> keys = dualboxIPs.entrySet().stream().sorted(Collections.reverseOrder(Map.Entry.comparingByValue())).map(Map.Entry::getKey).collect(Collectors.toList());
+		final List<String> keys = dualboxIPs.entrySet().stream().sorted(Collections.reverseOrder(Map.Entry.comparingByValue())).map(Map.Entry::getKey).toList();
 		
 		final StringBuilder sb = new StringBuilder();
 		for (String dualboxIP : keys)
@@ -330,6 +322,64 @@ public class AdminFind implements IAdminCommandHandler
 		html.replace("%multibox%", multibox);
 		html.replace("%results%", sb.toString());
 		player.sendPacket(html);
+	}
+	
+	private static void listItems(Player player, int page, String search)
+	{
+		// Generate data.
+		final Pagination<Item> list = new Pagination<>(Arrays.asList(ItemData.getInstance().getTemplates()).stream(), page, PAGE_LIMIT_7, item -> item != null && matches(item.getName(), search));
+		list.append("<html><body>");
+		
+		list.generateSearch("bypass admin_find item", 45);
+		
+		for (Item item : list)
+		{
+			list.append(((list.indexOf(item) % 2) == 0 ? "<table width=280 height=22 bgcolor=000000><tr>" : "<table width=280><tr>"));
+			list.append("<td width=36 height=41 align=center><table><tr><td><img src=icon.noimage width=32 height=32></td></tr></table></td>");
+			list.append("<td width=160>", StringUtil.trimAndDress(item.getName(), 28), "<br1><font color=\"B09878\">Item Id:</font> <font color=BDB76B>", item.getItemId(), (item.isQuestItem() ? " (Quest)" : ""), "</font></td>");
+			list.append("<td><edit var=\"amount_", item.getItemId(), "\" width=52 type=number></td>");
+			list.append("<td><button action=\"bypass admin_give ", item.getItemId(), " $amount_", item.getItemId(), "\" width=32 height=32 back=L2UI_CH3.mapbutton_zoomin2 fore=L2UI_CH3.mapbutton_zoomin1></td>");
+			list.append("</tr></table><img src=\"L2UI.SquareGray\" width=280 height=1>");
+		}
+		
+		list.generateSpace(42);
+		list.generatePages("bypass admin_find item %page% " + search);
+		list.append("</body></html>");
+		
+		final NpcHtmlMessage html = new NpcHtmlMessage(0);
+		html.setHtml(list.getContent());
+		player.sendPacket(html);
+	}
+	
+	private static void listNpcs(Player player, int page, String search)
+	{
+		// Generate data.
+		final Pagination<NpcTemplate> list = new Pagination<>(NpcData.getInstance().getTemplates().stream(), page, PAGE_LIMIT_7, npc -> npc != null && !npc.getName().isEmpty() && matches(npc.getName(), search), Comparator.comparing(NpcTemplate::getName));
+		list.append("<html><body>");
+		
+		list.generateSearch("bypass admin_find npc", 45);
+		
+		for (NpcTemplate template : list)
+		{
+			list.append(((list.indexOf(template) % 2) == 0 ? "<table width=280 height=22 bgcolor=000000><tr>" : "<table width=280><tr>"));
+			list.append("<td width=216 height=41><font color=\"B09878\">", template.getTitle(), "</font><br1>", template.getName(), "</td>");
+			list.append("<td><button action=\"bypass admin_spawn ", template.getNpcId(), "\" width=32 height=32 back=L2UI_CH3.mapbutton_zoomin2 fore=L2UI_CH3.mapbutton_zoomin1></td>");
+			list.append("<td><button action=\"bypass admin_list_spawns ", template.getNpcId(), "\" width=32 height=32 back=L2UI_CH3.mapicon_mark_light fore=L2UI_CH3.mapicon_mark></td>");
+			list.append("</tr></table><img src=\"L2UI.SquareGray\" width=280 height=1>");
+		}
+		
+		list.generateSpace(42);
+		list.generatePages("bypass admin_find npc %page% " + search);
+		list.append("</body></html>");
+		
+		final NpcHtmlMessage html = new NpcHtmlMessage(0);
+		html.setHtml(list.getContent());
+		player.sendPacket(html);
+	}
+	
+	public static boolean matches(String name, String search)
+	{
+		return Arrays.stream(search.toLowerCase().split(" ")).allMatch(result -> name.toLowerCase().contains(result));
 	}
 	
 	@Override

@@ -41,10 +41,10 @@ public class Q408_PathToAnElvenWizard extends Quest
 		
 		setItemsIds(ROSELLA_LETTER, RED_DOWN, MAGICAL_POWERS_RUBY, PURE_AQUAMARINE, APPETIZING_APPLE, GOLD_LEAVES, IMMORTAL_LOVE, AMETHYST, NOBILITY_AMETHYST, FERTILITY_PERIDOT, CHARM_OF_GRAIN, SAP_OF_THE_MOTHER_TREE, LUCKY_POTPOURRI);
 		
-		addStartNpc(ROSELLA);
+		addQuestStart(ROSELLA);
 		addTalkId(ROSELLA, GREENIS, THALIA, NORTHWIND);
 		
-		addKillId(20047, 20019, 20466);
+		addMyDying(20047, 20019, 20466);
 	}
 	
 	@Override
@@ -61,7 +61,7 @@ public class Q408_PathToAnElvenWizard extends Quest
 				htmltext = (player.getClassId() == ClassId.ELVEN_WIZARD) ? "30414-02a.htm" : "30414-03.htm";
 			else if (player.getStatus().getLevel() < 19)
 				htmltext = "30414-04.htm";
-			else if (player.getInventory().hasItems(ETERNITY_DIAMOND))
+			else if (player.getInventory().hasItem(ETERNITY_DIAMOND))
 				htmltext = "30414-05.htm";
 			else
 			{
@@ -73,7 +73,7 @@ public class Q408_PathToAnElvenWizard extends Quest
 		}
 		else if (event.equalsIgnoreCase("30414-07.htm"))
 		{
-			if (!player.getInventory().hasItems(MAGICAL_POWERS_RUBY))
+			if (!player.getInventory().hasItem(MAGICAL_POWERS_RUBY))
 			{
 				playSound(player, SOUND_MIDDLE);
 				giveItems(player, ROSELLA_LETTER, 1);
@@ -83,7 +83,7 @@ public class Q408_PathToAnElvenWizard extends Quest
 		}
 		else if (event.equalsIgnoreCase("30414-14.htm"))
 		{
-			if (!player.getInventory().hasItems(PURE_AQUAMARINE))
+			if (!player.getInventory().hasItem(PURE_AQUAMARINE))
 			{
 				playSound(player, SOUND_MIDDLE);
 				giveItems(player, APPETIZING_APPLE, 1);
@@ -93,7 +93,7 @@ public class Q408_PathToAnElvenWizard extends Quest
 		}
 		else if (event.equalsIgnoreCase("30414-18.htm"))
 		{
-			if (!player.getInventory().hasItems(NOBILITY_AMETHYST))
+			if (!player.getInventory().hasItem(NOBILITY_AMETHYST))
 			{
 				playSound(player, SOUND_MIDDLE);
 				giveItems(player, IMMORTAL_LOVE, 1);
@@ -148,27 +148,27 @@ public class Q408_PathToAnElvenWizard extends Quest
 							playSound(player, SOUND_FINISH);
 							st.exitQuest(true);
 						}
-						else if (player.getInventory().hasItems(ROSELLA_LETTER))
+						else if (player.getInventory().hasItem(ROSELLA_LETTER))
 							htmltext = "30414-08.htm";
-						else if (player.getInventory().hasItems(CHARM_OF_GRAIN))
+						else if (player.getInventory().hasItem(CHARM_OF_GRAIN))
 						{
 							if (player.getInventory().getItemCount(RED_DOWN) == 5)
 								htmltext = "30414-25.htm";
 							else
 								htmltext = "30414-09.htm";
 						}
-						else if (player.getInventory().hasItems(APPETIZING_APPLE))
+						else if (player.getInventory().hasItem(APPETIZING_APPLE))
 							htmltext = "30414-15.htm";
-						else if (player.getInventory().hasItems(SAP_OF_THE_MOTHER_TREE))
+						else if (player.getInventory().hasItem(SAP_OF_THE_MOTHER_TREE))
 						{
 							if (player.getInventory().getItemCount(GOLD_LEAVES) == 5)
 								htmltext = "30414-26.htm";
 							else
 								htmltext = "30414-16.htm";
 						}
-						else if (player.getInventory().hasItems(IMMORTAL_LOVE))
+						else if (player.getInventory().hasItem(IMMORTAL_LOVE))
 							htmltext = "30414-19.htm";
-						else if (player.getInventory().hasItems(LUCKY_POTPOURRI))
+						else if (player.getInventory().hasItem(LUCKY_POTPOURRI))
 						{
 							if (player.getInventory().getItemCount(AMETHYST) == 2)
 								htmltext = "30414-27.htm";
@@ -180,7 +180,7 @@ public class Q408_PathToAnElvenWizard extends Quest
 						break;
 					
 					case GREENIS:
-						if (player.getInventory().hasItems(ROSELLA_LETTER))
+						if (player.getInventory().hasItem(ROSELLA_LETTER))
 							htmltext = "30157-01.htm";
 						else if (player.getInventory().getItemCount(RED_DOWN) == 5)
 						{
@@ -190,12 +190,12 @@ public class Q408_PathToAnElvenWizard extends Quest
 							takeItems(player, RED_DOWN, -1);
 							giveItems(player, MAGICAL_POWERS_RUBY, 1);
 						}
-						else if (player.getInventory().hasItems(CHARM_OF_GRAIN))
+						else if (player.getInventory().hasItem(CHARM_OF_GRAIN))
 							htmltext = "30157-03.htm";
 						break;
 					
 					case THALIA:
-						if (player.getInventory().hasItems(APPETIZING_APPLE))
+						if (player.getInventory().hasItem(APPETIZING_APPLE))
 							htmltext = "30371-01.htm";
 						else if (player.getInventory().getItemCount(GOLD_LEAVES) == 5)
 						{
@@ -205,12 +205,12 @@ public class Q408_PathToAnElvenWizard extends Quest
 							takeItems(player, SAP_OF_THE_MOTHER_TREE, 1);
 							giveItems(player, PURE_AQUAMARINE, 1);
 						}
-						else if (player.getInventory().hasItems(SAP_OF_THE_MOTHER_TREE))
+						else if (player.getInventory().hasItem(SAP_OF_THE_MOTHER_TREE))
 							htmltext = "30371-03.htm";
 						break;
 					
 					case NORTHWIND:
-						if (player.getInventory().hasItems(IMMORTAL_LOVE))
+						if (player.getInventory().hasItem(IMMORTAL_LOVE))
 						{
 							htmltext = "30423-01.htm";
 							playSound(player, SOUND_MIDDLE);
@@ -225,7 +225,7 @@ public class Q408_PathToAnElvenWizard extends Quest
 							takeItems(player, LUCKY_POTPOURRI, 1);
 							giveItems(player, NOBILITY_AMETHYST, 1);
 						}
-						else if (player.getInventory().hasItems(LUCKY_POTPOURRI))
+						else if (player.getInventory().hasItem(LUCKY_POTPOURRI))
 							htmltext = "30423-02.htm";
 						break;
 				}
@@ -236,32 +236,30 @@ public class Q408_PathToAnElvenWizard extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
 			case 20019:
-				if (player.getInventory().hasItems(SAP_OF_THE_MOTHER_TREE))
+				if (player.getInventory().hasItem(SAP_OF_THE_MOTHER_TREE))
 					dropItems(player, GOLD_LEAVES, 1, 5, 400000);
 				break;
 			
 			case 20047:
-				if (player.getInventory().hasItems(LUCKY_POTPOURRI))
+				if (player.getInventory().hasItem(LUCKY_POTPOURRI))
 					dropItems(player, AMETHYST, 1, 2, 400000);
 				break;
 			
 			case 20466:
-				if (player.getInventory().hasItems(CHARM_OF_GRAIN))
+				if (player.getInventory().hasItem(CHARM_OF_GRAIN))
 					dropItems(player, RED_DOWN, 1, 5, 700000);
 				break;
 		}
-		
-		return null;
 	}
 }

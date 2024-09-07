@@ -16,9 +16,9 @@ import net.sf.l2j.gameserver.network.serverpackets.EtcStatusUpdate;
 import net.sf.l2j.gameserver.skills.L2Skill;
 
 /**
- * A zone extending {@link ZoneType}, which fires a task on the first character entrance.<br>
+ * A zone extending {@link ZoneType}, which fires a task on the first {@link Creature} entrance.<br>
  * <br>
- * This task launches skill effects on all characters within this zone, and can affect specific class types. It can also be activated or desactivated. The zone is considered a danger zone.
+ * This task launches skill effects on all {@link Creature}s within this zone, and can affect specific class types. It can also be activated or desactivated. The zone is considered a danger zone.
  */
 public class EffectZone extends ZoneType
 {
@@ -27,11 +27,11 @@ public class EffectZone extends ZoneType
 	private int _chance = 100;
 	private int _initialDelay = 0;
 	private int _reuseDelay = 30000;
+	private Class<?> _target = Player.class;
 	
 	private boolean _isEnabled = true;
 	
 	private volatile Future<?> _task;
-	private String _target = "Playable";
 	
 	public EffectZone(int id)
 	{
@@ -71,28 +71,28 @@ public class EffectZone extends ZoneType
 			}
 		}
 		else if (name.equals("targetType"))
-			_target = value;
+		{
+			try
+			{
+				_target = Class.forName("net.sf.l2j.gameserver.model.actor." + value);
+			}
+			catch (ClassNotFoundException e)
+			{
+				LOGGER.error("Invalid target type {} for {}.", value, toString());
+			}
+		}
 		else
 			super.setParameter(name, value);
 	}
 	
 	@Override
-	protected boolean isAffected(Creature character)
+	protected boolean isAffected(Creature creature)
 	{
-		try
-		{
-			if (!(Class.forName("net.sf.l2j.gameserver.model.actor." + _target).isInstance(character)))
-				return false;
-		}
-		catch (ClassNotFoundException e)
-		{
-			LOGGER.error("Error for {} on invalid target type {}.", e, toString(), _target);
-		}
-		return true;
+		return _target.isInstance(creature);
 	}
 	
 	@Override
-	protected void onEnter(Creature character)
+	protected void onEnter(Creature creature)
 	{
 		Future<?> task = _task;
 		if (task == null)
@@ -101,51 +101,26 @@ public class EffectZone extends ZoneType
 			{
 				task = _task;
 				if (task == null)
-					_task = task = ThreadPool.scheduleAtFixedRate(() ->
-					{
-						if (!_isEnabled)
-							return;
-						
-						if (_characters.isEmpty())
-						{
-							_task.cancel(true);
-							_task = null;
-							
-							return;
-						}
-						
-						for (Creature temp : _characters.values())
-						{
-							if (temp.isDead() || Rnd.get(100) >= _chance)
-								continue;
-							
-							for (IntIntHolder entry : _skills)
-							{
-								final L2Skill skill = entry.getSkill();
-								if (skill != null && skill.checkCondition(temp, temp, false) && temp.getFirstEffect(entry.getId()) == null)
-									skill.getEffects(temp, temp);
-							}
-						}
-					}, _initialDelay, _reuseDelay);
+					_task = ThreadPool.scheduleAtFixedRate(this::applyEffect, _initialDelay, _reuseDelay);
 			}
 		}
 		
-		if (character instanceof Player)
+		if (creature instanceof Player player)
 		{
-			character.setInsideZone(ZoneId.DANGER_AREA, true);
-			character.sendPacket(new EtcStatusUpdate((Player) character));
+			player.setInsideZone(ZoneId.DANGER_AREA, true);
+			player.sendPacket(new EtcStatusUpdate(player));
 		}
 	}
 	
 	@Override
-	protected void onExit(Creature character)
+	protected void onExit(Creature creature)
 	{
-		if (character instanceof Player)
+		if (creature instanceof Player player)
 		{
-			character.setInsideZone(ZoneId.DANGER_AREA, false);
+			player.setInsideZone(ZoneId.DANGER_AREA, false);
 			
-			if (!character.isInsideZone(ZoneId.DANGER_AREA))
-				character.sendPacket(new EtcStatusUpdate((Player) character));
+			if (!player.isInsideZone(ZoneId.DANGER_AREA))
+				player.sendPacket(new EtcStatusUpdate(player));
 		}
 	}
 	
@@ -156,5 +131,35 @@ public class EffectZone extends ZoneType
 	public void editStatus(boolean state)
 	{
 		_isEnabled = state;
+	}
+	
+	/**
+	 * Apply this {@link EffectZone} effect to all {@link Creature}s of defined target type.
+	 */
+	private final void applyEffect()
+	{
+		if (!_isEnabled)
+			return;
+		
+		if (_creatures.isEmpty())
+		{
+			_task.cancel(true);
+			_task = null;
+			
+			return;
+		}
+		
+		for (Creature temp : _creatures)
+		{
+			if (temp.isDead() || Rnd.get(100) >= _chance)
+				continue;
+			
+			for (IntIntHolder entry : _skills)
+			{
+				final L2Skill skill = entry.getSkill();
+				if (skill != null && skill.checkCondition(temp, temp, false) && temp.getFirstEffect(entry.getId()) == null)
+					skill.getEffects(temp, temp);
+			}
+		}
 	}
 }

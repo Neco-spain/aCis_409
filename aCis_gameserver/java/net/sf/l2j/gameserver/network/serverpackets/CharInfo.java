@@ -5,6 +5,7 @@ import net.sf.l2j.gameserver.data.manager.CursedWeaponManager;
 import net.sf.l2j.gameserver.enums.Paperdoll;
 import net.sf.l2j.gameserver.enums.TeamType;
 import net.sf.l2j.gameserver.enums.skills.AbnormalEffect;
+import net.sf.l2j.gameserver.model.actor.Boat;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.Summon;
 import net.sf.l2j.gameserver.model.actor.instance.Cubic;
@@ -31,10 +32,11 @@ public class CharInfo extends L2GameServerPacket
 		}
 		
 		writeC(0x03);
-		writeD(_player.getX());
-		writeD(_player.getY());
-		writeD(_player.getZ());
-		writeD((_player.getBoat() == null) ? 0 : _player.getBoat().getObjectId());
+		
+		writeLoc(_player.getPosition());
+		
+		final Boat boat = _player.getBoatInfo().getBoat();
+		writeD((boat == null) ? 0 : boat.getObjectId());
 		writeD(_player.getObjectId());
 		writeS(_player.getName());
 		writeD(_player.getRace().ordinal());

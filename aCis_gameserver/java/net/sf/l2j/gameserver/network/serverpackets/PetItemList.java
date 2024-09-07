@@ -12,6 +12,9 @@ public class PetItemList extends L2GameServerPacket
 	
 	public PetItemList(Summon summon)
 	{
+		// Enforce the clearance of update list upon a full ItemList send.
+		summon.getInventory().clearUpdateList();
+		
 		_items = summon.getInventory().getItems();
 	}
 	

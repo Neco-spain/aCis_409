@@ -26,7 +26,7 @@ public class RaidPointManager
 	
 	private static final String LOAD_DATA = "SELECT * FROM character_raid_points";
 	private static final String INSERT_DATA = "REPLACE INTO character_raid_points (char_id,boss_id,points) VALUES (?,?,?)";
-	private static final String DELETE_DATA = "TRUNCATE TABLE character_raid_points";
+	private static final String TRUNCATE_DATA = "TRUNCATE character_raid_points";
 	
 	private final Map<Integer, Map<Integer, Integer>> _entries = new ConcurrentHashMap<>();
 	
@@ -109,7 +109,7 @@ public class RaidPointManager
 		_entries.clear();
 		
 		try (Connection con = ConnectionPool.getConnection();
-			PreparedStatement ps = con.prepareStatement(DELETE_DATA))
+			PreparedStatement ps = con.prepareStatement(TRUNCATE_DATA))
 		{
 			ps.executeUpdate();
 		}

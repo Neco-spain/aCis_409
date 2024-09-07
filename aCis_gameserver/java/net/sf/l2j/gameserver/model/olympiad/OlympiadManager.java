@@ -1,12 +1,9 @@
 package net.sf.l2j.gameserver.model.olympiad;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-
-import net.sf.l2j.commons.data.StatSet;
 
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.enums.OlympiadType;
@@ -42,18 +39,7 @@ public class OlympiadManager
 	
 	protected final List<List<Integer>> hasEnoughClassBasedParticipants()
 	{
-		List<List<Integer>> result = null;
-		for (List<Integer> classList : _classBasedParticipants.values())
-		{
-			if (classList != null && classList.size() >= Config.OLY_CLASSED)
-			{
-				if (result == null)
-					result = new ArrayList<>();
-				
-				result.add(classList);
-			}
-		}
-		return result;
+		return _classBasedParticipants.values().stream().filter(classList -> classList != null && classList.size() >= Config.OLY_CLASSED).toList();
 	}
 	
 	protected final void clearParticipants()
@@ -98,12 +84,12 @@ public class OlympiadManager
 	
 	private static final boolean isInCompetition(Player player, boolean showMessage)
 	{
-		if (!Olympiad.getInstance().isInCompPeriod())
+		if (!Olympiad.getInstance().isInCompetitionPeriod())
 			return false;
 		
-		for (int i = OlympiadGameManager.getInstance().getNumberOfStadiums(); --i >= 0;)
+		for (OlympiadGameTask task : OlympiadGameManager.getInstance().getOlympiadTasks())
 		{
-			AbstractOlympiadGame game = OlympiadGameManager.getInstance().getOlympiadTask(i).getGame();
+			final AbstractOlympiadGame game = task.getGame();
 			if (game == null)
 				continue;
 			
@@ -115,18 +101,19 @@ public class OlympiadManager
 				return true;
 			}
 		}
+		
 		return false;
 	}
 	
 	public final boolean registerNoble(Npc npc, Player player, OlympiadType type)
 	{
-		if (!Olympiad.getInstance().isInCompPeriod())
+		if (!Olympiad.getInstance().isInCompetitionPeriod())
 		{
 			player.sendPacket(SystemMessageId.THE_OLYMPIAD_GAME_IS_NOT_CURRENTLY_IN_PROGRESS);
 			return false;
 		}
 		
-		if (Olympiad.getInstance().getMillisToCompEnd() < 600000)
+		if (Olympiad.getInstance().getMillisToPeriodEnd() < 600000)
 		{
 			player.sendPacket(SystemMessageId.GAME_REQUEST_CANNOT_BE_MADE);
 			return false;
@@ -157,7 +144,7 @@ public class OlympiadManager
 	
 	public final boolean unRegisterNoble(Player player)
 	{
-		if (!Olympiad.getInstance().isInCompPeriod())
+		if (!Olympiad.getInstance().isInCompetitionPeriod())
 		{
 			player.sendPacket(SystemMessageId.THE_OLYMPIAD_GAME_IS_NOT_CURRENTLY_IN_PROGRESS);
 			return false;
@@ -235,7 +222,7 @@ public class OlympiadManager
 			return false;
 		}
 		
-		if (player.getStatus().isOverburden())
+		if (player.isOverweight())
 		{
 			player.sendPacket(SystemMessageId.SINCE_80_PERCENT_OR_MORE_OF_YOUR_INVENTORY_SLOTS_ARE_FULL_YOU_CANNOT_PARTICIPATE_IN_THE_OLYMPIAD);
 			return false;
@@ -247,20 +234,9 @@ public class OlympiadManager
 		if (isInCompetition(player, true))
 			return false;
 		
-		StatSet set = Olympiad.getInstance().getNobleStats(player.getObjectId());
-		if (set == null)
-		{
-			set = new StatSet();
-			set.set(Olympiad.CLASS_ID, player.getBaseClass());
-			set.set(Olympiad.CHAR_NAME, player.getName());
-			set.set(Olympiad.POINTS, Config.OLY_START_POINTS);
-			set.set(Olympiad.COMP_DONE, 0);
-			set.set(Olympiad.COMP_WON, 0);
-			set.set(Olympiad.COMP_LOST, 0);
-			set.set(Olympiad.COMP_DRAWN, 0);
-			
-			Olympiad.getInstance().addNobleStats(player.getObjectId(), set);
-		}
+		OlympiadNoble noble = Olympiad.getInstance().getNoble(player.getObjectId());
+		if (noble == null)
+			Olympiad.getInstance().addNoble(player.getObjectId(), new OlympiadNoble(player));
 		
 		final int points = Olympiad.getInstance().getNoblePoints(player.getObjectId());
 		if (points <= 0)

@@ -33,7 +33,7 @@ public class Q364_JovialAccordion extends Quest
 		
 		setItemsIds(KEY_1, KEY_2, STOLEN_BEER, STOLEN_CLOTHES);
 		
-		addStartNpc(BARBADO);
+		addQuestStart(BARBADO);
 		addTalkId(BARBADO, SWAN, SABRIN, XABER, CLOTH_CHEST, BEER_CHEST);
 	}
 	
@@ -61,7 +61,7 @@ public class Q364_JovialAccordion extends Quest
 		}
 		else if (event.equalsIgnoreCase("30960-04.htm"))
 		{
-			if (player.getInventory().hasItems(KEY_2))
+			if (player.getInventory().hasItem(KEY_2))
 			{
 				takeItems(player, KEY_2, 1);
 				if (Rnd.nextBoolean())
@@ -74,7 +74,7 @@ public class Q364_JovialAccordion extends Quest
 		}
 		else if (event.equalsIgnoreCase("30961-04.htm"))
 		{
-			if (player.getInventory().hasItems(KEY_1))
+			if (player.getInventory().hasItem(KEY_1))
 			{
 				takeItems(player, KEY_1, 1);
 				if (Rnd.nextBoolean())
@@ -141,7 +141,7 @@ public class Q364_JovialAccordion extends Quest
 							}
 							else
 							{
-								if (!player.getInventory().hasItems(KEY_1) && !player.getInventory().hasItems(KEY_2))
+								if (!player.getInventory().hasItem(KEY_1) && !player.getInventory().hasItem(KEY_2))
 								{
 									htmltext = "30957-06.htm";
 									playSound(player, SOUND_FINISH);
@@ -157,18 +157,18 @@ public class Q364_JovialAccordion extends Quest
 					
 					case BEER_CHEST:
 						htmltext = "30960-03.htm";
-						if (cond == 2 && player.getInventory().hasItems(KEY_2))
+						if (cond == 2 && player.getInventory().hasItem(KEY_2))
 							htmltext = "30960-01.htm";
 						break;
 					
 					case CLOTH_CHEST:
 						htmltext = "30961-03.htm";
-						if (cond == 2 && player.getInventory().hasItems(KEY_1))
+						if (cond == 2 && player.getInventory().hasItem(KEY_1))
 							htmltext = "30961-01.htm";
 						break;
 					
 					case SABRIN:
-						if (player.getInventory().hasItems(STOLEN_BEER))
+						if (player.getInventory().hasItem(STOLEN_BEER))
 						{
 							htmltext = "30060-01.htm";
 							st.set("items", stolenItems + 1);
@@ -180,7 +180,7 @@ public class Q364_JovialAccordion extends Quest
 						break;
 					
 					case XABER:
-						if (player.getInventory().hasItems(STOLEN_CLOTHES))
+						if (player.getInventory().hasItem(STOLEN_CLOTHES))
 						{
 							htmltext = "30075-01.htm";
 							st.set("items", stolenItems + 1);

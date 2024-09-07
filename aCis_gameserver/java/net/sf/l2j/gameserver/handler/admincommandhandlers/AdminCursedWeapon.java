@@ -66,7 +66,7 @@ public class AdminCursedWeapon implements IAdminCommandHandler
 					else
 					{
 						final Player targetPlayer = getTargetPlayer(player, true);
-						targetPlayer.addItem("AdminCursedWeaponAdd", id, 1, targetPlayer, true);
+						targetPlayer.addItem(id, 1, true);
 						
 						// Start task
 						cw.reActivate(true);
@@ -85,7 +85,7 @@ public class AdminCursedWeapon implements IAdminCommandHandler
 		}
 		catch (Exception e)
 		{
-			player.sendMessage("Usage: //cw [add|remove|teleportto itemid|name]");
+			player.sendMessage("Usage: //cw [set|remove|teleportto itemid|name]");
 		}
 	}
 	
@@ -104,7 +104,7 @@ public class AdminCursedWeapon implements IAdminCommandHandler
 			{
 				long milliToStart = cursedWeapon.getTimeLeft();
 				double numSecs = (milliToStart / 1000) % 60;
-				double countDown = ((milliToStart / 1000) - numSecs) / 60;
+				double countDown = ((milliToStart / 1000d) - numSecs) / 60;
 				int numMins = (int) Math.floor(countDown % 60);
 				countDown = (countDown - numMins) / 60;
 				int numHours = (int) Math.floor(countDown % 24);

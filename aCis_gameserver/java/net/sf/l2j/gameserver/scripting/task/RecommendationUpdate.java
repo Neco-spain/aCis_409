@@ -13,9 +13,9 @@ import net.sf.l2j.gameserver.scripting.ScheduledQuest;
 
 public final class RecommendationUpdate extends ScheduledQuest
 {
-	private static final String DELETE_CHAR_RECOMS = "TRUNCATE TABLE character_recommends";
-	private static final String SELECT_ALL_RECOMS = "SELECT obj_Id, level, rec_have FROM characters";
-	private static final String UPDATE_ALL_RECOMS = "UPDATE characters SET rec_left=?, rec_have=? WHERE obj_Id=?";
+	private static final String TRUNCATE_RECOMMENDS = "TRUNCATE character_recommends";
+	private static final String SELECT_RECOMMENDS = "SELECT obj_Id, level, rec_have FROM characters";
+	private static final String UPDATE_RECOMMENDS = "UPDATE characters SET rec_left=?, rec_have=? WHERE obj_Id=?";
 	
 	public RecommendationUpdate()
 	{
@@ -54,16 +54,16 @@ public final class RecommendationUpdate extends ScheduledQuest
 		try (Connection con = ConnectionPool.getConnection())
 		{
 			// Delete all characters listed on character_recommends table.
-			try (PreparedStatement ps = con.prepareStatement(DELETE_CHAR_RECOMS))
+			try (PreparedStatement ps = con.prepareStatement(TRUNCATE_RECOMMENDS))
 			{
 				ps.execute();
 			}
 			
 			// Initialize the update statement.
-			try (PreparedStatement ps2 = con.prepareStatement(UPDATE_ALL_RECOMS))
+			try (PreparedStatement ps2 = con.prepareStatement(UPDATE_RECOMMENDS))
 			{
 				// Select needed informations of all characters.
-				try (PreparedStatement ps = con.prepareStatement(SELECT_ALL_RECOMS))
+				try (PreparedStatement ps = con.prepareStatement(SELECT_RECOMMENDS))
 				{
 					try (ResultSet rs = ps.executeQuery())
 					{
@@ -102,5 +102,6 @@ public final class RecommendationUpdate extends ScheduledQuest
 	@Override
 	public final void onEnd()
 	{
+		// Do nothing.
 	}
 }

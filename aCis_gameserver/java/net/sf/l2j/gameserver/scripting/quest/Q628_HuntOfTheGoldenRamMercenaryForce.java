@@ -18,17 +18,7 @@ public class Q628_HuntOfTheGoldenRamMercenaryForce extends Quest
 {
 	private static final String QUEST_NAME = "Q628_HuntOfTheGoldenRamMercenaryForce";
 	
-	private static final Map<Integer, IntIntHolder> BUFFS = new HashMap<>();
-	{
-		BUFFS.put(4404, new IntIntHolder(2, 2));
-		BUFFS.put(4405, new IntIntHolder(2, 2));
-		BUFFS.put(4393, new IntIntHolder(3, 3));
-		BUFFS.put(4400, new IntIntHolder(2, 3));
-		BUFFS.put(4397, new IntIntHolder(1, 3));
-		BUFFS.put(4399, new IntIntHolder(2, 3));
-		BUFFS.put(4401, new IntIntHolder(1, 6));
-		BUFFS.put(4402, new IntIntHolder(2, 6));
-	}
+	private static final Map<Integer, IntIntHolder> BUFFS = HashMap.newHashMap(8);
 	
 	// NPCs
 	private static final int PIERCE = 31553;
@@ -44,8 +34,21 @@ public class Q628_HuntOfTheGoldenRamMercenaryForce extends Quest
 	private static final int GOLDEN_RAM_COIN = 7251;
 	
 	// Drop chances
-	private static final Map<Integer, Integer> CHANCES = new HashMap<>();
+	private static final Map<Integer, Integer> CHANCES = HashMap.newHashMap(10);
+	
+	public Q628_HuntOfTheGoldenRamMercenaryForce()
 	{
+		super(628, "Hunt of the Golden Ram Mercenary Force");
+		
+		BUFFS.put(4404, new IntIntHolder(2, 2));
+		BUFFS.put(4405, new IntIntHolder(2, 2));
+		BUFFS.put(4393, new IntIntHolder(3, 3));
+		BUFFS.put(4400, new IntIntHolder(2, 3));
+		BUFFS.put(4397, new IntIntHolder(1, 3));
+		BUFFS.put(4399, new IntIntHolder(2, 3));
+		BUFFS.put(4401, new IntIntHolder(1, 6));
+		BUFFS.put(4402, new IntIntHolder(2, 6));
+		
 		CHANCES.put(21508, 500000);
 		CHANCES.put(21509, 430000);
 		CHANCES.put(21510, 521000);
@@ -56,20 +59,15 @@ public class Q628_HuntOfTheGoldenRamMercenaryForce extends Quest
 		CHANCES.put(21515, 520000);
 		CHANCES.put(21516, 531000);
 		CHANCES.put(21517, 744000);
-	}
-	
-	public Q628_HuntOfTheGoldenRamMercenaryForce()
-	{
-		super(628, "Hunt of the Golden Ram Mercenary Force");
 		
 		setItemsIds(SPLINTER_STAKATO_CHITIN, NEEDLE_STAKATO_CHITIN, GOLDEN_RAM_BADGE_RECRUIT, GOLDEN_RAM_BADGE_SOLDIER);
 		
-		addStartNpc(KAHMAN);
+		addQuestStart(KAHMAN);
 		addFirstTalkId(PIERCE, KAHMAN, ABERCROMBIE, SELINA);
 		addTalkId(KAHMAN, ABERCROMBIE, SELINA);
 		
 		for (int npcId : CHANCES.keySet())
-			addKillId(npcId);
+			addMyDying(npcId);
 	}
 	
 	@Override
@@ -97,7 +95,7 @@ public class Q628_HuntOfTheGoldenRamMercenaryForce extends Quest
 					htmltext = "31556-12.htm";
 					
 					takeItems(player, GOLDEN_RAM_COIN, holder.getValue());
-					npc.getAI().tryToCast(player, buffId, holder.getId());
+					npc.getAI().addCastDesire(player, buffId, holder.getId(), 1000000);
 				}
 			}
 		}
@@ -144,14 +142,12 @@ public class Q628_HuntOfTheGoldenRamMercenaryForce extends Quest
 			
 			switch (npc.getNpcId())
 			{
-				case PIERCE:
-				case KAHMAN:
+				case PIERCE, KAHMAN:
 					if (cond > 1)
 						return npc.getNpcId() + "-09.htm";
 					break;
 				
-				case ABERCROMBIE:
-				case SELINA:
+				case ABERCROMBIE, SELINA:
 					if (cond == 2)
 						return npc.getNpcId() + "-09.htm";
 					
@@ -200,7 +196,7 @@ public class Q628_HuntOfTheGoldenRamMercenaryForce extends Quest
 						takeItems(player, GOLDEN_RAM_BADGE_RECRUIT, 1);
 						giveItems(player, GOLDEN_RAM_BADGE_SOLDIER, 1);
 					}
-					else if (!player.getInventory().hasItems(SPLINTER_STAKATO_CHITIN) && !player.getInventory().hasItems(NEEDLE_STAKATO_CHITIN))
+					else if (!player.getInventory().hasItem(SPLINTER_STAKATO_CHITIN) && !player.getInventory().hasItem(NEEDLE_STAKATO_CHITIN))
 						htmltext = "31554-04b.htm";
 					else
 						htmltext = "31554-04a.htm";
@@ -214,38 +210,28 @@ public class Q628_HuntOfTheGoldenRamMercenaryForce extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMemberState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final int cond = st.getCond();
 		final int npcId = npc.getNpcId();
 		
 		switch (npcId)
 		{
-			case 21508:
-			case 21509:
-			case 21510:
-			case 21511:
-			case 21512:
+			case 21508, 21509, 21510, 21511, 21512:
 				if (cond == 1 || cond == 2)
 					dropItems(st.getPlayer(), SPLINTER_STAKATO_CHITIN, 1, 100, CHANCES.get(npcId));
 				break;
 			
-			case 21513:
-			case 21514:
-			case 21515:
-			case 21516:
-			case 21517:
+			case 21513, 21514, 21515, 21516, 21517:
 				if (cond == 2)
 					dropItems(st.getPlayer(), NEEDLE_STAKATO_CHITIN, 1, 100, CHANCES.get(npcId));
 				break;
 		}
-		
-		return null;
 	}
 }

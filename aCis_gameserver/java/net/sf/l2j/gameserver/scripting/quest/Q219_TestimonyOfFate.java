@@ -80,8 +80,12 @@ public class Q219_TestimonyOfFate extends SecondClassQuest
 	private static final int BLACK_WILLOW_LURKER = 27079;
 	
 	// Cond 6 drop chances
-	private static final Map<Integer, Integer> CHANCES = new HashMap<>();
+	private static final Map<Integer, Integer> CHANCES = HashMap.newHashMap(9);
+	
+	public Q219_TestimonyOfFate()
 	{
+		super(219, "Testimony of Fate");
+		
 		CHANCES.put(DEAD_SEEKER, 500000);
 		CHANCES.put(TYRANT, 500000);
 		CHANCES.put(TYRANT_KINGPIN, 600000);
@@ -91,18 +95,13 @@ public class Q219_TestimonyOfFate extends SecondClassQuest
 		CHANCES.put(MARSH_STAKATO_SOLDIER, 500000);
 		CHANCES.put(MARSH_STAKATO_DRONE, 600000);
 		CHANCES.put(MARSH_SPIDER, 500000);
-	}
-	
-	public Q219_TestimonyOfFate()
-	{
-		super(219, "Testimony of Fate");
 		
 		setItemsIds(KAIRA_LETTER, METHEUS_FUNERAL_JAR, KASANDRA_REMAINS, HERBALISM_TEXTBOOK, IXIA_LIST, MEDUSA_ICHOR, MARSH_SPIDER_FLUIDS, DEAD_SEEKER_DUNG, TYRANT_BLOOD, NIGHTSHADE_ROOT, BELLADONNA, ALDER_SKULL_1, ALDER_SKULL_2, ALDER_RECEIPT, REVELATIONS_MANUSCRIPT, KAIRA_RECOMMENDATION, KAIRA_INSTRUCTIONS, PALUS_CHARM, THIFIELL_LETTER, ARKENIA_NOTE, PIXY_GARNET, GRANDIS_SKULL, KARUL_BUGBEAR_SKULL, BREKA_OVERLORD_SKULL, LETO_OVERLORD_SKULL, RED_FAIRY_DUST, BLIGHT_TREANT_SEED, BLACK_WILLOW_LEAF, BLIGHT_TREANT_SAP, ARKENIA_LETTER);
 		
-		addStartNpc(KAIRA);
+		addQuestStart(KAIRA);
 		addTalkId(KAIRA, METHEUS, IXIA, ALDER_SPIRIT, ROA, NORMAN, THIFIELL, ARKENIA, BLOODY_PIXY, BLIGHT_TREANT);
 		
-		addKillId(HANGMAN_TREE, MARSH_STAKATO, MEDUSA, TYRANT, TYRANT_KINGPIN, DEAD_SEEKER, MARSH_STAKATO_WORKER, MARSH_STAKATO_SOLDIER, MARSH_SPIDER, MARSH_STAKATO_DRONE, BREKA_ORC_OVERLORD, GRANDIS, LETO_LIZARDMAN_OVERLORD, KARUL_BUGBEAR, BLACK_WILLOW_LURKER);
+		addMyDying(HANGMAN_TREE, MARSH_STAKATO, MEDUSA, TYRANT, TYRANT_KINGPIN, DEAD_SEEKER, MARSH_STAKATO_WORKER, MARSH_STAKATO_SOLDIER, MARSH_SPIDER, MARSH_STAKATO_DRONE, BREKA_ORC_OVERLORD, GRANDIS, LETO_LIZARDMAN_OVERLORD, KARUL_BUGBEAR, BLACK_WILLOW_LURKER);
 	}
 	
 	@Override
@@ -367,7 +366,7 @@ public class Q219_TestimonyOfFate extends SecondClassQuest
 						if (cond == 16)
 							htmltext = "30419-01.htm";
 						else if (cond == 17)
-							htmltext = (player.getInventory().hasItems(BLIGHT_TREANT_SAP) && player.getInventory().hasItems(RED_FAIRY_DUST)) ? "30419-04.htm" : "30419-03.htm";
+							htmltext = (player.getInventory().hasItem(BLIGHT_TREANT_SAP) && player.getInventory().hasItem(RED_FAIRY_DUST)) ? "30419-04.htm" : "30419-03.htm";
 						else if (cond == 18)
 							htmltext = "30419-06.htm";
 						break;
@@ -375,7 +374,7 @@ public class Q219_TestimonyOfFate extends SecondClassQuest
 					case BLOODY_PIXY:
 						if (cond == 17)
 						{
-							if (player.getInventory().hasItems(PIXY_GARNET))
+							if (player.getInventory().hasItem(PIXY_GARNET))
 							{
 								if (player.getInventory().getItemCount(GRANDIS_SKULL) >= 10 && player.getInventory().getItemCount(KARUL_BUGBEAR_SKULL) >= 10 && player.getInventory().getItemCount(BREKA_OVERLORD_SKULL) >= 10 && player.getInventory().getItemCount(LETO_OVERLORD_SKULL) >= 10)
 								{
@@ -391,7 +390,7 @@ public class Q219_TestimonyOfFate extends SecondClassQuest
 								else
 									htmltext = "31845-03.htm";
 							}
-							else if (player.getInventory().hasItems(RED_FAIRY_DUST))
+							else if (player.getInventory().hasItem(RED_FAIRY_DUST))
 								htmltext = "31845-05.htm";
 							else
 								htmltext = "31845-01.htm";
@@ -403,9 +402,9 @@ public class Q219_TestimonyOfFate extends SecondClassQuest
 					case BLIGHT_TREANT:
 						if (cond == 17)
 						{
-							if (player.getInventory().hasItems(BLIGHT_TREANT_SEED))
+							if (player.getInventory().hasItem(BLIGHT_TREANT_SEED))
 							{
-								if (player.getInventory().hasItems(BLACK_WILLOW_LEAF))
+								if (player.getInventory().hasItem(BLACK_WILLOW_LEAF))
 								{
 									htmltext = "31850-04.htm";
 									playSound(player, SOUND_ITEMGET);
@@ -416,7 +415,7 @@ public class Q219_TestimonyOfFate extends SecondClassQuest
 								else
 									htmltext = "31850-03.htm";
 							}
-							else if (player.getInventory().hasItems(BLIGHT_TREANT_SAP))
+							else if (player.getInventory().hasItem(BLIGHT_TREANT_SAP))
 								htmltext = "31850-05.htm";
 							else
 								htmltext = "31850-01.htm";
@@ -436,13 +435,13 @@ public class Q219_TestimonyOfFate extends SecondClassQuest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final int npcId = npc.getNpcId();
 		
@@ -464,8 +463,7 @@ public class Q219_TestimonyOfFate extends SecondClassQuest
 						st.setCond(7);
 				break;
 			
-			case TYRANT:
-			case TYRANT_KINGPIN:
+			case TYRANT, TYRANT_KINGPIN:
 				if (st.getCond() == 6 && dropItems(player, TYRANT_BLOOD, 1, 10, CHANCES.get(npcId)))
 					if (player.getInventory().getItemCount(DEAD_SEEKER_DUNG) >= 10 && player.getInventory().getItemCount(MEDUSA_ICHOR) >= 10 && player.getInventory().getItemCount(NIGHTSHADE_ROOT) >= 10 && player.getInventory().getItemCount(MARSH_SPIDER_FLUIDS) >= 10)
 						st.setCond(7);
@@ -477,10 +475,7 @@ public class Q219_TestimonyOfFate extends SecondClassQuest
 						st.setCond(7);
 				break;
 			
-			case MARSH_STAKATO:
-			case MARSH_STAKATO_WORKER:
-			case MARSH_STAKATO_SOLDIER:
-			case MARSH_STAKATO_DRONE:
+			case MARSH_STAKATO, MARSH_STAKATO_WORKER, MARSH_STAKATO_SOLDIER, MARSH_STAKATO_DRONE:
 				if (st.getCond() == 6 && dropItems(player, NIGHTSHADE_ROOT, 1, 10, CHANCES.get(npcId)))
 					if (player.getInventory().getItemCount(DEAD_SEEKER_DUNG) >= 10 && player.getInventory().getItemCount(TYRANT_BLOOD) >= 10 && player.getInventory().getItemCount(MEDUSA_ICHOR) >= 10 && player.getInventory().getItemCount(MARSH_SPIDER_FLUIDS) >= 10)
 						st.setCond(7);
@@ -493,31 +488,29 @@ public class Q219_TestimonyOfFate extends SecondClassQuest
 				break;
 			
 			case GRANDIS:
-				if (player.getInventory().hasItems(PIXY_GARNET))
+				if (player.getInventory().hasItem(PIXY_GARNET))
 					dropItemsAlways(player, GRANDIS_SKULL, 1, 10);
 				break;
 			
 			case LETO_LIZARDMAN_OVERLORD:
-				if (player.getInventory().hasItems(PIXY_GARNET))
+				if (player.getInventory().hasItem(PIXY_GARNET))
 					dropItemsAlways(player, LETO_OVERLORD_SKULL, 1, 10);
 				break;
 			
 			case BREKA_ORC_OVERLORD:
-				if (player.getInventory().hasItems(PIXY_GARNET))
+				if (player.getInventory().hasItem(PIXY_GARNET))
 					dropItemsAlways(player, BREKA_OVERLORD_SKULL, 1, 10);
 				break;
 			
 			case KARUL_BUGBEAR:
-				if (player.getInventory().hasItems(PIXY_GARNET))
+				if (player.getInventory().hasItem(PIXY_GARNET))
 					dropItemsAlways(player, KARUL_BUGBEAR_SKULL, 1, 10);
 				break;
 			
 			case BLACK_WILLOW_LURKER:
-				if (player.getInventory().hasItems(BLIGHT_TREANT_SEED))
+				if (player.getInventory().hasItem(BLIGHT_TREANT_SEED))
 					dropItemsAlways(player, BLACK_WILLOW_LEAF, 1, 1);
 				break;
 		}
-		
-		return null;
 	}
 }

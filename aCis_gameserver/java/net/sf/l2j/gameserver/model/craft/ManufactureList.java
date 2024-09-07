@@ -3,6 +3,8 @@ package net.sf.l2j.gameserver.model.craft;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import net.sf.l2j.gameserver.model.records.ManufactureItem;
+
 /**
  * A datacontainer used by private workshop system. It retains a List of {@link ManufactureItem}s, the store name and the shop state.
  */
@@ -14,10 +16,6 @@ public class ManufactureList extends ArrayList<ManufactureItem>
 	private boolean _isDwarven;
 	
 	private String _storeName;
-	
-	public ManufactureList()
-	{
-	}
 	
 	public void set(ManufactureItem[] items)
 	{

@@ -22,11 +22,11 @@ public class EffectClanGate extends AbstractEffect
 	{
 		getEffected().startAbnormalEffect(AbnormalEffect.MAGIC_CIRCLE);
 		
-		if (getEffected() instanceof Player)
+		if (getEffected() instanceof Player targetPlayer)
 		{
-			final Clan clan = ((Player) getEffected()).getClan();
+			final Clan clan = targetPlayer.getClan();
 			if (clan != null)
-				clan.broadcastToMembersExcept(((Player) getEffected()), SystemMessage.getSystemMessage(SystemMessageId.COURT_MAGICIAN_CREATED_PORTAL));
+				clan.broadcastToMembersExcept(targetPlayer, SystemMessage.getSystemMessage(SystemMessageId.COURT_MAGICIAN_CREATED_PORTAL));
 		}
 		
 		return true;

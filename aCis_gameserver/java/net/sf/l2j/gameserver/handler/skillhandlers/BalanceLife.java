@@ -9,6 +9,7 @@ import net.sf.l2j.gameserver.handler.SkillHandler;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class BalanceLife implements ISkillHandler
@@ -19,13 +20,13 @@ public class BalanceLife implements ISkillHandler
 	};
 	
 	@Override
-	public void useSkill(Creature activeChar, L2Skill skill, WorldObject[] targets)
+	public void useSkill(Creature creature, L2Skill skill, WorldObject[] targets, ItemInstance item)
 	{
 		final ISkillHandler handler = SkillHandler.getInstance().getHandler(SkillType.BUFF);
 		if (handler != null)
-			handler.useSkill(activeChar, skill, targets);
+			handler.useSkill(creature, skill, targets, item);
 		
-		final Player player = activeChar.getActingPlayer();
+		final Player player = creature.getActingPlayer();
 		final List<Creature> finalList = new ArrayList<>();
 		
 		double fullHP = 0;
@@ -33,27 +34,27 @@ public class BalanceLife implements ISkillHandler
 		
 		for (WorldObject obj : targets)
 		{
-			if (!(obj instanceof Creature))
+			if (!(obj instanceof Creature targetCreature))
 				continue;
 			
-			final Creature target = ((Creature) obj);
-			if (target.isDead())
+			if (targetCreature.isDead())
 				continue;
 			
 			// Player holding a cursed weapon can't be healed and can't heal
-			if (target != activeChar)
+			if (targetCreature != creature)
 			{
-				if (target instanceof Player && ((Player) target).isCursedWeaponEquipped())
+				if (targetCreature instanceof Player targetPlayer && targetPlayer.isCursedWeaponEquipped())
 					continue;
-				else if (player != null && player.isCursedWeaponEquipped())
+				
+				if (player != null && player.isCursedWeaponEquipped())
 					continue;
 			}
 			
-			fullHP += target.getStatus().getMaxHp();
-			currentHPs += target.getStatus().getHp();
+			fullHP += targetCreature.getStatus().getMaxHp();
+			currentHPs += targetCreature.getStatus().getHp();
 			
 			// Add the character to the final list.
-			finalList.add(target);
+			finalList.add(targetCreature);
 		}
 		
 		if (!finalList.isEmpty())

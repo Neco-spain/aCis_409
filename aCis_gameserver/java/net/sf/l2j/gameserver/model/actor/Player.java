@@ -4,7 +4,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -18,6 +17,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import net.sf.l2j.commons.math.MathUtil;
@@ -35,28 +35,30 @@ import net.sf.l2j.gameserver.data.SkillTable.FrequentSkill;
 import net.sf.l2j.gameserver.data.manager.CastleManager;
 import net.sf.l2j.gameserver.data.manager.CoupleManager;
 import net.sf.l2j.gameserver.data.manager.CursedWeaponManager;
-import net.sf.l2j.gameserver.data.manager.DimensionalRiftManager;
 import net.sf.l2j.gameserver.data.manager.FestivalOfDarknessManager;
 import net.sf.l2j.gameserver.data.manager.HeroManager;
 import net.sf.l2j.gameserver.data.manager.PartyMatchRoomManager;
+import net.sf.l2j.gameserver.data.manager.RelationManager;
 import net.sf.l2j.gameserver.data.manager.SevenSignsManager;
 import net.sf.l2j.gameserver.data.manager.ZoneManager;
 import net.sf.l2j.gameserver.data.sql.ClanTable;
 import net.sf.l2j.gameserver.data.sql.PlayerInfoTable;
 import net.sf.l2j.gameserver.data.xml.AdminData;
 import net.sf.l2j.gameserver.data.xml.ItemData;
-import net.sf.l2j.gameserver.data.xml.MapRegionData;
-import net.sf.l2j.gameserver.data.xml.MapRegionData.TeleportType;
 import net.sf.l2j.gameserver.data.xml.NpcData;
 import net.sf.l2j.gameserver.data.xml.PlayerData;
 import net.sf.l2j.gameserver.data.xml.PlayerLevelData;
+import net.sf.l2j.gameserver.data.xml.RestartPointData;
+import net.sf.l2j.gameserver.data.xml.ScriptData;
 import net.sf.l2j.gameserver.enums.AiEventType;
 import net.sf.l2j.gameserver.enums.CabalType;
 import net.sf.l2j.gameserver.enums.GaugeColor;
 import net.sf.l2j.gameserver.enums.LootRule;
 import net.sf.l2j.gameserver.enums.MessageType;
 import net.sf.l2j.gameserver.enums.Paperdoll;
+import net.sf.l2j.gameserver.enums.PrivilegeType;
 import net.sf.l2j.gameserver.enums.PunishmentType;
+import net.sf.l2j.gameserver.enums.RestartType;
 import net.sf.l2j.gameserver.enums.ShortcutType;
 import net.sf.l2j.gameserver.enums.SpawnType;
 import net.sf.l2j.gameserver.enums.StatusType;
@@ -72,30 +74,29 @@ import net.sf.l2j.gameserver.enums.actors.Sex;
 import net.sf.l2j.gameserver.enums.actors.WeightPenalty;
 import net.sf.l2j.gameserver.enums.bbs.ForumAccess;
 import net.sf.l2j.gameserver.enums.bbs.ForumType;
+import net.sf.l2j.gameserver.enums.duels.DuelState;
 import net.sf.l2j.gameserver.enums.items.ActionType;
 import net.sf.l2j.gameserver.enums.items.EtcItemType;
 import net.sf.l2j.gameserver.enums.items.ItemLocation;
-import net.sf.l2j.gameserver.enums.items.ItemState;
 import net.sf.l2j.gameserver.enums.items.ShotType;
 import net.sf.l2j.gameserver.enums.items.WeaponType;
 import net.sf.l2j.gameserver.enums.skills.EffectFlag;
 import net.sf.l2j.gameserver.enums.skills.EffectType;
+import net.sf.l2j.gameserver.enums.skills.SkillType;
 import net.sf.l2j.gameserver.enums.skills.Stats;
 import net.sf.l2j.gameserver.geoengine.GeoEngine;
 import net.sf.l2j.gameserver.handler.IItemHandler;
 import net.sf.l2j.gameserver.handler.ItemHandler;
 import net.sf.l2j.gameserver.handler.skillhandlers.SummonFriend;
 import net.sf.l2j.gameserver.model.AccessLevel;
-import net.sf.l2j.gameserver.model.PetDataEntry;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.WorldObject;
-import net.sf.l2j.gameserver.model.actor.ai.type.CreatureAI;
 import net.sf.l2j.gameserver.model.actor.ai.type.PlayerAI;
 import net.sf.l2j.gameserver.model.actor.attack.PlayerAttack;
 import net.sf.l2j.gameserver.model.actor.cast.PlayerCast;
 import net.sf.l2j.gameserver.model.actor.container.npc.RewardInfo;
 import net.sf.l2j.gameserver.model.actor.container.player.Appearance;
-import net.sf.l2j.gameserver.model.actor.container.player.BlockList;
+import net.sf.l2j.gameserver.model.actor.container.player.BoatInfo;
 import net.sf.l2j.gameserver.model.actor.container.player.CubicList;
 import net.sf.l2j.gameserver.model.actor.container.player.FishingStance;
 import net.sf.l2j.gameserver.model.actor.container.player.HennaList;
@@ -120,25 +121,20 @@ import net.sf.l2j.gameserver.model.actor.status.PlayerStatus;
 import net.sf.l2j.gameserver.model.actor.template.PetTemplate;
 import net.sf.l2j.gameserver.model.actor.template.PlayerTemplate;
 import net.sf.l2j.gameserver.model.craft.ManufactureList;
-import net.sf.l2j.gameserver.model.entity.Castle;
-import net.sf.l2j.gameserver.model.entity.Duel.DuelState;
 import net.sf.l2j.gameserver.model.group.CommandChannel;
 import net.sf.l2j.gameserver.model.group.Party;
 import net.sf.l2j.gameserver.model.group.PartyMatchRoom;
-import net.sf.l2j.gameserver.model.holder.Timestamp;
 import net.sf.l2j.gameserver.model.holder.skillnode.GeneralSkillNode;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.item.kind.Item;
 import net.sf.l2j.gameserver.model.item.kind.Weapon;
-import net.sf.l2j.gameserver.model.itemcontainer.Inventory;
 import net.sf.l2j.gameserver.model.itemcontainer.ItemContainer;
 import net.sf.l2j.gameserver.model.itemcontainer.PcFreight;
 import net.sf.l2j.gameserver.model.itemcontainer.PcInventory;
 import net.sf.l2j.gameserver.model.itemcontainer.PcWarehouse;
-import net.sf.l2j.gameserver.model.itemcontainer.PetInventory;
 import net.sf.l2j.gameserver.model.itemcontainer.listeners.ItemPassiveSkillsListener;
 import net.sf.l2j.gameserver.model.location.Location;
-import net.sf.l2j.gameserver.model.location.SpawnLocation;
+import net.sf.l2j.gameserver.model.location.ObserverLocation;
 import net.sf.l2j.gameserver.model.memo.PlayerMemo;
 import net.sf.l2j.gameserver.model.multisell.PreparedListContainer;
 import net.sf.l2j.gameserver.model.olympiad.OlympiadGameManager;
@@ -146,6 +142,9 @@ import net.sf.l2j.gameserver.model.olympiad.OlympiadGameTask;
 import net.sf.l2j.gameserver.model.olympiad.OlympiadManager;
 import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.model.pledge.ClanMember;
+import net.sf.l2j.gameserver.model.records.PetDataEntry;
+import net.sf.l2j.gameserver.model.records.Timestamp;
+import net.sf.l2j.gameserver.model.residence.castle.Castle;
 import net.sf.l2j.gameserver.model.trade.TradeList;
 import net.sf.l2j.gameserver.model.zone.type.BossZone;
 import net.sf.l2j.gameserver.network.GameClient;
@@ -157,25 +156,22 @@ import net.sf.l2j.gameserver.network.serverpackets.ChangeWaitType;
 import net.sf.l2j.gameserver.network.serverpackets.CharInfo;
 import net.sf.l2j.gameserver.network.serverpackets.ConfirmDlg;
 import net.sf.l2j.gameserver.network.serverpackets.DeleteObject;
+import net.sf.l2j.gameserver.network.serverpackets.EnchantResult;
 import net.sf.l2j.gameserver.network.serverpackets.EtcStatusUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.ExAutoSoulShot;
 import net.sf.l2j.gameserver.network.serverpackets.ExOlympiadMode;
 import net.sf.l2j.gameserver.network.serverpackets.ExServerPrimitive;
 import net.sf.l2j.gameserver.network.serverpackets.ExSetCompassZoneCode;
 import net.sf.l2j.gameserver.network.serverpackets.ExStorageMaxCount;
-import net.sf.l2j.gameserver.network.serverpackets.GetOnVehicle;
 import net.sf.l2j.gameserver.network.serverpackets.HennaInfo;
 import net.sf.l2j.gameserver.network.serverpackets.InventoryUpdate;
-import net.sf.l2j.gameserver.network.serverpackets.ItemList;
-import net.sf.l2j.gameserver.network.serverpackets.L2FriendStatus;
 import net.sf.l2j.gameserver.network.serverpackets.L2GameServerPacket;
 import net.sf.l2j.gameserver.network.serverpackets.LeaveWorld;
 import net.sf.l2j.gameserver.network.serverpackets.MagicSkillUse;
 import net.sf.l2j.gameserver.network.serverpackets.MyTargetSelected;
-import net.sf.l2j.gameserver.network.serverpackets.ObservationMode;
-import net.sf.l2j.gameserver.network.serverpackets.ObservationReturn;
+import net.sf.l2j.gameserver.network.serverpackets.ObserverEnd;
+import net.sf.l2j.gameserver.network.serverpackets.ObserverStart;
 import net.sf.l2j.gameserver.network.serverpackets.PartySmallWindowUpdate;
-import net.sf.l2j.gameserver.network.serverpackets.PetInventoryUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.PledgeShowMemberListDelete;
 import net.sf.l2j.gameserver.network.serverpackets.PledgeShowMemberListUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.PrivateStoreListBuy;
@@ -209,6 +205,7 @@ import net.sf.l2j.gameserver.network.serverpackets.TradePressOwnOk;
 import net.sf.l2j.gameserver.network.serverpackets.TradeStart;
 import net.sf.l2j.gameserver.network.serverpackets.UserInfo;
 import net.sf.l2j.gameserver.network.serverpackets.ValidateLocation;
+import net.sf.l2j.gameserver.scripting.Quest;
 import net.sf.l2j.gameserver.scripting.QuestState;
 import net.sf.l2j.gameserver.skills.AbstractEffect;
 import net.sf.l2j.gameserver.skills.Formulas;
@@ -238,8 +235,8 @@ public final class Player extends Playable
 	private static final String RESTORE_SKILL_SAVE = "SELECT skill_id,skill_level,effect_count,effect_cur_time, reuse_delay, systime, restore_type FROM character_skills_save WHERE char_obj_id=? AND class_index=? ORDER BY buff_index ASC";
 	private static final String DELETE_SKILL_SAVE = "DELETE FROM character_skills_save WHERE char_obj_id=? AND class_index=?";
 	
-	private static final String INSERT_CHARACTER = "INSERT INTO characters (account_name,obj_Id,char_name,level,maxHp,curHp,maxCp,curCp,maxMp,curMp,face,hairStyle,hairColor,sex,exp,sp,karma,pvpkills,pkkills,clanid,race,classid,deletetime,cancraft,title,accesslevel,online,isin7sdungeon,clan_privs,wantspeace,base_class,nobless,power_grade) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-	private static final String UPDATE_CHARACTER = "UPDATE characters SET level=?,maxHp=?,curHp=?,maxCp=?,curCp=?,maxMp=?,curMp=?,face=?,hairStyle=?,hairColor=?,sex=?,heading=?,x=?,y=?,z=?,exp=?,expBeforeDeath=?,sp=?,karma=?,pvpkills=?,pkkills=?,clanid=?,race=?,classid=?,deletetime=?,title=?,accesslevel=?,online=?,isin7sdungeon=?,clan_privs=?,wantspeace=?,base_class=?,onlinetime=?,punish_level=?,punish_timer=?,nobless=?,power_grade=?,subpledge=?,lvl_joined_academy=?,apprentice=?,sponsor=?,varka_ketra_ally=?,clan_join_expiry_time=?,clan_create_expiry_time=?,char_name=?,death_penalty_level=? WHERE obj_id=?";
+	private static final String INSERT_CHARACTER = "INSERT INTO characters (account_name,obj_Id,char_name,level,maxHp,curHp,maxCp,curCp,maxMp,curMp,face,hairStyle,hairColor,sex,exp,sp,race,classid,base_class,title,accesslevel) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+	private static final String UPDATE_CHARACTER = "UPDATE characters SET level=?,maxHp=?,curHp=?,maxCp=?,curCp=?,maxMp=?,curMp=?,face=?,hairStyle=?,hairColor=?,sex=?,heading=?,x=?,y=?,z=?,exp=?,expBeforeDeath=?,sp=?,karma=?,pvpkills=?,pkkills=?,clanid=?,race=?,classid=?,deletetime=?,title=?,accesslevel=?,online=?,isin7sdungeon=?,wantspeace=?,base_class=?,onlinetime=?,punish_level=?,punish_timer=?,nobless=?,power_grade=?,subpledge=?,lvl_joined_academy=?,apprentice=?,sponsor=?,varka_ketra_ally=?,clan_join_expiry_time=?,clan_create_expiry_time=?,char_name=?,death_penalty_level=? WHERE obj_id=?";
 	private static final String RESTORE_CHARACTER = "SELECT * FROM characters WHERE obj_id=?";
 	
 	private static final String RESTORE_CHAR_SUBCLASSES = "SELECT class_id,exp,sp,level,class_index FROM character_subclasses WHERE char_obj_id=? ORDER BY class_index ASC";
@@ -307,9 +304,6 @@ public final class Player extends Playable
 	private int _duelId;
 	private SystemMessageId _noDuelReason = SystemMessageId.THERE_IS_NO_OPPONENT_TO_RECEIVE_YOUR_CHALLENGE_FOR_A_DUEL;
 	
-	private Boat _boat;
-	private final SpawnLocation _boatPosition = new SpawnLocation(0, 0, 0, 0);
-	
 	private boolean _canFeed;
 	protected PetTemplate _petTemplate;
 	private PetDataEntry _petData;
@@ -341,9 +335,11 @@ public final class Player extends Playable
 	private final List<Integer> _recomChars = new ArrayList<>();
 	
 	private final PcInventory _inventory = new PcInventory(this);
+	private final InventoryUpdate _iu = new InventoryUpdate(this);
+	private final List<PcFreight> _depositedFreight = new ArrayList<>();
+	
 	private PcWarehouse _warehouse;
 	private PcFreight _freight;
-	private final List<PcFreight> _depositedFreight = new ArrayList<>();
 	
 	private OperateType _operateType = OperateType.NONE;
 	
@@ -369,7 +365,6 @@ public final class Player extends Playable
 	private final HennaList _hennaList = new HennaList(this);
 	private final RadarList _radarList = new RadarList(this);
 	private final CubicList _cubicList = new CubicList(this);
-	private final BlockList _blockList = new BlockList(this);
 	private final QuestList _questList = new QuestList(this);
 	
 	private Summon _summon;
@@ -384,7 +379,6 @@ public final class Player extends Playable
 	private long _clanJoinExpiryTime;
 	private long _clanCreateExpiryTime;
 	private int _powerGrade;
-	private int _clanPrivileges;
 	private int _pledgeClass;
 	private int _pledgeType;
 	private int _lvlJoinedAcademy;
@@ -455,14 +449,17 @@ public final class Player extends Playable
 	private boolean _isUnderMarryRequest;
 	private int _requesterId;
 	
-	private final List<Integer> _friendList = new ArrayList<>(); // Related to CB.
-	private final List<Integer> _selectedFriendList = new ArrayList<>(); // Related to CB.
-	private final List<Integer> _selectedBlocksList = new ArrayList<>(); // Related to CB.
-	
 	private Player _summonTargetRequest;
 	private L2Skill _summonSkillRequest;
 	
 	private Door _requestedGate;
+	
+	private BoatInfo _boatInfo = new BoatInfo(this);
+	
+	private boolean _isBlockingAll;
+	
+	private final Set<Integer> _selectedBlocksList = ConcurrentHashMap.newKeySet();
+	private final Set<Integer> _selectedFriendList = ConcurrentHashMap.newKeySet();
 	
 	/**
 	 * Constructor of Player (use Creature constructor).
@@ -549,26 +546,14 @@ public final class Player extends Playable
 			ps.setInt(14, player.getAppearance().getSex().ordinal());
 			ps.setLong(15, player.getStatus().getExp());
 			ps.setInt(16, player.getStatus().getSp());
-			ps.setInt(17, player.getKarma());
-			ps.setInt(18, player.getPvpKills());
-			ps.setInt(19, player.getPkKills());
-			ps.setInt(20, player.getClanId());
-			ps.setInt(21, player.getRace().ordinal());
-			ps.setInt(22, player.getClassId().getId());
-			ps.setLong(23, player.getDeleteTimer());
-			ps.setInt(24, player.hasDwarvenCraft() ? 1 : 0);
-			ps.setString(25, player.getTitle());
-			ps.setInt(26, player.getAccessLevel().getLevel());
-			ps.setInt(27, player.isOnlineInt());
-			ps.setInt(28, player.isIn7sDungeon() ? 1 : 0);
-			ps.setInt(29, player.getClanPrivileges());
-			ps.setInt(30, player.wantsPeace() ? 1 : 0);
-			ps.setInt(31, player.getBaseClass());
-			ps.setInt(32, player.isNoble() ? 1 : 0);
-			ps.setLong(33, 0);
+			ps.setInt(17, player.getRace().ordinal());
+			ps.setInt(18, player.getClassId().getId());
+			ps.setInt(19, player.getBaseClass());
+			ps.setString(20, player.getTitle());
+			ps.setInt(21, player.getAccessLevel().getLevel());
 			ps.executeUpdate();
 		}
-		catch (final Exception e)
+		catch (Exception e)
 		{
 			LOGGER.error("Couldn't create player {} for {} account.", e, name, accountName);
 			return null;
@@ -638,29 +623,25 @@ public final class Player extends Playable
 		super.setTemplate(PlayerData.getInstance().getTemplate(newclass));
 	}
 	
-	/**
-	 * Return the AI of the Player (create it if necessary).
-	 */
-	@Override
-	public CreatureAI getAI()
-	{
-		CreatureAI ai = _ai;
-		if (ai == null)
-		{
-			synchronized (this)
-			{
-				ai = _ai;
-				if (ai == null)
-					_ai = ai = new PlayerAI(this);
-			}
-		}
-		return ai;
-	}
-	
 	@Override
 	public boolean denyAiAction()
 	{
 		return super.denyAiAction() || isInStoreMode() || _operateType == OperateType.OBSERVE;
+	}
+	
+	/**
+	 * Return the AI of the Player (create it if necessary).
+	 */
+	@Override
+	public PlayerAI getAI()
+	{
+		return (PlayerAI) _ai;
+	}
+	
+	@Override
+	public void setAI()
+	{
+		_ai = new PlayerAI(this);
 	}
 	
 	@Override
@@ -744,6 +725,11 @@ public final class Player extends Playable
 	public void setCrafting(boolean state)
 	{
 		_isCrafting = state;
+	}
+	
+	public void setStanding(boolean value)
+	{
+		_isStanding = value;
 	}
 	
 	/**
@@ -967,7 +953,7 @@ public final class Player extends Playable
 	 */
 	public void setRecomHave(int value)
 	{
-		_recomHave = MathUtil.limit(value, 0, 255);
+		_recomHave = Math.clamp(value, 0, 255);
 	}
 	
 	/**
@@ -976,7 +962,7 @@ public final class Player extends Playable
 	 */
 	public void editRecomHave(int value)
 	{
-		_recomHave = MathUtil.limit(_recomHave + value, 0, 255);
+		_recomHave = Math.clamp(_recomHave + value, 0, 255);
 	}
 	
 	/**
@@ -993,7 +979,7 @@ public final class Player extends Playable
 	 */
 	public void setRecomLeft(int value)
 	{
-		_recomLeft = MathUtil.limit(value, 0, 9);
+		_recomLeft = Math.clamp(value, 0, 9);
 	}
 	
 	/**
@@ -1040,7 +1026,7 @@ public final class Player extends Playable
 				ps.execute();
 			}
 		}
-		catch (final Exception e)
+		catch (Exception e)
 		{
 			LOGGER.error("Couldn't update player recommendations.", e);
 		}
@@ -1052,22 +1038,22 @@ public final class Player extends Playable
 	}
 	
 	/**
-	 * Set the exp of the Player before a death
-	 * @param exp
+	 * @return the exp of this {@link Player} before a death.
 	 */
-	public void setExpBeforeDeath(long exp)
-	{
-		_expBeforeDeath = exp;
-	}
-	
 	public long getExpBeforeDeath()
 	{
 		return _expBeforeDeath;
 	}
 	
 	/**
-	 * Return the Karma of the Player.
+	 * Set the exp of this {@link Player} before a death.
+	 * @param expBeforeDeath : The value to set.
 	 */
+	public void setExpBeforeDeath(long expBeforeDeath)
+	{
+		_expBeforeDeath = expBeforeDeath;
+	}
+	
 	@Override
 	public int getKarma()
 	{
@@ -1075,30 +1061,31 @@ public final class Player extends Playable
 	}
 	
 	/**
-	 * Set the Karma of the Player and send StatusUpdate (broadcast).
-	 * @param karma A value.
+	 * Set the Karma of this {@link Player}.
+	 * @param karma : The value to set.
 	 */
 	public void setKarma(int karma)
 	{
-		if (karma < 0)
-			karma = 0;
+		// If karma is equals to the value to set, do nothing.
+		if (_karma == karma)
+			return;
 		
-		if (_karma > 0 && karma == 0)
-		{
-			sendPacket(new UserInfo(this));
-			broadcastRelationsChanges();
-		}
+		_karma = Math.max(0, karma);
 		
-		// send message with new karma value
-		sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOUR_KARMA_HAS_BEEN_CHANGED_TO_S1).addNumber(karma));
+		// Send message with new karma value.
+		sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOUR_KARMA_HAS_BEEN_CHANGED_TO_S1).addNumber(_karma));
 		
-		_karma = karma;
-		broadcastKarma();
+		final StatusUpdate su = new StatusUpdate(this);
+		su.addAttribute(StatusType.KARMA, _karma);
+		sendPacket(su);
+		
+		sendPacket(new UserInfo(this));
+		if (_summon != null)
+			sendPacket(new RelationChanged(_summon, getRelation(this), false));
+		
+		broadcastRelationsChanges();
 	}
 	
-	/**
-	 * Note: Base weight limit value is 69000.
-	 */
 	@Override
 	public int getWeightLimit()
 	{
@@ -1121,7 +1108,7 @@ public final class Player extends Playable
 	}
 	
 	/**
-	 * Update the overloaded status of the Player.
+	 * Update the overloaded status of this {@link Player}.
 	 */
 	public void refreshWeightPenalty()
 	{
@@ -1154,7 +1141,7 @@ public final class Player extends Playable
 	}
 	
 	/**
-	 * Refresh expertise level ; weapon got one rank, when armor got 4 ranks.<br>
+	 * Refresh expertise level ; weapon got one rank, when armor got 4 ranks.
 	 */
 	public void refreshExpertisePenalty()
 	{
@@ -1188,7 +1175,7 @@ public final class Player extends Playable
 			else
 				removeSkill(4267, false);
 			
-			sendSkillList();
+			sendPacket(new SkillList(this));
 			sendPacket(new EtcStatusUpdate(this));
 			
 			// Activate / desactivate weapon effects.
@@ -1204,17 +1191,24 @@ public final class Player extends Playable
 	}
 	
 	/**
-	 * Equip or unequip the item.
+	 * @return True if the Weight Penalty is 3 or more or if the inventory size is superior or equal to 80% - false otherwise.
+	 */
+	public boolean isOverweight()
+	{
+		return _weightPenalty.ordinal() > 2 || getStatus().isOverburden();
+	}
+	
+	/**
+	 * Equip or unequip the {@link ItemInstance} set as parameter.
 	 * <UL>
-	 * <LI>If item is equipped, shots are applied if automation is on.</LI>
-	 * <LI>If item is unequipped, shots are discharged.</LI>
+	 * <LI>If the item is equipped, shots are applied if automation is on.</LI>
+	 * <LI>If the item is unequipped, shots are discharged.</LI>
 	 * </UL>
-	 * @param item The item to charge/discharge.
-	 * @param abortAttack If true, the current attack will be aborted in order to equip the item.
+	 * @param item : The {@link ItemInstance} to equip/unequip.
+	 * @param abortAttack : If true, the current attack will be aborted.
 	 */
 	public void useEquippableItem(ItemInstance item, boolean abortAttack)
 	{
-		ItemInstance[] items = null;
 		final boolean isEquipped = item.isEquipped();
 		final int oldInvLimit = getStatus().getInventoryLimit();
 		
@@ -1228,11 +1222,11 @@ public final class Player extends Playable
 			else
 				sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_DISARMED).addItemName(item));
 			
-			items = getInventory().unequipItemInBodySlotAndRecord(item);
+			getInventory().unequipItemInBodySlotAndRecord(item);
 		}
 		else
 		{
-			items = getInventory().equipItemAndRecord(item);
+			getInventory().equipItemAndRecord(item);
 			
 			if (item.isEquipped())
 			{
@@ -1250,10 +1244,6 @@ public final class Player extends Playable
 		refreshExpertisePenalty();
 		broadcastUserInfo();
 		
-		final InventoryUpdate iu = new InventoryUpdate();
-		iu.addItems(Arrays.asList(items));
-		sendPacket(iu);
-		
 		if (abortAttack)
 			getAttack().stop();
 		
@@ -1262,7 +1252,7 @@ public final class Player extends Playable
 	}
 	
 	/**
-	 * @return PvP Kills of the Player (number of player killed during a PvP).
+	 * @return The total PvP kills amount of this {@link Player} (number of killed players during PvP).
 	 */
 	public int getPvpKills()
 	{
@@ -1270,8 +1260,8 @@ public final class Player extends Playable
 	}
 	
 	/**
-	 * Set PvP Kills of the Player (number of player killed during a PvP).
-	 * @param pvpKills A value.
+	 * Set the total PvP kills amount of this {@link Player} (number of killed players during PvP).
+	 * @param pvpKills : The value to set.
 	 */
 	public void setPvpKills(int pvpKills)
 	{
@@ -1279,7 +1269,7 @@ public final class Player extends Playable
 	}
 	
 	/**
-	 * @return The ClassId object of the Player contained in L2PcTemplate.
+	 * @return The {@link ClassId} of this {@link Player}.
 	 */
 	public ClassId getClassId()
 	{
@@ -1287,7 +1277,7 @@ public final class Player extends Playable
 	}
 	
 	/**
-	 * Set the template of this {@link Player}.
+	 * Set the {@link ClassId} of this {@link Player}.
 	 * @param id : The id of the {@link ClassId} to set.
 	 */
 	public void setClassId(int id)
@@ -1327,7 +1317,7 @@ public final class Player extends Playable
 				_clan.removeClanMember(getObjectId(), 0);
 				
 				// Reward the ousted members with graduation gift : academy circlet
-				addItem("Gift", 8181, 1, this, true);
+				addItem(8181, 1, true);
 			}
 			
 			if (isSubClassActive())
@@ -1357,18 +1347,25 @@ public final class Player extends Playable
 		}
 	}
 	
-	public void setActiveEnchantItem(ItemInstance scroll)
-	{
-		_activeEnchantItem = scroll;
-	}
-	
+	/**
+	 * @return The {@link ItemInstance} used as active enchant item. Mostly used to see if the enchant window is opened.
+	 */
 	public ItemInstance getActiveEnchantItem()
 	{
 		return _activeEnchantItem;
 	}
 	
 	/**
-	 * @return The Race object of the Player.
+	 * Set the active enchant item.
+	 * @param scroll : The {@link ItemInstance} to set.
+	 */
+	public void setActiveEnchantItem(ItemInstance scroll)
+	{
+		_activeEnchantItem = scroll;
+	}
+	
+	/**
+	 * @return The {@link ClassRace} of this {@link Player}. If subclass is active, we use the base template one.
 	 */
 	public ClassRace getRace()
 	{
@@ -1385,31 +1382,71 @@ public final class Player extends Playable
 		return _cubicList;
 	}
 	
-	/**
-	 * @param castleId The castle to check.
-	 * @return True if this Player is a clan leader in ownership of the passed castle.
-	 */
-	public boolean isCastleLord(int castleId)
-	{
-		final Clan clan = getClan();
-		if (clan != null && clan.getLeader().getPlayerInstance() == this)
-		{
-			final Castle castle = CastleManager.getInstance().getCastleByOwner(clan);
-			return castle != null && castle.getCastleId() == castleId;
-		}
-		return false;
-	}
-	
-	/**
-	 * @return The Clan Identifier of the Player.
-	 */
+	@Override
 	public int getClanId()
 	{
 		return _clanId;
 	}
 	
+	@Override
+	public Clan getClan()
+	{
+		return _clan;
+	}
+	
 	/**
-	 * @return The Clan Crest Identifier of the Player or 0.
+	 * Set the {@link Clan} informations of this {@link Player}.
+	 * @param clan : The {@link Clan} object used to feed {@link Player} values.
+	 */
+	public void setClan(Clan clan)
+	{
+		_clan = clan;
+		setTitle("");
+		
+		if (clan == null)
+		{
+			_clanId = 0;
+			_pledgeType = 0;
+			_powerGrade = 0;
+			_lvlJoinedAcademy = 0;
+			_apprentice = 0;
+			_sponsor = 0;
+			return;
+		}
+		
+		// Player has been kicked from clan.
+		if (!clan.isMember(getObjectId()))
+		{
+			setClan(null);
+			return;
+		}
+		
+		_clanId = clan.getClanId();
+	}
+	
+	/**
+	 * @param castleId : The {@link Castle} to check.
+	 * @return True if this {@link Player} is a {@link Clan} leader in ownership of the passed {@link Castle}, or false otherwise.
+	 */
+	public boolean isCastleLord(int castleId)
+	{
+		if (!isClanLeader())
+			return false;
+		
+		final Castle castle = CastleManager.getInstance().getCastleByOwner(_clan);
+		return castle != null && castle.getId() == castleId;
+	}
+	
+	/**
+	 * @return True if the {@link Player} is the leader of its {@link Clan}, or false otherwise.
+	 */
+	public boolean isClanLeader()
+	{
+		return _clan != null && getObjectId() == _clan.getLeaderId();
+	}
+	
+	/**
+	 * @return The {@link Clan} crest id of the {@link Player}, or 0 if not set.
 	 */
 	public int getClanCrestId()
 	{
@@ -1417,28 +1454,42 @@ public final class Player extends Playable
 	}
 	
 	/**
-	 * @return The Clan CrestLarge Identifier or 0
+	 * @return The large {@link Clan} crest id of the {@link Player}, or 0 if not set.
 	 */
 	public int getClanCrestLargeId()
 	{
 		return (_clan != null) ? _clan.getCrestLargeId() : 0;
 	}
 	
+	/**
+	 * @return The expiration timer to join a {@link Clan}, used by defective {@link Clan} member leaving their {@link Clan}.
+	 */
 	public long getClanJoinExpiryTime()
 	{
 		return _clanJoinExpiryTime;
 	}
 	
+	/**
+	 * Set the expiration timer to join a {@link Clan}.
+	 * @param time : The value to set.
+	 */
 	public void setClanJoinExpiryTime(long time)
 	{
 		_clanJoinExpiryTime = time;
 	}
 	
+	/**
+	 * @return The expiration timer to create a {@link Clan}, used by defective {@link Clan} leader leaving their {@link Clan}.
+	 */
 	public long getClanCreateExpiryTime()
 	{
 		return _clanCreateExpiryTime;
 	}
 	
+	/**
+	 * Set the expiration timer to create a {@link Clan}.
+	 * @param time : The value to set.
+	 */
 	public void setClanCreateExpiryTime(long time)
 	{
 		_clanCreateExpiryTime = time;
@@ -1450,9 +1501,6 @@ public final class Player extends Playable
 		_onlineBeginTime = System.currentTimeMillis();
 	}
 	
-	/**
-	 * Return the PcInventory Inventory of the Player contained in _inventory.
-	 */
 	@Override
 	public PcInventory getInventory()
 	{
@@ -1484,12 +1532,12 @@ public final class Player extends Playable
 	}
 	
 	/**
-	 * Sit down the {@link Player}. The player retrieves control after a 2.5s delay.
+	 * Sit down this {@link Player}. The {@link Player} retrieves control after a 2.5s delay.
 	 * <ul>
-	 * <li>Set the AI Intention to IDLE</li>
-	 * <li>Broadcast {@link ChangeWaitType} packet</li>
+	 * <li>Set the AI Intention to IDLE.</li>
+	 * <li>Broadcast {@link ChangeWaitType} packet.</li>
 	 * </ul>
-	 * @return true if the Player could successfully sit down, false otherwise.
+	 * @return True if this {@link Player} could successfully sit down, false otherwise.
 	 */
 	public boolean sitDown()
 	{
@@ -1517,10 +1565,10 @@ public final class Player extends Playable
 	}
 	
 	/**
-	 * Stand the {@link Player} up. The player retrieves control after a 2.5s delay.
+	 * Stand this {@link Player} up. The {@link Player} retrieves control after a 2.5s delay.
 	 * <ul>
-	 * <li>Schedules the STOOD_UP event</li>
-	 * <li>Broadcast {@link ChangeWaitType} packet</li>
+	 * <li>Schedule the STOOD_UP event.</li>
+	 * <li>Broadcast {@link ChangeWaitType} packet.</li>
 	 * </ul>
 	 */
 	public void standUp()
@@ -1543,7 +1591,7 @@ public final class Player extends Playable
 	}
 	
 	/**
-	 * @return The PcWarehouse object of the Player.
+	 * @return The {@link PcWarehouse} of this {@link Player}.
 	 */
 	public PcWarehouse getWarehouse()
 	{
@@ -1556,7 +1604,7 @@ public final class Player extends Playable
 	}
 	
 	/**
-	 * Free memory used by Warehouse
+	 * Free memory used by this {@link Player}'s {@link PcWarehouse}.
 	 */
 	public void clearWarehouse()
 	{
@@ -1567,7 +1615,7 @@ public final class Player extends Playable
 	}
 	
 	/**
-	 * @return The PcFreight object of the Player.
+	 * @return The {@link PcFreight} of this {@link Player}.
 	 */
 	public PcFreight getFreight()
 	{
@@ -1580,7 +1628,7 @@ public final class Player extends Playable
 	}
 	
 	/**
-	 * Free memory used by Freight
+	 * Free memory used by this {@link Player}'s {@link PcFreight}.
 	 */
 	public void clearFreight()
 	{
@@ -1591,38 +1639,39 @@ public final class Player extends Playable
 	}
 	
 	/**
-	 * @param objectId The id of the owner.
-	 * @return deposited PcFreight object for the objectId or create new if not existing.
+	 * @param objectId : The id of the owner.
+	 * @return The deposited {@link PcFreight} for the objectId set as parameter, or create a new one if not existing.
 	 */
 	public PcFreight getDepositedFreight(int objectId)
 	{
+		// Try to retrieve an existing PcFreight.
 		for (final PcFreight freight : _depositedFreight)
 		{
 			if (freight != null && freight.getOwnerId() == objectId)
 				return freight;
 		}
 		
+		// We didn't find an existing PcFreight ; we create one.
 		final PcFreight freight = new PcFreight(null);
 		freight.doQuickRestore(objectId);
+		
+		// Set the PcFreight in the _depositedFreight container.
 		_depositedFreight.add(freight);
+		
 		return freight;
 	}
 	
 	/**
-	 * Clear memory used by deposited freight
+	 * Free memory used by this {@link Player}'s {@link PcFreight}s used as deposit.
 	 */
 	public void clearDepositedFreight()
 	{
-		for (final PcFreight freight : _depositedFreight)
-		{
-			if (freight != null)
-				freight.deleteMe();
-		}
+		_depositedFreight.forEach(PcFreight::deleteMe);
 		_depositedFreight.clear();
 	}
 	
 	/**
-	 * @return The Adena amount of the Player.
+	 * @return The Adena amount of this {@link Player}.
 	 */
 	public int getAdena()
 	{
@@ -1630,7 +1679,7 @@ public final class Player extends Playable
 	}
 	
 	/**
-	 * @return The Ancient Adena amount of the Player.
+	 * @return The Ancient Adena amount of this {@link Player}.
 	 */
 	public int getAncientAdena()
 	{
@@ -1638,36 +1687,25 @@ public final class Player extends Playable
 	}
 	
 	/**
-	 * Add adena to Inventory of the Player and send InventoryUpdate packet to the Player.
-	 * @param process String Identifier of process triggering this action
-	 * @param count int Quantity of adena to be added
-	 * @param reference WorldObject Object referencing current action like NPC selling item or previous item in transformation
-	 * @param sendMessage boolean Specifies whether to send message to Client about this action
+	 * Add Adena to this {@link Player}.
+	 * @param count : The quantity of Adena to add.
+	 * @param sendMessage : Send {@link SystemMessage} client notification if set to true.
 	 */
-	public void addAdena(String process, int count, WorldObject reference, boolean sendMessage)
+	public void addAdena(int count, boolean sendMessage)
 	{
 		if (sendMessage)
 			sendPacket(SystemMessage.getSystemMessage(SystemMessageId.EARNED_S1_ADENA).addNumber(count));
 		
-		if (count > 0)
-		{
-			_inventory.addAdena(process, count, this, reference);
-			
-			final InventoryUpdate iu = new InventoryUpdate();
-			iu.addItem(_inventory.getAdenaInstance());
-			sendPacket(iu);
-		}
+		_inventory.addAdena(count);
 	}
 	
 	/**
-	 * Reduce adena in Inventory of the Player and send InventoryUpdate packet to the Player.
-	 * @param process String Identifier of process triggering this action
-	 * @param count int Quantity of adena to be reduced
-	 * @param reference WorldObject Object referencing current action like NPC selling item or previous item in transformation
-	 * @param sendMessage boolean Specifies whether to send message to Client about this action
-	 * @return boolean informing if the action was successfull
+	 * Reduce Adena from this {@link Player}.
+	 * @param count : The quantity of Adena to remove.
+	 * @param sendMessage : Send {@link SystemMessage} client notification if set to true.
+	 * @return True if the action was successful, or false otherwise.
 	 */
-	public boolean reduceAdena(String process, int count, WorldObject reference, boolean sendMessage)
+	public boolean reduceAdena(int count, boolean sendMessage)
 	{
 		if (count > getAdena())
 		{
@@ -1679,14 +1717,8 @@ public final class Player extends Playable
 		
 		if (count > 0)
 		{
-			final ItemInstance adenaItem = _inventory.getAdenaInstance();
-			if (!_inventory.reduceAdena(process, count, this, reference))
+			if (!_inventory.reduceAdena(count))
 				return false;
-			
-			// Send update packet
-			final InventoryUpdate iu = new InventoryUpdate();
-			iu.addItem(adenaItem);
-			sendPacket(iu);
 			
 			if (sendMessage)
 				sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_DISAPPEARED_ADENA).addNumber(count));
@@ -1695,36 +1727,25 @@ public final class Player extends Playable
 	}
 	
 	/**
-	 * Add ancient adena to Inventory of the Player and send InventoryUpdate packet to the Player.
-	 * @param process String Identifier of process triggering this action
-	 * @param count int Quantity of ancient adena to be added
-	 * @param reference WorldObject Object referencing current action like NPC selling item or previous item in transformation
-	 * @param sendMessage boolean Specifies whether to send message to Client about this action
+	 * Add Ancient Adena to this {@link Player}.
+	 * @param count : The quantity of Ancient Adena to add.
+	 * @param sendMessage : Send {@link SystemMessage} client notification if set to true.
 	 */
-	public void addAncientAdena(String process, int count, WorldObject reference, boolean sendMessage)
+	public void addAncientAdena(int count, boolean sendMessage)
 	{
 		if (sendMessage)
 			sendPacket(SystemMessage.getSystemMessage(SystemMessageId.EARNED_S2_S1_S).addItemName(PcInventory.ANCIENT_ADENA_ID).addNumber(count));
 		
-		if (count > 0)
-		{
-			_inventory.addAncientAdena(process, count, this, reference);
-			
-			final InventoryUpdate iu = new InventoryUpdate();
-			iu.addItem(_inventory.getAncientAdenaInstance());
-			sendPacket(iu);
-		}
+		_inventory.addAncientAdena(count);
 	}
 	
 	/**
-	 * Reduce ancient adena in Inventory of the Player and send InventoryUpdate packet to the Player.
-	 * @param process String Identifier of process triggering this action
-	 * @param count int Quantity of ancient adena to be reduced
-	 * @param reference WorldObject Object referencing current action like NPC selling item or previous item in transformation
-	 * @param sendMessage boolean Specifies whether to send message to Client about this action
-	 * @return boolean informing if the action was successfull
+	 * Reduce Ancient Adena from this {@link Player}.
+	 * @param count : The quantity of Ancient Adena to remove.
+	 * @param sendMessage : Send {@link SystemMessage} client notification if set to true.
+	 * @return True if the action was successful, or false otherwise.
 	 */
-	public boolean reduceAncientAdena(String process, int count, WorldObject reference, boolean sendMessage)
+	public boolean reduceAncientAdena(int count, boolean sendMessage)
 	{
 		if (count > getAncientAdena())
 		{
@@ -1736,13 +1757,8 @@ public final class Player extends Playable
 		
 		if (count > 0)
 		{
-			final ItemInstance ancientAdenaItem = _inventory.getAncientAdenaInstance();
-			if (!_inventory.reduceAncientAdena(process, count, this, reference))
+			if (!_inventory.reduceAncientAdena(count))
 				return false;
-			
-			final InventoryUpdate iu = new InventoryUpdate();
-			iu.addItem(ancientAdenaItem);
-			sendPacket(iu);
 			
 			if (sendMessage)
 			{
@@ -1755,139 +1771,162 @@ public final class Player extends Playable
 		return true;
 	}
 	
-	/**
-	 * Adds item to inventory and send InventoryUpdate packet to the Player.
-	 * @param process String Identifier of process triggering this action
-	 * @param item ItemInstance to be added
-	 * @param reference WorldObject Object referencing current action like NPC selling item or previous item in transformation
-	 * @param sendMessage boolean Specifies whether to send message to Client about this action
-	 */
-	public void addItem(String process, ItemInstance item, WorldObject reference, boolean sendMessage)
+	@Override
+	public void addItem(ItemInstance item, boolean sendMessage)
 	{
-		if (item.getCount() > 0)
+		// Don't bother with 0 or inferior amount.
+		if (item.getCount() < 1)
+			return;
+		
+		// Send message to client, if requested.
+		if (sendMessage)
 		{
-			// Sends message to client if requested
-			if (sendMessage)
-			{
-				if (item.getCount() > 1)
-					sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_PICKED_UP_S2_S1).addItemName(item).addNumber(item.getCount()));
-				else if (item.getEnchantLevel() > 0)
-					sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_PICKED_UP_A_S1_S2).addNumber(item.getEnchantLevel()).addItemName(item));
-				else
-					sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_PICKED_UP_S1).addItemName(item));
-			}
-			
-			// Add the item to inventory
-			final ItemInstance newitem = _inventory.addItem(process, item, this, reference);
-			
-			// Send inventory update packet
-			final InventoryUpdate playerIU = new InventoryUpdate();
-			playerIU.addItem(newitem);
-			sendPacket(playerIU);
-			
-			// Update current load as well
-			final StatusUpdate su = new StatusUpdate(this);
-			su.addAttribute(StatusType.CUR_LOAD, getCurrentWeight());
-			sendPacket(su);
-			
-			// Cursed Weapon
-			if (CursedWeaponManager.getInstance().isCursed(newitem.getItemId()))
-				CursedWeaponManager.getInstance().activate(this, newitem);
-			// If you pickup arrows and a bow is equipped, try to equip them if no arrows is currently equipped.
-			else if (item.getItem().getItemType() == EtcItemType.ARROW && getAttackType() == WeaponType.BOW && !getInventory().hasItemIn(Paperdoll.LHAND))
-				checkAndEquipArrows();
-		}
-	}
-	
-	/**
-	 * Adds item to Inventory and send InventoryUpdate packet to the Player.
-	 * @param process String Identifier of process triggering this action
-	 * @param itemId int Item Identifier of the item to be added
-	 * @param count int Quantity of items to be added
-	 * @param reference WorldObject Object referencing current action like NPC selling item or previous item in transformation
-	 * @param sendMessage boolean Specifies whether to send message to Client about this action
-	 * @return The created ItemInstance.
-	 */
-	public ItemInstance addItem(String process, int itemId, int count, WorldObject reference, boolean sendMessage)
-	{
-		if (count > 0)
-		{
-			// Retrieve the template of the item.
-			final Item item = ItemData.getInstance().getTemplate(itemId);
-			if (item == null)
-				return null;
-			
-			// Sends message to client if requested. Since Herbs are directly assimilated, they don't send any "You have earned X" message, only "The effects of X flow through you".
-			if (sendMessage && item.getItemType() != EtcItemType.HERB)
-			{
-				if (count > 1)
-				{
-					if (process.equalsIgnoreCase("Sweep") || process.equalsIgnoreCase("Quest"))
-						sendPacket(SystemMessage.getSystemMessage(SystemMessageId.EARNED_S2_S1_S).addItemName(itemId).addItemNumber(count));
-					else
-						sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_PICKED_UP_S2_S1).addItemName(itemId).addItemNumber(count));
-				}
-				else
-				{
-					if (process.equalsIgnoreCase("Sweep") || process.equalsIgnoreCase("Quest"))
-						sendPacket(SystemMessage.getSystemMessage(SystemMessageId.EARNED_ITEM_S1).addItemName(itemId));
-					else
-						sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_PICKED_UP_S1).addItemName(itemId));
-				}
-			}
-			
-			// If the item is herb type, dont add it to inventory.
-			if (item.getItemType() == EtcItemType.HERB)
-			{
-				final ItemInstance herb = new ItemInstance(0, itemId);
-				
-				final IItemHandler handler = ItemHandler.getInstance().getHandler(herb.getEtcItem());
-				if (handler != null)
-					handler.useItem(this, herb, false);
-			}
+			if (item.getCount() > 1)
+				sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_PICKED_UP_S2_S1).addItemName(item).addNumber(item.getCount()));
+			else if (item.getEnchantLevel() > 0)
+				sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_PICKED_UP_A_S1_S2).addNumber(item.getEnchantLevel()).addItemName(item));
 			else
-			{
-				// Add the item to inventory
-				final ItemInstance createdItem = _inventory.addItem(process, itemId, count, this, reference);
-				
-				// Cursed Weapon
-				if (CursedWeaponManager.getInstance().isCursed(createdItem.getItemId()))
-					CursedWeaponManager.getInstance().activate(this, createdItem);
-				// If you pickup arrows and a bow is equipped, try to equip them if no arrows is currently equipped.
-				else if (item.getItemType() == EtcItemType.ARROW && getAttackType() == WeaponType.BOW && !getInventory().hasItemIn(Paperdoll.LHAND))
-					checkAndEquipArrows();
-				
-				return createdItem;
-			}
+				sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_PICKED_UP_S1).addItemName(item));
 		}
-		return null;
+		
+		// Add the item to inventory.
+		final ItemInstance newItem = _inventory.addItem(item);
+		if (newItem == null)
+			return;
+		
+		// If the item is a Cursed Weapon, activate it.
+		if (CursedWeaponManager.getInstance().isCursed(newItem.getItemId()))
+			CursedWeaponManager.getInstance().activate(this, newItem);
+		// If you pickup arrows and a bow is equipped, try to equip them if no arrows is currently equipped.
+		else if (item.getItem().getItemType() == EtcItemType.ARROW && getAttackType() == WeaponType.BOW && !getInventory().hasItemIn(Paperdoll.LHAND))
+			checkAndEquipArrows();
+	}
+	
+	@Override
+	public ItemInstance addItem(int itemId, int count, boolean sendMessage)
+	{
+		// Don't bother with 0 or inferior amount.
+		if (count < 1)
+			return null;
+		
+		// Retrieve the template of the item.
+		final Item item = ItemData.getInstance().getTemplate(itemId);
+		if (item == null)
+			return null;
+		
+		// If the item is herb type, dont add it to inventory.
+		if (item.getItemType() == EtcItemType.HERB)
+		{
+			final ItemInstance herb = new ItemInstance(0, itemId);
+			
+			final IItemHandler handler = ItemHandler.getInstance().getHandler(herb.getEtcItem());
+			if (handler != null)
+				handler.useItem(this, herb, false);
+			
+			herb.destroyMe();
+			return null;
+		}
+		
+		// Send message to client, if requested.
+		if (sendMessage)
+		{
+			if (count > 1)
+				sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_PICKED_UP_S2_S1).addItemName(itemId).addItemNumber(count));
+			else
+				sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_PICKED_UP_S1).addItemName(itemId));
+		}
+		
+		// Add the item to inventory.
+		final ItemInstance newItem = _inventory.addItem(itemId, count);
+		if (newItem == null)
+			return null;
+		
+		// If the item is a Cursed Weapon, activate it.
+		if (CursedWeaponManager.getInstance().isCursed(newItem.getItemId()))
+			CursedWeaponManager.getInstance().activate(this, newItem);
+		// If you pickup arrows and a bow is equipped, try to equip them if no arrows is currently equipped.
+		else if (item.getItemType() == EtcItemType.ARROW && getAttackType() == WeaponType.BOW && !getInventory().hasItemIn(Paperdoll.LHAND))
+			checkAndEquipArrows();
+		
+		return newItem;
 	}
 	
 	/**
-	 * Destroy item from inventory and send InventoryUpdate packet to the Player.
-	 * @param process String Identifier of process triggering this action
-	 * @param item ItemInstance to be destroyed
-	 * @param reference WorldObject Object referencing current action like NPC selling item or previous item in transformation
-	 * @param sendMessage boolean Specifies whether to send message to Client about this action
-	 * @return boolean informing if the action was successfull
+	 * Add an item to this {@link Player}. Harvest, Sweep and Quest behaviors use it. Only {@link SystemMessage} differ.
+	 * @param itemId : The itemId of item to add.
+	 * @param count : The quantity of items to add.
+	 * @param sendMessage : Send {@link SystemMessage} client notification if set to true.
+	 * @return an {@link ItemInstance} of a newly generated item for this {@link Player}, using itemId and count.
 	 */
-	public boolean destroyItem(String process, ItemInstance item, WorldObject reference, boolean sendMessage)
+	public ItemInstance addEarnedItem(int itemId, int count, boolean sendMessage)
 	{
-		return destroyItem(process, item, item.getCount(), reference, sendMessage);
+		// Don't bother with 0 or inferior amount.
+		if (count < 1)
+			return null;
+		
+		// Retrieve the template of the item.
+		final Item item = ItemData.getInstance().getTemplate(itemId);
+		if (item == null)
+			return null;
+		
+		// If the item is herb type, dont add it to inventory.
+		if (item.getItemType() == EtcItemType.HERB)
+		{
+			final ItemInstance herb = new ItemInstance(0, itemId);
+			
+			final IItemHandler handler = ItemHandler.getInstance().getHandler(herb.getEtcItem());
+			if (handler != null)
+				handler.useItem(this, herb, false);
+			
+			herb.destroyMe();
+			return null;
+		}
+		
+		// Send message to client, if requested.
+		if (sendMessage)
+		{
+			if (count > 1)
+				sendPacket(SystemMessage.getSystemMessage(SystemMessageId.EARNED_S2_S1_S).addItemName(itemId).addItemNumber(count));
+			else
+				sendPacket(SystemMessage.getSystemMessage(SystemMessageId.EARNED_ITEM_S1).addItemName(itemId));
+		}
+		
+		// Add the item to inventory.
+		final ItemInstance newItem = _inventory.addItem(itemId, count);
+		if (newItem == null)
+			return null;
+		
+		// If the item is a Cursed Weapon, activate it.
+		if (CursedWeaponManager.getInstance().isCursed(newItem.getItemId()))
+			CursedWeaponManager.getInstance().activate(this, newItem);
+		// If you pickup arrows and a bow is equipped, try to equip them if no arrows is currently equipped.
+		else if (item.getItemType() == EtcItemType.ARROW && getAttackType() == WeaponType.BOW && !getInventory().hasItemIn(Paperdoll.LHAND))
+			checkAndEquipArrows();
+		
+		return newItem;
 	}
 	
 	/**
-	 * Destroy item from inventory and send InventoryUpdate packet to the Player.
-	 * @param process String Identifier of process triggering this action
-	 * @param item ItemInstance to be destroyed
-	 * @param count int Quantity of ancient adena to be reduced
-	 * @param reference WorldObject Object referencing current action like NPC selling item or previous item in transformation
-	 * @param sendMessage boolean Specifies whether to send message to Client about this action
-	 * @return boolean informing if the action was successfull
+	 * Destroy entirely (whole amount) an {@link ItemInstance} from this {@link Player}.
+	 * @param item : The {@link ItemInstance} to destroy.
+	 * @param sendMessage : Send {@link SystemMessage} client notification if set to true.
+	 * @return True if the action was successful, or false otherwise.
 	 */
-	public boolean destroyItem(String process, ItemInstance item, int count, WorldObject reference, boolean sendMessage)
+	public boolean destroyItem(ItemInstance item, boolean sendMessage)
 	{
-		item = _inventory.destroyItem(process, item, count, this, reference);
+		return destroyItem(item, item.getCount(), sendMessage);
+	}
+	
+	/**
+	 * Destroy a part of an {@link ItemInstance} from this {@link Player}.
+	 * @param item : The {@link ItemInstance} to destroy.
+	 * @param count : The amount to remove. If amount is superior or equal to {@link ItemInstance} quantity, the item is entirely destroyed.
+	 * @param sendMessage : Send {@link SystemMessage} client notification if set to true.
+	 * @return True if the action was successful, or false otherwise.
+	 */
+	public boolean destroyItem(ItemInstance item, int count, boolean sendMessage)
+	{
+		item = _inventory.destroyItem(item, count);
 		if (item == null)
 		{
 			if (sendMessage)
@@ -1896,23 +1935,12 @@ public final class Player extends Playable
 			return false;
 		}
 		
-		// Send inventory update packet
-		final InventoryUpdate iu = new InventoryUpdate();
-		if (item.getCount() == 0)
-			iu.addRemovedItem(item);
-		else
-			iu.addModifiedItem(item);
-		sendPacket(iu);
-		
-		// Update current load as well
-		final StatusUpdate su = new StatusUpdate(this);
-		su.addAttribute(StatusType.CUR_LOAD, getCurrentWeight());
-		sendPacket(su);
-		
-		// Sends message to client if requested
+		// Send message to client, if requested.
 		if (sendMessage)
 		{
-			if (count > 1)
+			if (item.isShadowItem())
+				sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1S_REMAINING_MANA_IS_NOW_0).addItemName(item));
+			else if (count > 1)
 				sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S2_S1_DISAPPEARED).addItemName(item).addItemNumber(count));
 			else
 				sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_DISAPPEARED).addItemName(item));
@@ -1920,17 +1948,8 @@ public final class Player extends Playable
 		return true;
 	}
 	
-	/**
-	 * Destroys item from inventory and send InventoryUpdate packet to the Player.
-	 * @param process String Identifier of process triggering this action
-	 * @param objectId int Item Instance identifier of the item to be destroyed
-	 * @param count int Quantity of items to be destroyed
-	 * @param reference WorldObject Object referencing current action like NPC selling item or previous item in transformation
-	 * @param sendMessage boolean Specifies whether to send message to Client about this action
-	 * @return boolean informing if the action was successfull
-	 */
 	@Override
-	public boolean destroyItem(String process, int objectId, int count, WorldObject reference, boolean sendMessage)
+	public boolean destroyItem(int objectId, int count, boolean sendMessage)
 	{
 		final ItemInstance item = _inventory.getItemByObjectId(objectId);
 		if (item == null)
@@ -1941,42 +1960,18 @@ public final class Player extends Playable
 			return false;
 		}
 		
-		return destroyItem(process, item, count, reference, sendMessage);
+		return destroyItem(item, count, sendMessage);
 	}
 	
-	/**
-	 * Destroys shots from inventory without logging and only occasional saving to database. Sends InventoryUpdate packet to the Player.
-	 * @param objectId int Item Instance identifier of the item to be destroyed
-	 * @param count int Quantity of items to be destroyed
-	 * @return boolean informing if the action was successfull
-	 */
-	public boolean destroyItemWithoutTrace(int objectId, int count)
-	{
-		final ItemInstance item = _inventory.getItemByObjectId(objectId);
-		if (item == null || item.getCount() < count)
-			return false;
-		
-		return destroyItem(null, item, count, null, false);
-	}
-	
-	/**
-	 * Destroy item from inventory by using its <B>itemId</B> and send InventoryUpdate packet to the Player.
-	 * @param process String Identifier of process triggering this action
-	 * @param itemId int Item identifier of the item to be destroyed
-	 * @param count int Quantity of items to be destroyed
-	 * @param reference WorldObject Object referencing current action like NPC selling item or previous item in transformation
-	 * @param sendMessage boolean Specifies whether to send message to Client about this action
-	 * @return boolean informing if the action was successfull
-	 */
 	@Override
-	public boolean destroyItemByItemId(String process, int itemId, int count, WorldObject reference, boolean sendMessage)
+	public boolean destroyItemByItemId(int itemId, int count, boolean sendMessage)
 	{
 		if (itemId == 57)
-			return reduceAdena(process, count, reference, sendMessage);
+			return reduceAdena(count, sendMessage);
 		
 		final ItemInstance item = _inventory.getItemByItemId(itemId);
 		
-		if (item == null || item.getCount() < count || _inventory.destroyItemByItemId(process, itemId, count, this, reference) == null)
+		if (item == null || item.getCount() < count || _inventory.destroyItemByItemId(itemId, count) == null)
 		{
 			if (sendMessage)
 				sendPacket(SystemMessageId.NOT_ENOUGH_ITEMS);
@@ -1984,20 +1979,12 @@ public final class Player extends Playable
 			return false;
 		}
 		
-		// Send inventory update packet
-		final InventoryUpdate playerIU = new InventoryUpdate();
-		playerIU.addItem(item);
-		sendPacket(playerIU);
-		
-		// Update current load as well
-		final StatusUpdate su = new StatusUpdate(this);
-		su.addAttribute(StatusType.CUR_LOAD, getCurrentWeight());
-		sendPacket(su);
-		
-		// Sends message to client if requested
+		// Send message to client, if requested.
 		if (sendMessage)
 		{
-			if (count > 1)
+			if (item.isShadowItem())
+				sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1S_REMAINING_MANA_IS_NOW_0).addItemName(itemId));
+			else if (count > 1)
 				sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S2_S1_DISAPPEARED).addItemName(itemId).addItemNumber(count));
 			else
 				sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_DISAPPEARED).addItemName(itemId));
@@ -2005,81 +1992,25 @@ public final class Player extends Playable
 		return true;
 	}
 	
-	/**
-	 * Transfers item to another ItemContainer and send InventoryUpdate packet to the Player.
-	 * @param process String Identifier of process triggering this action
-	 * @param objectId int Item Identifier of the item to be transfered
-	 * @param count int Quantity of items to be transfered
-	 * @param target Inventory the Inventory target.
-	 * @param reference WorldObject Object referencing current action like NPC selling item or previous item in transformation
-	 * @return ItemInstance corresponding to the new item or the updated item in inventory
-	 */
-	public ItemInstance transferItem(String process, int objectId, int count, Inventory target, WorldObject reference)
+	@Override
+	public ItemInstance transferItem(int objectId, int amount, Playable target)
 	{
-		final ItemInstance oldItem = checkItemManipulation(objectId, count);
+		final ItemInstance oldItem = checkItemManipulation(objectId, amount);
 		if (oldItem == null)
 			return null;
 		
-		final ItemInstance newItem = getInventory().transferItem(process, objectId, count, target, this, reference);
-		if (newItem == null)
-			return null;
-		
-		// Send inventory update packet
-		final InventoryUpdate playerIU = new InventoryUpdate();
-		
-		if (oldItem.getCount() > 0 && oldItem != newItem)
-			playerIU.addModifiedItem(oldItem);
-		else
-			playerIU.addRemovedItem(oldItem);
-		
-		sendPacket(playerIU);
-		
-		// Update current load as well
-		StatusUpdate playerSU = new StatusUpdate(this);
-		playerSU.addAttribute(StatusType.CUR_LOAD, getCurrentWeight());
-		sendPacket(playerSU);
-		
-		// Send target update packet
-		if (target instanceof PcInventory)
-		{
-			final Player targetPlayer = ((PcInventory) target).getOwner();
-			
-			final InventoryUpdate playerIU2 = new InventoryUpdate();
-			if (newItem.getCount() > count)
-				playerIU2.addModifiedItem(newItem);
-			else
-				playerIU2.addNewItem(newItem);
-			targetPlayer.sendPacket(playerIU2);
-			
-			// Update current load as well
-			playerSU = new StatusUpdate(targetPlayer);
-			playerSU.addAttribute(StatusType.CUR_LOAD, targetPlayer.getCurrentWeight());
-			targetPlayer.sendPacket(playerSU);
-		}
-		else if (target instanceof PetInventory)
-		{
-			final PetInventoryUpdate petIU = new PetInventoryUpdate();
-			if (newItem.getCount() > count)
-				petIU.addModifiedItem(newItem);
-			else
-				petIU.addNewItem(newItem);
-			((PetInventory) target).getOwner().getOwner().sendPacket(petIU);
-		}
-		return newItem;
+		return super.transferItem(objectId, amount, target);
 	}
 	
 	/**
-	 * Drop item from inventory and send InventoryUpdate packet to the Player.
-	 * @param process String Identifier of process triggering this action
-	 * @param item ItemInstance to be dropped
-	 * @param reference WorldObject Object referencing current action like NPC selling item or previous item in transformation
-	 * @param sendMessage boolean Specifies whether to send message to Client about this action
-	 * @return boolean informing if the action was successfull
+	 * Drop an {@link ItemInstance} from this {@link Player}.
+	 * @param item : The {@link ItemInstance} to drop.
+	 * @param sendMessage : Send {@link SystemMessage} client notification if set to true.
+	 * @return True if the action was successful, or false otherwise.
 	 */
-	public boolean dropItem(String process, ItemInstance item, WorldObject reference, boolean sendMessage)
+	public boolean dropItem(ItemInstance item, boolean sendMessage)
 	{
-		item = _inventory.dropItem(process, item, this, reference);
-		
+		item = _inventory.dropItem(item);
 		if (item == null)
 		{
 			if (sendMessage)
@@ -2090,17 +2021,7 @@ public final class Player extends Playable
 		
 		item.dropMe(this, 25);
 		
-		// Send inventory update packet
-		final InventoryUpdate playerIU = new InventoryUpdate();
-		playerIU.addItem(item);
-		sendPacket(playerIU);
-		
-		// Update current load as well
-		final StatusUpdate su = new StatusUpdate(this);
-		su.addAttribute(StatusType.CUR_LOAD, getCurrentWeight());
-		sendPacket(su);
-		
-		// Sends message to client if requested
+		// Send message to client, if requested.
 		if (sendMessage)
 			sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_DROPPED_S1).addItemName(item));
 		
@@ -2108,22 +2029,17 @@ public final class Player extends Playable
 	}
 	
 	/**
-	 * Drop item from inventory by using its <B>objectID</B> and send InventoryUpdate packet to the Player.
-	 * @param process String Identifier of process triggering this action
-	 * @param objectId int Item Instance identifier of the item to be dropped
-	 * @param count int Quantity of items to be dropped
-	 * @param x int coordinate for drop X
-	 * @param y int coordinate for drop Y
-	 * @param z int coordinate for drop Z
-	 * @param reference WorldObject Object referencing current action like NPC selling item or previous item in transformation
-	 * @param sendMessage boolean Specifies whether to send message to Client about this action
-	 * @return ItemInstance corresponding to the new item or the updated item in inventory
+	 * @param objectId : The objectId of the {@link ItemInstance} to drop.
+	 * @param count : The amount to drop. If amount is superior or equal to {@link ItemInstance} quantity, the item is entirely removed.
+	 * @param x : The X position.
+	 * @param y : The Y position.
+	 * @param z : The Z position.
+	 * @param sendMessage : Send {@link SystemMessage} client notification if set to true.
+	 * @return The {@link ItemInstance} from this {@link Player}.
 	 */
-	public ItemInstance dropItem(String process, int objectId, int count, int x, int y, int z, WorldObject reference, boolean sendMessage)
+	public ItemInstance dropItem(int objectId, int count, int x, int y, int z, boolean sendMessage)
 	{
-		final ItemInstance invItem = _inventory.getItemByObjectId(objectId);
-		final ItemInstance item = _inventory.dropItem(process, objectId, count, this, reference);
-		
+		final ItemInstance item = _inventory.dropItem(objectId, count);
 		if (item == null)
 		{
 			if (sendMessage)
@@ -2134,43 +2050,34 @@ public final class Player extends Playable
 		
 		item.dropMe(this, x, y, z);
 		
-		// Send inventory update packet
-		final InventoryUpdate playerIU = new InventoryUpdate();
-		playerIU.addItem(invItem);
-		sendPacket(playerIU);
-		
-		// Update current load as well
-		final StatusUpdate su = new StatusUpdate(this);
-		su.addAttribute(StatusType.CUR_LOAD, getCurrentWeight());
-		sendPacket(su);
-		
-		// Sends message to client if requested
+		// Send message to client, if requested.
 		if (sendMessage)
 			sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_DROPPED_S1).addItemName(item));
 		
 		return item;
 	}
 	
+	@Override
 	public ItemInstance checkItemManipulation(int objectId, int count)
 	{
+		// The item doesn't exist in World.
 		if (World.getInstance().getObject(objectId) == null)
 			return null;
 		
+		// The item doesn't exist in inventory, or the owner isn't actual Player.
 		final ItemInstance item = getInventory().getItemByObjectId(objectId);
-		
 		if (item == null || item.getOwnerId() != getObjectId())
 			return null;
 		
-		if (count < 1 || (count > 1 && !item.isStackable()))
+		// The count integrity is invalid.
+		if (count < 1 || (count > 1 && !item.isStackable()) || count > item.getCount())
 			return null;
 		
-		if (count > item.getCount())
-			return null;
-		
-		// Pet is summoned and not the item that summoned the pet AND not the buggle from strider you're mounting
+		// The summon item is linked to the Pet actually summoned/mounted.
 		if (_summon != null && _summon.getControlItemId() == objectId || _mountObjectId == objectId)
 			return null;
 		
+		// The item is the active enchant item.
 		if (getActiveEnchantItem() != null && getActiveEnchantItem().getObjectId() == objectId)
 			return null;
 		
@@ -2182,12 +2089,20 @@ public final class Player extends Playable
 	}
 	
 	/**
-	 * Launch a task corresponding to Config time.
-	 * @param protect boolean Drop timer or activate it.
+	 * @return True if this {@link Player} is under a spawn protection task, or false otherwise.
 	 */
-	public void setSpawnProtection(boolean protect)
+	public boolean isSpawnProtected()
 	{
-		if (protect)
+		return _protectTask != null;
+	}
+	
+	/**
+	 * Launch a task corresponding to {@link Config#PLAYER_SPAWN_PROTECTION} setting.
+	 * @param isActive : If true, we try to launch the task. If false, we cancel it.
+	 */
+	public void setSpawnProtection(boolean isActive)
+	{
+		if (isActive)
 		{
 			if (_protectTask == null)
 				_protectTask = ThreadPool.schedule(() ->
@@ -2202,11 +2117,6 @@ public final class Player extends Playable
 			_protectTask = null;
 		}
 		broadcastUserInfo();
-	}
-	
-	public boolean isSpawnProtected()
-	{
-		return _protectTask != null;
 	}
 	
 	/**
@@ -2295,7 +2205,9 @@ public final class Player extends Playable
 			player.setTarget(this);
 		else
 		{
-			if (isAttackableWithoutForceBy(player) || (isCtrlPressed && isAttackableBy(player)))
+			if (player.isInBoat() && !isInBoat() || !player.isInBoat() && isInBoat())
+				player.sendPacket(ActionFailed.STATIC_PACKET);
+			else if (isAttackableWithoutForceBy(player) || (isCtrlPressed && isAttackableBy(player)))
 				player.getAI().tryToAttack(this, isCtrlPressed, isShiftPressed);
 			else if (isOperating())
 				player.getAI().tryToInteract(this, isCtrlPressed, isShiftPressed);
@@ -2341,18 +2253,17 @@ public final class Player extends Playable
 	
 	public final void broadcastCharInfo()
 	{
-		for (final Player player : getKnownType(Player.class))
+		forEachKnownType(Player.class, player ->
 		{
 			player.sendPacket(new CharInfo(this));
 			
 			final int relation = getRelation(player);
-			// TODO check this!!!
 			final boolean isAutoAttackable = isAttackableWithoutForceBy(player);
 			
 			player.sendPacket(new RelationChanged(this, relation, isAutoAttackable));
 			if (_summon != null)
 				player.sendPacket(new RelationChanged(_summon, relation, isAutoAttackable));
-		}
+		});
 	}
 	
 	/**
@@ -2538,10 +2449,6 @@ public final class Player extends Playable
 			// Can't target and attack festival monsters if not participant.
 			if (newTarget instanceof FestivalMonster && !isFestivalParticipant())
 				newTarget = null;
-			
-			// Can't target and attack rift invaders if not in the same room.
-			if (isInParty() && getParty().isInDimensionalRift() && !getParty().getDimensionalRift().isInCurrentRoomZone(newTarget))
-				newTarget = null;
 		}
 		
 		// Get the current target
@@ -2554,41 +2461,39 @@ public final class Player extends Playable
 				return;
 			
 			// Remove the Player from the _statusListener of the old target if it was a Creature.
-			if (oldTarget instanceof Creature)
-				((Creature) oldTarget).getStatus().removeStatusListener(this);
+			if (oldTarget instanceof Creature oldTargetCreature)
+				oldTargetCreature.getStatus().removeStatusListener(this);
 		}
 		
 		// Verify if it's a static object.
-		if (newTarget instanceof StaticObject)
+		if (newTarget instanceof StaticObject newTargetStaticObject)
 		{
 			sendPacket(new MyTargetSelected(newTarget.getObjectId(), 0));
-			sendPacket(new StaticObjectInfo((StaticObject) newTarget));
+			sendPacket(new StaticObjectInfo(newTargetStaticObject));
 		}
 		// Add the Player to the _statusListener of the new target if it's a Creature
-		else if (newTarget instanceof Creature)
+		else if (newTarget instanceof Creature newTargetCreature)
 		{
-			final Creature target = (Creature) newTarget;
-			
 			// Validate location of the new target.
-			if (newTarget.getObjectId() != getObjectId())
-				sendPacket(new ValidateLocation(target));
+			if (newTarget.getObjectId() != getObjectId() && !newTargetCreature.isInBoat())
+				sendPacket(new ValidateLocation(newTargetCreature));
 			
 			// Show the client his new target.
-			sendPacket(new MyTargetSelected(target.getObjectId(), (target.isAttackableBy(this) || target instanceof Summon) ? getStatus().getLevel() - target.getStatus().getLevel() : 0));
+			sendPacket(new MyTargetSelected(newTargetCreature.getObjectId(), (newTargetCreature.isAttackableBy(this) || newTargetCreature instanceof Summon) ? getStatus().getLevel() - newTargetCreature.getStatus().getLevel() : 0));
 			
-			target.getStatus().addStatusListener(this);
+			newTargetCreature.getStatus().addStatusListener(this);
 			
 			// Send max/current hp.
-			final StatusUpdate su = new StatusUpdate(target);
-			su.addAttribute(StatusType.MAX_HP, target.getStatus().getMaxHp());
-			su.addAttribute(StatusType.CUR_HP, (int) target.getStatus().getHp());
+			final StatusUpdate su = new StatusUpdate(newTargetCreature);
+			su.addAttribute(StatusType.MAX_HP, newTargetCreature.getStatus().getMaxHp());
+			su.addAttribute(StatusType.CUR_HP, (int) newTargetCreature.getStatus().getHp());
 			sendPacket(su);
 			
 			broadcastPacket(new TargetSelected(getObjectId(), newTarget.getObjectId(), getX(), getY(), getZ()), false);
 		}
 		
-		if (newTarget instanceof Folk)
-			setCurrentFolk((Folk) newTarget);
+		if (newTarget instanceof Folk newTargetFolk)
+			setCurrentFolk(newTargetFolk);
 		else if (newTarget == null)
 		{
 			sendPacket(ActionFailed.STATIC_PACKET);
@@ -2688,17 +2593,6 @@ public final class Player extends Playable
 		}
 	}
 	
-	/**
-	 * Kill the Creature, Apply Death Penalty, Manage gain/loss Karma and Item Drop.
-	 * <ul>
-	 * <li>Reduce the Experience of the Player in function of the calculated Death Penalty</li>
-	 * <li>If necessary, unsummon the Pet of the killed Player</li>
-	 * <li>Manage Karma gain for attacker and Karam loss for the killed Player</li>
-	 * <li>If the killed Player has Karma, manage Drop Item</li>
-	 * <li>Kill the Player</li>
-	 * </ul>
-	 * @param killer The Creature who attacks
-	 */
 	@Override
 	public boolean doDie(Creature killer)
 	{
@@ -2759,17 +2653,16 @@ public final class Player extends Playable
 			}
 		}
 		
-		// Unsummon Cubics
+		// Unsummon Cubics.
 		_cubicList.stopCubics(false);
 		
 		if (getFusionSkill() != null)
 			getCast().stop();
 		
-		for (final Creature creature : getKnownType(Creature.class))
-			if (creature.getFusionSkill() != null && creature.getFusionSkill().getTarget() == this)
-				creature.getCast().stop();
-			
-		// calculate death penalty buff
+		// Stop casting for any player that may be casting a force buff on this Player.
+		forEachKnownType(Creature.class, creature -> creature.getFusionSkill() != null && creature.getFusionSkill().getTarget() == this, creature -> creature.getCast().stop());
+		
+		// Calculate death penalty buff.
 		calculateDeathPenaltyBuffLevel(killer);
 		
 		WaterTaskManager.getInstance().remove(this);
@@ -2777,7 +2670,7 @@ public final class Player extends Playable
 		if (isPhoenixBlessed())
 			reviveRequest(this, null, false);
 		
-		// Icons update in order to get retained buffs list
+		// Icons update in order to get retained buffs list.
 		updateEffectIcons();
 		
 		return true;
@@ -2843,7 +2736,7 @@ public final class Player extends Playable
 					// NOTE: Each time an item is dropped, the chance of another item being dropped gets lesser (dropCount * 2)
 					if (Rnd.get(100) < itemDropPercent)
 					{
-						dropItem("DieDrop", itemDrop, killer, true);
+						dropItem(itemDrop, true);
 						
 						if (++dropCount >= dropLimit)
 							break;
@@ -3005,7 +2898,7 @@ public final class Player extends Playable
 		final int lvl = getStatus().getLevel();
 		
 		// The death steal you some xp.
-		double percentLost = PlayerLevelData.getInstance().getPlayerLevel(lvl).getExpLossAtDeath();
+		double percentLost = PlayerLevelData.getInstance().getPlayerLevel(lvl).expLossAtDeath();
 		
 		if (getKarma() > 0)
 			percentLost *= Config.RATE_KARMA_EXP_LOST;
@@ -3262,6 +3155,17 @@ public final class Player extends Playable
 		onTradeCancel(this);
 	}
 	
+	public void cancelActiveEnchant()
+	{
+		if (_activeEnchantItem == null)
+			return;
+		
+		setActiveEnchantItem(null);
+		
+		sendPacket(EnchantResult.CANCELLED);
+		sendPacket(SystemMessageId.ENCHANT_SCROLL_CANCELLED);
+	}
+	
 	/**
 	 * @return The Buy {@link TradeList} of this {@link Player}.
 	 */
@@ -3320,6 +3224,14 @@ public final class Player extends Playable
 	}
 	
 	/**
+	 * @return True if this {@link Player} can crystallize.
+	 */
+	public boolean hasCrystallize()
+	{
+		return hasSkill(L2Skill.SKILL_CRYSTALLIZE);
+	}
+	
+	/**
 	 * @return True if this {@link Player} can use dwarven recipes.
 	 */
 	public boolean hasDwarvenCraft()
@@ -3356,7 +3268,7 @@ public final class Player extends Playable
 			// Remove invalid skills.
 			removeInvalidSkills();
 			
-			sendSkillList();
+			sendPacket(new SkillList(this));
 		}
 	}
 	
@@ -3368,7 +3280,7 @@ public final class Player extends Playable
 	{
 		// We reward all skills to the players, but don't store autoGet skills on the database.
 		for (final GeneralSkillNode skill : getAllAvailableSkills())
-			addSkill(skill.getSkill(), skill.getCost() != 0);
+			addSkill(skill.getSkill(), skill.getCost() != 0, true);
 		
 		// Remove the Lucky skill if level superior to 10.
 		if (getStatus().getLevel() >= 10 && hasSkill(L2Skill.SKILL_LUCKY))
@@ -3377,7 +3289,7 @@ public final class Player extends Playable
 		// Remove invalid skills.
 		removeInvalidSkills();
 		
-		sendSkillList();
+		sendPacket(new SkillList(this));
 	}
 	
 	/**
@@ -3403,7 +3315,7 @@ public final class Player extends Playable
 			
 			// The known skill doesn't exist on available skills ; we drop existing skill.
 			final Optional<GeneralSkillNode> tempSkill = availableSkills.get(skill.getId());
-			if (tempSkill == null)
+			if (tempSkill.isEmpty())
 			{
 				removeSkill(skill.getId(), true);
 				continue;
@@ -3523,89 +3435,14 @@ public final class Player extends Playable
 		return getTemplate().getSkills().stream().filter(s -> s.getMinLvl() > getStatus().getLevel() && s.getCost() != 0).min(COMPARE_SKILLS_BY_MIN_LVL).map(s -> s.getMinLvl()).orElse(0);
 	}
 	
-	/**
-	 * Set the _clan object, _clanId, _clanLeader Flag and title of the Player.
-	 * @param clan The Clan object which is used to feed Player values.
-	 */
-	public void setClan(Clan clan)
-	{
-		_clan = clan;
-		setTitle("");
-		
-		if (clan == null)
-		{
-			_clanId = 0;
-			_clanPrivileges = 0;
-			_pledgeType = 0;
-			_powerGrade = 0;
-			_lvlJoinedAcademy = 0;
-			_apprentice = 0;
-			_sponsor = 0;
-			return;
-		}
-		
-		if (!clan.isMember(getObjectId()))
-		{
-			// char has been kicked from clan
-			setClan(null);
-			return;
-		}
-		
-		_clanId = clan.getClanId();
-	}
-	
-	/**
-	 * @return The _clan object of the Player.
-	 */
-	public Clan getClan()
-	{
-		return _clan;
-	}
-	
-	/**
-	 * @return True if the Player is the leader of its clan.
-	 */
-	public boolean isClanLeader()
-	{
-		return _clan != null && getObjectId() == _clan.getLeaderId();
-	}
-	
-	/**
-	 * Reduce the number of arrows owned by the Player and send InventoryUpdate or ItemList (to unequip if the last arrow was consummed).
-	 */
 	@Override
-	public void reduceArrowCount() // TODO: replace with a simple player.destroyItem...
+	public void reduceArrowCount()
 	{
 		final ItemInstance arrows = getSecondaryWeaponInstance();
 		if (arrows == null)
 			return;
 		
-		final InventoryUpdate iu = new InventoryUpdate();
-		
-		if (arrows.getCount() > 1)
-		{
-			synchronized (arrows)
-			{
-				arrows.changeCount(null, -1, this, null);
-				arrows.setLastChange(ItemState.MODIFIED);
-				
-				iu.addModifiedItem(arrows);
-				
-				// could do also without saving, but let's save approx 1 of 10
-				if (Rnd.get(10) < 1)
-					arrows.updateDatabase();
-				
-				_inventory.refreshWeight();
-			}
-		}
-		else
-		{
-			iu.addRemovedItem(arrows);
-			
-			// Destroy entire item and save to database
-			_inventory.destroyItem("Consume", arrows, this, null);
-		}
-		sendPacket(iu);
+		_inventory.destroyItem(arrows, 1);
 	}
 	
 	/**
@@ -3626,9 +3463,6 @@ public final class Player extends Playable
 		// Equip arrows in left hand.
 		getInventory().setPaperdollItem(Paperdoll.LHAND, arrows);
 		
-		// Send ItemList to this player to update left hand equipement
-		sendPacket(new ItemList(this, false));
-		
 		return true;
 	}
 	
@@ -3646,16 +3480,10 @@ public final class Player extends Playable
 		// Cancel current attack, no matter what.
 		getAttack().stop();
 		
-		InventoryUpdate iu = null;
-		
 		// Unequip the weapon.
 		ItemInstance[] unequipped = getInventory().unequipItemInBodySlotAndRecord(Item.SLOT_R_HAND);
 		if (!ArraysUtil.isEmpty(unequipped))
 		{
-			iu = new InventoryUpdate();
-			for (final ItemInstance itm : unequipped)
-				iu.addModifiedItem(itm);
-			
 			SystemMessage sm;
 			if (unequipped[0].getEnchantLevel() > 0)
 				sm = SystemMessage.getSystemMessage(SystemMessageId.EQUIPMENT_S1_S2_REMOVED).addNumber(unequipped[0].getEnchantLevel()).addItemName(unequipped[0]);
@@ -3671,12 +3499,6 @@ public final class Player extends Playable
 			unequipped = getInventory().unequipItemInBodySlotAndRecord(Item.SLOT_L_HAND);
 			if (!ArraysUtil.isEmpty(unequipped))
 			{
-				if (iu == null)
-					iu = new InventoryUpdate();
-				
-				for (final ItemInstance itm : unequipped)
-					iu.addModifiedItem(itm);
-				
 				SystemMessage sm;
 				if (unequipped[0].getEnchantLevel() > 0)
 					sm = SystemMessage.getSystemMessage(SystemMessageId.EQUIPMENT_S1_S2_REMOVED).addNumber(unequipped[0].getEnchantLevel()).addItemName(unequipped[0]);
@@ -3687,12 +3509,7 @@ public final class Player extends Playable
 			}
 		}
 		
-		// If InventoryUpdate packet is filled, it means either weapon or sidearm has been disarmed. An update is needed.
-		if (iu != null)
-		{
-			sendPacket(iu);
-			broadcastUserInfo();
-		}
+		broadcastUserInfo();
 		
 		return true;
 	}
@@ -3755,7 +3572,7 @@ public final class Player extends Playable
 	 */
 	public void mountPlayer(Summon summon)
 	{
-		if (summon instanceof Pet && summon.isMountable() && !isMounted() && !isBetrayed())
+		if (summon instanceof Pet pet && pet.isMountable() && !isMounted() && !isBetrayed())
 		{
 			// A strider cannot be ridden when dead.
 			if (isDead())
@@ -3765,14 +3582,14 @@ public final class Player extends Playable
 			}
 			
 			// A dead strider cannot be ridden.
-			if (summon.isDead())
+			if (pet.isDead())
 			{
 				sendPacket(SystemMessageId.DEAD_STRIDER_CANT_BE_RIDDEN);
 				return;
 			}
 			
 			// A strider in battle cannot be ridden.
-			if (summon.isInCombat() || summon.isRooted())
+			if (pet.isInCombat() || pet.isRooted())
 			{
 				sendPacket(SystemMessageId.STRIDER_IN_BATLLE_CANT_BE_RIDDEN);
 				return;
@@ -3800,21 +3617,21 @@ public final class Player extends Playable
 			}
 			
 			// Distance check.
-			if (!MathUtil.checkIfInRange(200, this, summon, true))
+			if (!MathUtil.checkIfInRange(200, this, pet, true))
 			{
 				sendPacket(SystemMessageId.TOO_FAR_AWAY_FROM_STRIDER_TO_MOUNT);
 				return;
 			}
 			
 			// Pet is hungry.
-			if (((Pet) summon).checkHungryState())
+			if (pet.checkHungryState())
 			{
 				sendPacket(SystemMessageId.HUNGRY_STRIDER_NOT_MOUNT);
 				return;
 			}
 			
-			if (!summon.isDead() && !isMounted())
-				mount(summon);
+			if (!pet.isDead() && !isMounted())
+				mount(pet);
 		}
 		else if (isMounted())
 		{
@@ -3881,7 +3698,7 @@ public final class Player extends Playable
 				
 				_controlItemId = 0;
 			}
-			catch (final Exception e)
+			catch (Exception e)
 			{
 				LOGGER.error("Couldn't store pet food data for {}.", e, _controlItemId);
 			}
@@ -3914,7 +3731,7 @@ public final class Player extends Playable
 				
 				// If Player was wyvern mounted, then he is teleported to nearest town to avoid the falling damage.
 				if (wasFlying)
-					teleportTo(TeleportType.TOWN);
+					teleportTo(RestartType.TOWN);
 				
 				return;
 			}
@@ -3945,14 +3762,14 @@ public final class Player extends Playable
 		{
 			setCurrentFeed(((Pet) _summon).getCurrentFed());
 			_controlItemId = _summon.getControlItemId();
-			sendPacket(new SetupGauge(GaugeColor.GREEN, getCurrentFeed() * 10000 / getFeedConsume(), _petData.getMaxMeal() * 10000 / getFeedConsume()));
+			sendPacket(new SetupGauge(GaugeColor.GREEN, getCurrentFeed() * 10000 / getFeedConsume(), _petData.maxMeal() * 10000 / getFeedConsume()));
 			if (!isDead())
 				_mountFeedTask = ThreadPool.scheduleAtFixedRate(new FeedTask(), 10000, 10000);
 		}
 		else if (_canFeed)
 		{
-			setCurrentFeed(_petData.getMaxMeal());
-			sendPacket(new SetupGauge(GaugeColor.GREEN, getCurrentFeed() * 10000 / getFeedConsume(), _petData.getMaxMeal() * 10000 / getFeedConsume()));
+			setCurrentFeed(_petData.maxMeal());
+			sendPacket(new SetupGauge(GaugeColor.GREEN, getCurrentFeed() * 10000 / getFeedConsume(), _petData.maxMeal() * 10000 / getFeedConsume()));
 			if (!isDead())
 				_mountFeedTask = ThreadPool.scheduleAtFixedRate(new FeedTask(), 10000, 10000);
 		}
@@ -3984,14 +3801,14 @@ public final class Player extends Playable
 	
 	protected int getFeedConsume()
 	{
-		return (isInCombat()) ? _petData.getMountMealInBattle() : _petData.getMountMealInNormal();
+		return (isInCombat()) ? _petData.mealInBattle() : _petData.mountMealInNormal();
 	}
 	
 	public void setCurrentFeed(int num)
 	{
-		_curFeed = Math.min(num, _petData.getMaxMeal());
+		_curFeed = Math.min(num, _petData.maxMeal());
 		
-		sendPacket(new SetupGauge(GaugeColor.GREEN, getCurrentFeed() * 10000 / getFeedConsume(), _petData.getMaxMeal() * 10000 / getFeedConsume()));
+		sendPacket(new SetupGauge(GaugeColor.GREEN, getCurrentFeed() * 10000 / getFeedConsume(), _petData.maxMeal() * 10000 / getFeedConsume()));
 	}
 	
 	/**
@@ -4000,7 +3817,7 @@ public final class Player extends Playable
 	 */
 	public boolean checkFoodState(double state)
 	{
-		return _canFeed && getCurrentFeed() < _petData.getMaxMeal() * state;
+		return _canFeed && getCurrentFeed() < _petData.maxMeal() * state;
 	}
 	
 	public void setUptime(long time)
@@ -4140,7 +3957,15 @@ public final class Player extends Playable
 	
 	public final void clearDebugPackets()
 	{
-		_debug.values().stream().peek(ExServerPrimitive::reset).forEach(esp -> esp.sendTo(this));
+		_debug.values().forEach(esp ->
+		{
+			// Reset the ExServerPrimitive.
+			esp.reset();
+			
+			// Send it to the Player.
+			esp.sendTo(this);
+		});
+		_debug.clear();
 	}
 	
 	/**
@@ -4156,21 +3981,6 @@ public final class Player extends Playable
 			sendPacket(new UserInfo(this));
 		else if (broadcastType == 2)
 			broadcastUserInfo();
-	}
-	
-	/**
-	 * Send StatusUpdate packet with Karma to the Player and all Player to inform (broadcast).
-	 */
-	public void broadcastKarma()
-	{
-		final StatusUpdate su = new StatusUpdate(this);
-		su.addAttribute(StatusType.KARMA, getKarma());
-		sendPacket(su);
-		
-		if (_summon != null)
-			sendPacket(new RelationChanged(_summon, getRelation(this), false));
-		
-		broadcastRelationsChanges();
 	}
 	
 	/**
@@ -4206,7 +4016,7 @@ public final class Player extends Playable
 			ps.setInt(3, getObjectId());
 			ps.execute();
 		}
-		catch (final Exception e)
+		catch (Exception e)
 		{
 			LOGGER.error("Couldn't set player online status.", e);
 		}
@@ -4263,30 +4073,14 @@ public final class Player extends Playable
 					if (player.getClanCreateExpiryTime() < System.currentTimeMillis())
 						player.setClanCreateExpiryTime(0);
 					
-					player.setPowerGrade(rs.getInt("power_grade"));
-					player.setPledgeType(rs.getInt("subpledge"));
-					
-					final int clanId = rs.getInt("clanid");
-					if (clanId > 0)
-						player.setClan(ClanTable.getInstance().getClan(clanId));
-					
-					if (player.getClan() != null)
+					final Clan clan = ClanTable.getInstance().getClan(rs.getInt("clanid"));
+					if (clan != null)
 					{
-						if (player.getClan().getLeaderId() != player.getObjectId())
-						{
-							if (player.getPowerGrade() == 0)
-								player.setPowerGrade(5);
-							
-							player.setClanPrivileges(player.getClan().getPrivilegesByRank(player.getPowerGrade()));
-						}
-						else
-						{
-							player.setClanPrivileges(Clan.CP_ALL);
-							player.setPowerGrade(1);
-						}
+						player.setClan(clan);
+						player.setPowerGrade(rs.getInt("power_grade"));
+						player.setPledgeType(rs.getInt("subpledge"));
+						player.setPledgeClass(ClanMember.calculatePledgeClass(player));
 					}
-					else
-						player.setClanPrivileges(Clan.CP_NOTHING);
 					
 					player.setDeleteTimer(rs.getLong("deletetime"));
 					player.setTitle(rs.getString("title"));
@@ -4300,7 +4094,7 @@ public final class Player extends Playable
 					{
 						player.setBaseClass(rs.getInt("base_class"));
 					}
-					catch (final Exception e)
+					catch (Exception e)
 					{
 						player.setBaseClass(activeClassId);
 					}
@@ -4338,10 +4132,7 @@ public final class Player extends Playable
 					// Set Hero status if it applies
 					if (HeroManager.getInstance().isActiveHero(objectId))
 						player.setHero(true);
-					
-					// Set pledge class rank.
-					player.setPledgeClass(ClanMember.calculatePledgeClass(player));
-					
+						
 					// Retrieve from the database all secondary data of this Player and reward expertise/lucky skills if necessary.
 					// Note that Clan, Noblesse and Hero skills are given separately and not here.
 					player.restoreCharData();
@@ -4350,17 +4141,6 @@ public final class Player extends Playable
 					// buff and status icons
 					if (Config.STORE_SKILL_COOLTIME)
 						player.restoreEffects();
-					
-					// Restore current CP, HP and MP values
-					final double currentHp = rs.getDouble("curHp");
-					
-					player.getStatus().setCpHpMp(rs.getDouble("curCp"), currentHp, rs.getDouble("curMp"));
-					
-					if (currentHp < 0.5)
-					{
-						player.setIsDead(true);
-						player.getStatus().stopHpMpRegeneration();
-					}
 					
 					// Restore pet if it exists in the world.
 					final Pet pet = World.getInstance().getPet(player.getObjectId());
@@ -4374,7 +4154,22 @@ public final class Player extends Playable
 					player.refreshExpertisePenalty();
 					player.refreshHennaList();
 					
-					player.restoreFriendList();
+					player.setOnlineStatus(true, false);
+					player.setRunning(true);
+					player.setStanding(true);
+					
+					// Restore current CP, HP and MP values
+					final double currentHp = rs.getDouble("curHp");
+					
+					player.getStatus().setCpHpMp(rs.getDouble("curCp"), currentHp, rs.getDouble("curMp"));
+					
+					if (currentHp < 0.5)
+					{
+						player.setIsDead(true);
+						player.getStatus().stopHpMpRegeneration();
+					}
+					
+					World.getInstance().addPlayer(player);
 					
 					// Retrieve the name and ID of the other characters assigned to this account.
 					try (PreparedStatement ps2 = con.prepareStatement("SELECT obj_Id, char_name FROM characters WHERE account_name=? AND obj_Id<>?"))
@@ -4392,7 +4187,7 @@ public final class Player extends Playable
 				}
 			}
 		}
-		catch (final Exception e)
+		catch (Exception e)
 		{
 			LOGGER.error("Couldn't restore player data.", e);
 		}
@@ -4431,7 +4226,7 @@ public final class Player extends Playable
 				}
 			}
 		}
-		catch (final Exception e)
+		catch (Exception e)
 		{
 			LOGGER.error("Couldn't restore subclasses for {}.", e, player.getName());
 			return false;
@@ -4513,18 +4308,13 @@ public final class Player extends Playable
 			ps.setInt(11, getAppearance().getSex().ordinal());
 			ps.setInt(12, getHeading());
 			
-			if (!isInObserverMode())
-			{
-				ps.setInt(13, getX());
-				ps.setInt(14, getY());
-				ps.setInt(15, getZ());
-			}
-			else
-			{
-				ps.setInt(13, _savedLocation.getX());
-				ps.setInt(14, _savedLocation.getY());
-				ps.setInt(15, _savedLocation.getZ());
-			}
+			Location location = _boatInfo.getDockLocation();
+			if (location.equals(Location.DUMMY_LOC))
+				location = (!isInObserverMode() ? getPosition() : _savedLocation);
+			
+			ps.setInt(13, location.getX());
+			ps.setInt(14, location.getY());
+			ps.setInt(15, location.getZ());
 			
 			ps.setLong(16, exp);
 			ps.setLong(17, getExpBeforeDeath());
@@ -4540,33 +4330,32 @@ public final class Player extends Playable
 			ps.setInt(27, getAccessLevel().getLevel());
 			ps.setInt(28, isOnlineInt());
 			ps.setInt(29, isIn7sDungeon() ? 1 : 0);
-			ps.setInt(30, getClanPrivileges());
-			ps.setInt(31, wantsPeace() ? 1 : 0);
-			ps.setInt(32, getBaseClass());
+			ps.setInt(30, wantsPeace() ? 1 : 0);
+			ps.setInt(31, getBaseClass());
 			
 			long totalOnlineTime = _onlineTime;
 			if (_onlineBeginTime > 0)
 				totalOnlineTime += (System.currentTimeMillis() - _onlineBeginTime) / 1000;
 			
-			ps.setLong(33, totalOnlineTime);
-			ps.setInt(34, _punishment.getType().ordinal());
-			ps.setLong(35, _punishment.getTimer());
-			ps.setInt(36, isNoble() ? 1 : 0);
-			ps.setLong(37, getPowerGrade());
-			ps.setInt(38, getPledgeType());
-			ps.setInt(39, getLvlJoinedAcademy());
-			ps.setLong(40, getApprentice());
-			ps.setLong(41, getSponsor());
-			ps.setInt(42, getAllianceWithVarkaKetra());
-			ps.setLong(43, getClanJoinExpiryTime());
-			ps.setLong(44, getClanCreateExpiryTime());
-			ps.setString(45, getName());
-			ps.setLong(46, getDeathPenaltyBuffLevel());
-			ps.setInt(47, getObjectId());
+			ps.setLong(32, totalOnlineTime);
+			ps.setInt(33, _punishment.getType().ordinal());
+			ps.setLong(34, _punishment.getTimer());
+			ps.setInt(35, isNoble() ? 1 : 0);
+			ps.setLong(36, getPowerGrade());
+			ps.setInt(37, getPledgeType());
+			ps.setInt(38, getLvlJoinedAcademy());
+			ps.setLong(39, getApprentice());
+			ps.setLong(40, getSponsor());
+			ps.setInt(41, getAllianceWithVarkaKetra());
+			ps.setLong(42, getClanJoinExpiryTime());
+			ps.setLong(43, getClanCreateExpiryTime());
+			ps.setString(44, getName());
+			ps.setLong(45, getDeathPenaltyBuffLevel());
+			ps.setInt(46, getObjectId());
 			
 			ps.execute();
 		}
-		catch (final Exception e)
+		catch (Exception e)
 		{
 			LOGGER.error("Couldn't store player base data.", e);
 		}
@@ -4592,15 +4381,15 @@ public final class Player extends Playable
 			}
 			ps.executeBatch();
 		}
-		catch (final Exception e)
+		catch (Exception e)
 		{
 			LOGGER.error("Couldn't store subclass data.", e);
 		}
 	}
 	
-	private void storeEffect(boolean storeEffects)
+	public void storeEffect(boolean storeEffects)
 	{
-		if (!Config.STORE_SKILL_COOLTIME)
+		if (!Config.STORE_SKILL_COOLTIME || isInDuel())
 			return;
 		
 		try (Connection con = ConnectionPool.getConnection())
@@ -4636,7 +4425,7 @@ public final class Player extends Playable
 						storedSkills.add(skill.getReuseHashCode());
 						
 						// Don't bother about herbs and toggles.
-						if (effect.isHerbEffect() || skill.isToggle())
+						if (effect.isHerbEffect() || skill.isToggle() || skill.getSkillType() == SkillType.CONT)
 							continue;
 						
 						ps.setInt(1, getObjectId());
@@ -4648,8 +4437,8 @@ public final class Player extends Playable
 						final Timestamp timestamp = _reuseTimeStamps.get(skill.getReuseHashCode());
 						if (timestamp != null && timestamp.hasNotPassed())
 						{
-							ps.setLong(6, timestamp.getReuse());
-							ps.setDouble(7, timestamp.getStamp());
+							ps.setLong(6, timestamp.reuse());
+							ps.setDouble(7, timestamp.stamp());
 						}
 						else
 						{
@@ -4679,12 +4468,12 @@ public final class Player extends Playable
 						storedSkills.add(hash);
 						
 						ps.setInt(1, getObjectId());
-						ps.setInt(2, timestamp.getId());
-						ps.setInt(3, timestamp.getValue());
+						ps.setInt(2, timestamp.skillId());
+						ps.setInt(3, timestamp.skillLevel());
 						ps.setInt(4, -1);
 						ps.setInt(5, -1);
-						ps.setLong(6, timestamp.getReuse());
-						ps.setDouble(7, timestamp.getStamp());
+						ps.setLong(6, timestamp.reuse());
+						ps.setDouble(7, timestamp.stamp());
 						ps.setInt(8, 1);
 						ps.setInt(9, getClassIndex());
 						ps.setInt(10, ++index);
@@ -4695,7 +4484,7 @@ public final class Player extends Playable
 				ps.executeBatch();
 			}
 		}
-		catch (final Exception e)
+		catch (Exception e)
 		{
 			LOGGER.error("Couldn't store player effects.", e);
 		}
@@ -4790,7 +4579,7 @@ public final class Player extends Playable
 		
 		// Update shortcuts.
 		if (updateShortcuts)
-			getShortcutList().refreshShortcuts(newSkill.getId(), newSkill.getLevel(), ShortcutType.SKILL);
+			getShortcutList().refreshShortcuts(s -> s.getId() == newSkill.getId() && s.getType() == ShortcutType.SKILL, newSkill.getLevel());
 		
 		return true;
 	}
@@ -4848,7 +4637,7 @@ public final class Player extends Playable
 				ps.setInt(3, getClassIndex());
 				ps.execute();
 			}
-			catch (final Exception e)
+			catch (Exception e)
 			{
 				LOGGER.error("Couldn't delete player skill.", e);
 			}
@@ -4877,7 +4666,7 @@ public final class Player extends Playable
 			ps.setInt(4, (classIndex > -1) ? classIndex : _classIndex);
 			ps.executeUpdate();
 		}
-		catch (final Exception e)
+		catch (Exception e)
 		{
 			LOGGER.error("Couldn't store player skill.", e);
 		}
@@ -4900,7 +4689,7 @@ public final class Player extends Playable
 					addSkill(SkillTable.getInstance().getInfo(rs.getInt("skill_id"), rs.getInt("skill_level")), false);
 			}
 		}
-		catch (final Exception e)
+		catch (Exception e)
 		{
 			LOGGER.error("Couldn't restore player skills.", e);
 		}
@@ -4968,7 +4757,7 @@ public final class Player extends Playable
 				ps.executeUpdate();
 			}
 		}
-		catch (final Exception e)
+		catch (Exception e)
 		{
 			LOGGER.error("Couldn't restore effects.", e);
 		}
@@ -4990,7 +4779,7 @@ public final class Player extends Playable
 					_recomChars.add(rset.getInt("target_id"));
 			}
 		}
-		catch (final Exception e)
+		catch (Exception e)
 		{
 			LOGGER.error("Couldn't restore recommendations.", e);
 		}
@@ -5041,9 +4830,16 @@ public final class Player extends Playable
 			return true;
 		
 		final Player targetPlayer = target.getActingPlayer();
-		// No checks for players in Arena
-		if (isInsideZone(ZoneId.PVP) && targetPlayer.isInsideZone(ZoneId.PVP))
-			return true;
+		
+		// No checks if both players are in Arena ; CTRL check if caster is on PEACE zone.
+		if (targetPlayer.isInsideZone(ZoneId.PVP))
+		{
+			if (isInsideZone(ZoneId.PVP))
+				return true;
+			
+			if (isInsideZone(ZoneId.PEACE))
+				return isCtrlPressed;
+		}
 		
 		// No checks for players in Olympiad
 		if (isInOlympiadMode() && targetPlayer.isInOlympiadMode() && getOlympiadGameId() == targetPlayer.getOlympiadGameId())
@@ -5114,7 +4910,7 @@ public final class Player extends Playable
 		_mountLevel = npcLevel;
 		
 		// Update faded icons && eventual added skills.
-		sendSkillList();
+		sendPacket(new SkillList(this));
 	}
 	
 	@Override
@@ -5206,12 +5002,6 @@ public final class Player extends Playable
 	public boolean isInventoryDisabled()
 	{
 		return _inventoryDisable;
-	}
-	
-	@Override
-	public String toString()
-	{
-		return getName() + " (" + getObjectId() + ")";
 	}
 	
 	/**
@@ -5341,17 +5131,24 @@ public final class Player extends Playable
 	
 	public int getClanPrivileges()
 	{
-		return _clanPrivileges;
+		if (_clan == null)
+			return PrivilegeType.NONE.getMask();
+		
+		if (_clan.getLeaderId() == getObjectId())
+			return PrivilegeType.ALL.getMask();
+		
+		return _clan.getPrivilegesByRank(getPowerGrade());
 	}
 	
-	public void setClanPrivileges(int privs)
+	public boolean hasClanPrivileges(PrivilegeType priv)
 	{
-		_clanPrivileges = privs;
-	}
-	
-	public boolean hasClanPrivileges(int priv)
-	{
-		return (_clanPrivileges & priv) == priv;
+		if (_clan == null)
+			return false;
+		
+		if (_clan.getLeaderId() == getObjectId())
+			return true;
+		
+		return (_clan.getPrivilegesByRank(getPowerGrade()) & priv.getMask()) != 0;
 	}
 	
 	public int getPledgeClass()
@@ -5401,12 +5198,27 @@ public final class Player extends Playable
 	}
 	
 	@Override
-	public void teleportTo(int x, int y, int z, int randomOffset)
+	public boolean teleportTo(int x, int y, int z, int randomOffset)
 	{
-		// Set the Boat as null upon teleport.
-		setBoat(null);
+		if (!super.teleportTo(x, y, z, randomOffset))
+			return false;
 		
-		super.teleportTo(x, y, z, randomOffset);
+		// Cancel active enchant and trade.
+		cancelActiveEnchant();
+		cancelActiveTrade();
+		
+		// If Boat is set, remove this Player from passengers.
+		final Boat boat = _boatInfo.getBoat();
+		if (boat != null)
+			boat.removePassenger(this);
+		
+		return true;
+	}
+	
+	@Override
+	public void teleportTo(RestartType type)
+	{
+		teleportTo(RestartPointData.getInstance().getLocationToTeleport(this, type), 20);
 	}
 	
 	/**
@@ -5426,8 +5238,12 @@ public final class Player extends Playable
 		_cubicList.stopCubics(true);
 	}
 	
-	public void enterObserverMode(int x, int y, int z)
+	public void enterObserverMode(ObserverLocation loc)
 	{
+		// Adena check.
+		if (loc.getCost() > 0 && !reduceAdena(loc.getCost(), true))
+			return;
+		
 		dropAllSummons();
 		
 		if (getParty() != null)
@@ -5444,8 +5260,8 @@ public final class Player extends Playable
 		// Abort attack, cast and move.
 		abortAll(true);
 		
-		teleportTo(x, y, z, 0);
-		sendPacket(new ObservationMode(x, y, z));
+		teleportTo(loc, 0);
+		sendPacket(new ObserverStart(loc));
 	}
 	
 	public void enterOlympiadObserverMode(int id)
@@ -5484,7 +5300,7 @@ public final class Player extends Playable
 		setInvul(false);
 		setIsParalyzed(false);
 		
-		sendPacket(new ObservationReturn(_savedLocation));
+		sendPacket(new ObserverEnd(_savedLocation));
 		teleportTo(_savedLocation, 0);
 		
 		// Clear the location.
@@ -5571,11 +5387,6 @@ public final class Player extends Playable
 		_race[i] = val;
 	}
 	
-	public BlockList getBlockList()
-	{
-		return _blockList;
-	}
-	
 	public QuestList getQuestList()
 	{
 		return _questList;
@@ -5590,17 +5401,17 @@ public final class Player extends Playable
 	{
 		if (hero && _baseClass == _activeClass)
 		{
-			for (final L2Skill skill : SkillTable.getHeroSkills())
+			for (final L2Skill skill : SkillTable.getInstance().getHeroSkills())
 				addSkill(skill, false);
 		}
 		else
 		{
-			for (final L2Skill skill : SkillTable.getHeroSkills())
+			for (final L2Skill skill : SkillTable.getInstance().getHeroSkills())
 				removeSkill(skill.getId(), false);
 		}
 		_isHero = hero;
 		
-		sendSkillList();
+		sendPacket(new SkillList(this));
 	}
 	
 	public boolean isOlympiadStart()
@@ -5696,20 +5507,43 @@ public final class Player extends Playable
 			_noDuelReason = SystemMessageId.S1_CANNOT_DUEL_BECAUSE_S1_IS_ALREADY_ENGAGED_IN_A_DUEL;
 		else if (isInOlympiadMode())
 			_noDuelReason = SystemMessageId.S1_CANNOT_DUEL_BECAUSE_S1_IS_PARTICIPATING_IN_THE_OLYMPIAD;
-		else if (isCursedWeaponEquipped() || getKarma() != 0)
+		else if (isCursedWeaponEquipped() || getKarma() != 0 || getPvpFlag() > 0)
 			_noDuelReason = SystemMessageId.S1_CANNOT_DUEL_BECAUSE_S1_IS_IN_A_CHAOTIC_STATE;
 		else if (isOperating())
 			_noDuelReason = SystemMessageId.S1_CANNOT_DUEL_BECAUSE_S1_IS_CURRENTLY_ENGAGED_IN_A_PRIVATE_STORE_OR_MANUFACTURE;
-		else if (isMounted() || isInBoat())
+		else if (isMounted() || _boatInfo.isInBoat())
 			_noDuelReason = SystemMessageId.S1_CANNOT_DUEL_BECAUSE_S1_IS_CURRENTLY_RIDING_A_BOAT_WYVERN_OR_STRIDER;
 		else if (isFishing())
 			_noDuelReason = SystemMessageId.S1_CANNOT_DUEL_BECAUSE_S1_IS_CURRENTLY_FISHING;
-		else if (isInsideZone(ZoneId.PVP) || isInsideZone(ZoneId.PEACE) || isInsideZone(ZoneId.SIEGE))
+		else if (isInsideZone(ZoneId.PVP) || isInsideZone(ZoneId.PEACE) || isInsideZone(ZoneId.SIEGE) || isInsideZone(ZoneId.WATER) || isInsideZone(ZoneId.NO_RESTART))
 			_noDuelReason = SystemMessageId.S1_CANNOT_MAKE_A_CHALLANGE_TO_A_DUEL_BECAUSE_S1_IS_CURRENTLY_IN_A_DUEL_PROHIBITED_AREA;
 		else
 			return true;
 		
 		return false;
+	}
+	
+	public void resetDuelState()
+	{
+		setInDuel(0);
+		setTeam(TeamType.NONE);
+		broadcastUserInfo();
+		
+		if (_summon != null)
+			_summon.updateAbnormalEffect();
+	}
+	
+	public void prepareToDuel(TeamType type)
+	{
+		cancelActiveEnchant();
+		cancelActiveTrade();
+		
+		setDuelState(DuelState.DUELLING);
+		setTeam(type);
+		broadcastUserInfo();
+		
+		if (_summon != null)
+			_summon.updateAbnormalEffect();
 	}
 	
 	public boolean isNoble()
@@ -5726,18 +5560,19 @@ public final class Player extends Playable
 	{
 		if (isNoble)
 		{
-			for (final L2Skill skill : SkillTable.getNobleSkills())
+			for (final L2Skill skill : SkillTable.getInstance().getNobleSkills())
 				addSkill(skill, false);
 		}
 		else
 		{
-			for (final L2Skill skill : SkillTable.getNobleSkills())
+			for (final L2Skill skill : SkillTable.getInstance().getNobleSkills())
 				removeSkill(skill.getId(), false);
 		}
 		
 		_isNoble = isNoble;
 		
-		sendSkillList();
+		sendPacket(new SkillList(this));
+		sendPacket(new UserInfo(this));
 		
 		if (storeInDb)
 		{
@@ -5748,7 +5583,7 @@ public final class Player extends Playable
 				ps.setInt(2, getObjectId());
 				ps.executeUpdate();
 			}
-			catch (final Exception e)
+			catch (Exception e)
 			{
 				LOGGER.error("Couldn't update nobless status for {}.", e, getName());
 			}
@@ -5819,18 +5654,6 @@ public final class Player extends Playable
 		return _alliedVarkaKetra > 0;
 	}
 	
-	public void sendSkillList()
-	{
-		final boolean isWearingFormalWear = isWearingFormalWear();
-		final boolean isClanDisabled = getClan() != null && getClan().getReputationScore() < 0;
-		
-		final SkillList sl = new SkillList();
-		for (final L2Skill skill : getSkills().values())
-			sl.addSkill(skill.getId(), skill.getLevel(), skill.isPassive(), isWearingFormalWear || (skill.isClanSkill() && isClanDisabled));
-		
-		sendPacket(sl);
-	}
-	
 	/**
 	 * 1. Add the specified class ID as a subclass (up to the maximum number of <b>three</b>) for this character.<BR>
 	 * 2. This method no longer changes the active _classIndex of the player. This is only done by the calling of setActiveClass() method as that should be the only way to do so.
@@ -5861,7 +5684,7 @@ public final class Player extends Playable
 				ps.setInt(6, subclass.getClassIndex());
 				ps.execute();
 			}
-			catch (final Exception e)
+			catch (Exception e)
 			{
 				LOGGER.error("Couldn't add subclass for {}.", e, getName());
 				return false;
@@ -5936,7 +5759,7 @@ public final class Player extends Playable
 					ps.execute();
 				}
 			}
-			catch (final Exception e)
+			catch (Exception e)
 			{
 				LOGGER.error("Couldn't modify subclass for {} to class index {}.", e, getName(), classIndex);
 				
@@ -6017,14 +5840,12 @@ public final class Player extends Playable
 					item.getAugmentation().removeBonus(this);
 			}
 			
-			// abort any kind of cast.
+			// Abort any kind of cast.
 			getCast().stop();
 			
-			// Stop casting for any player that may be casting a force buff on this l2pcinstance.
-			for (final Creature creature : getKnownType(Creature.class))
-				if (creature.getFusionSkill() != null && creature.getFusionSkill().getTarget() == this)
-					creature.getCast().stop();
-				
+			// Stop casting for any player that may be casting a force buff on this Player.
+			forEachKnownType(Creature.class, creature -> creature.getFusionSkill() != null && creature.getFusionSkill().getTarget() == this, creature -> creature.getCast().stop());
+			
 			store();
 			_reuseTimeStamps.clear();
 			
@@ -6132,13 +5953,13 @@ public final class Player extends Playable
 			{
 				if (SevenSignsManager.getInstance().getPlayerCabal(getObjectId()) != SevenSignsManager.getInstance().getWinningCabal())
 				{
-					teleportTo(TeleportType.TOWN);
+					teleportTo(RestartType.TOWN);
 					setIsIn7sDungeon(false);
 				}
 			}
 			else if (SevenSignsManager.getInstance().getPlayerCabal(getObjectId()) == CabalType.NORMAL)
 			{
-				teleportTo(TeleportType.TOWN);
+				teleportTo(RestartType.TOWN);
 				setIsIn7sDungeon(false);
 			}
 		}
@@ -6154,12 +5975,13 @@ public final class Player extends Playable
 			if (!getAppearance().isVisible())
 				sendMessage("Entering world in Invisible mode.");
 			
-			if (getBlockList().isBlockingAll())
+			if (isBlockingAll())
 				sendMessage("Entering world in Refusal mode.");
 		}
 		
 		revalidateZone(true);
-		notifyFriends(true);
+		
+		RelationManager.getInstance().notifyFriends(this, true);
 	}
 	
 	public long getLastAccess()
@@ -6209,13 +6031,27 @@ public final class Player extends Playable
 			return;
 		}
 		
-		if ((isPet && _summon != null && _summon.isDead()) || (!isPet && isDead()))
+		if (isPet)
 		{
-			_reviveRequested = 1;
-			_revivePower = (isPhoenixBlessed()) ? 100 : Formulas.calculateSkillResurrectRestorePercent(skill.getPower(), reviver);
-			_revivePet = isPet;
-			
-			sendPacket(new ConfirmDlg(SystemMessageId.RESSURECTION_REQUEST_BY_S1).addCharName(reviver));
+			if (_summon != null && _summon.isDead())
+			{
+				_reviveRequested = 1;
+				_revivePower = (_summon.isPhoenixBlessed()) ? 100. : Formulas.calcRevivePower(reviver, skill.getPower());
+				_revivePet = isPet;
+				
+				sendPacket(new ConfirmDlg(SystemMessageId.RESSURECTION_REQUEST_BY_S1).addCharName(reviver));
+			}
+		}
+		else
+		{
+			if (isDead())
+			{
+				_reviveRequested = 1;
+				_revivePower = (isPhoenixBlessed()) ? 100. : Formulas.calcRevivePower(reviver, skill.getPower());
+				_revivePet = isPet;
+				
+				sendPacket(new ConfirmDlg(SystemMessageId.RESSURECTION_REQUEST_BY_S1).addCharName(reviver));
+			}
 		}
 	}
 	
@@ -6391,49 +6227,6 @@ public final class Player extends Playable
 		_validBypass2.clear();
 	}
 	
-	/**
-	 * @return true if the current {@link Player} is linked to a {@link Boat}.
-	 */
-	public boolean isInBoat()
-	{
-		return _boat != null;
-	}
-	
-	/**
-	 * @return the {@link Boat} linked to the current {@link Player}.
-	 */
-	public Boat getBoat()
-	{
-		return _boat;
-	}
-	
-	/**
-	 * Set the {@link Boat} for the current {@link Player}.<br>
-	 * <br>
-	 * If the parameter is null but Player is registered into a Boat, we delete the passenger from the Boat.
-	 * @param boat : The Boat to set, or null to clean it.
-	 */
-	public void setBoat(Boat boat)
-	{
-		if (boat == null && _boat != null)
-		{
-			// Remove passenger out from the Boat.
-			_boat.getPassengers().remove(this);
-			
-			// Clear the boat position.
-			_boatPosition.clean();
-		}
-		_boat = boat;
-	}
-	
-	/**
-	 * @return the {@link SpawnLocation} related to Boat.
-	 */
-	public SpawnLocation getBoatPosition()
-	{
-		return _boatPosition;
-	}
-	
 	public void setCrystallizing(boolean mode)
 	{
 		_isCrystallizing = mode;
@@ -6501,11 +6294,13 @@ public final class Player extends Playable
 			GameTimeTaskManager.getInstance().remove(this);
 			ShadowItemTaskManager.getInstance().remove(this);
 			
-			// Cancel the cast of eventual fusion skill users on this target.
-			for (final Creature creature : getKnownType(Creature.class))
-				if (creature.getFusionSkill() != null && creature.getFusionSkill().getTarget() == this)
-					creature.getCast().stop();
-				
+			// Stop all QuestTimer affected to this Player.
+			for (Quest quest : ScriptData.getInstance().getQuests())
+				quest.cancelQuestTimers(this);
+			
+			// Stop casting for any player that may be casting a force buff on this Player.
+			forEachKnownType(Creature.class, creature -> creature.getFusionSkill() != null && creature.getFusionSkill().getTarget() == this, creature -> creature.getCast().stop());
+			
 			// Stop signets & toggles effects.
 			for (final AbstractEffect effect : getAllEffects())
 			{
@@ -6517,8 +6312,7 @@ public final class Player extends Playable
 				
 				switch (effect.getEffectType())
 				{
-					case SIGNET_GROUND:
-					case SIGNET_EFFECT:
+					case SIGNET_GROUND, SIGNET_EFFECT:
 						effect.exit();
 						break;
 				}
@@ -6558,10 +6352,6 @@ public final class Player extends Playable
 			if (isInObserverMode())
 				setXYZInvisible(_savedLocation);
 			
-			// Oust player from boat
-			if (_boat != null)
-				_boat.oustPlayer(this, MapRegionData.getInstance().getLocationToTeleport(this, TeleportType.TOWN));
-			
 			// Update inventory and remove them from the world
 			getInventory().deleteMe();
 			
@@ -6581,17 +6371,16 @@ public final class Player extends Playable
 			if (isSeated())
 			{
 				final WorldObject object = World.getInstance().getObject(_throneId);
-				if (object instanceof StaticObject)
-					((StaticObject) object).setBusy(false);
+				if (object instanceof StaticObject staticObject)
+					staticObject.setBusy(false);
 			}
 			
-			World.getInstance().removePlayer(this); // force remove in case of crash during teleport
-			
 			// friends & blocklist update
-			notifyFriends(false);
-			getBlockList().playerLogout();
+			RelationManager.getInstance().notifyFriends(this, false);
+			
+			World.getInstance().removePlayer(this); // force remove in case of crash during teleport
 		}
-		catch (final Exception e)
+		catch (Exception e)
 		{
 			LOGGER.error("Couldn't disconnect correctly the player.", e);
 		}
@@ -6843,7 +6632,7 @@ public final class Player extends Playable
 		else
 			sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_DID_S1_DMG).addNumber(damage));
 		
-		if (isInOlympiadMode() && target instanceof Player && ((Player) target).isInOlympiadMode() && ((Player) target).getOlympiadGameId() == getOlympiadGameId())
+		if (isInOlympiadMode() && target instanceof Player targetPlayer && targetPlayer.isInOlympiadMode() && targetPlayer.getOlympiadGameId() == getOlympiadGameId())
 			OlympiadGameManager.getInstance().notifyCompetitorDamage(this, damage);
 	}
 	
@@ -7032,97 +6821,13 @@ public final class Player extends Playable
 		if (getCast().isCastingNow())
 			return false;
 		
-		if (isInBoat())
-			return false;
-		
-		return true;
-	}
-	
-	public List<Integer> getFriendList()
-	{
-		return _friendList;
-	}
-	
-	public void selectFriend(Integer friendId)
-	{
-		if (!_selectedFriendList.contains(friendId))
-			_selectedFriendList.add(friendId);
-	}
-	
-	public void deselectFriend(Integer friendId)
-	{
-		if (_selectedFriendList.contains(friendId))
-			_selectedFriendList.remove(friendId);
-	}
-	
-	public List<Integer> getSelectedFriendList()
-	{
-		return _selectedFriendList;
-	}
-	
-	private void restoreFriendList()
-	{
-		_friendList.clear();
-		
-		try (Connection con = ConnectionPool.getConnection();
-			PreparedStatement ps = con.prepareStatement("SELECT friend_id FROM character_friends WHERE char_id = ? AND relation = 0"))
-		{
-			ps.setInt(1, getObjectId());
-			
-			try (ResultSet rset = ps.executeQuery())
-			{
-				while (rset.next())
-				{
-					final int friendId = rset.getInt("friend_id");
-					if (friendId == getObjectId())
-						continue;
-					
-					_friendList.add(friendId);
-				}
-			}
-		}
-		catch (final Exception e)
-		{
-			LOGGER.error("Couldn't restore {}'s friendlist.", e, getName());
-		}
-	}
-	
-	private void notifyFriends(boolean isOnline)
-	{
-		for (final int id : _friendList)
-		{
-			final Player friend = World.getInstance().getPlayer(id);
-			if (friend != null)
-			{
-				friend.sendPacket(new L2FriendStatus(this, isOnline));
-				
-				if (isOnline)
-					friend.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.FRIEND_S1_HAS_LOGGED_IN).addCharName(this));
-			}
-		}
-	}
-	
-	public void selectBlock(Integer friendId)
-	{
-		if (!_selectedBlocksList.contains(friendId))
-			_selectedBlocksList.add(friendId);
-	}
-	
-	public void deselectBlock(Integer friendId)
-	{
-		if (_selectedBlocksList.contains(friendId))
-			_selectedBlocksList.remove(friendId);
-	}
-	
-	public List<Integer> getSelectedBlocksList()
-	{
-		return _selectedBlocksList;
+		return !_boatInfo.isInBoat();
 	}
 	
 	@Override
 	public void broadcastRelationsChanges()
 	{
-		for (final Player player : getKnownType(Player.class))
+		forEachKnownType(Player.class, player ->
 		{
 			final int relation = getRelation(player);
 			final boolean isAutoAttackable = isAttackableWithoutForceBy(player);
@@ -7130,15 +6835,12 @@ public final class Player extends Playable
 			player.sendPacket(new RelationChanged(this, relation, isAutoAttackable));
 			if (_summon != null)
 				player.sendPacket(new RelationChanged(_summon, relation, isAutoAttackable));
-		}
+		});
 	}
 	
 	@Override
 	public void sendInfo(Player player)
 	{
-		if (_boat != null)
-			getPosition().set(_boat.getPosition());
-		
 		if (getPolymorphTemplate() != null)
 			player.sendPacket(new AbstractNpcInfo.PcMorphInfo(this, getPolymorphTemplate()));
 		else
@@ -7148,8 +6850,8 @@ public final class Player extends Playable
 			if (isSeated())
 			{
 				final WorldObject object = World.getInstance().getObject(_throneId);
-				if (object instanceof StaticObject)
-					player.sendPacket(new ChairSit(getObjectId(), ((StaticObject) object).getStaticObjectId()));
+				if (object instanceof StaticObject staticObject)
+					player.sendPacket(new ChairSit(getObjectId(), staticObject.getStaticObjectId()));
 			}
 		}
 		
@@ -7167,13 +6869,9 @@ public final class Player extends Playable
 		if (player.getSummon() != null)
 			sendPacket(new RelationChanged(player.getSummon(), relation, isAutoAttackable));
 		
-		if (_boat != null)
-			player.sendPacket(new GetOnVehicle(getObjectId(), _boat.getObjectId(), getBoatPosition()));
-		
 		switch (getOperateType())
 		{
-			case SELL:
-			case PACKAGE_SELL:
+			case SELL, PACKAGE_SELL:
 				player.sendPacket(new PrivateStoreMsgSell(this));
 				break;
 			
@@ -7185,6 +6883,8 @@ public final class Player extends Playable
 				player.sendPacket(new RecipeShopMsg(this));
 				break;
 		}
+		
+		_boatInfo.sendInfo(player);
 	}
 	
 	@Override
@@ -7226,7 +6926,7 @@ public final class Player extends Playable
 		if (_requestedGate == null)
 			return;
 		
-		if (answer == 1 && getTarget() == _requestedGate && _requestedGate.getClanHall() != null && getClan() != null && getClanId() == _requestedGate.getClanHall().getOwnerId() && hasClanPrivileges(Clan.CP_CH_OPEN_DOOR))
+		if (answer == 1 && getTarget() == _requestedGate && _requestedGate.canBeManuallyOpenedBy(this))
 		{
 			if (type == 1)
 				_requestedGate.openMe();
@@ -7272,18 +6972,18 @@ public final class Player extends Playable
 		super.removeKnownObject(object);
 		
 		// send Server-Client Packet DeleteObject to the Player
-		sendPacket(new DeleteObject(object, (object instanceof Player) && ((Player) object).isSeated()));
+		sendPacket(new DeleteObject(object, object instanceof Player player && player.isSeated()));
 	}
 	
 	public final void refreshInfos()
 	{
-		for (final WorldObject object : getKnownType(WorldObject.class))
+		forEachKnownType(WorldObject.class, object ->
 		{
-			if (object instanceof Player && ((Player) object).isInObserverMode())
-				continue;
+			if (object instanceof Player player && player.isInObserverMode())
+				return;
 			
 			sendInfoFrom(object);
-		}
+		});
 	}
 	
 	/**
@@ -7295,33 +6995,14 @@ public final class Player extends Playable
 		super.teleportTo(loc, 0);
 	}
 	
-	@Override
-	public final void teleportTo(Location loc, int randomOffset)
-	{
-		if (DimensionalRiftManager.getInstance().checkIfInRiftZone(getX(), getY(), getZ(), true))
-		{
-			sendMessage("You have been sent to the waiting room.");
-			
-			if (isInParty() && getParty().isInDimensionalRift())
-				getParty().getDimensionalRift().usedTeleport(this);
-			
-			loc = DimensionalRiftManager.getInstance().getRoom((byte) 0, (byte) 0).getTeleportLoc();
-		}
-		super.teleportTo(loc, randomOffset);
-	}
-	
 	private final void sendInfoFrom(WorldObject object)
 	{
 		// Send object info to player.
 		object.sendInfo(this);
 		
-		if (object instanceof Creature)
-		{
-			// Send the state of the Creature to the Player.
-			final Creature obj = (Creature) object;
-			if (obj.hasAI())
-				obj.getAI().describeStateToPlayer(this);
-		}
+		// Send the state of the Creature to the Player.
+		if (object instanceof Creature creature)
+			creature.getAI().describeStateToPlayer(this);
 	}
 	
 	/**
@@ -7380,8 +7061,7 @@ public final class Player extends Playable
 	{
 		switch (getOperateType())
 		{
-			case SELL:
-			case PACKAGE_SELL:
+			case SELL, PACKAGE_SELL:
 				player.sendPacket(new PrivateStoreListSell(player, this));
 				break;
 			
@@ -7399,12 +7079,77 @@ public final class Player extends Playable
 	 * Added to other GMs, test also this {@link Player} instance. If GM, set it.
 	 */
 	@Override
-	public List<Player> getSurroundingGMs()
+	public void forEachKnownGM(Consumer<Player> action)
 	{
-		final List<Player> gms = super.getSurroundingGMs();
-		if (isGM())
-			gms.add(this);
+		super.forEachKnownGM(action);
 		
-		return gms;
+		// Consume the action on this Player aswell.
+		action.accept(this);
+	}
+	
+	@Override
+	public void sendIU()
+	{
+		sendPacket(_iu);
+	}
+	
+	public BoatInfo getBoatInfo()
+	{
+		return _boatInfo;
+	}
+	
+	@Override
+	public boolean isInBoat()
+	{
+		return _boatInfo.isInBoat();
+	}
+	
+	public boolean isBlockingAll()
+	{
+		return _isBlockingAll;
+	}
+	
+	public void setInBlockingAll(boolean isBlockingAll)
+	{
+		_isBlockingAll = isBlockingAll;
+		sendPacket(new EtcStatusUpdate(this));
+	}
+	
+	public void selectFriend(int friendId)
+	{
+		_selectedFriendList.add(friendId);
+	}
+	
+	public void deselectFriend(int friendId)
+	{
+		_selectedFriendList.remove(friendId);
+	}
+	
+	public Set<Integer> getSelectedFriendList()
+	{
+		return _selectedFriendList;
+	}
+	
+	public void selectBlock(int friendId)
+	{
+		_selectedBlocksList.add(friendId);
+	}
+	
+	public void deselectBlock(int friendId)
+	{
+		_selectedBlocksList.remove(friendId);
+	}
+	
+	public Set<Integer> getSelectedBlocksList()
+	{
+		return _selectedBlocksList;
+	}
+	
+	public void stopToFight()
+	{
+		getCast().stop();
+		getAI().tryToIdle();
+		setTarget(null);
+		sendPacket(ActionFailed.STATIC_PACKET);
 	}
 }

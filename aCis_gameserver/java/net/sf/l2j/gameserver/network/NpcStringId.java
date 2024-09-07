@@ -2710,6 +2710,39 @@ public final class NpcStringId
 	@NpcString(id = 10067, message = "%s! I'll pay you back!")
 	public static NpcStringId ID_10067;
 	
+	@NpcString(id = 10068, message = "Why don't you just die?!")
+	public static NpcStringId ID_10068;
+	
+	@NpcString(id = 10069, message = "Taste the sting of Level 5 Spoil!")
+	public static NpcStringId ID_10069;
+	
+	@NpcString(id = 10070, message = "The item is already inside you...")
+	public static NpcStringId ID_10070;
+	
+	@NpcString(id = 10071, message = "This potion you're making me drink is worth its weight in gold!")
+	public static NpcStringId ID_10071;
+	
+	@NpcString(id = 10072, message = "This potion is prepared from the ground gall of a bear. Be careful - it packs quite a punch!")
+	public static NpcStringId ID_10072;
+	
+	@NpcString(id = 10073, message = "How can you use a potion on a newbie...")
+	public static NpcStringId ID_10073;
+	
+	@NpcString(id = 10075, message = "Dear %s, may the blessings of Einhasad be with you always.")
+	public static NpcStringId ID_10075;
+	
+	@NpcString(id = 10076, message = "Dear brother %s, follow the path of light with me...")
+	public static NpcStringId ID_10076;
+	
+	@NpcString(id = 10077, message = "%s, why would you choose the path of darkness?!")
+	public static NpcStringId ID_10077;
+	
+	@NpcString(id = 10078, message = "%s!  How dare you defy the will of Einhasad!")
+	public static NpcStringId ID_10078;
+	
+	@NpcString(id = 10079, message = "The door to the 3rd floor of the altar is now open.")
+	public static NpcStringId ID_10079;
+	
 	@NpcString(id = 10101, message = "Sword of Solidarity")
 	public static NpcStringId ID_10101;
 	
@@ -8472,6 +8505,30 @@ public final class NpcStringId
 	
 	@NpcString(id = 1000513, message = "This place is dangerous, %s. Please turn back.")
 	public static NpcStringId ID_1000513;
+	
+	@NpcString(id = 1000514, message = "Who disturbs my sacred sleep?")
+	public static NpcStringId ID_1000514;
+	
+	@NpcString(id = 1000515, message = "Begone, thief! Let our bones rest in peace.")
+	public static NpcStringId ID_1000515;
+	
+	@NpcString(id = 1000516, message = "Leave us be, Hestui scum!")
+	public static NpcStringId ID_1000516;
+	
+	@NpcString(id = 1000517, message = "Thieving Kakai, may bloodbugs gnaw you in your sleep!")
+	public static NpcStringId ID_1000517;
+	
+	@NpcString(id = 1000518, message = "Newbie Travel Token")
+	public static NpcStringId ID_1000518;
+	
+	@NpcString(id = 1000519, message = "Arrogant fool! You dare to challenge me, the Ruler of Flames? Here is your reward!")
+	public static NpcStringId ID_1000519;
+	
+	@NpcString(id = 1000520, message = "You cannot hope to defeat me with your meager strength.")
+	public static NpcStringId ID_1000520;
+	
+	@NpcString(id = 1000521, message = "Not even the gods themselves could touch me. But you, %s, you dare challenge me?! Ignorant mortal!")
+	public static NpcStringId ID_1000521;
 	
 	@NpcString(id = 1000522, message = "Requiem of Hatred")
 	public static NpcStringId ID_1000522;

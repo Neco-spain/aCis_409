@@ -48,9 +48,7 @@ public class FuncEnchant extends Func
 					value += (4 * enchant + 8 * overenchant);
 					break;
 				
-				case A:
-				case B:
-				case C:
+				case A, B, C:
 					value += (3 * enchant + 6 * overenchant);
 					break;
 				
@@ -74,10 +72,7 @@ public class FuncEnchant extends Func
 							value += (10 * enchant + 20 * overenchant);
 							break;
 						
-						case BIGBLUNT:
-						case BIGSWORD:
-						case DUALFIST:
-						case DUAL:
+						case BIGBLUNT, BIGSWORD, DUALFIST, DUAL:
 							value += (6 * enchant + 12 * overenchant);
 							break;
 						
@@ -94,10 +89,7 @@ public class FuncEnchant extends Func
 							value += (8 * enchant + 16 * overenchant);
 							break;
 						
-						case BIGBLUNT:
-						case BIGSWORD:
-						case DUALFIST:
-						case DUAL:
+						case BIGBLUNT, BIGSWORD, DUALFIST, DUAL:
 							value += (5 * enchant + 10 * overenchant);
 							break;
 						
@@ -114,10 +106,7 @@ public class FuncEnchant extends Func
 							value += (6 * enchant + 12 * overenchant);
 							break;
 						
-						case BIGBLUNT:
-						case BIGSWORD:
-						case DUALFIST:
-						case DUAL:
+						case BIGBLUNT, BIGSWORD, DUALFIST, DUAL:
 							value += (4 * enchant + 8 * overenchant);
 							break;
 						
@@ -134,10 +123,7 @@ public class FuncEnchant extends Func
 							value += (6 * enchant + 12 * overenchant);
 							break;
 						
-						case BIGBLUNT:
-						case BIGSWORD:
-						case DUALFIST:
-						case DUAL:
+						case BIGBLUNT, BIGSWORD, DUALFIST, DUAL:
 							value += (4 * enchant + 8 * overenchant);
 							break;
 						

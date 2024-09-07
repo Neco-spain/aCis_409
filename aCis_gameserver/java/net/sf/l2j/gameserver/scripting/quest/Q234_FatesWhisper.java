@@ -37,17 +37,20 @@ public class Q234_FatesWhisper extends Quest
 	private static final int STAR_OF_DESTINY = 5011;
 	
 	// Chest Spawn
-	private static final Map<Integer, Integer> CHEST_SPAWN = new HashMap<>();
+	private static final Map<Integer, Integer> CHEST_SPAWN = HashMap.newHashMap(4);
+	
+	// Weapons
+	private static final Map<Integer, String> WEAPONS = HashMap.newHashMap(13);
+	
+	public Q234_FatesWhisper()
 	{
+		super(234, "Fate's Whispers");
+		
 		CHEST_SPAWN.put(25035, 31027);
 		CHEST_SPAWN.put(25054, 31028);
 		CHEST_SPAWN.put(25126, 31029);
 		CHEST_SPAWN.put(25220, 31030);
-	}
-	
-	// Weapons
-	private static final Map<Integer, String> WEAPONS = new HashMap<>();
-	{
+		
 		WEAPONS.put(79, "Sword of Damascus");
 		WEAPONS.put(97, "Lance");
 		WEAPONS.put(171, "Deadman's Glory");
@@ -61,22 +64,14 @@ public class Q234_FatesWhisper extends Quest
 		WEAPONS.put(7889, "Wizard's Tear");
 		WEAPONS.put(7893, "Kaim Vanul's Bones");
 		WEAPONS.put(7901, "Star Buster");
-	}
-	
-	public Q234_FatesWhisper()
-	{
-		super(234, "Fate's Whispers");
 		
 		setItemsIds(PIPETTE_KNIFE, RED_PIPETTE_KNIFE);
 		
-		addStartNpc(31002);
+		addQuestStart(31002);
 		addTalkId(31002, 30182, 30847, 30178, 30833, 31028, 31029, 31030, 31027);
 		
-		// The 4 bosses which spawn chests
-		addKillId(25035, 25054, 25126, 25220);
-		
-		// Baium
-		addAttackId(29020);
+		addAttacked(29020);
+		addMyDying(25035, 25054, 25126, 25220);
 	}
 	
 	@Override
@@ -128,7 +123,7 @@ public class Q234_FatesWhisper extends Quest
 			if (st.getInteger("bypass") == 1)
 			{
 				final int itemId = st.getInteger("weaponId");
-				if (player.getInventory().hasItems(itemId))
+				if (player.getInventory().hasItem(itemId))
 				{
 					int aGradeItemId = Integer.parseInt(event.replace("selectAGrade_", ""));
 					
@@ -171,7 +166,7 @@ public class Q234_FatesWhisper extends Quest
 					case 31002:
 						if (cond == 1)
 						{
-							if (!player.getInventory().hasItems(REIRIA_SOUL_ORB))
+							if (!player.getInventory().hasItem(REIRIA_SOUL_ORB))
 								htmltext = "31002-04b.htm";
 							else
 							{
@@ -183,7 +178,7 @@ public class Q234_FatesWhisper extends Quest
 						}
 						else if (cond == 2)
 						{
-							if (!player.getInventory().hasItems(KERMON_INFERNIUM_SCEPTER) || !player.getInventory().hasItems(GOLKONDA_INFERNIUM_SCEPTER) || !player.getInventory().hasItems(HALLATE_INFERNIUM_SCEPTER))
+							if (!player.getInventory().hasItem(KERMON_INFERNIUM_SCEPTER) || !player.getInventory().hasItem(GOLKONDA_INFERNIUM_SCEPTER) || !player.getInventory().hasItem(HALLATE_INFERNIUM_SCEPTER))
 								htmltext = "31002-05c.htm";
 							else
 							{
@@ -197,7 +192,7 @@ public class Q234_FatesWhisper extends Quest
 						}
 						else if (cond == 3)
 						{
-							if (!player.getInventory().hasItems(INFERNIUM_VARNISH))
+							if (!player.getInventory().hasItem(INFERNIUM_VARNISH))
 								htmltext = "31002-06b.htm";
 							else
 							{
@@ -209,7 +204,7 @@ public class Q234_FatesWhisper extends Quest
 						}
 						else if (cond == 4)
 						{
-							if (!player.getInventory().hasItems(REORIN_HAMMER))
+							if (!player.getInventory().hasItem(REORIN_HAMMER))
 								htmltext = "31002-07b.htm";
 							else
 							{
@@ -247,7 +242,7 @@ public class Q234_FatesWhisper extends Quest
 							{
 								// If you got it in the inventory
 								final int itemId = st.getInteger("weaponId");
-								htmltext = getHtmlText((player.getInventory().hasItems(itemId)) ? "31002-AGradeList.htm" : "31002-15.htm").replace("%weaponname%", WEAPONS.get(itemId));
+								htmltext = getHtmlText((player.getInventory().hasItem(itemId)) ? "31002-AGradeList.htm" : "31002-15.htm").replace("%weaponname%", WEAPONS.get(itemId));
 							}
 							// B weapon is still not selected
 							else
@@ -257,17 +252,17 @@ public class Q234_FatesWhisper extends Quest
 					
 					case 30182:
 						if (cond == 3)
-							htmltext = (!player.getInventory().hasItems(INFERNIUM_VARNISH)) ? "30182-01.htm" : "30182-02.htm";
+							htmltext = (!player.getInventory().hasItem(INFERNIUM_VARNISH)) ? "30182-01.htm" : "30182-02.htm";
 						break;
 					
 					case 30847:
-						if (cond == 4 && !player.getInventory().hasItems(REORIN_HAMMER))
+						if (cond == 4 && !player.getInventory().hasItem(REORIN_HAMMER))
 						{
 							htmltext = "30847-01.htm";
 							playSound(player, SOUND_ITEMGET);
 							giveItems(player, REORIN_HAMMER, 1);
 						}
-						else if (cond >= 4 && player.getInventory().hasItems(REORIN_HAMMER))
+						else if (cond >= 4 && player.getInventory().hasItem(REORIN_HAMMER))
 							htmltext = "30847-02.htm";
 						break;
 					
@@ -283,7 +278,7 @@ public class Q234_FatesWhisper extends Quest
 							htmltext = "30833-01.htm";
 						else if (cond == 7)
 						{
-							if (player.getInventory().hasItems(PIPETTE_KNIFE) && !player.getInventory().hasItems(RED_PIPETTE_KNIFE))
+							if (player.getInventory().hasItem(PIPETTE_KNIFE) && !player.getInventory().hasItem(RED_PIPETTE_KNIFE))
 								htmltext = "30833-02.htm";
 							else
 							{
@@ -299,7 +294,7 @@ public class Q234_FatesWhisper extends Quest
 						break;
 					
 					case 31027:
-						if (cond == 1 && !player.getInventory().hasItems(REIRIA_SOUL_ORB))
+						if (cond == 1 && !player.getInventory().hasItem(REIRIA_SOUL_ORB))
 						{
 							htmltext = "31027-01.htm";
 							playSound(player, SOUND_ITEMGET);
@@ -309,11 +304,9 @@ public class Q234_FatesWhisper extends Quest
 							htmltext = "31027-02.htm";
 						break;
 					
-					case 31028:
-					case 31029:
-					case 31030:
+					case 31028, 31029, 31030:
 						final int itemId = npc.getNpcId() - 26361;
-						if (cond == 2 && !player.getInventory().hasItems(itemId))
+						if (cond == 2 && !player.getInventory().hasItem(itemId))
 						{
 							htmltext = npc.getNpcId() + "-01.htm";
 							playSound(player, SOUND_ITEMGET);
@@ -334,30 +327,26 @@ public class Q234_FatesWhisper extends Quest
 	}
 	
 	@Override
-	public String onAttack(Npc npc, Creature attacker, int damage, L2Skill skill)
+	public void onAttacked(Npc npc, Creature attacker, int damage, L2Skill skill)
 	{
 		final Player player = attacker.getActingPlayer();
 		
 		final QuestState st = checkPlayerCondition(player, npc, 7);
 		if (st == null)
-			return null;
+			return;
 		
-		if (player.getActiveWeaponItem() != null && player.getActiveWeaponItem().getItemId() == PIPETTE_KNIFE && !player.getInventory().hasItems(RED_PIPETTE_KNIFE))
+		if (player.getActiveWeaponItem() != null && player.getActiveWeaponItem().getItemId() == PIPETTE_KNIFE && !player.getInventory().hasItem(RED_PIPETTE_KNIFE))
 		{
 			playSound(player, SOUND_ITEMGET);
 			takeItems(player, PIPETTE_KNIFE, 1);
 			giveItems(player, RED_PIPETTE_KNIFE, 1);
 			npc.broadcastNpcSay(NpcStringId.ID_23434);
 		}
-		
-		return null;
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		addSpawn(CHEST_SPAWN.get(npc.getNpcId()), npc, true, 120000, false);
-		
-		return null;
 	}
 }

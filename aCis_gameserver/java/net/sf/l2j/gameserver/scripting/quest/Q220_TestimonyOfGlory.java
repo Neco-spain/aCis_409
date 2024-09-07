@@ -1,8 +1,5 @@
 package net.sf.l2j.gameserver.scripting.quest;
 
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
 import net.sf.l2j.gameserver.enums.QuestStatus;
 import net.sf.l2j.gameserver.enums.actors.ClassRace;
 import net.sf.l2j.gameserver.model.actor.Creature;
@@ -19,10 +16,10 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 	private static final String QUEST_NAME = "Q220_TestimonyOfGlory";
 	
 	private static final Location VUKU_CHIEF_DRIKO_LOC = new Location(-2150, 124443, -3724);
-	private static final Location TUREK_CHIEF_BURAI_LOC = new Location(-94294, 110818, -3563);
+	private static final Location TUREK_CHIEF_BURAI_LOC = new Location(-94294, 110818, -3696);
 	private static final Location LEUNT_CHIEF_HARAK_LOC = new Location(-55217, 200628, -3724);
 	private static final Location BREKA_CHIEF_VOLTAR_LOC = new Location(80100, 119991, -2264);
-	private static final Location ENKU_CHIEF_KEPRA_LOC = new Location(19815, 189703, -3032);
+	private static final Location ENKU_CHIEF_KEPRA_LOC = new Location(12805, 189249, -3601);
 	
 	// Items
 	private static final int VOKIAN_ORDER_1 = 3204;
@@ -97,23 +94,17 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 	private static final int MAKUM_BUGBEAR_THUG = 27083;
 	private static final int REVENANT_OF_TANTOS_CHIEF = 27086;
 	
-	// Checks & Instances
-	private final Set<Npc> _sonsOfVoltar = ConcurrentHashMap.newKeySet(2);
-	private final Set<Npc> _enkuOrcOverlords = ConcurrentHashMap.newKeySet(4);
-	private final Set<Npc> _makumBugbearThugs = ConcurrentHashMap.newKeySet(2);
-	
 	public Q220_TestimonyOfGlory()
 	{
 		super(220, "Testimony Of Glory");
 		
 		setItemsIds(VOKIAN_ORDER_1, MANASHEN_SHARD, TYRANT_TALON, GUARDIAN_BASILISK_FANG, VOKIAN_ORDER_2, NECKLACE_OF_AUTHORITY, CHIANTA_ORDER_1, SCEPTER_OF_BREKA, SCEPTER_OF_ENKU, SCEPTER_OF_VUKU, SCEPTER_OF_TUREK, SCEPTER_OF_TUNATH, CHIANTA_ORDER_2, CHIANTA_ORDER_3, TAMLIN_ORC_SKULL, TIMAK_ORC_HEAD, SCEPTER_BOX, PASHIKA_HEAD, VULTUS_HEAD, GLOVE_OF_VOLTAR, ENKU_OVERLORD_HEAD, GLOVE_OF_KEPRA, MAKUM_BUGBEAR_HEAD, GLOVE_OF_BURAI, MANAKIA_LETTER_1, MANAKIA_LETTER_2, KASMAN_LETTER_1, KASMAN_LETTER_2, KASMAN_LETTER_3, DRIKO_CONTRACT, STAKATO_DRONE_HUSK, TANAPI_ORDER, SCEPTER_OF_TANTOS, RITUAL_BOX);
 		
-		addStartNpc(VOKIAN);
+		addQuestStart(VOKIAN);
 		addTalkId(KASMAN, VOKIAN, MANAKIA, KAKAI, TANAPI, VOLTAR, KEPRA, BURAI, HARAK, DRIKO, CHIANTA);
 		
-		addAttackId(RAGNA_ORC_OVERLORD, RAGNA_ORC_SEER, REVENANT_OF_TANTOS_CHIEF);
-		addKillId(TYRANT, MARSH_STAKATO_DRONE, GUARDIAN_BASILISK, MANASHEN_GARGOYLE, TIMAK_ORC, TIMAK_ORC_ARCHER, TIMAK_ORC_SOLDIER, TIMAK_ORC_WARRIOR, TIMAK_ORC_SHAMAN, TIMAK_ORC_OVERLORD, TAMLIN_ORC, TAMLIN_ORC_ARCHER, RAGNA_ORC_OVERLORD, RAGNA_ORC_SEER, PASHIKA_SON_OF_VOLTAR, VULTUS_SON_OF_VOLTAR, ENKU_ORC_OVERLORD, MAKUM_BUGBEAR_THUG, REVENANT_OF_TANTOS_CHIEF);
-		addDecayId(PASHIKA_SON_OF_VOLTAR, VULTUS_SON_OF_VOLTAR, ENKU_ORC_OVERLORD, MAKUM_BUGBEAR_THUG);
+		addAttacked(RAGNA_ORC_OVERLORD, RAGNA_ORC_SEER, REVENANT_OF_TANTOS_CHIEF);
+		addMyDying(TYRANT, MARSH_STAKATO_DRONE, GUARDIAN_BASILISK, MANASHEN_GARGOYLE, TIMAK_ORC, TIMAK_ORC_ARCHER, TIMAK_ORC_SOLDIER, TIMAK_ORC_WARRIOR, TIMAK_ORC_SHAMAN, TIMAK_ORC_OVERLORD, TAMLIN_ORC, TAMLIN_ORC_ARCHER, RAGNA_ORC_OVERLORD, RAGNA_ORC_SEER, PASHIKA_SON_OF_VOLTAR, VULTUS_SON_OF_VOLTAR, ENKU_ORC_OVERLORD, MAKUM_BUGBEAR_THUG, REVENANT_OF_TANTOS_CHIEF);
 	}
 	
 	@Override
@@ -169,9 +160,9 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 			}
 		}
 		// KASMAN
-		else if (event.equalsIgnoreCase("30501-02.htm") && !player.getInventory().hasItems(SCEPTER_OF_VUKU))
+		else if (event.equalsIgnoreCase("30501-02.htm") && !player.getInventory().hasItem(SCEPTER_OF_VUKU))
 		{
-			if (player.getInventory().hasItems(KASMAN_LETTER_1))
+			if (player.getInventory().hasItem(KASMAN_LETTER_1))
 				htmltext = "30501-04.htm";
 			else
 			{
@@ -181,9 +172,9 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 			}
 			player.getRadarList().addMarker(VUKU_CHIEF_DRIKO_LOC);
 		}
-		else if (event.equalsIgnoreCase("30501-05.htm") && !player.getInventory().hasItems(SCEPTER_OF_TUREK))
+		else if (event.equalsIgnoreCase("30501-05.htm") && !player.getInventory().hasItem(SCEPTER_OF_TUREK))
 		{
-			if (player.getInventory().hasItems(KASMAN_LETTER_2))
+			if (player.getInventory().hasItem(KASMAN_LETTER_2))
 				htmltext = "30501-07.htm";
 			else
 			{
@@ -193,9 +184,9 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 			}
 			player.getRadarList().addMarker(TUREK_CHIEF_BURAI_LOC);
 		}
-		else if (event.equalsIgnoreCase("30501-08.htm") && !player.getInventory().hasItems(SCEPTER_OF_TUNATH))
+		else if (event.equalsIgnoreCase("30501-08.htm") && !player.getInventory().hasItem(SCEPTER_OF_TUNATH))
 		{
-			if (player.getInventory().hasItems(KASMAN_LETTER_3))
+			if (player.getInventory().hasItem(KASMAN_LETTER_3))
 				htmltext = "30501-10.htm";
 			else
 			{
@@ -206,9 +197,9 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 			player.getRadarList().addMarker(LEUNT_CHIEF_HARAK_LOC);
 		}
 		// MANAKIA
-		else if (event.equalsIgnoreCase("30515-02.htm") && !player.getInventory().hasItems(SCEPTER_OF_BREKA))
+		else if (event.equalsIgnoreCase("30515-02.htm") && !player.getInventory().hasItem(SCEPTER_OF_BREKA))
 		{
-			if (player.getInventory().hasItems(MANAKIA_LETTER_1))
+			if (player.getInventory().hasItem(MANAKIA_LETTER_1))
 				htmltext = "30515-04.htm";
 			else
 			{
@@ -218,9 +209,9 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 			}
 			player.getRadarList().addMarker(BREKA_CHIEF_VOLTAR_LOC);
 		}
-		else if (event.equalsIgnoreCase("30515-05.htm") && !player.getInventory().hasItems(SCEPTER_OF_ENKU))
+		else if (event.equalsIgnoreCase("30515-05.htm") && !player.getInventory().hasItem(SCEPTER_OF_ENKU))
 		{
-			if (player.getInventory().hasItems(MANAKIA_LETTER_2))
+			if (player.getInventory().hasItem(MANAKIA_LETTER_2))
 				htmltext = "30515-07.htm";
 			else
 			{
@@ -237,10 +228,10 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 			takeItems(player, MANAKIA_LETTER_1, 1);
 			giveItems(player, GLOVE_OF_VOLTAR, 1);
 			
-			if (_sonsOfVoltar.isEmpty())
+			if (npc.getMinions().isEmpty())
 			{
-				_sonsOfVoltar.add(addSpawn(PASHIKA_SON_OF_VOLTAR, 80117, 120039, -2259, 0, false, 200000, true));
-				_sonsOfVoltar.add(addSpawn(VULTUS_SON_OF_VOLTAR, 80058, 120038, -2259, 0, false, 200000, true));
+				createOnePrivate(npc, PASHIKA_SON_OF_VOLTAR, 200000, true);
+				createOnePrivate(npc, VULTUS_SON_OF_VOLTAR, 200000, true);
 			}
 		}
 		// KEPRA
@@ -250,12 +241,12 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 			takeItems(player, MANAKIA_LETTER_2, 1);
 			giveItems(player, GLOVE_OF_KEPRA, 1);
 			
-			if (_enkuOrcOverlords.isEmpty())
+			if (npc.getMinions().isEmpty())
 			{
-				_enkuOrcOverlords.add(addSpawn(ENKU_ORC_OVERLORD, 19894, 189743, -3074, 0, false, 200000, true));
-				_enkuOrcOverlords.add(addSpawn(ENKU_ORC_OVERLORD, 19869, 189800, -3059, 0, false, 200000, true));
-				_enkuOrcOverlords.add(addSpawn(ENKU_ORC_OVERLORD, 19818, 189818, -3047, 0, false, 200000, true));
-				_enkuOrcOverlords.add(addSpawn(ENKU_ORC_OVERLORD, 19753, 189837, -3027, 0, false, 200000, true));
+				createOnePrivate(npc, ENKU_ORC_OVERLORD, 200000, true);
+				createOnePrivate(npc, ENKU_ORC_OVERLORD, 200000, true);
+				createOnePrivate(npc, ENKU_ORC_OVERLORD, 200000, true);
+				createOnePrivate(npc, ENKU_ORC_OVERLORD, 200000, true);
 			}
 		}
 		// BURAI
@@ -265,10 +256,10 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 			takeItems(player, KASMAN_LETTER_2, 1);
 			giveItems(player, GLOVE_OF_BURAI, 1);
 			
-			if (_makumBugbearThugs.isEmpty())
+			if (npc.getMinions().isEmpty())
 			{
-				_makumBugbearThugs.add(addSpawn(MAKUM_BUGBEAR_THUG, -94292, 110781, -3701, 0, false, 200000, true));
-				_makumBugbearThugs.add(addSpawn(MAKUM_BUGBEAR_THUG, -94293, 110861, -3701, 0, false, 200000, true));
+				createOnePrivate(npc, MAKUM_BUGBEAR_THUG, 200000, true);
+				createOnePrivate(npc, MAKUM_BUGBEAR_THUG, 200000, true);
 			}
 		}
 		// HARAK
@@ -357,7 +348,7 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 							htmltext = "30642-04.htm";
 						else if (cond == 5)
 						{
-							if (player.getInventory().hasItems(CHIANTA_ORDER_2))
+							if (player.getInventory().hasItem(CHIANTA_ORDER_2))
 							{
 								if (player.getStatus().getLevel() >= 37)
 								{
@@ -393,14 +384,14 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 						break;
 					
 					case KASMAN:
-						if (player.getInventory().hasItems(CHIANTA_ORDER_1))
+						if (player.getInventory().hasItem(CHIANTA_ORDER_1))
 							htmltext = "30501-01.htm";
 						else if (cond > 4)
 							htmltext = "30501-11.htm";
 						break;
 					
 					case MANAKIA:
-						if (player.getInventory().hasItems(CHIANTA_ORDER_1))
+						if (player.getInventory().hasItem(CHIANTA_ORDER_1))
 							htmltext = "30515-01.htm";
 						else if (cond > 4)
 							htmltext = "30515-08.htm";
@@ -409,18 +400,19 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 					case VOLTAR:
 						if (cond > 3)
 						{
-							if (player.getInventory().hasItems(MANAKIA_LETTER_1))
+							if (player.getInventory().hasItem(MANAKIA_LETTER_1))
 							{
 								htmltext = "30615-02.htm";
 								player.getRadarList().removeMarker(BREKA_CHIEF_VOLTAR_LOC);
 							}
-							else if (player.getInventory().hasItems(GLOVE_OF_VOLTAR))
+							else if (player.getInventory().hasItem(GLOVE_OF_VOLTAR))
 							{
 								htmltext = "30615-05.htm";
-								if (_sonsOfVoltar.isEmpty())
+								
+								if (npc.getMinions().isEmpty())
 								{
-									_sonsOfVoltar.add(addSpawn(PASHIKA_SON_OF_VOLTAR, 80117, 120039, -2259, 0, false, 200000, true));
-									_sonsOfVoltar.add(addSpawn(VULTUS_SON_OF_VOLTAR, 80058, 120038, -2259, 0, false, 200000, true));
+									createOnePrivate(npc, PASHIKA_SON_OF_VOLTAR, 200000, true);
+									createOnePrivate(npc, VULTUS_SON_OF_VOLTAR, 200000, true);
 								}
 							}
 							else if (player.getInventory().hasItems(PASHIKA_HEAD, VULTUS_HEAD))
@@ -438,9 +430,9 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 								else
 									playSound(player, SOUND_ITEMGET);
 							}
-							else if (player.getInventory().hasItems(SCEPTER_OF_BREKA))
+							else if (player.getInventory().hasItem(SCEPTER_OF_BREKA))
 								htmltext = "30615-07.htm";
-							else if (player.getInventory().hasItems(CHIANTA_ORDER_1))
+							else if (player.getInventory().hasItem(CHIANTA_ORDER_1))
 								htmltext = "30615-01.htm";
 							else if (cond < 9)
 								htmltext = "30615-08.htm";
@@ -450,21 +442,21 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 					case KEPRA:
 						if (cond > 3)
 						{
-							if (player.getInventory().hasItems(MANAKIA_LETTER_2))
+							if (player.getInventory().hasItem(MANAKIA_LETTER_2))
 							{
 								htmltext = "30616-02.htm";
 								player.getRadarList().removeMarker(ENKU_CHIEF_KEPRA_LOC);
 							}
-							else if (player.getInventory().hasItems(GLOVE_OF_KEPRA))
+							else if (player.getInventory().hasItem(GLOVE_OF_KEPRA))
 							{
 								htmltext = "30616-05.htm";
 								
-								if (_enkuOrcOverlords.isEmpty())
+								if (npc.getMinions().isEmpty())
 								{
-									_enkuOrcOverlords.add(addSpawn(ENKU_ORC_OVERLORD, 19894, 189743, -3074, 0, false, 200000, true));
-									_enkuOrcOverlords.add(addSpawn(ENKU_ORC_OVERLORD, 19869, 189800, -3059, 0, false, 200000, true));
-									_enkuOrcOverlords.add(addSpawn(ENKU_ORC_OVERLORD, 19818, 189818, -3047, 0, false, 200000, true));
-									_enkuOrcOverlords.add(addSpawn(ENKU_ORC_OVERLORD, 19753, 189837, -3027, 0, false, 200000, true));
+									createOnePrivate(npc, ENKU_ORC_OVERLORD, 200000, true);
+									createOnePrivate(npc, ENKU_ORC_OVERLORD, 200000, true);
+									createOnePrivate(npc, ENKU_ORC_OVERLORD, 200000, true);
+									createOnePrivate(npc, ENKU_ORC_OVERLORD, 200000, true);
 								}
 							}
 							else if (player.getInventory().getItemCount(ENKU_OVERLORD_HEAD) == 4)
@@ -481,9 +473,9 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 								else
 									playSound(player, SOUND_ITEMGET);
 							}
-							else if (player.getInventory().hasItems(SCEPTER_OF_ENKU))
+							else if (player.getInventory().hasItem(SCEPTER_OF_ENKU))
 								htmltext = "30616-07.htm";
-							else if (player.getInventory().hasItems(CHIANTA_ORDER_1))
+							else if (player.getInventory().hasItem(CHIANTA_ORDER_1))
 								htmltext = "30616-01.htm";
 							else if (cond < 9)
 								htmltext = "30616-08.htm";
@@ -493,19 +485,19 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 					case BURAI:
 						if (cond > 3)
 						{
-							if (player.getInventory().hasItems(KASMAN_LETTER_2))
+							if (player.getInventory().hasItem(KASMAN_LETTER_2))
 							{
 								htmltext = "30617-02.htm";
 								player.getRadarList().removeMarker(TUREK_CHIEF_BURAI_LOC);
 							}
-							else if (player.getInventory().hasItems(GLOVE_OF_BURAI))
+							else if (player.getInventory().hasItem(GLOVE_OF_BURAI))
 							{
 								htmltext = "30617-04.htm";
 								
-								if (_makumBugbearThugs.isEmpty())
+								if (npc.getMinions().isEmpty())
 								{
-									_makumBugbearThugs.add(addSpawn(MAKUM_BUGBEAR_THUG, -94292, 110781, -3701, 0, false, 200000, true));
-									_makumBugbearThugs.add(addSpawn(MAKUM_BUGBEAR_THUG, -94293, 110861, -3701, 0, false, 200000, true));
+									createOnePrivate(npc, MAKUM_BUGBEAR_THUG, 200000, true);
+									createOnePrivate(npc, MAKUM_BUGBEAR_THUG, 200000, true);
 								}
 							}
 							else if (player.getInventory().getItemCount(MAKUM_BUGBEAR_HEAD) == 2)
@@ -522,9 +514,9 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 								else
 									playSound(player, SOUND_ITEMGET);
 							}
-							else if (player.getInventory().hasItems(SCEPTER_OF_TUREK))
+							else if (player.getInventory().hasItem(SCEPTER_OF_TUREK))
 								htmltext = "30617-06.htm";
-							else if (player.getInventory().hasItems(CHIANTA_ORDER_1))
+							else if (player.getInventory().hasItem(CHIANTA_ORDER_1))
 								htmltext = "30617-01.htm";
 							else if (cond < 8)
 								htmltext = "30617-07.htm";
@@ -534,14 +526,14 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 					case HARAK:
 						if (cond > 3)
 						{
-							if (player.getInventory().hasItems(KASMAN_LETTER_3))
+							if (player.getInventory().hasItem(KASMAN_LETTER_3))
 							{
 								htmltext = "30618-02.htm";
 								player.getRadarList().removeMarker(LEUNT_CHIEF_HARAK_LOC);
 							}
-							else if (player.getInventory().hasItems(SCEPTER_OF_TUNATH))
+							else if (player.getInventory().hasItem(SCEPTER_OF_TUNATH))
 								htmltext = "30618-04.htm";
-							else if (player.getInventory().hasItems(CHIANTA_ORDER_1))
+							else if (player.getInventory().hasItem(CHIANTA_ORDER_1))
 								htmltext = "30618-01.htm";
 							else if (cond < 9)
 								htmltext = "30618-05.htm";
@@ -551,12 +543,12 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 					case DRIKO:
 						if (cond > 3)
 						{
-							if (player.getInventory().hasItems(KASMAN_LETTER_1))
+							if (player.getInventory().hasItem(KASMAN_LETTER_1))
 							{
 								htmltext = "30619-02.htm";
 								player.getRadarList().removeMarker(VUKU_CHIEF_DRIKO_LOC);
 							}
-							else if (player.getInventory().hasItems(DRIKO_CONTRACT))
+							else if (player.getInventory().hasItem(DRIKO_CONTRACT))
 							{
 								if (player.getInventory().getItemCount(STAKATO_DRONE_HUSK) == 30)
 								{
@@ -576,9 +568,9 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 								else
 									htmltext = "30619-04.htm";
 							}
-							else if (player.getInventory().hasItems(SCEPTER_OF_VUKU))
+							else if (player.getInventory().hasItem(SCEPTER_OF_VUKU))
 								htmltext = "30619-06.htm";
-							else if (player.getInventory().hasItems(CHIANTA_ORDER_1))
+							else if (player.getInventory().hasItem(CHIANTA_ORDER_1))
 								htmltext = "30619-01.htm";
 							else if (cond < 8)
 								htmltext = "30619-07.htm";
@@ -629,18 +621,17 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 	}
 	
 	@Override
-	public String onAttack(Npc npc, Creature attacker, int damage, L2Skill skill)
+	public void onAttacked(Npc npc, Creature attacker, int damage, L2Skill skill)
 	{
 		final Player player = attacker.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
-			case RAGNA_ORC_OVERLORD:
-			case RAGNA_ORC_SEER:
+			case RAGNA_ORC_OVERLORD, RAGNA_ORC_SEER:
 				if (st.getCond() == 9 && npc.isScriptValue(0))
 				{
 					npc.broadcastNpcSay(NpcStringId.ID_22051);
@@ -664,37 +655,16 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 				}
 				break;
 		}
-		
-		return null;
 	}
 	
 	@Override
-	public String onDecay(Npc npc)
-	{
-		if (_sonsOfVoltar.contains(npc))
-		{
-			_sonsOfVoltar.remove(npc);
-		}
-		else if (_enkuOrcOverlords.contains(npc))
-		{
-			_enkuOrcOverlords.remove(npc);
-		}
-		else if (_makumBugbearThugs.contains(npc))
-		{
-			_makumBugbearThugs.remove(npc);
-		}
-		
-		return null;
-	}
-	
-	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final int cond = st.getCond();
 		
@@ -716,15 +686,15 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 				break;
 			
 			case MARSH_STAKATO_DRONE:
-				if (player.getInventory().hasItems(DRIKO_CONTRACT))
+				if (player.getInventory().hasItem(DRIKO_CONTRACT))
 					dropItems(player, STAKATO_DRONE_HUSK, 1, 30, 750000);
 				break;
 			
 			case PASHIKA_SON_OF_VOLTAR:
-				if (player.getInventory().hasItems(GLOVE_OF_VOLTAR) && !player.getInventory().hasItems(PASHIKA_HEAD))
+				if (player.getInventory().hasItem(GLOVE_OF_VOLTAR) && !player.getInventory().hasItem(PASHIKA_HEAD))
 				{
 					giveItems(player, PASHIKA_HEAD, 1);
-					if (player.getInventory().hasItems(VULTUS_HEAD))
+					if (player.getInventory().hasItem(VULTUS_HEAD))
 					{
 						playSound(player, SOUND_MIDDLE);
 						takeItems(player, GLOVE_OF_VOLTAR, 1);
@@ -735,10 +705,10 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 				break;
 			
 			case VULTUS_SON_OF_VOLTAR:
-				if (player.getInventory().hasItems(GLOVE_OF_VOLTAR) && !player.getInventory().hasItems(VULTUS_HEAD))
+				if (player.getInventory().hasItem(GLOVE_OF_VOLTAR) && !player.getInventory().hasItem(VULTUS_HEAD))
 				{
 					giveItems(player, VULTUS_HEAD, 1);
-					if (player.getInventory().hasItems(PASHIKA_HEAD))
+					if (player.getInventory().hasItem(PASHIKA_HEAD))
 					{
 						playSound(player, SOUND_MIDDLE);
 						takeItems(player, GLOVE_OF_VOLTAR, 1);
@@ -749,21 +719,16 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 				break;
 			
 			case ENKU_ORC_OVERLORD:
-				if (player.getInventory().hasItems(GLOVE_OF_KEPRA) && dropItemsAlways(player, ENKU_OVERLORD_HEAD, 1, 4))
+				if (player.getInventory().hasItem(GLOVE_OF_KEPRA) && dropItemsAlways(player, ENKU_OVERLORD_HEAD, 1, 4))
 					takeItems(player, GLOVE_OF_KEPRA, 1);
 				break;
 			
 			case MAKUM_BUGBEAR_THUG:
-				if (player.getInventory().hasItems(GLOVE_OF_BURAI) && dropItemsAlways(player, MAKUM_BUGBEAR_HEAD, 1, 2))
+				if (player.getInventory().hasItem(GLOVE_OF_BURAI) && dropItemsAlways(player, MAKUM_BUGBEAR_HEAD, 1, 2))
 					takeItems(player, GLOVE_OF_BURAI, 1);
 				break;
 			
-			case TIMAK_ORC:
-			case TIMAK_ORC_ARCHER:
-			case TIMAK_ORC_SOLDIER:
-			case TIMAK_ORC_WARRIOR:
-			case TIMAK_ORC_SHAMAN:
-			case TIMAK_ORC_OVERLORD:
+			case TIMAK_ORC, TIMAK_ORC_ARCHER, TIMAK_ORC_SOLDIER, TIMAK_ORC_WARRIOR, TIMAK_ORC_SHAMAN, TIMAK_ORC_OVERLORD:
 				if (cond == 6 && dropItems(player, TIMAK_ORC_HEAD, 1, 20, 500000 + ((npc.getNpcId() - 20583) * 100000)) && player.getInventory().getItemCount(TAMLIN_ORC_SKULL) == 20)
 					st.setCond(7);
 				break;
@@ -778,12 +743,11 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 					st.setCond(7);
 				break;
 			
-			case RAGNA_ORC_OVERLORD:
-			case RAGNA_ORC_SEER:
+			case RAGNA_ORC_OVERLORD, RAGNA_ORC_SEER:
 				if (cond == 9)
 				{
 					npc.broadcastNpcSay(NpcStringId.ID_22052);
-					addSpawn(REVENANT_OF_TANTOS_CHIEF, npc, true, 200000, true);
+					createOnePrivateEx(npc, REVENANT_OF_TANTOS_CHIEF, npc.getX(), npc.getY(), npc.getZ(), 0, 200000, false);
 				}
 				break;
 			
@@ -795,7 +759,5 @@ public class Q220_TestimonyOfGlory extends SecondClassQuest
 				}
 				break;
 		}
-		
-		return null;
 	}
 }

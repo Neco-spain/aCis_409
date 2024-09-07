@@ -30,8 +30,8 @@ public class FuncHenna extends Func
 	@Override
 	public double calc(Creature effector, Creature effected, L2Skill skill, double base, double value)
 	{
-		if (effector instanceof Player)
-			return value + ((Player) effector).getHennaList().getStat(_type);
+		if (effector instanceof Player player)
+			return value + player.getHennaList().getStat(_type);
 		
 		return value;
 	}

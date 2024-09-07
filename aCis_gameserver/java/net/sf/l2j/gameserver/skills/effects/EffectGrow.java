@@ -23,12 +23,10 @@ public class EffectGrow extends AbstractEffect
 	@Override
 	public boolean onStart()
 	{
-		if (getEffected() instanceof Npc)
+		if (getEffected() instanceof Npc targetNpc)
 		{
-			Npc npc = (Npc) getEffected();
-			npc.setCollisionRadius(npc.getCollisionRadius() * 1.19);
-			
-			getEffected().startAbnormalEffect(AbnormalEffect.GROW);
+			targetNpc.setCollisionRadius(targetNpc.getCollisionRadius() * 1.19);
+			targetNpc.startAbnormalEffect(AbnormalEffect.GROW);
 			return true;
 		}
 		return false;
@@ -43,12 +41,10 @@ public class EffectGrow extends AbstractEffect
 	@Override
 	public void onExit()
 	{
-		if (getEffected() instanceof Npc)
+		if (getEffected() instanceof Npc targetNpc)
 		{
-			Npc npc = (Npc) getEffected();
-			npc.setCollisionRadius(npc.getTemplate().getCollisionRadius());
-			
-			getEffected().stopAbnormalEffect(AbnormalEffect.GROW);
+			targetNpc.setCollisionRadius(targetNpc.getTemplate().getCollisionRadius());
+			targetNpc.stopAbnormalEffect(AbnormalEffect.GROW);
 		}
 	}
 }

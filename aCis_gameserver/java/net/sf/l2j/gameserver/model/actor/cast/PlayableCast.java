@@ -24,7 +24,7 @@ public class PlayableCast<T extends Playable> extends CreatureCast<T>
 	@Override
 	public void doInstantCast(L2Skill skill, ItemInstance item)
 	{
-		if (!item.isHerb() && !_actor.destroyItem("Consume", item.getObjectId(), (skill.getItemConsumeId() == 0 && skill.getItemConsume() > 0) ? skill.getItemConsume() : 1, null, false))
+		if (!item.isHerb() && !_actor.destroyItem(item.getObjectId(), (skill.getItemConsumeId() == 0 && skill.getItemConsume() > 0) ? skill.getItemConsume() : 1, false))
 		{
 			_actor.sendPacket(SystemMessageId.NOT_ENOUGH_ITEMS);
 			return;
@@ -39,7 +39,7 @@ public class PlayableCast<T extends Playable> extends CreatureCast<T>
 		callSkill(skill, new Creature[]
 		{
 			_actor
-		});
+		}, item);
 	}
 	
 	@Override
@@ -48,7 +48,7 @@ public class PlayableCast<T extends Playable> extends CreatureCast<T>
 		if (itemInstance != null)
 		{
 			// Consume item if needed.
-			if (!(itemInstance.isHerb() || itemInstance.isSummonItem()) && !_actor.destroyItem("Consume", itemInstance.getObjectId(), 1, null, false))
+			if (!(itemInstance.isHerb() || itemInstance.isSummonItem()) && !_actor.destroyItem(itemInstance.getObjectId(), 1, false))
 			{
 				_actor.sendPacket(SystemMessageId.NOT_ENOUGH_ITEMS);
 				return;
@@ -58,13 +58,13 @@ public class PlayableCast<T extends Playable> extends CreatureCast<T>
 			_actor.addItemSkillTimeStamp(skill, itemInstance);
 		}
 		
-		super.doCast(skill, target, null);
+		super.doCast(skill, target, itemInstance);
 	}
 	
 	@Override
-	public boolean canDoCast(Creature target, L2Skill skill, boolean isCtrlPressed, int itemObjectId)
+	public boolean canCast(Creature target, L2Skill skill, boolean isCtrlPressed, int itemObjectId)
 	{
-		if (!super.canDoCast(target, skill, isCtrlPressed, itemObjectId))
+		if (!super.canCast(target, skill, isCtrlPressed, itemObjectId))
 			return false;
 		
 		if (!skill.checkCondition(_actor, target, false))
@@ -96,5 +96,23 @@ public class PlayableCast<T extends Playable> extends CreatureCast<T>
 		}
 		
 		return skill.meetCastConditions(_actor, target, isCtrlPressed);
+	}
+	
+	@Override
+	public void stop()
+	{
+		super.stop();
+		
+		_actor.getAI().tryToIdle();
+	}
+	
+	@Override
+	public void callSkill(L2Skill skill, Creature[] targets, ItemInstance itemInstance)
+	{
+		// Raid Curses system.
+		if (_actor.testCursesOnSkillSee(skill, targets))
+			return;
+		
+		super.callSkill(skill, targets, itemInstance);
 	}
 }

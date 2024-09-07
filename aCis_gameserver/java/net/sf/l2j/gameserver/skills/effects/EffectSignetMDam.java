@@ -42,10 +42,10 @@ public class EffectSignetMDam extends AbstractEffect
 	@Override
 	public boolean onStart()
 	{
-		if (!(_skill instanceof L2SkillSignetCasttime))
+		if (!(_skill instanceof L2SkillSignetCasttime ssc))
 			return false;
 		
-		final NpcTemplate template = NpcData.getInstance().getTemplate(((L2SkillSignetCasttime) getSkill()).effectNpcId);
+		final NpcTemplate template = NpcData.getInstance().getTemplate(ssc.effectNpcId);
 		if (template == null)
 			return false;
 		
@@ -53,8 +53,8 @@ public class EffectSignetMDam extends AbstractEffect
 		effectPoint.getStatus().setMaxHpMp();
 		
 		Location worldPosition = null;
-		if (getEffector() instanceof Player && getSkill().getTargetType() == SkillTargetType.GROUND)
-			worldPosition = ((Player) getEffector()).getCast().getSignetLocation();
+		if (getEffector() instanceof Player player && getSkill().getTargetType() == SkillTargetType.GROUND)
+			worldPosition = player.getCast().getSignetLocation();
 		
 		effectPoint.setInvul(true);
 		effectPoint.spawnMe((worldPosition != null) ? worldPosition : getEffector().getPosition());
@@ -94,8 +94,8 @@ public class EffectSignetMDam extends AbstractEffect
 			final boolean bsps = caster.isChargedShot(ShotType.BLESSED_SPIRITSHOT);
 			final int damage = (int) Formulas.calcMagicDam(caster, target, getSkill(), sDef, sps, bsps, isCrit);
 			
-			if (target instanceof Summon)
-				target.getStatus().broadcastStatusUpdate();
+			if (target instanceof Summon targetSummon)
+				targetSummon.getStatus().broadcastStatusUpdate();
 			
 			if (damage > 0)
 			{

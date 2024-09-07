@@ -1,6 +1,6 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
-import net.sf.l2j.gameserver.handler.admincommandhandlers.AdminMovieMaker.Sequence;
+import net.sf.l2j.gameserver.model.records.Sequence;
 
 public class SpecialCamera extends L2GameServerPacket
 {
@@ -17,7 +17,7 @@ public class SpecialCamera extends L2GameServerPacket
 	
 	public SpecialCamera(Sequence sequence)
 	{
-		this(sequence._objectId, sequence._dist, sequence._yaw, sequence._pitch, sequence._time, sequence._duration, sequence._turn, sequence._rise, sequence._widescreen, 0);
+		this(sequence.objectId(), sequence.dist(), sequence.yaw(), sequence.pitch(), sequence.time(), sequence.duration(), sequence.turn(), sequence.rise(), sequence.widescreen(), 0);
 	}
 	
 	public SpecialCamera(int objectId, int dist, int yaw, int pitch, int time, int duration, int turn, int rise, int widescreen, int unknown)

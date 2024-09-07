@@ -13,7 +13,7 @@ import net.sf.l2j.gameserver.model.item.kind.Weapon;
 
 public abstract class AbstractEnchantPacket extends L2GameClientPacket
 {
-	public static final Map<Integer, EnchantScroll> _scrolls = new HashMap<>();
+	private static final Map<Integer, EnchantScroll> _scrolls = new HashMap<>();
 	
 	public static final class EnchantScroll
 	{
@@ -31,8 +31,8 @@ public abstract class AbstractEnchantPacket extends L2GameClientPacket
 		}
 		
 		/**
-		 * @param enchantItem : The item to enchant.
-		 * @return true if support item can be used for this item
+		 * @param enchantItem : The {@link ItemInstance} to enchant.
+		 * @return True if support item can be used for this item, false otherwise.
 		 */
 		public final boolean isValid(ItemInstance enchantItem)
 		{
@@ -47,8 +47,7 @@ public abstract class AbstractEnchantPacket extends L2GameClientPacket
 						return false;
 					break;
 				
-				case Item.TYPE2_SHIELD_ARMOR:
-				case Item.TYPE2_ACCESSORY:
+				case Item.TYPE2_SHIELD_ARMOR, Item.TYPE2_ACCESSORY:
 					if (_isWeapon || (Config.ENCHANT_MAX_ARMOR > 0 && enchantItem.getEnchantLevel() >= Config.ENCHANT_MAX_ARMOR))
 						return false;
 					break;
@@ -58,10 +57,7 @@ public abstract class AbstractEnchantPacket extends L2GameClientPacket
 			}
 			
 			// check for crystal type
-			if (_grade != enchantItem.getItem().getCrystalType())
-				return false;
-			
-			return true;
+			return _grade == enchantItem.getItem().getCrystalType();
 		}
 		
 		/**
@@ -173,26 +169,31 @@ public abstract class AbstractEnchantPacket extends L2GameClientPacket
 	}
 	
 	/**
-	 * @param scroll The instance of item to make checks on.
-	 * @return enchant template for scroll.
+	 * @param item : The {@link ItemInstance} to make checks on.
+	 * @return The {@link EnchantScroll} template for the associated {@link ItemInstance}.
 	 */
-	protected static final EnchantScroll getEnchantScroll(ItemInstance scroll)
+	protected static final EnchantScroll getEnchantScroll(ItemInstance item)
 	{
-		return _scrolls.get(scroll.getItemId());
+		return _scrolls.get(item.getItemId());
 	}
 	
 	/**
-	 * @param item The instance of item to make checks on.
-	 * @return true if item can be enchanted.
+	 * @param item : The {@link ItemInstance} to make checks on.
+	 * @return True if the item can be enchanted, false otherwise.
 	 */
 	protected static final boolean isEnchantable(ItemInstance item)
 	{
+		// Hero, shadow, EtcItem and fishing rods can't be enchanted.
 		if (item.isHeroItem() || item.isShadowItem() || item.isEtcItem() || item.getItem().getItemType() == WeaponType.FISHINGROD)
 			return false;
 		
-		// only equipped items or in inventory can be enchanted
+		// Only equipped items or in inventory can be enchanted.
 		if (item.getLocation() != ItemLocation.INVENTORY && item.getLocation() != ItemLocation.PAPERDOLL)
 			return false;
+		
+		// Traveler weapons can't be enchanted.
+		if (item.isWeapon())
+			return !item.getWeaponItem().isTravelerWeapon();
 		
 		return true;
 	}

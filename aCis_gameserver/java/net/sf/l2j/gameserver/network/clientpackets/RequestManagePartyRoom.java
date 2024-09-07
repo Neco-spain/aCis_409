@@ -10,22 +10,22 @@ import net.sf.l2j.gameserver.network.serverpackets.PartyMatchDetail;
 
 public class RequestManagePartyRoom extends L2GameClientPacket
 {
-	private int _roomid;
-	private int _membersmax;
-	private int _lvlmin;
-	private int _lvlmax;
-	private int _loot;
-	private String _roomtitle;
+	private int _roomId;
+	private int _maxMembers;
+	private int _minLvl;
+	private int _maxLvl;
+	private int _lootType;
+	private String _roomTitle;
 	
 	@Override
 	protected void readImpl()
 	{
-		_roomid = readD();
-		_membersmax = readD();
-		_lvlmin = readD();
-		_lvlmax = readD();
-		_loot = readD();
-		_roomtitle = readS();
+		_roomId = readD();
+		_maxMembers = readD();
+		_minLvl = readD();
+		_maxLvl = readD();
+		_lootType = readD();
+		_roomTitle = readS();
 	}
 	
 	@Override
@@ -35,33 +35,38 @@ public class RequestManagePartyRoom extends L2GameClientPacket
 		if (player == null)
 			return;
 		
-		if (_roomid > 0)
+		if (_roomId > 0)
 		{
-			final PartyMatchRoom room = PartyMatchRoomManager.getInstance().getRoom(_roomid);
-			if (room != null)
+			// Verify if the PartyMatchRoom exists and if the Player requesting edits is the actual leader.
+			final PartyMatchRoom room = PartyMatchRoomManager.getInstance().getRoom(_roomId);
+			if (room != null && room.getLeader() == player)
 			{
-				room.setMaxMembers(_membersmax);
-				room.setMinLvl(_lvlmin);
-				room.setMaxLvl(_lvlmax);
-				room.setLootType(_loot);
-				room.setTitle(_roomtitle);
+				room.setMaxMembers(_maxMembers);
+				room.setMinLvl(_minLvl);
+				room.setMaxLvl(_maxLvl);
+				room.setLootType(_lootType);
+				room.setTitle(_roomTitle);
+				room.refreshLocation();
 				
 				for (Player member : room.getMembers())
 				{
 					member.sendPacket(new PartyMatchDetail(room));
+					member.sendPacket(new ExPartyRoomMember(room, 2));
 					member.sendPacket(SystemMessageId.PARTY_ROOM_REVISED);
 				}
 			}
 		}
-		else
+		// Remove Player from waiting list.
+		else if (PartyMatchRoomManager.getInstance().removeWaitingPlayer(player))
 		{
+			// Generate a new PartyMatchRoom.
 			final int newId = PartyMatchRoomManager.getInstance().getNewRoomId();
-			final PartyMatchRoom room = new PartyMatchRoom(newId, _roomtitle, _loot, _lvlmin, _lvlmax, _membersmax, player);
+			final PartyMatchRoom room = new PartyMatchRoom(newId, _roomTitle, _lootType, _minLvl, _maxLvl, _maxMembers, player);
 			
-			// Remove Player from waiting list, and add newly created PartyMatchRoom.
-			PartyMatchRoomManager.getInstance().removeWaitingPlayer(player);
+			// Add it to the manager.
 			PartyMatchRoomManager.getInstance().addRoom(newId, room);
 			
+			// Compute Party members, if any.
 			final Party party = player.getParty();
 			if (party != null)
 			{
@@ -74,11 +79,10 @@ public class RequestManagePartyRoom extends L2GameClientPacket
 				}
 			}
 			
+			// Compute leader at the end.
 			player.sendPacket(new PartyMatchDetail(room));
 			player.sendPacket(new ExPartyRoomMember(room, 1));
-			
 			player.sendPacket(SystemMessageId.PARTY_ROOM_CREATED);
-			
 			player.setPartyRoom(newId);
 			player.broadcastUserInfo();
 		}

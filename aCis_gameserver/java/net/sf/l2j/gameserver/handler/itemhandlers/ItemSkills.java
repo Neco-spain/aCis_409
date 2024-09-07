@@ -33,7 +33,7 @@ public class ItemSkills implements IItemHandler
 		
 		final boolean isPet = playable instanceof Pet;
 		final Player player = playable.getActingPlayer();
-		final Creature target = playable.getTarget() instanceof Creature ? (Creature) playable.getTarget() : null;
+		final Creature target = (playable.getTarget() instanceof Creature targetCreature) ? targetCreature : null;
 		
 		// Pets can only use tradable items.
 		if (isPet && !item.isTradable())
@@ -61,9 +61,12 @@ public class ItemSkills implements IItemHandler
 			if (!itemSkill.checkCondition(playable, target, false))
 				return;
 			
-			// No message on retail, the use is just forgotten.
+			// The skill is currently under reuse.
 			if (playable.isSkillDisabled(itemSkill))
+			{
+				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_PREPARED_FOR_REUSE).addSkillName(itemSkill));
 				return;
+			}
 			
 			// Potions and Energy Stones bypass the AI system. The rest does not.
 			if (itemSkill.isPotion() || itemSkill.isSimultaneousCast())
@@ -79,18 +82,12 @@ public class ItemSkills implements IItemHandler
 			// Send message to owner.
 			if (isPet)
 				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.PET_USES_S1).addSkillName(itemSkill));
-			else
+			// Buff icon for healing potions.
+			else if (ArraysUtil.contains(HP_POTION_SKILL_IDS, skillInfo.getId()) && skillInfo.getId() >= player.getShortBuffTaskSkillId())
 			{
-				// Buff icon for healing potions.
-				final int skillId = skillInfo.getId();
-				if (ArraysUtil.contains(HP_POTION_SKILL_IDS, skillId) && skillId >= player.getShortBuffTaskSkillId())
-				{
-					final EffectTemplate template = itemSkill.getEffectTemplates().get(0);
-					if (template != null)
-					{
-						player.shortBuffStatusUpdate(skillId, skillInfo.getValue(), template.getCounter() * template.getPeriod());
-					}
-				}
+				final EffectTemplate template = itemSkill.getEffectTemplates().get(0);
+				if (template != null)
+					player.shortBuffStatusUpdate(skillInfo.getId(), skillInfo.getValue(), template.getCounter() * template.getPeriod());
 			}
 		}
 	}

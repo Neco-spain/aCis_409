@@ -24,28 +24,24 @@ public class L2SkillElemental extends L2Skill
 		_seeds[1] = set.getInteger("seed2", 0);
 		_seeds[2] = set.getInteger("seed3", 0);
 		
-		if (set.getInteger("seed_any", 0) == 1)
-			_seedAny = true;
-		else
-			_seedAny = false;
+		_seedAny = set.getInteger("seed_any", 0) == 1;
 	}
 	
 	@Override
-	public void useSkill(Creature activeChar, WorldObject[] targets)
+	public void useSkill(Creature creature, WorldObject[] targets)
 	{
-		if (activeChar.isAlikeDead())
+		if (creature.isAlikeDead())
 			return;
 		
-		final boolean sps = activeChar.isChargedShot(ShotType.SPIRITSHOT);
-		final boolean bsps = activeChar.isChargedShot(ShotType.BLESSED_SPIRITSHOT);
+		final boolean sps = creature.isChargedShot(ShotType.SPIRITSHOT);
+		final boolean bsps = creature.isChargedShot(ShotType.BLESSED_SPIRITSHOT);
 		
-		for (WorldObject obj : targets)
+		for (WorldObject target : targets)
 		{
-			if (!(obj instanceof Creature))
+			if (!(target instanceof Creature targetCreature))
 				continue;
 			
-			final Creature target = ((Creature) obj);
-			if (target.isAlikeDead())
+			if (targetCreature.isAlikeDead())
 				continue;
 			
 			boolean charged = true;
@@ -55,7 +51,7 @@ public class L2SkillElemental extends L2Skill
 				{
 					if (_seed != 0)
 					{
-						final AbstractEffect effect = target.getFirstEffect(_seed);
+						final AbstractEffect effect = targetCreature.getFirstEffect(_seed);
 						if (effect == null || !effect.getInUse())
 						{
 							charged = false;
@@ -71,7 +67,7 @@ public class L2SkillElemental extends L2Skill
 				{
 					if (_seed != 0)
 					{
-						final AbstractEffect effect = target.getFirstEffect(_seed);
+						final AbstractEffect effect = targetCreature.getFirstEffect(_seed);
 						if (effect != null && effect.getInUse())
 						{
 							charged = true;
@@ -83,29 +79,29 @@ public class L2SkillElemental extends L2Skill
 			
 			if (!charged)
 			{
-				activeChar.sendMessage("Target is not charged by elements.");
+				creature.sendMessage("Target is not charged by elements.");
 				continue;
 			}
 			
-			final boolean isCrit = Formulas.calcMCrit(activeChar, target, this);
-			final ShieldDefense sDef = Formulas.calcShldUse(activeChar, target, this, false);
+			final boolean isCrit = Formulas.calcMCrit(creature, targetCreature, this);
+			final ShieldDefense sDef = Formulas.calcShldUse(creature, targetCreature, this, false);
 			
-			int damage = (int) Formulas.calcMagicDam(activeChar, target, this, sDef, sps, bsps, isCrit);
+			int damage = (int) Formulas.calcMagicDam(creature, targetCreature, this, sDef, sps, bsps, isCrit);
 			if (damage > 0)
 			{
-				target.reduceCurrentHp(damage, activeChar, this);
+				targetCreature.reduceCurrentHp(damage, creature, this);
 				
 				// Manage cast break of the target (calculating rate, sending message...)
-				Formulas.calcCastBreak(target, damage);
+				Formulas.calcCastBreak(targetCreature, damage);
 				
-				activeChar.sendDamageMessage(target, damage, false, false, false);
+				creature.sendDamageMessage(targetCreature, damage, false, false, false);
 			}
 			
 			// activate attacked effects, if any
-			target.stopSkillEffects(getId());
-			getEffects(activeChar, target, sDef, bsps);
+			targetCreature.stopSkillEffects(getId());
+			getEffects(creature, targetCreature, sDef, bsps);
 		}
 		
-		activeChar.setChargedShot(bsps ? ShotType.BLESSED_SPIRITSHOT : ShotType.SPIRITSHOT, isStaticReuse());
+		creature.setChargedShot(bsps ? ShotType.BLESSED_SPIRITSHOT : ShotType.SPIRITSHOT, isStaticReuse());
 	}
 }

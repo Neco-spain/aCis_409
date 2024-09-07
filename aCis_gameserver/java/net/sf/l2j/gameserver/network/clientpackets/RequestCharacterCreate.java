@@ -14,9 +14,9 @@ import net.sf.l2j.gameserver.model.Shortcut;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.template.PlayerTemplate;
-import net.sf.l2j.gameserver.model.holder.ItemTemplateHolder;
 import net.sf.l2j.gameserver.model.holder.skillnode.GeneralSkillNode;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
+import net.sf.l2j.gameserver.model.records.NewbieItem;
 import net.sf.l2j.gameserver.network.serverpackets.CharCreateFail;
 import net.sf.l2j.gameserver.network.serverpackets.CharCreateOk;
 import net.sf.l2j.gameserver.network.serverpackets.CharSelectInfo;
@@ -142,12 +142,12 @@ public final class RequestCharacterCreate extends L2GameClientPacket
 		player.getShortcutList().addShortcut(new Shortcut(10, 0, ShortcutType.ACTION, 0, -1, 1)); // sit shortcut
 		
 		// Equip or add items, based on template.
-		for (ItemTemplateHolder holder : template.getItems())
+		for (NewbieItem holder : template.getItems())
 		{
-			final ItemInstance item = player.getInventory().addItem("Init", holder.getId(), holder.getValue(), player, null);
+			final ItemInstance item = player.getInventory().addItem(holder.id(), holder.count());
 			
 			// Tutorial book shortcut.
-			if (holder.getId() == 5588)
+			if (holder.id() == 5588)
 				player.getShortcutList().addShortcut(new Shortcut(11, 0, ShortcutType.ITEM, item.getObjectId(), -1, 1));
 			
 			if (item.isEquipable() && holder.isEquipped())
@@ -172,7 +172,7 @@ public final class RequestCharacterCreate extends L2GameClientPacket
 		player.setOnlineStatus(true, false);
 		player.deleteMe();
 		
-		final CharSelectInfo csi = new CharSelectInfo(getClient().getAccountName(), getClient().getSessionId().playOkID1);
+		final CharSelectInfo csi = new CharSelectInfo(getClient().getAccountName(), getClient().getSessionId().playOkId1());
 		sendPacket(csi);
 		getClient().setCharSelectSlot(csi.getCharacterSlots());
 	}

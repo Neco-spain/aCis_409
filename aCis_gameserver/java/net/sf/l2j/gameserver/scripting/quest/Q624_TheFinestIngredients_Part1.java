@@ -32,10 +32,10 @@ public class Q624_TheFinestIngredients_Part1 extends Quest
 		
 		setItemsIds(TRUNK_OF_NEPENTHES, FOOT_OF_BANDERSNATCHLING, SECRET_SPICE);
 		
-		addStartNpc(31521); // Jeremy
+		addQuestStart(31521); // Jeremy
 		addTalkId(31521);
 		
-		addKillId(NEPENTHES, ATROX, ATROXSPAWN, BANDERSNATCH);
+		addMyDying(NEPENTHES, ATROX, ATROXSPAWN, BANDERSNATCH);
 	}
 	
 	@Override
@@ -106,13 +106,13 @@ public class Q624_TheFinestIngredients_Part1 extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMember(player, npc, 1);
 		if (st == null)
-			return null;
+			return;
 		
 		player = st.getPlayer();
 		switch (npc.getNpcId())
@@ -122,8 +122,7 @@ public class Q624_TheFinestIngredients_Part1 extends Quest
 					st.setCond(2);
 				break;
 			
-			case ATROX:
-			case ATROXSPAWN:
+			case ATROX, ATROXSPAWN:
 				if (dropItemsAlways(player, SECRET_SPICE, 1, 50) && player.getInventory().getItemCount(TRUNK_OF_NEPENTHES) >= 50 && player.getInventory().getItemCount(FOOT_OF_BANDERSNATCHLING) >= 50)
 					st.setCond(2);
 				break;
@@ -133,7 +132,5 @@ public class Q624_TheFinestIngredients_Part1 extends Quest
 					st.setCond(2);
 				break;
 		}
-		
-		return null;
 	}
 }

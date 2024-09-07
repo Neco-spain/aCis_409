@@ -46,10 +46,10 @@ public class Q422_RepentYourSins extends Quest
 		
 		setItemsIds(RATMAN_SCAVENGER_SKULL, TUREK_WAR_HOUND_TAIL, TYRANT_KINGPIN_HEART, TRISALIM_TARANTULA_VENOM_SAC, MANUAL_OF_MANACLES, PENITENT_MANACLES, QITEM_PENITENT_MANACLES);
 		
-		addStartNpc(BLACK_JUDGE);
+		addQuestStart(BLACK_JUDGE);
 		addTalkId(BLACK_JUDGE, KATARI, PIOTUR, CASIAN, JOAN, PUSHKIN);
 		
-		addKillId(20039, 20494, 20193, 20561);
+		addMyDying(20039, 20494, 20193, 20561);
 	}
 	
 	@Override
@@ -88,7 +88,7 @@ public class Q422_RepentYourSins extends Quest
 		}
 		else if (event.equalsIgnoreCase("30981-11.htm"))
 		{
-			if (!player.getInventory().hasItems(PENITENT_MANACLES))
+			if (!player.getInventory().hasItem(PENITENT_MANACLES))
 			{
 				int cond = st.getCond();
 				
@@ -113,7 +113,7 @@ public class Q422_RepentYourSins extends Quest
 		}
 		else if (event.equalsIgnoreCase("30981-19.htm"))
 		{
-			if (player.getInventory().hasItems(LEFT_PENITENT_MANACLES))
+			if (player.getInventory().hasItem(LEFT_PENITENT_MANACLES))
 			{
 				st.setState(QuestStatus.STARTED);
 				st.setCond(16);
@@ -189,7 +189,7 @@ public class Q422_RepentYourSins extends Quest
 		{
 			case CREATED:
 				if (player.getPkKills() >= 1)
-					htmltext = (player.getInventory().hasItems(LEFT_PENITENT_MANACLES)) ? "30981-18.htm" : "30981-02.htm";
+					htmltext = (player.getInventory().hasItem(LEFT_PENITENT_MANACLES)) ? "30981-18.htm" : "30981-02.htm";
 				else
 					htmltext = "30981-01.htm";
 				break;
@@ -214,7 +214,7 @@ public class Q422_RepentYourSins extends Quest
 							htmltext = "30981-10.htm";
 						else if (cond == 16)
 						{
-							if (player.getInventory().hasItems(PENITENT_MANACLES))
+							if (player.getInventory().hasItem(PENITENT_MANACLES))
 								htmltext = (findSinEaterLvl(player) > st.getInteger("level")) ? "30981-13.htm" : "30981-12.htm";
 							else
 								htmltext = "30981-18.htm";
@@ -276,7 +276,7 @@ public class Q422_RepentYourSins extends Quest
 						}
 						else if (cond == 8)
 						{
-							if (!player.getInventory().hasItems(TYRANT_KINGPIN_HEART))
+							if (!player.getInventory().hasItem(TYRANT_KINGPIN_HEART))
 								htmltext = "30612-02.htm";
 							else
 							{
@@ -345,13 +345,13 @@ public class Q422_RepentYourSins extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
@@ -375,8 +375,6 @@ public class Q422_RepentYourSins extends Quest
 					dropItemsAlways(player, TRISALIM_TARANTULA_VENOM_SAC, 1, 3);
 				break;
 		}
-		
-		return null;
 	}
 	
 	private static int findSinEaterLvl(Player player)

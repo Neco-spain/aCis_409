@@ -2,8 +2,8 @@ package net.sf.l2j.gameserver.network.clientpackets;
 
 import net.sf.l2j.commons.lang.StringUtil;
 
+import net.sf.l2j.gameserver.enums.PrivilegeType;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.model.pledge.ClanMember;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
@@ -43,7 +43,7 @@ public class RequestGiveNickName extends L2GameClientPacket
 		else
 		{
 			// Can the player change/give a title?
-			if (!player.hasClanPrivileges(Clan.CP_CL_GIVE_TITLE))
+			if (!player.hasClanPrivileges(PrivilegeType.SP_MANAGE_TITLES))
 			{
 				player.sendPacket(SystemMessageId.YOU_ARE_NOT_AUTHORIZED_TO_DO_THAT);
 				return;

@@ -33,10 +33,10 @@ public class Q260_HuntTheOrcs extends Quest
 		
 		setItemsIds(ORC_AMULET, ORC_NECKLACE);
 		
-		addStartNpc(RAYEN);
+		addQuestStart(RAYEN);
 		addTalkId(RAYEN);
 		
-		addKillId(KABOO_ORC, KABOO_ORC_ARCHER, KABOO_ORC_GRUNT, KABOO_ORC_FIGHTER, KABOO_ORC_FIGHTER_LEADER, KABOO_ORC_FIGHTER_LIEUTENANT);
+		addMyDying(KABOO_ORC, KABOO_ORC_ARCHER, KABOO_ORC_GRUNT, KABOO_ORC_FIGHTER, KABOO_ORC_FIGHTER_LEADER, KABOO_ORC_FIGHTER_LIEUTENANT);
 	}
 	
 	@Override
@@ -107,29 +107,23 @@ public class Q260_HuntTheOrcs extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
-			case KABOO_ORC:
-			case KABOO_ORC_GRUNT:
-			case KABOO_ORC_ARCHER:
+			case KABOO_ORC, KABOO_ORC_GRUNT, KABOO_ORC_ARCHER:
 				dropItems(player, ORC_AMULET, 1, 0, 500000);
 				break;
 			
-			case KABOO_ORC_FIGHTER:
-			case KABOO_ORC_FIGHTER_LEADER:
-			case KABOO_ORC_FIGHTER_LIEUTENANT:
+			case KABOO_ORC_FIGHTER, KABOO_ORC_FIGHTER_LEADER, KABOO_ORC_FIGHTER_LIEUTENANT:
 				dropItems(player, ORC_NECKLACE, 1, 0, 500000);
 				break;
 		}
-		
-		return null;
 	}
 }

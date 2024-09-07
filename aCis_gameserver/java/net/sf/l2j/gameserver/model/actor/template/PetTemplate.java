@@ -4,7 +4,7 @@ import java.util.Map;
 
 import net.sf.l2j.commons.data.StatSet;
 
-import net.sf.l2j.gameserver.model.PetDataEntry;
+import net.sf.l2j.gameserver.model.records.PetDataEntry;
 
 public final class PetTemplate extends NpcTemplate
 {

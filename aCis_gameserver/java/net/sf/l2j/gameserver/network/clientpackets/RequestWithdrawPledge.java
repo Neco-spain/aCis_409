@@ -12,6 +12,7 @@ public final class RequestWithdrawPledge extends L2GameClientPacket
 	@Override
 	protected void readImpl()
 	{
+		// Do nothing.
 	}
 	
 	@Override
@@ -51,5 +52,8 @@ public final class RequestWithdrawPledge extends L2GameClientPacket
 		
 		player.sendPacket(SystemMessageId.YOU_HAVE_WITHDRAWN_FROM_CLAN);
 		player.sendPacket(SystemMessageId.YOU_MUST_WAIT_BEFORE_JOINING_ANOTHER_CLAN);
+		
+		// Refresh surrounding Clan War tags.
+		player.forEachKnownType(Player.class, attacker -> clan.getWarList().contains(attacker.getClanId()), Player::broadcastUserInfo);
 	}
 }

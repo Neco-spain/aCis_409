@@ -7,8 +7,8 @@ import net.sf.l2j.commons.logging.MasterFormatter;
 public class GMAuditFormatter extends MasterFormatter
 {
 	@Override
-	public String format(LogRecord record)
+	public String format(LogRecord logRecord)
 	{
-		return "[" + getFormatedDate(record.getMillis()) + "]" + SPACE + record.getMessage() + CRLF;
+		return "[" + getFormatedDate(logRecord.getMillis()) + "]" + SPACE + logRecord.getMessage() + CRLF;
 	}
 }

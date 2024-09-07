@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
@@ -21,7 +23,6 @@ public final class WorldRegion
 {
 	private final Map<Integer, WorldObject> _objects = new ConcurrentHashMap<>();
 	
-	private final List<WorldRegion> _surroundingRegions = new ArrayList<>();
 	private final List<ZoneType> _zones = new ArrayList<>();
 	
 	private final int _tileX;
@@ -47,14 +48,84 @@ public final class WorldRegion
 		return _objects.values();
 	}
 	
-	public void addSurroundingRegion(WorldRegion region)
+	public <A extends WorldObject> void forEachType(Class<A> type, Consumer<A> action)
 	{
-		_surroundingRegions.add(region);
+		for (WorldObject obj : getObjects())
+		{
+			// Check instance type.
+			if (!type.isAssignableFrom(obj.getClass()))
+				continue;
+			
+			// Consume the action on the casted object.
+			action.accept(type.cast(obj));
+		}
+	}
+	
+	public <A extends WorldObject> void forEachType(Class<A> type, Predicate<A> filter, Consumer<A> action)
+	{
+		for (WorldObject obj : getObjects())
+		{
+			// Check instance type.
+			if (!type.isAssignableFrom(obj.getClass()))
+				continue;
+			
+			// Cast the object.
+			final A actor = type.cast(obj);
+			
+			// Check predicate.
+			if (!filter.test(actor))
+				continue;
+			
+			// Consume the action on the casted object.
+			action.accept(actor);
+		}
 	}
 	
 	public List<WorldRegion> getSurroundingRegions()
 	{
-		return _surroundingRegions;
+		final List<WorldRegion> list = new ArrayList<>();
+		
+		for (int ix = -1; ix <= 1; ix++)
+		{
+			for (int iy = -1; iy <= 1; iy++)
+			{
+				final int x = _tileX + ix;
+				final int y = _tileY + iy;
+				
+				if (x >= 0 && x < World.REGIONS_X && y >= 0 && y < World.REGIONS_Y)
+					list.add(World.getInstance().getWorldRegions()[x][y]);
+			}
+		}
+		return list;
+	}
+	
+	/**
+	 * Run a {@link Consumer} upon regions, and return no result.
+	 * @param action : The {@link Consumer} to use.
+	 */
+	public void forEachSurroundingRegion(Consumer<WorldRegion> action)
+	{
+		forEachRegion(1, action);
+	}
+	
+	/**
+	 * Run a {@link Consumer} upon regions surrounding this specific {@link WorldRegion}, and return no result.
+	 * @param depth : The depth of regions to retain.
+	 * @param action : The {@link Consumer} to use.
+	 */
+	public void forEachRegion(int depth, Consumer<WorldRegion> action)
+	{
+		for (int ix = -depth; ix <= depth; ix++)
+		{
+			for (int iy = -depth; iy <= depth; iy++)
+			{
+				final int x = _tileX + ix;
+				final int y = _tileY + iy;
+				
+				if (x >= 0 && x < World.REGIONS_X && y >= 0 && y < World.REGIONS_Y)
+					action.accept(World.getInstance().getWorldRegions()[x][y]);
+			}
+		}
 	}
 	
 	public List<ZoneType> getZones()
@@ -83,7 +154,7 @@ public final class WorldRegion
 	
 	public void removeFromZones(Creature character)
 	{
-		_zones.forEach(z -> z.removeCharacter(character));
+		_zones.forEach(z -> z.removeCreature(character));
 	}
 	
 	public boolean containsZone(int zoneId)
@@ -106,7 +177,7 @@ public final class WorldRegion
 		
 		for (ZoneType e : _zones)
 		{
-			if ((e instanceof TownZone && ((TownZone) e).isPeaceZone()) || e instanceof DerbyTrackZone || e instanceof PeaceZone)
+			if ((e instanceof TownZone tz && tz.isPeaceZone()) || e instanceof DerbyTrackZone || e instanceof PeaceZone)
 			{
 				if (e.isInsideZone(loc.getX(), up, loc.getZ()))
 					return false;
@@ -143,10 +214,20 @@ public final class WorldRegion
 	 */
 	public boolean isEmptyNeighborhood()
 	{
-		for (WorldRegion neighbor : _surroundingRegions)
+		for (int ix = -1; ix <= 1; ix++)
 		{
-			if (neighbor.getPlayersCount() != 0)
-				return false;
+			for (int iy = -1; iy <= 1; iy++)
+			{
+				final int x = _tileX + ix;
+				final int y = _tileY + iy;
+				
+				if (x >= 0 && x < World.REGIONS_X && y >= 0 && y < World.REGIONS_Y)
+				{
+					final WorldRegion neighbor = World.getInstance().getWorldRegions()[x][y];
+					if (neighbor.getPlayersCount() != 0)
+						return false;
+				}
+			}
 		}
 		return true;
 	}

@@ -1,6 +1,8 @@
 package net.sf.l2j.gameserver.enums.actors;
 
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.Set;
 
 import net.sf.l2j.gameserver.model.actor.Player;
 
@@ -151,6 +153,13 @@ public enum ClassId
 	
 	public static final ClassId[] VALUES = values();
 	
+	private static final Set<ClassId> ATTACKER_GROUP = EnumSet.of(HUMAN_FIGHTER, WARRIOR, GLADIATOR, WARLORD, ROGUE, TREASURE_HUNTER, HAWKEYE, ELVEN_FIGHTER, ELVEN_SCOUT, PLAINS_WALKER, SILVER_RANGER, DARK_FIGHTER, ASSASSIN, ABYSS_WALKER, PHANTOM_RANGER, ORC_FIGHTER, ORC_RAIDER, DESTROYER, MONK, TYRANT, DWARVEN_FIGHTER, DUELIST, DREADNOUGHT, ADVENTURER, SAGGITARIUS, MOONLIGHT_SENTINEL, WIND_RIDER, GHOST_HUNTER, GHOST_SENTINEL, TITAN, GRAND_KHAVATARI);
+	private static final Set<ClassId> FIGHTER_GROUP = EnumSet.of(HUMAN_FIGHTER, WARRIOR, GLADIATOR, WARLORD, KNIGHT, PALADIN, DARK_AVENGER, ROGUE, TREASURE_HUNTER, HAWKEYE, ELVEN_FIGHTER, ELVEN_KNIGHT, TEMPLE_KNIGHT, SWORD_SINGER, ELVEN_SCOUT, PLAINS_WALKER, SILVER_RANGER, DARK_FIGHTER, PALUS_KNIGHT, SHILLIEN_KNIGHT, BLADEDANCER, ASSASSIN, ABYSS_WALKER, PHANTOM_RANGER, ORC_FIGHTER, ORC_RAIDER, DESTROYER, MONK, TYRANT, DWARVEN_FIGHTER, SCAVENGER, BOUNTY_HUNTER, ARTISAN, WARSMITH, DUELIST, DREADNOUGHT, PHOENIX_KNIGHT, HELL_KNIGHT, SAGGITARIUS, ADVENTURER, EVAS_TEMPLAR, SWORD_MUSE, WIND_RIDER, MOONLIGHT_SENTINEL, SHILLIEN_TEMPLAR, SPECTRAL_DANCER, GHOST_HUNTER, GHOST_SENTINEL, TITAN, GRAND_KHAVATARI, FORTUNE_SEEKER, MAESTRO);
+	private static final Set<ClassId> MAGE_GROUP = EnumSet.of(HUMAN_MYSTIC, HUMAN_WIZARD, SORCERER, NECROMANCER, WARLOCK, CLERIC, BISHOP, PROPHET, ELVEN_MYSTIC, ELVEN_WIZARD, SPELLSINGER, ELEMENTAL_SUMMONER, ELVEN_ORACLE, ELVEN_ELDER, DARK_MYSTIC, DARK_WIZARD, SPELLHOWLER, PHANTOM_SUMMONER, SHILLIEN_ORACLE, SHILLIEN_ELDER, ORC_MYSTIC, ORC_SHAMAN, OVERLORD, WARCRYER, ARCHMAGE, SOULTAKER, ARCANA_LORD, CARDINAL, HIEROPHANT, MYSTIC_MUSE, ELEMENTAL_MASTER, EVAS_SAINT, STORM_SCREAMER, SPECTRAL_MASTER, SHILLIEN_SAINT, DOMINATOR, DOOMCRYER);
+	private static final Set<ClassId> WIZARD_GROUP = EnumSet.of(HUMAN_MYSTIC, HUMAN_WIZARD, SORCERER, NECROMANCER, WARLOCK, ELVEN_MYSTIC, ELVEN_WIZARD, SPELLSINGER, ELEMENTAL_SUMMONER, DARK_MYSTIC, DARK_WIZARD, SPELLHOWLER, PHANTOM_SUMMONER, ORC_MYSTIC, ORC_SHAMAN, OVERLORD, WARCRYER, ARCHMAGE, SOULTAKER, ARCANA_LORD, MYSTIC_MUSE, ELEMENTAL_MASTER, STORM_SCREAMER, SPECTRAL_MASTER, DOMINATOR, DOOMCRYER);
+	private static final Set<ClassId> CLERIC_GROUP = EnumSet.of(HUMAN_MYSTIC, CLERIC, BISHOP, PROPHET, ELVEN_MYSTIC, ELVEN_ORACLE, ELVEN_ELDER, DARK_MYSTIC, SHILLIEN_ORACLE, SHILLIEN_ELDER, CARDINAL, HIEROPHANT, EVAS_SAINT);
+	private static final Set<ClassId> SUBJOB_KNIGHT_GROUP = EnumSet.of(PALADIN, DARK_AVENGER, SHILLIEN_KNIGHT, TEMPLE_KNIGHT, PHOENIX_KNIGHT, HELL_KNIGHT, SHILLIEN_TEMPLAR, EVAS_TEMPLAR);
+	
 	private final int _id;
 	private final ClassRace _race;
 	private final ClassType _type;
@@ -270,34 +279,23 @@ public enum ClassId
 		// Remove class restricted classes.
 		switch (this)
 		{
-			case DARK_AVENGER:
-			case PALADIN:
-			case TEMPLE_KNIGHT:
-			case SHILLIEN_KNIGHT:
+			case DARK_AVENGER, PALADIN, TEMPLE_KNIGHT, SHILLIEN_KNIGHT:
 				_subclasses.removeAll(EnumSet.of(DARK_AVENGER, PALADIN, TEMPLE_KNIGHT, SHILLIEN_KNIGHT));
 				break;
 			
-			case TREASURE_HUNTER:
-			case ABYSS_WALKER:
-			case PLAINS_WALKER:
+			case TREASURE_HUNTER, ABYSS_WALKER, PLAINS_WALKER:
 				_subclasses.removeAll(EnumSet.of(TREASURE_HUNTER, ABYSS_WALKER, PLAINS_WALKER));
 				break;
 			
-			case HAWKEYE:
-			case SILVER_RANGER:
-			case PHANTOM_RANGER:
+			case HAWKEYE, SILVER_RANGER, PHANTOM_RANGER:
 				_subclasses.removeAll(EnumSet.of(HAWKEYE, SILVER_RANGER, PHANTOM_RANGER));
 				break;
 			
-			case WARLOCK:
-			case ELEMENTAL_SUMMONER:
-			case PHANTOM_SUMMONER:
+			case WARLOCK, ELEMENTAL_SUMMONER, PHANTOM_SUMMONER:
 				_subclasses.removeAll(EnumSet.of(WARLOCK, ELEMENTAL_SUMMONER, PHANTOM_SUMMONER));
 				break;
 			
-			case SORCERER:
-			case SPELLSINGER:
-			case SPELLHOWLER:
+			case SORCERER, SPELLSINGER, SPELLHOWLER:
 				_subclasses.removeAll(EnumSet.of(SORCERER, SPELLSINGER, SPELLHOWLER));
 				break;
 		}
@@ -322,17 +320,68 @@ public enum ClassId
 	 * @param player : The {@link Player} to make checks on.
 	 * @return All available subclasses for given {@link Player} under a {@link EnumSet} of {@link ClassId}s.
 	 */
-	public static final EnumSet<ClassId> getAvailableSubclasses(Player player)
+	public static final Set<ClassId> getAvailableSubclasses(Player player)
 	{
 		ClassId classId = VALUES[player.getBaseClass()];
 		if (classId._level < 2)
-			return null;
+			return Collections.emptySet();
 		
 		// Handle 3rd level class.
 		if (classId._level == 3)
 			classId = classId._parent;
 		
 		return EnumSet.copyOf(classId._subclasses);
+	}
+	
+	public static final boolean isInGroup(Player player, String occupation)
+	{
+		if (player == null || occupation == null)
+			return false;
+		
+		switch (occupation)
+		{
+			case "@attacker_group":
+				return ATTACKER_GROUP.contains(player.getClassId());
+			
+			case "@fighter_group":
+				return FIGHTER_GROUP.contains(player.getClassId());
+			
+			case "@mage_group":
+				return MAGE_GROUP.contains(player.getClassId());
+			
+			case "@wizard_group":
+				return WIZARD_GROUP.contains(player.getClassId());
+			
+			case "@cleric_group":
+				return CLERIC_GROUP.contains(player.getClassId());
+			
+			case "@subjob_group_knight":
+				return SUBJOB_KNIGHT_GROUP.contains(player.getClassId());
+		}
+		
+		return false;
+	}
+	
+	public static final boolean isSameOccupation(Player player, String occupation)
+	{
+		if (player == null || occupation == null)
+			return false;
+		
+		switch (occupation)
+		{
+			case "@fighter":
+				return player.getClassId() == HUMAN_FIGHTER;
+			
+			case "@mage":
+				return player.getClassId() == HUMAN_MYSTIC;
+			
+			case "@swordsinger":
+				return player.getClassId() == SWORD_SINGER;
+			
+			case "@elven_wizard":
+				return player.getClassId() == ELVEN_WIZARD;
+		}
+		return false;
 	}
 	
 	static

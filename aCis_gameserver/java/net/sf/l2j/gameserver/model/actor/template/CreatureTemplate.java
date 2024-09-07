@@ -25,12 +25,12 @@ public class CreatureTemplate
 	private final double _basePDef;
 	private final double _baseMDef;
 	
-	private final int _basePAtkSpd;
+	private final double _basePAtkSpd;
 	
-	private final int _baseCritRate;
+	private final double _baseCritRate;
 	
-	private final int _baseWalkSpd;
-	private final int _baseRunSpd;
+	private final double _baseWalkSpd;
+	private final double _baseRunSpd;
 	
 	protected final double _collisionRadius;
 	protected final double _collisionHeight;
@@ -44,23 +44,23 @@ public class CreatureTemplate
 		_baseWIT = set.getInteger("wit", 43);
 		_baseMEN = set.getInteger("men", 20);
 		
-		_baseHpMax = set.getDouble("hp", 0);
-		_baseMpMax = set.getDouble("mp", 0);
+		_baseHpMax = set.getDouble("hp", 0.);
+		_baseMpMax = set.getDouble("mp", 0.);
 		
-		_baseHpRegen = set.getDouble("hpRegen", 1.5d);
-		_baseMpRegen = set.getDouble("mpRegen", 0.9d);
+		_baseHpRegen = set.getDouble("hpRegen", 1.5);
+		_baseMpRegen = set.getDouble("mpRegen", 0.9);
 		
 		_basePAtk = set.getDouble("pAtk");
 		_baseMAtk = set.getDouble("mAtk");
 		_basePDef = set.getDouble("pDef");
 		_baseMDef = set.getDouble("mDef");
 		
-		_basePAtkSpd = set.getInteger("atkSpd", 300);
+		_basePAtkSpd = set.getDouble("atkSpd", 300.);
 		
-		_baseCritRate = set.getInteger("crit", 4);
+		_baseCritRate = set.getDouble("crit", 4.);
 		
-		_baseWalkSpd = set.getInteger("walkSpd", 0);
-		_baseRunSpd = set.getInteger("runSpd", 1);
+		_baseWalkSpd = set.getDouble("walkSpd", 0.);
+		_baseRunSpd = set.getDouble("runSpd", 1.);
 		
 		_collisionRadius = set.getDouble("radius");
 		_collisionHeight = set.getDouble("height");
@@ -136,22 +136,22 @@ public class CreatureTemplate
 		return _baseMDef;
 	}
 	
-	public final int getBasePAtkSpd()
+	public final double getBasePAtkSpd()
 	{
 		return _basePAtkSpd;
 	}
 	
-	public final int getBaseCritRate()
+	public final double getBaseCritRate()
 	{
 		return _baseCritRate;
 	}
 	
-	public final int getBaseWalkSpeed()
+	public final double getBaseWalkSpeed()
 	{
 		return _baseWalkSpd;
 	}
 	
-	public final int getBaseRunSpeed()
+	public final double getBaseRunSpeed()
 	{
 		return _baseRunSpd;
 	}

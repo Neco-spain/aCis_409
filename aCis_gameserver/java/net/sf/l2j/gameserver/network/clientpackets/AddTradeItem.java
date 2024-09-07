@@ -2,12 +2,14 @@ package net.sf.l2j.gameserver.network.clientpackets;
 
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.trade.TradeItem;
 import net.sf.l2j.gameserver.model.trade.TradeList;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.TradeItemUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.TradeOtherAdd;
 import net.sf.l2j.gameserver.network.serverpackets.TradeOwnAdd;
+import net.sf.l2j.gameserver.network.serverpackets.TradeUpdate;
 
 public final class AddTradeItem extends L2GameClientPacket
 {
@@ -15,10 +17,6 @@ public final class AddTradeItem extends L2GameClientPacket
 	private int _tradeId;
 	private int _objectId;
 	private int _count;
-	
-	public AddTradeItem()
-	{
-	}
 	
 	@Override
 	protected void readImpl()
@@ -66,7 +64,8 @@ public final class AddTradeItem extends L2GameClientPacket
 			return;
 		}
 		
-		if (player.validateItemManipulation(_objectId) == null)
+		final ItemInstance item = player.validateItemManipulation(_objectId);
+		if (item == null)
 		{
 			player.sendPacket(SystemMessageId.NOTHING_HAPPENED);
 			return;
@@ -76,9 +75,10 @@ public final class AddTradeItem extends L2GameClientPacket
 		if (tradeItem == null)
 			return;
 		
-		player.sendPacket(new TradeOwnAdd(tradeItem));
+		player.sendPacket(new TradeOwnAdd(tradeItem, _count));
+		player.sendPacket(new TradeUpdate(tradeItem, item.getCount() - tradeItem.getCount()));
 		player.sendPacket(new TradeItemUpdate(tradeList, player));
 		
-		tradeList.getPartner().sendPacket(new TradeOtherAdd(tradeItem));
+		tradeList.getPartner().sendPacket(new TradeOtherAdd(tradeItem, _count));
 	}
 }

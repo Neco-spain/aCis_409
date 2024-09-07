@@ -56,10 +56,10 @@ public class Q231_TestOfTheMaestro extends SecondClassQuest
 		
 		setItemsIds(RECOMMENDATION_OF_BALANKI, RECOMMENDATION_OF_FILAUR, RECOMMENDATION_OF_ARIN, LETTER_OF_SOLDER_DETACHMENT, PAINT_OF_KAMURU, NECKLACE_OF_KAMURU, PAINT_OF_TELEPORT_DEVICE, TELEPORT_DEVICE, ARCHITECTURE_OF_KRUMA, REPORT_OF_KRUMA, INGREDIENTS_OF_ANTIDOTE, STINGER_WASP_NEEDLE, MARSH_SPIDER_WEB, BLOOD_OF_LEECH, BROKEN_TELEPORT_DEVICE);
 		
-		addStartNpc(LOCKIRIN);
+		addQuestStart(LOCKIRIN);
 		addTalkId(LOCKIRIN, SPIRON, BALANKI, KEEF, FILAUR, ARIN, TOMA, CROTO, DUBABAH, LORAIN);
 		
-		addKillId(GIANT_MIST_LEECH, STINGER_WASP, MARSH_SPIDER, EVIL_EYE_LORD);
+		addMyDying(GIANT_MIST_LEECH, STINGER_WASP, MARSH_SPIDER, EVIL_EYE_LORD);
 	}
 	
 	@Override
@@ -122,13 +122,13 @@ public class Q231_TestOfTheMaestro extends SecondClassQuest
 		if (name.equalsIgnoreCase("spawn_bugbears"))
 		{
 			Npc bugbear = addSpawn(KING_BUGBEAR, 140333, -194153, -3138, 0, false, 200000, true);
-			bugbear.forceAttack(player, 2000);
+			bugbear.getAI().addAttackDesire(player, 2000);
 			
 			bugbear = addSpawn(KING_BUGBEAR, 140395, -194147, -3146, 0, false, 200000, true);
-			bugbear.forceAttack(player, 2000);
+			bugbear.getAI().addAttackDesire(player, 2000);
 			
 			bugbear = addSpawn(KING_BUGBEAR, 140304, -194082, -3157, 0, false, 200000, true);
-			bugbear.forceAttack(player, 2000);
+			bugbear.getAI().addAttackDesire(player, 2000);
 		}
 		
 		return null;
@@ -212,9 +212,9 @@ public class Q231_TestOfTheMaestro extends SecondClassQuest
 						bCond = st.getInteger("bCond");
 						if (bCond == 1)
 						{
-							if (!player.getInventory().hasItems(PAINT_OF_KAMURU))
+							if (!player.getInventory().hasItem(PAINT_OF_KAMURU))
 								htmltext = "30671-01.htm";
-							else if (!player.getInventory().hasItems(NECKLACE_OF_KAMURU))
+							else if (!player.getInventory().hasItem(NECKLACE_OF_KAMURU))
 								htmltext = "30671-03.htm";
 							else
 							{
@@ -268,9 +268,9 @@ public class Q231_TestOfTheMaestro extends SecondClassQuest
 						aCond = st.getInteger("aCond");
 						if (aCond == 1)
 						{
-							if (!player.getInventory().hasItems(BROKEN_TELEPORT_DEVICE))
+							if (!player.getInventory().hasItem(BROKEN_TELEPORT_DEVICE))
 								htmltext = "30556-01.htm";
-							else if (!player.getInventory().hasItems(TELEPORT_DEVICE))
+							else if (!player.getInventory().hasItem(TELEPORT_DEVICE))
 							{
 								htmltext = "30556-06.htm";
 								st.set("aCond", 2);
@@ -318,9 +318,9 @@ public class Q231_TestOfTheMaestro extends SecondClassQuest
 						fCond = st.getInteger("fCond");
 						if (fCond == 1)
 						{
-							if (!player.getInventory().hasItems(REPORT_OF_KRUMA))
+							if (!player.getInventory().hasItem(REPORT_OF_KRUMA))
 							{
-								if (!player.getInventory().hasItems(INGREDIENTS_OF_ANTIDOTE))
+								if (!player.getInventory().hasItem(INGREDIENTS_OF_ANTIDOTE))
 								{
 									htmltext = "30673-01.htm";
 									playSound(player, SOUND_ITEMGET);
@@ -348,37 +348,35 @@ public class Q231_TestOfTheMaestro extends SecondClassQuest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerCondition(player, npc, 1);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
 			case GIANT_MIST_LEECH:
-				if (player.getInventory().hasItems(INGREDIENTS_OF_ANTIDOTE))
+				if (player.getInventory().hasItem(INGREDIENTS_OF_ANTIDOTE))
 					dropItemsAlways(player, BLOOD_OF_LEECH, 1, 10);
 				break;
 			
 			case STINGER_WASP:
-				if (player.getInventory().hasItems(INGREDIENTS_OF_ANTIDOTE))
+				if (player.getInventory().hasItem(INGREDIENTS_OF_ANTIDOTE))
 					dropItemsAlways(player, STINGER_WASP_NEEDLE, 1, 10);
 				break;
 			
 			case MARSH_SPIDER:
-				if (player.getInventory().hasItems(INGREDIENTS_OF_ANTIDOTE))
+				if (player.getInventory().hasItem(INGREDIENTS_OF_ANTIDOTE))
 					dropItemsAlways(player, MARSH_SPIDER_WEB, 1, 10);
 				break;
 			
 			case EVIL_EYE_LORD:
-				if (player.getInventory().hasItems(PAINT_OF_KAMURU))
+				if (player.getInventory().hasItem(PAINT_OF_KAMURU))
 					dropItemsAlways(player, NECKLACE_OF_KAMURU, 1, 1);
 				break;
 		}
-		
-		return null;
 	}
 }

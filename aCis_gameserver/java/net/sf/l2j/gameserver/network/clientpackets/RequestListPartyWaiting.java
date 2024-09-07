@@ -11,12 +11,17 @@ import net.sf.l2j.gameserver.network.serverpackets.PartyMatchList;
 
 public final class RequestListPartyWaiting extends L2GameClientPacket
 {
+	@SuppressWarnings("unused")
+	private int _auto;
+	private int _bbs;
+	private int _lvl;
+	
 	@Override
 	protected void readImpl()
 	{
-		readD(); // auto
-		readD(); // loc
-		readD(); // lvl
+		_auto = readD();
+		_bbs = readD();
+		_lvl = readD();
 	}
 	
 	@Override
@@ -25,13 +30,6 @@ public final class RequestListPartyWaiting extends L2GameClientPacket
 		final Player player = getClient().getPlayer();
 		if (player == null)
 			return;
-		
-		if (!player.isInPartyMatchRoom() && player.getParty() != null && player.getParty().getLeader() != player)
-		{
-			player.sendPacket(SystemMessageId.CANT_VIEW_PARTY_ROOMS);
-			player.sendPacket(ActionFailed.STATIC_PACKET);
-			return;
-		}
 		
 		if (player.isInPartyMatchRoom())
 		{
@@ -45,11 +43,18 @@ public final class RequestListPartyWaiting extends L2GameClientPacket
 		}
 		else
 		{
+			if (player.getParty() != null && !player.getParty().isLeader(player))
+			{
+				player.sendPacket(SystemMessageId.CANT_VIEW_PARTY_ROOMS);
+				player.sendPacket(ActionFailed.STATIC_PACKET);
+				return;
+			}
+			
 			// Add to waiting list.
 			PartyMatchRoomManager.getInstance().addWaitingPlayer(player);
 			
 			// Send Room list.
-			player.sendPacket(new PartyMatchList(player));
+			player.sendPacket(new PartyMatchList(player, _bbs, _lvl));
 		}
 	}
 }

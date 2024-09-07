@@ -18,10 +18,9 @@ public class Keys implements IItemHandler
 	@Override
 	public void useItem(Playable playable, ItemInstance item, boolean forceUse)
 	{
-		if (!(playable instanceof Player))
+		if (!(playable instanceof Player player))
 			return;
 		
-		final Player player = (Player) playable;
 		if (player.isSitting())
 		{
 			player.sendPacket(SystemMessageId.CANT_MOVE_SITTING);
@@ -32,15 +31,14 @@ public class Keys implements IItemHandler
 			return;
 		
 		final WorldObject target = playable.getTarget();
-		// Target must be a valid chest (not dead or already interacted).
-		if (!(target instanceof Chest))
+		if (!(target instanceof Chest targetChest))
 		{
 			player.sendPacket(SystemMessageId.INVALID_TARGET);
 			return;
 		}
 		
-		final Chest chest = (Chest) target;
-		if (chest.isDead() || chest.isInteracted())
+		// Target must be a valid chest (not dead or already interacted).
+		if (targetChest.isDead() || targetChest.isInteracted())
 		{
 			player.sendPacket(SystemMessageId.INVALID_TARGET);
 			return;
@@ -64,7 +62,7 @@ public class Keys implements IItemHandler
 				continue;
 			
 			// Key consumption is made on skill call, not on item call.
-			playable.getAI().tryToCast(chest, itemSkill);
+			playable.getAI().tryToCast(targetChest, itemSkill);
 		}
 	}
 }

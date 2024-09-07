@@ -1,7 +1,8 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
 import net.sf.l2j.gameserver.data.cache.CrestCache;
-import net.sf.l2j.gameserver.data.cache.CrestCache.CrestType;
+import net.sf.l2j.gameserver.enums.CrestType;
+import net.sf.l2j.gameserver.enums.PrivilegeType;
 import net.sf.l2j.gameserver.idfactory.IdFactory;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.pledge.Clan;
@@ -43,7 +44,7 @@ public final class RequestSetPledgeCrest extends L2GameClientPacket
 			return;
 		}
 		
-		if (!player.hasClanPrivileges(Clan.CP_CL_REGISTER_CREST))
+		if (!player.hasClanPrivileges(PrivilegeType.SP_EDIT_CREST))
 		{
 			player.sendPacket(SystemMessageId.YOU_ARE_NOT_AUTHORIZED_TO_DO_THAT);
 			return;

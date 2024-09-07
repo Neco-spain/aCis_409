@@ -13,6 +13,7 @@ public final class RequestOlympiadMatchList extends L2GameClientPacket
 	@Override
 	protected void readImpl()
 	{
+		// Do nothing.
 	}
 	
 	@Override

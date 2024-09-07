@@ -39,8 +39,82 @@ public class SecondClassChange extends Quest
 	// Reward Item
 	private static final int C_GRADE_COUPON = 8870;
 	
-	private static final Map<String, int[]> CLASSES = new HashMap<>();
+	private static final Map<String, int[]> CLASSES = HashMap.newHashMap(31);
+	
+	protected static final int[] SECOND_CLASS_NPCS =
 	{
+		// Dark Elfs
+		31328,
+		30195,
+		30699,
+		30474,
+		31324,
+		30862,
+		30910,
+		31285,
+		31331,
+		31334,
+		31974,
+		32096,
+		// Orcs
+		30513,
+		30681,
+		30704,
+		30865,
+		30913,
+		31288,
+		31326,
+		31977,
+		// Dwarf
+		30511,
+		30676,
+		30685,
+		30845,
+		30894,
+		31269,
+		31314,
+		31958,
+		30512,
+		30677,
+		30687,
+		30847,
+		30897,
+		31272,
+		31317,
+		31961,
+		// Human & Elfs Fighters
+		30109,
+		30187,
+		30689,
+		30849,
+		30900,
+		31965,
+		32094,
+		// Human & Elfs Mages (nukers)
+		30115,
+		30174,
+		30176,
+		30694,
+		30854,
+		31996,
+		// Human & Elfs Mages (buffers)
+		30120,
+		30191,
+		30857,
+		30905,
+		31276,
+		31321,
+		31279,
+		31755,
+		31968,
+		32095,
+		31336
+	};
+	
+	public SecondClassChange()
+	{
+		super(-1, "feature");
+		
 		// Dark Elfs
 		CLASSES.put("SK", new int[]
 		{
@@ -481,81 +555,6 @@ public class SecondClassChange extends Quest
 			MARK_OF_HEALER,
 			26
 		});
-	}
-	
-	public static final int[] SECOND_CLASS_NPCS =
-	{
-		// Dark Elfs
-		31328,
-		30195,
-		30699,
-		30474,
-		31324,
-		30862,
-		30910,
-		31285,
-		31331,
-		31334,
-		31974,
-		32096,
-		// Orcs
-		30513,
-		30681,
-		30704,
-		30865,
-		30913,
-		31288,
-		31326,
-		31977,
-		// Dwarf
-		30511,
-		30676,
-		30685,
-		30845,
-		30894,
-		31269,
-		31314,
-		31958,
-		30512,
-		30677,
-		30687,
-		30847,
-		30897,
-		31272,
-		31317,
-		31961,
-		// Human & Elfs Fighters
-		30109,
-		30187,
-		30689,
-		30849,
-		30900,
-		31965,
-		32094,
-		// Human & Elfs Mages (nukers)
-		30115,
-		30174,
-		30176,
-		30694,
-		30854,
-		31996,
-		// Human & Elfs Mages (buffers)
-		30120,
-		30191,
-		30857,
-		30905,
-		31276,
-		31321,
-		31279,
-		31755,
-		31968,
-		32095,
-		31336
-	};
-	
-	public SecondClassChange()
-	{
-		super(-1, "feature");
 		
 		addTalkId(SECOND_CLASS_NPCS);
 	}
@@ -614,18 +613,7 @@ public class SecondClassChange extends Quest
 		
 		switch (npc.getNpcId())
 		{
-			case 31328: // Dark Elfs
-			case 30195:
-			case 30699:
-			case 30474:
-			case 31324:
-			case 30862:
-			case 30910:
-			case 31285:
-			case 31331:
-			case 31334:
-			case 31974:
-			case 32096:
+			case 31328, 30195, 30699, 30474, 31324, 30862, 30910, 31285, 31331, 31334, 31974, 32096: // Dark Elf
 				if (player.getRace() == ClassRace.DARK_ELF)
 				{
 					if (player.getClassId().getLevel() == 1)
@@ -646,14 +634,7 @@ public class SecondClassChange extends Quest
 					htmltext = "master_de-56.htm";
 				break;
 			
-			case 30513: // Orcs
-			case 30681:
-			case 30704:
-			case 30865:
-			case 30913:
-			case 31288:
-			case 31326:
-			case 31977:
+			case 30513, 30681, 30704, 30865, 30913, 31288, 31326, 31977: // Orcs
 				if (player.getRace() == ClassRace.ORC)
 				{
 					if (player.getClassId().getLevel() == 1)
@@ -672,14 +653,7 @@ public class SecondClassChange extends Quest
 					htmltext = "master_orc-34.htm";
 				break;
 			
-			case 30511: // Dwarf for Bounty Hunter
-			case 30676:
-			case 30685:
-			case 30845:
-			case 30894:
-			case 31269:
-			case 31314:
-			case 31958:
+			case 30511, 30676, 30685, 30845, 30894, 31269, 31314, 31958: // Dwarf for Bounty Hunter
 				if (player.getRace() == ClassRace.DWARF)
 				{
 					if (player.getClassId().getLevel() == 1)
@@ -696,14 +670,7 @@ public class SecondClassChange extends Quest
 					htmltext = "master_dwarf-15.htm";
 				break;
 			
-			case 30512: // Dwarf for Warsmith
-			case 30677:
-			case 30687:
-			case 30847:
-			case 30897:
-			case 31272:
-			case 31317:
-			case 31961:
+			case 30512, 30677, 30687, 30847, 30897, 31272, 31317, 31961: // Dwarf for Warsmith
 				if (player.getRace() == ClassRace.DWARF)
 				{
 					if (player.getClassId().getLevel() == 1)
@@ -720,13 +687,7 @@ public class SecondClassChange extends Quest
 					htmltext = "master_dwarf-22.htm";
 				break;
 			
-			case 30109: // Human & Elfs Fighters
-			case 30187:
-			case 30689:
-			case 30849:
-			case 30900:
-			case 31965:
-			case 32094:
+			case 30109, 30187, 30689, 30849, 30900, 31965, 32094: // Human & Elfs Fighters
 				if (player.getRace() == ClassRace.HUMAN || player.getRace() == ClassRace.ELF)
 				{
 					if (player.getClassId().getLevel() == 1)
@@ -751,12 +712,7 @@ public class SecondClassChange extends Quest
 					htmltext = "master_human_elf_fighter-78.htm";
 				break;
 			
-			case 30115: // Human & Elfs Mages (nukers)
-			case 30174:
-			case 30176:
-			case 30694:
-			case 30854:
-			case 31996:
+			case 30115, 30174, 30176, 30694, 30854, 31996: // Human & Elfs Mages (nukers)
 				if (player.getRace() == ClassRace.ELF || player.getRace() == ClassRace.HUMAN)
 				{
 					if (player.getClassId().getLevel() == 1)
@@ -775,17 +731,7 @@ public class SecondClassChange extends Quest
 					htmltext = "master_human_elf_mystic-40.htm";
 				break;
 			
-			case 30120: // Human & Elfs Mages (buffers)
-			case 30191:
-			case 30857:
-			case 30905:
-			case 31276:
-			case 31321:
-			case 31279:
-			case 31755:
-			case 31968:
-			case 32095:
-			case 31336:
+			case 30120, 30191, 30857, 30905, 31276, 31321, 31279, 31755, 31968, 32095, 31336: // Human & Elfs Mages (buffers)
 				if (player.getRace() == ClassRace.HUMAN || player.getRace() == ClassRace.ELF)
 				{
 					if (player.getClassId().getLevel() == 1)
@@ -830,8 +776,7 @@ public class SecondClassChange extends Quest
 				change = "master_orc";
 				break;
 			
-			case HUMAN:
-			case ELF:
+			case HUMAN, ELF:
 				if (player.isMageClass())
 				{
 					// Retrieve associated first class.

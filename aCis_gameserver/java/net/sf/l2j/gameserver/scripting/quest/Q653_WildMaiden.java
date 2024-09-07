@@ -6,7 +6,6 @@ import net.sf.l2j.gameserver.enums.QuestStatus;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.location.SpawnLocation;
-import net.sf.l2j.gameserver.network.serverpackets.MagicSkillUse;
 import net.sf.l2j.gameserver.scripting.Quest;
 import net.sf.l2j.gameserver.scripting.QuestState;
 
@@ -37,10 +36,8 @@ public class Q653_WildMaiden extends Quest
 	{
 		super(653, "Wild Maiden");
 		
-		addStartNpc(SUKI);
+		addQuestStart(SUKI);
 		addTalkId(SUKI, GALIBREDO);
-		
-		addSpawn(SUKI, 66578, 72351, -3731, 0, false, 0, false);
 	}
 	
 	@Override
@@ -53,15 +50,14 @@ public class Q653_WildMaiden extends Quest
 		
 		if (event.equalsIgnoreCase("32013-03.htm"))
 		{
-			if (player.getInventory().hasItems(SCROLL_OF_ESCAPE))
+			if (player.getInventory().hasItem(SCROLL_OF_ESCAPE))
 			{
 				st.setState(QuestStatus.STARTED);
 				st.setCond(1);
 				playSound(player, SOUND_ACCEPT);
 				takeItems(player, SCROLL_OF_ESCAPE, 1);
 				
-				npc.broadcastPacket(new MagicSkillUse(npc, npc, 2013, 1, 3500, 0));
-				startQuestTimer("apparition_npc", npc, null, 4000);
+				startQuestTimer("65301", npc, null, 3000);
 			}
 			else
 			{
@@ -76,7 +72,7 @@ public class Q653_WildMaiden extends Quest
 	@Override
 	public String onTimer(String name, Npc npc, Player player)
 	{
-		if (name.equalsIgnoreCase("apparition_npc"))
+		if (name.equalsIgnoreCase("65301"))
 		{
 			int chance = Rnd.get(4);
 			

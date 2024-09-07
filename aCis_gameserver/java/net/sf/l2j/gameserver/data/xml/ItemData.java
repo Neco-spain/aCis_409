@@ -50,12 +50,12 @@ public class ItemData
 				if (highest < item.getItemId())
 					highest = item.getItemId();
 				
-				if (item instanceof EtcItem)
-					etcItems.put(item.getItemId(), (EtcItem) item);
-				else if (item instanceof Armor)
-					armors.put(item.getItemId(), (Armor) item);
-				else
-					weapons.put(item.getItemId(), (Weapon) item);
+				if (item instanceof EtcItem etcItem)
+					etcItems.put(item.getItemId(), etcItem);
+				else if (item instanceof Armor armor)
+					armors.put(item.getItemId(), armor);
+				else if (item instanceof Weapon weapon)
+					weapons.put(item.getItemId(), weapon);
 			}
 		}
 		
@@ -81,6 +81,14 @@ public class ItemData
 	public Item getTemplate(int id)
 	{
 		return (id >= _templates.length) ? null : _templates[id];
+	}
+	
+	/**
+	 * @return The array of all {@link Item} templates.
+	 */
+	public Item[] getTemplates()
+	{
+		return _templates;
 	}
 	
 	public static ItemData getInstance()

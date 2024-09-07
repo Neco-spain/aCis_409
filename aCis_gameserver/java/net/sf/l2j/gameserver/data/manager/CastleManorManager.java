@@ -24,13 +24,13 @@ import net.sf.l2j.commons.random.Rnd;
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.sql.ClanTable;
 import net.sf.l2j.gameserver.enums.ManorStatus;
-import net.sf.l2j.gameserver.model.entity.Castle;
 import net.sf.l2j.gameserver.model.itemcontainer.ItemContainer;
 import net.sf.l2j.gameserver.model.manor.CropProcure;
 import net.sf.l2j.gameserver.model.manor.Seed;
 import net.sf.l2j.gameserver.model.manor.SeedProduction;
 import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.model.pledge.ClanMember;
+import net.sf.l2j.gameserver.model.residence.castle.Castle;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 
 import org.w3c.dom.Document;
@@ -46,10 +46,10 @@ public class CastleManorManager implements IXmlReader
 	private static final String UPDATE_PRODUCTION = "UPDATE castle_manor_production SET amount = ? WHERE castle_id = ? AND seed_id = ? AND next_period = 0";
 	private static final String UPDATE_PROCURE = "UPDATE castle_manor_procure SET amount = ? WHERE castle_id = ? AND crop_id = ? AND next_period = 0";
 	
-	private static final String DELETE_ALL_PRODUCTS = "DELETE FROM castle_manor_production";
+	private static final String TRUNCATE_PRODUCTS = "TRUNCATE castle_manor_production";
 	private static final String INSERT_PRODUCT = "INSERT INTO castle_manor_production VALUES (?, ?, ?, ?, ?, ?)";
 	
-	private static final String DELETE_ALL_PROCURE = "DELETE FROM castle_manor_procure";
+	private static final String TRUNCATE_PROCURES = "TRUNCATE castle_manor_procure";
 	private static final String INSERT_CROP = "INSERT INTO castle_manor_procure VALUES (?, ?, ?, ?, ?, ?, ?)";
 	
 	private ManorStatus _mode = ManorStatus.APPROVED;
@@ -82,14 +82,12 @@ public class CastleManorManager implements IXmlReader
 		{
 			for (Castle castle : CastleManager.getInstance().getCastles())
 			{
-				final int castleId = castle.getCastleId();
-				
 				// Seed production
 				final List<SeedProduction> pCurrent = new ArrayList<>();
 				final List<SeedProduction> pNext = new ArrayList<>();
 				
 				stProduction.clearParameters();
-				stProduction.setInt(1, castleId);
+				stProduction.setInt(1, castle.getId());
 				
 				try (ResultSet rs = stProduction.executeQuery())
 				{
@@ -102,15 +100,15 @@ public class CastleManorManager implements IXmlReader
 							pCurrent.add(sp);
 					}
 				}
-				_production.put(castleId, pCurrent);
-				_productionNext.put(castleId, pNext);
+				_production.put(castle.getId(), pCurrent);
+				_productionNext.put(castle.getId(), pNext);
 				
 				// Seed procure
 				final List<CropProcure> current = new ArrayList<>();
 				final List<CropProcure> next = new ArrayList<>();
 				
 				stProcure.clearParameters();
-				stProcure.setInt(1, castleId);
+				stProcure.setInt(1, castle.getId());
 				
 				try (ResultSet rs = stProcure.executeQuery())
 				{
@@ -123,8 +121,8 @@ public class CastleManorManager implements IXmlReader
 							current.add(cp);
 					}
 				}
-				_procure.put(castleId, current);
-				_procureNext.put(castleId, next);
+				_procure.put(castle.getId(), current);
+				_procureNext.put(castle.getId(), next);
 			}
 		}
 		catch (Exception e)
@@ -155,17 +153,23 @@ public class CastleManorManager implements IXmlReader
 	@Override
 	public void load()
 	{
-		parseFile("./data/xml/seeds.xml");
+		parseFile("./data/xml/manors.xml");
 		LOGGER.info("Loaded {} seeds.", _seeds.size());
 	}
 	
 	@Override
 	public void parseDocument(Document doc, Path path)
 	{
-		forEach(doc, "list", listNode -> forEach(listNode, "seed", seedNode ->
+		forEach(doc, "list", listNode -> forEach(listNode, "manor", manorNode ->
 		{
-			final StatSet set = parseAttributes(seedNode);
-			_seeds.put(set.getInteger("id"), new Seed(set));
+			final int castleId = parseInteger(manorNode.getAttributes(), "id");
+			forEach(manorNode, "crop", cropNode ->
+			{
+				final StatSet set = parseAttributes(cropNode);
+				set.set("castleId", castleId);
+				
+				_seeds.put(set.getInteger("seedId"), new Seed(set));
+			});
 		}));
 	}
 	
@@ -216,10 +220,9 @@ public class CastleManorManager implements IXmlReader
 					if (owner == null)
 						continue;
 					
-					final int castleId = castle.getCastleId();
-					final ItemContainer cwh = owner.getWarehouse();
+					long amount = 0;
 					
-					for (CropProcure crop : _procure.get(castleId))
+					for (CropProcure crop : _procure.get(castle.getId()))
 					{
 						if (crop.getStartAmount() > 0)
 						{
@@ -234,27 +237,30 @@ public class CastleManorManager implements IXmlReader
 								{
 									final Seed seed = getSeedByCrop(crop.getId());
 									if (seed != null)
-										cwh.addItem("Manor", seed.getMatureId(), count, null, null);
+										owner.getWarehouse().addItem(seed.getMatureId(), count);
 								}
 							}
 							
 							// Reserved and not used money giving back to treasury
 							if (crop.getAmount() > 0)
-								castle.addToTreasuryNoTax(crop.getAmount() * crop.getPrice());
+								amount += crop.getAmount() * crop.getPrice();
 						}
 					}
 					
+					// Add the total amount to the castle seed income.
+					castle.riseSeedIncome(amount);
+					
 					// Change next period to current and prepare next period data
-					final List<SeedProduction> nextProduction = _productionNext.get(castleId);
-					final List<CropProcure> nextProcure = _procureNext.get(castleId);
+					final List<SeedProduction> nextProduction = _productionNext.get(castle.getId());
+					final List<CropProcure> nextProcure = _procureNext.get(castle.getId());
 					
-					_production.put(castleId, nextProduction);
-					_procure.put(castleId, nextProcure);
+					_production.put(castle.getId(), nextProduction);
+					_procure.put(castle.getId(), nextProcure);
 					
-					if (castle.getTreasury() < getManorCost(castleId, false))
+					if (castle.getTreasury() < getManorCost(castle.getId(), false))
 					{
-						_productionNext.put(castleId, Collections.emptyList());
-						_procureNext.put(castleId, Collections.emptyList());
+						_productionNext.put(castle.getId(), Collections.emptyList());
+						_procureNext.put(castle.getId(), Collections.emptyList());
 					}
 					else
 					{
@@ -262,13 +268,13 @@ public class CastleManorManager implements IXmlReader
 						for (SeedProduction s : production)
 							s.setAmount(s.getStartAmount());
 						
-						_productionNext.put(castleId, production);
+						_productionNext.put(castle.getId(), production);
 						
 						final List<CropProcure> procure = new ArrayList<>(nextProcure);
 						for (CropProcure cr : procure)
 							cr.setAmount(cr.getStartAmount());
 						
-						_procureNext.put(castleId, procure);
+						_procureNext.put(castle.getId(), procure);
 					}
 				}
 				
@@ -301,28 +307,28 @@ public class CastleManorManager implements IXmlReader
 						continue;
 					
 					int slots = 0;
-					final int castleId = castle.getCastleId();
 					final ItemContainer cwh = owner.getWarehouse();
 					
-					for (CropProcure crop : _procureNext.get(castleId))
+					for (CropProcure crop : _procureNext.get(castle.getId()))
 					{
 						if (crop.getStartAmount() > 0 && cwh.getItemsByItemId(getSeedByCrop(crop.getId()).getMatureId()) == null)
 							slots++;
 					}
 					
-					final long manorCost = getManorCost(castleId, true);
-					if (!cwh.validateCapacity(slots) && (castle.getTreasury() < manorCost))
+					if (!cwh.validateCapacity(slots))
 					{
-						_productionNext.get(castleId).clear();
-						_procureNext.get(castleId).clear();
-						
-						// Notify clan leader
-						final ClanMember clanLeader = owner.getLeader();
-						if (clanLeader != null && clanLeader.isOnline())
-							clanLeader.getPlayerInstance().sendPacket(SystemMessageId.THE_AMOUNT_IS_NOT_SUFFICIENT_AND_SO_THE_MANOR_IS_NOT_IN_OPERATION);
+						final long manorCost = getManorCost(castle.getId(), true);
+						if (!castle.editTreasury(-manorCost, true))
+						{
+							_productionNext.get(castle.getId()).clear();
+							_procureNext.get(castle.getId()).clear();
+							
+							// Notify clan leader
+							final ClanMember clanLeader = owner.getLeader();
+							if (clanLeader != null && clanLeader.isOnline())
+								clanLeader.getPlayerInstance().sendPacket(SystemMessageId.THE_AMOUNT_IS_NOT_SUFFICIENT_AND_SO_THE_MANOR_IS_NOT_IN_OPERATION);
+						}
 					}
-					else
-						castle.addToTreasuryNoTax(-manorCost);
 				}
 				break;
 		}
@@ -432,9 +438,9 @@ public class CastleManorManager implements IXmlReader
 	public final boolean storeMe()
 	{
 		try (Connection con = ConnectionPool.getConnection();
-			PreparedStatement ds = con.prepareStatement(DELETE_ALL_PRODUCTS);
+			PreparedStatement ds = con.prepareStatement(TRUNCATE_PRODUCTS);
 			PreparedStatement is = con.prepareStatement(INSERT_PRODUCT);
-			PreparedStatement dp = con.prepareStatement(DELETE_ALL_PROCURE);
+			PreparedStatement dp = con.prepareStatement(TRUNCATE_PROCURES);
 			PreparedStatement ip = con.prepareStatement(INSERT_CROP))
 		{
 			// Delete old seeds
@@ -577,11 +583,6 @@ public class CastleManorManager implements IXmlReader
 		return _seeds.values().stream().filter(s -> s.getCastleId() == castleId).collect(Collectors.toSet());
 	}
 	
-	public final Set<Integer> getSeedIds()
-	{
-		return _seeds.keySet();
-	}
-	
 	public final Set<Integer> getCropIds()
 	{
 		return _seeds.values().stream().map(Seed::getCropId).collect(Collectors.toSet());
@@ -600,6 +601,15 @@ public class CastleManorManager implements IXmlReader
 	public final Seed getSeedByCrop(int cropId)
 	{
 		return _seeds.values().stream().filter(s -> s.getCropId() == cropId).findFirst().orElse(null);
+	}
+	
+	public final int getSeedRewardByCrop(int cropId, int rewardId)
+	{
+		final Seed seed = getSeedByCrop(cropId);
+		if (seed != null)
+			return (rewardId == 1) ? seed.getReward1() : seed.getReward2();
+		
+		return 0;
 	}
 	
 	public static final CastleManorManager getInstance()

@@ -13,10 +13,10 @@ import net.sf.l2j.gameserver.enums.FloodProtector;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Folk;
 import net.sf.l2j.gameserver.model.actor.instance.ManorManagerNpc;
-import net.sf.l2j.gameserver.model.entity.Castle;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
 import net.sf.l2j.gameserver.model.item.kind.Item;
 import net.sf.l2j.gameserver.model.manor.SeedProduction;
+import net.sf.l2j.gameserver.model.residence.castle.Castle;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
@@ -150,7 +150,7 @@ public class RequestBuySeed extends L2GameClientPacket
 			final int price = sp.getPrice() * i.getValue();
 			
 			// Take Adena and decrease seed amount
-			if (!sp.decreaseAmount(i.getValue()) || !player.reduceAdena("Buy", price, player, false))
+			if (!sp.decreaseAmount(i.getValue()) || !player.reduceAdena(price, false))
 			{
 				// failed buy, reduce total price
 				totalPrice -= price;
@@ -158,13 +158,13 @@ public class RequestBuySeed extends L2GameClientPacket
 			}
 			
 			// Add item to player's inventory
-			player.addItem("Buy", i.getId(), i.getValue(), folk, true);
+			player.addItem(i.getId(), i.getValue(), true);
 		}
 		
 		// Adding to treasury for Manor Castle
 		if (totalPrice > 0)
 		{
-			castle.addToTreasuryNoTax(totalPrice);
+			castle.riseSeedIncome(totalPrice);
 			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_DISAPPEARED_ADENA).addItemNumber((int) totalPrice));
 		}
 	}

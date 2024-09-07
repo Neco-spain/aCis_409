@@ -1,7 +1,5 @@
 package net.sf.l2j.gameserver.model.actor.container.player;
 
-import net.sf.l2j.commons.math.MathUtil;
-
 import net.sf.l2j.gameserver.data.xml.PlayerLevelData;
 import net.sf.l2j.gameserver.enums.actors.ClassId;
 
@@ -42,7 +40,7 @@ public final class SubClass
 	{
 		_class = ClassId.VALUES[classId];
 		_classIndex = classIndex;
-		_exp = PlayerLevelData.getInstance().getPlayerLevel(40).getRequiredExpToLevelUp();
+		_exp = PlayerLevelData.getInstance().getPlayerLevel(40).requiredExpToLevelUp();
 		_sp = 0;
 		_level = 40;
 	}
@@ -94,6 +92,6 @@ public final class SubClass
 	
 	public void setLevel(int level)
 	{
-		_level = MathUtil.limit(level, 40, PlayerLevelData.getInstance().getRealMaxLevel());
+		_level = Math.clamp(level, 40, PlayerLevelData.getInstance().getRealMaxLevel());
 	}
 }

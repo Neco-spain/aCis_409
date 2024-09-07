@@ -3,16 +3,16 @@ trap finish 2
 configure() {
 
 # Loginserver
-LSDBHOST="localhost"
-LSDB="acis"
-LSUSER="root"
-LSPASS=""
+LSDBHOST='localhost'
+LSDB='acis'
+LSUSER='root'
+LSPASS=''
 
 # Gameserver
-GSDBHOST="localhost"
-GSDB="acis"
-GSUSER="root"
-GSPASS=""
+GSDBHOST='localhost'
+GSDB='acis'
+GSUSER='root'
+GSPASS=''
 
 echo "                        aCis database installation"
 echo "                        __________________________"
@@ -89,15 +89,14 @@ $MYG < ../sql/castle.sql &> /dev/null
 $MYG < ../sql/castle_doorupgrade.sql &> /dev/null
 $MYG < ../sql/castle_manor_procure.sql &> /dev/null
 $MYG < ../sql/castle_manor_production.sql &> /dev/null
-$MYG < ../sql/castle_siege_guards.sql &> /dev/null
 $MYG < ../sql/castle_trapupgrade.sql &> /dev/null
-$MYG < ../sql/character_friends.sql &> /dev/null
 $MYG < ../sql/character_hennas.sql &> /dev/null
 $MYG < ../sql/character_macroses.sql &> /dev/null
 $MYG < ../sql/character_memo.sql &> /dev/null
 $MYG < ../sql/character_quests.sql &> /dev/null
 $MYG < ../sql/character_raid_points.sql &> /dev/null
 $MYG < ../sql/character_recipebook.sql &> /dev/null
+$MYG < ../sql/character_relations.sql &> /dev/null
 $MYG < ../sql/character_recommends.sql &> /dev/null
 $MYG < ../sql/character_shortcuts.sql &> /dev/null
 $MYG < ../sql/character_skills.sql &> /dev/null
@@ -110,13 +109,14 @@ $MYG < ../sql/clan_skills.sql &> /dev/null
 $MYG < ../sql/clan_subpledges.sql &> /dev/null
 $MYG < ../sql/clan_wars.sql &> /dev/null
 $MYG < ../sql/clanhall.sql &> /dev/null
+$MYG < ../sql/clanhall_flagwar_attackers.sql &> /dev/null
+$MYG < ../sql/clanhall_flagwar_members.sql &> /dev/null
+$MYG < ../sql/clanhall_flagwar_owner_npcs.sql &> /dev/null
 $MYG < ../sql/clanhall_functions.sql &> /dev/null
 $MYG < ../sql/clanhall_siege_attackers.sql &> /dev/null
-$MYG < ../sql/clanhall_siege_guards.sql &> /dev/null
 $MYG < ../sql/cursed_weapons.sql &> /dev/null
 $MYG < ../sql/fishing_championship.sql &> /dev/null
 $MYG < ../sql/games.sql &> /dev/null
-$MYG < ../sql/grandboss_data.sql &> /dev/null
 $MYG < ../sql/grandboss_list.sql &> /dev/null
 $MYG < ../sql/heroes_diary.sql &> /dev/null
 $MYG < ../sql/heroes.sql &> /dev/null
@@ -125,24 +125,19 @@ $MYG < ../sql/items_on_ground.sql &> /dev/null
 $MYG < ../sql/mdt_bets.sql &> /dev/null
 $MYG < ../sql/mdt_history.sql &> /dev/null
 $MYG < ../sql/mods_wedding.sql &> /dev/null
-$MYG < ../sql/olympiad_data.sql&> /dev/null
 $MYG < ../sql/olympiad_fights.sql&> /dev/null
 $MYG < ../sql/olympiad_nobles_eom.sql&> /dev/null
 $MYG < ../sql/olympiad_nobles.sql&> /dev/null
 $MYG < ../sql/petition.sql &> /dev/null
 $MYG < ../sql/petition_message.sql &> /dev/null
 $MYG < ../sql/pets.sql &> /dev/null
-$MYG < ../sql/raidboss_spawnlist.sql &> /dev/null
 $MYG < ../sql/rainbowsprings_attacker_list.sql &> /dev/null
-$MYG < ../sql/random_spawn.sql &> /dev/null
-$MYG < ../sql/random_spawn_loc.sql &> /dev/null
 $MYG < ../sql/server_memo.sql &> /dev/null
 $MYG < ../sql/seven_signs.sql &> /dev/null
 $MYG < ../sql/seven_signs_festival.sql &> /dev/null
 $MYG < ../sql/seven_signs_status.sql &> /dev/null
 $MYG < ../sql/siege_clans.sql &> /dev/null
-$MYG < ../sql/spawnlist_4s.sql &> /dev/null
-$MYG < ../sql/spawnlist.sql &> /dev/null
+$MYG < ../sql/spawn_data.sql &> /dev/null
 echo ""
 echo "Was fast, isn't it ?"
 }

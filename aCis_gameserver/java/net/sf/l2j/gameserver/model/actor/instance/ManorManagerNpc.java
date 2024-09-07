@@ -41,12 +41,12 @@ public class ManorManagerNpc extends Merchant
 			final int state = Integer.parseInt(st.nextToken().split("=")[1]);
 			final boolean time = st.nextToken().split("=")[1].equals("1");
 			
-			final int castleId = (state < 0) ? getCastle().getCastleId() : state;
+			final int castleId = (state < 0) ? getCastle().getId() : state;
 			
 			switch (ask)
 			{
 				case 1: // Seed purchase
-					if (castleId != getCastle().getCastleId())
+					if (castleId != getCastle().getId())
 						player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.HERE_YOU_CAN_BUY_ONLY_SEEDS_OF_S1_MANOR).addString(getCastle().getName()));
 					else
 						player.sendPacket(new BuyListSeed(player.getAdena(), castleId));

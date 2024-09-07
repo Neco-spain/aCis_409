@@ -1,14 +1,17 @@
 package net.sf.l2j.gameserver.model;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import net.sf.l2j.gameserver.data.SkillTable;
 import net.sf.l2j.gameserver.data.xml.AugmentationData;
 import net.sf.l2j.gameserver.data.xml.AugmentationData.AugStat;
 import net.sf.l2j.gameserver.enums.skills.Stats;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.holder.Timestamp;
+import net.sf.l2j.gameserver.model.records.Timestamp;
 import net.sf.l2j.gameserver.network.serverpackets.SkillCoolTime;
+import net.sf.l2j.gameserver.network.serverpackets.SkillList;
 import net.sf.l2j.gameserver.skills.L2Skill;
 import net.sf.l2j.gameserver.skills.basefuncs.FuncAdd;
 
@@ -80,7 +83,7 @@ public final class Augmentation
 			}
 			
 			// Refresh Player skill list.
-			player.sendSkillList();
+			player.sendPacket(new SkillList(player));
 			
 			// Refresh cooldown time, if needed.
 			if (updateTimeStamp)
@@ -104,7 +107,7 @@ public final class Augmentation
 			player.removeSkill(_skill.getId(), false, _skill.isPassive() || _skill.isToggle());
 			
 			// Refresh Player skill list.
-			player.sendSkillList();
+			player.sendPacket(new SkillList(player));
 		}
 	}
 	
@@ -154,5 +157,43 @@ public final class Augmentation
 			
 			_active = false;
 		}
+		
+		@Override
+		public boolean equals(Object obj)
+		{
+			if (this == obj)
+				return true;
+			
+			if (obj == null || getClass() != obj.getClass())
+				return false;
+			
+			final AugmentationStatBoni other = (AugmentationStatBoni) obj;
+			return Arrays.equals(_stats, other._stats) && Arrays.equals(_values, other._values);
+		}
+		
+		@Override
+		public int hashCode()
+		{
+			return Objects.hash(Arrays.hashCode(_stats), Arrays.hashCode(_values));
+		}
+	}
+	
+	@Override
+	public boolean equals(Object obj)
+	{
+		if (this == obj)
+			return true;
+		
+		if (obj == null || getClass() != obj.getClass())
+			return false;
+		
+		final Augmentation other = (Augmentation) obj;
+		return _id == other._id && Objects.equals(_boni, other._boni) && Objects.equals(_skill, other._skill);
+	}
+	
+	@Override
+	public int hashCode()
+	{
+		return Objects.hash(_id, _boni, _skill);
 	}
 }

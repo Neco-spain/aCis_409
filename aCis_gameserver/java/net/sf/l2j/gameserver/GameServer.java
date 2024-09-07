@@ -10,6 +10,7 @@ import net.sf.l2j.commons.lang.StringUtil;
 import net.sf.l2j.commons.logging.CLogger;
 import net.sf.l2j.commons.mmocore.SelectorConfig;
 import net.sf.l2j.commons.mmocore.SelectorThread;
+import net.sf.l2j.commons.network.IPv4Filter;
 import net.sf.l2j.commons.pool.ConnectionPool;
 import net.sf.l2j.commons.pool.ThreadPool;
 import net.sf.l2j.commons.util.SysUtil;
@@ -19,7 +20,6 @@ import net.sf.l2j.gameserver.communitybbs.CommunityBoard;
 import net.sf.l2j.gameserver.data.SkillTable;
 import net.sf.l2j.gameserver.data.cache.CrestCache;
 import net.sf.l2j.gameserver.data.cache.HtmCache;
-import net.sf.l2j.gameserver.data.manager.BoatManager;
 import net.sf.l2j.gameserver.data.manager.BufferManager;
 import net.sf.l2j.gameserver.data.manager.BuyListManager;
 import net.sf.l2j.gameserver.data.manager.CastleManager;
@@ -27,44 +27,42 @@ import net.sf.l2j.gameserver.data.manager.CastleManorManager;
 import net.sf.l2j.gameserver.data.manager.ClanHallManager;
 import net.sf.l2j.gameserver.data.manager.CoupleManager;
 import net.sf.l2j.gameserver.data.manager.CursedWeaponManager;
-import net.sf.l2j.gameserver.data.manager.DayNightManager;
 import net.sf.l2j.gameserver.data.manager.DerbyTrackManager;
-import net.sf.l2j.gameserver.data.manager.DimensionalRiftManager;
 import net.sf.l2j.gameserver.data.manager.FestivalOfDarknessManager;
 import net.sf.l2j.gameserver.data.manager.FishingChampionshipManager;
-import net.sf.l2j.gameserver.data.manager.FourSepulchersManager;
-import net.sf.l2j.gameserver.data.manager.GrandBossManager;
 import net.sf.l2j.gameserver.data.manager.HeroManager;
 import net.sf.l2j.gameserver.data.manager.LotteryManager;
 import net.sf.l2j.gameserver.data.manager.PartyMatchRoomManager;
 import net.sf.l2j.gameserver.data.manager.PetitionManager;
-import net.sf.l2j.gameserver.data.manager.RaidBossManager;
 import net.sf.l2j.gameserver.data.manager.RaidPointManager;
 import net.sf.l2j.gameserver.data.manager.SevenSignsManager;
+import net.sf.l2j.gameserver.data.manager.SpawnManager;
 import net.sf.l2j.gameserver.data.manager.ZoneManager;
-import net.sf.l2j.gameserver.data.sql.AutoSpawnTable;
 import net.sf.l2j.gameserver.data.sql.BookmarkTable;
 import net.sf.l2j.gameserver.data.sql.ClanTable;
 import net.sf.l2j.gameserver.data.sql.PlayerInfoTable;
 import net.sf.l2j.gameserver.data.sql.ServerMemoTable;
-import net.sf.l2j.gameserver.data.sql.SpawnTable;
 import net.sf.l2j.gameserver.data.xml.AdminData;
 import net.sf.l2j.gameserver.data.xml.AnnouncementData;
 import net.sf.l2j.gameserver.data.xml.ArmorSetData;
 import net.sf.l2j.gameserver.data.xml.AugmentationData;
+import net.sf.l2j.gameserver.data.xml.BoatData;
+import net.sf.l2j.gameserver.data.xml.ClanHallDecoData;
 import net.sf.l2j.gameserver.data.xml.DoorData;
 import net.sf.l2j.gameserver.data.xml.FishData;
+import net.sf.l2j.gameserver.data.xml.HealSpsData;
 import net.sf.l2j.gameserver.data.xml.HennaData;
-import net.sf.l2j.gameserver.data.xml.HerbDropData;
 import net.sf.l2j.gameserver.data.xml.InstantTeleportData;
 import net.sf.l2j.gameserver.data.xml.ItemData;
-import net.sf.l2j.gameserver.data.xml.MapRegionData;
+import net.sf.l2j.gameserver.data.xml.ManorAreaData;
 import net.sf.l2j.gameserver.data.xml.MultisellData;
 import net.sf.l2j.gameserver.data.xml.NewbieBuffData;
 import net.sf.l2j.gameserver.data.xml.NpcData;
+import net.sf.l2j.gameserver.data.xml.ObserverGroupData;
 import net.sf.l2j.gameserver.data.xml.PlayerData;
 import net.sf.l2j.gameserver.data.xml.PlayerLevelData;
 import net.sf.l2j.gameserver.data.xml.RecipeData;
+import net.sf.l2j.gameserver.data.xml.RestartPointData;
 import net.sf.l2j.gameserver.data.xml.ScriptData;
 import net.sf.l2j.gameserver.data.xml.SkillTreeData;
 import net.sf.l2j.gameserver.data.xml.SoulCrystalData;
@@ -82,31 +80,29 @@ import net.sf.l2j.gameserver.handler.TargetHandler;
 import net.sf.l2j.gameserver.handler.UserCommandHandler;
 import net.sf.l2j.gameserver.idfactory.IdFactory;
 import net.sf.l2j.gameserver.model.World;
-import net.sf.l2j.gameserver.model.boat.BoatGiranTalking;
-import net.sf.l2j.gameserver.model.boat.BoatGludinRune;
-import net.sf.l2j.gameserver.model.boat.BoatInnadrilTour;
-import net.sf.l2j.gameserver.model.boat.BoatRunePrimeval;
-import net.sf.l2j.gameserver.model.boat.BoatTalkingGludin;
+import net.sf.l2j.gameserver.model.memo.GlobalMemo;
 import net.sf.l2j.gameserver.model.olympiad.Olympiad;
 import net.sf.l2j.gameserver.model.olympiad.OlympiadGameManager;
 import net.sf.l2j.gameserver.network.GameClient;
 import net.sf.l2j.gameserver.network.GamePacketHandler;
+import net.sf.l2j.gameserver.taskmanager.AiTaskManager;
 import net.sf.l2j.gameserver.taskmanager.AttackStanceTaskManager;
+import net.sf.l2j.gameserver.taskmanager.BoatTaskManager;
 import net.sf.l2j.gameserver.taskmanager.DecayTaskManager;
 import net.sf.l2j.gameserver.taskmanager.GameTimeTaskManager;
+import net.sf.l2j.gameserver.taskmanager.InventoryUpdateTaskManager;
+import net.sf.l2j.gameserver.taskmanager.ItemInstanceTaskManager;
 import net.sf.l2j.gameserver.taskmanager.ItemsOnGroundTaskManager;
 import net.sf.l2j.gameserver.taskmanager.PvpFlagTaskManager;
-import net.sf.l2j.gameserver.taskmanager.RandomAnimationTaskManager;
 import net.sf.l2j.gameserver.taskmanager.ShadowItemTaskManager;
 import net.sf.l2j.gameserver.taskmanager.WaterTaskManager;
-import net.sf.l2j.util.DeadLockDetector;
-import net.sf.l2j.util.IPv4Filter;
 
 public class GameServer
 {
 	private static final CLogger LOGGER = new CLogger(GameServer.class.getName());
 	
 	private final SelectorThread<GameClient> _selectorThread;
+	private final boolean _isServerCrash;
 	
 	private static GameServer _gameServer;
 	
@@ -148,9 +144,12 @@ public class GameServer
 		
 		StringUtil.printSection("World");
 		World.getInstance();
-		MapRegionData.getInstance();
 		AnnouncementData.getInstance();
 		ServerMemoTable.getInstance();
+		GlobalMemo.getInstance();
+		
+		// Fill variable after ServerMemoTable loading.
+		_isServerCrash = ServerMemoTable.getInstance().getBool("server_crash", false);
 		
 		StringUtil.printSection("Skills");
 		SkillTable.getInstance();
@@ -181,6 +180,8 @@ public class GameServer
 		PlayerLevelData.getInstance();
 		PartyMatchRoomManager.getInstance();
 		RaidPointManager.getInstance();
+		HealSpsData.getInstance();
+		RestartPointData.getInstance();
 		
 		StringUtil.printSection("Community server");
 		CommunityBoard.getInstance();
@@ -194,76 +195,69 @@ public class GameServer
 		StringUtil.printSection("Zones");
 		ZoneManager.getInstance();
 		
+		StringUtil.printSection("Doors");
+		DoorData.getInstance().spawn();
+		
 		StringUtil.printSection("Castles & Clan Halls");
 		CastleManager.getInstance();
+		ClanHallDecoData.getInstance();
 		ClanHallManager.getInstance();
 		
 		StringUtil.printSection("Task Managers");
+		AiTaskManager.getInstance();
 		AttackStanceTaskManager.getInstance();
+		BoatTaskManager.getInstance();
 		DecayTaskManager.getInstance();
 		GameTimeTaskManager.getInstance();
 		ItemsOnGroundTaskManager.getInstance();
 		PvpFlagTaskManager.getInstance();
-		RandomAnimationTaskManager.getInstance();
 		ShadowItemTaskManager.getInstance();
 		WaterTaskManager.getInstance();
-		
-		StringUtil.printSection("Auto Spawns");
-		AutoSpawnTable.getInstance();
+		InventoryUpdateTaskManager.getInstance();
+		ItemInstanceTaskManager.getInstance();
 		
 		StringUtil.printSection("Seven Signs");
-		SevenSignsManager.getInstance().spawnSevenSignsNPC();
+		SevenSignsManager.getInstance();
 		FestivalOfDarknessManager.getInstance();
 		
 		StringUtil.printSection("Manor Manager");
+		ManorAreaData.getInstance();
 		CastleManorManager.getInstance();
 		
 		StringUtil.printSection("NPCs");
 		BufferManager.getInstance();
-		HerbDropData.getInstance();
 		NpcData.getInstance();
 		WalkerRouteData.getInstance();
-		DoorData.getInstance().spawn();
 		StaticObjectData.getInstance();
-		SpawnTable.getInstance();
-		RaidBossManager.getInstance();
-		GrandBossManager.getInstance();
-		DayNightManager.getInstance().notifyChangeMode();
-		DimensionalRiftManager.getInstance();
+		SpawnManager.getInstance();
 		NewbieBuffData.getInstance();
 		InstantTeleportData.getInstance();
 		TeleportData.getInstance();
+		ObserverGroupData.getInstance();
+		
+		CastleManager.getInstance().spawnEntities();
 		
 		StringUtil.printSection("Olympiads & Heroes");
 		OlympiadGameManager.getInstance();
 		Olympiad.getInstance();
 		HeroManager.getInstance();
 		
-		StringUtil.printSection("Four Sepulchers");
-		FourSepulchersManager.getInstance();
-		
 		StringUtil.printSection("Quests & Scripts");
 		ScriptData.getInstance();
 		
 		if (Config.ALLOW_BOAT)
-		{
-			BoatManager.getInstance();
-			BoatGiranTalking.load();
-			BoatGludinRune.load();
-			BoatInnadrilTour.load();
-			BoatRunePrimeval.load();
-			BoatTalkingGludin.load();
-		}
+			BoatData.getInstance().load();
 		
 		StringUtil.printSection("Events");
 		DerbyTrackManager.getInstance();
 		LotteryManager.getInstance();
-		
-		if (Config.ALLOW_WEDDING)
-			CoupleManager.getInstance();
+		CoupleManager.getInstance();
 		
 		if (Config.ALLOW_FISH_CHAMPIONSHIP)
 			FishingChampionshipManager.getInstance();
+		
+		StringUtil.printSection("Spawns");
+		SpawnManager.getInstance().spawn();
 		
 		StringUtil.printSection("Handlers");
 		LOGGER.info("Loaded {} admin command handlers.", AdminCommandHandler.getInstance().size());
@@ -276,16 +270,10 @@ public class GameServer
 		StringUtil.printSection("System");
 		Runtime.getRuntime().addShutdownHook(Shutdown.getInstance());
 		
-		if (Config.DEADLOCK_DETECTOR)
-		{
-			LOGGER.info("Deadlock detector is enabled. Timer: {}s.", Config.DEADLOCK_CHECK_INTERVAL);
-			
-			final DeadLockDetector deadDetectThread = new DeadLockDetector();
-			deadDetectThread.setDaemon(true);
-			deadDetectThread.start();
-		}
+		if (_isServerCrash)
+			LOGGER.info("Server crashed on last session!");
 		else
-			LOGGER.info("Deadlock detector is disabled.");
+			ServerMemoTable.getInstance().set("server_crash", true);
 		
 		LOGGER.info("Gameserver has started, used memory: {} / {} Mo.", SysUtil.getUsedMemory(), SysUtil.getMaxMemory());
 		LOGGER.info("Maximum allowed players: {}.", Config.MAXIMUM_ONLINE_USERS);
@@ -327,13 +315,18 @@ public class GameServer
 		_selectorThread.start();
 	}
 	
-	public static GameServer getInstance()
-	{
-		return _gameServer;
-	}
-	
 	public SelectorThread<GameClient> getSelectorThread()
 	{
 		return _selectorThread;
+	}
+	
+	public boolean isServerCrash()
+	{
+		return _isServerCrash;
+	}
+	
+	public static GameServer getInstance()
+	{
+		return _gameServer;
 	}
 }

@@ -74,10 +74,10 @@ public class Q224_TestOfSagittarius extends SecondClassQuest
 		
 		setItemsIds(BERNARD_INTRODUCTION, HAMIL_LETTER_1, HAMIL_LETTER_2, HAMIL_LETTER_3, HUNTER_RUNE_1, HUNTER_RUNE_2, TALISMAN_OF_KADESH, TALISMAN_OF_SNAKE, MITHRIL_CLIP, STAKATO_CHITIN, REINFORCED_BOWSTRING, MANASHEN_HORN, BLOOD_OF_LIZARDMAN, CRESCENT_MOON_BOW);
 		
-		addStartNpc(BERNARD);
+		addQuestStart(BERNARD);
 		addTalkId(BERNARD, HAMIL, SIR_ARON_TANFORD, VOKIAN, GAUEN);
 		
-		addKillId(ANT, ANT_CAPTAIN, ANT_OVERSEER, ANT_RECRUIT, ANT_PATROL, ANT_GUARD, NOBLE_ANT, NOBLE_ANT_LEADER, BREKA_ORC_SHAMAN, BREKA_ORC_OVERLORD, MARSH_STAKATO_WORKER, MARSH_STAKATO_SOLDIER, MARSH_STAKATO_DRONE, MARSH_SPIDER, ROAD_SCAVENGER, MANASHEN_GARGOYLE, LETO_LIZARDMAN, LETO_LIZARDMAN_ARCHER, LETO_LIZARDMAN_SOLDIER, LETO_LIZARDMAN_WARRIOR, LETO_LIZARDMAN_SHAMAN, LETO_LIZARDMAN_OVERLORD, SERPENT_DEMON_KADESH);
+		addMyDying(ANT, ANT_CAPTAIN, ANT_OVERSEER, ANT_RECRUIT, ANT_PATROL, ANT_GUARD, NOBLE_ANT, NOBLE_ANT_LEADER, BREKA_ORC_SHAMAN, BREKA_ORC_OVERLORD, MARSH_STAKATO_WORKER, MARSH_STAKATO_SOLDIER, MARSH_STAKATO_DRONE, MARSH_SPIDER, ROAD_SCAVENGER, MANASHEN_GARGOYLE, LETO_LIZARDMAN, LETO_LIZARDMAN_ARCHER, LETO_LIZARDMAN_SOLDIER, LETO_LIZARDMAN_WARRIOR, LETO_LIZARDMAN_SHAMAN, LETO_LIZARDMAN_OVERLORD, SERPENT_DEMON_KADESH);
 	}
 	
 	@Override
@@ -260,30 +260,22 @@ public class Q224_TestOfSagittarius extends SecondClassQuest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
-			case ANT:
-			case ANT_CAPTAIN:
-			case ANT_OVERSEER:
-			case ANT_RECRUIT:
-			case ANT_PATROL:
-			case ANT_GUARD:
-			case NOBLE_ANT:
-			case NOBLE_ANT_LEADER:
+			case ANT, ANT_CAPTAIN, ANT_OVERSEER, ANT_RECRUIT, ANT_PATROL, ANT_GUARD, NOBLE_ANT, NOBLE_ANT_LEADER:
 				if (st.getCond() == 3 && dropItems(player, HUNTER_RUNE_1, 1, 10, 500000))
 					st.setCond(4);
 				break;
 			
-			case BREKA_ORC_SHAMAN:
-			case BREKA_ORC_OVERLORD:
+			case BREKA_ORC_SHAMAN, BREKA_ORC_OVERLORD:
 				if (st.getCond() == 6 && dropItems(player, HUNTER_RUNE_2, 1, 10, 500000))
 				{
 					st.setCond(7);
@@ -291,9 +283,7 @@ public class Q224_TestOfSagittarius extends SecondClassQuest
 				}
 				break;
 			
-			case MARSH_STAKATO_WORKER:
-			case MARSH_STAKATO_SOLDIER:
-			case MARSH_STAKATO_DRONE:
+			case MARSH_STAKATO_WORKER, MARSH_STAKATO_SOLDIER, MARSH_STAKATO_DRONE:
 				if (st.getCond() == 10 && dropItems(player, STAKATO_CHITIN, 1, 1, 100000) && player.getInventory().hasItems(MANASHEN_HORN, MITHRIL_CLIP, REINFORCED_BOWSTRING))
 					st.setCond(11);
 				break;
@@ -313,12 +303,7 @@ public class Q224_TestOfSagittarius extends SecondClassQuest
 					st.setCond(11);
 				break;
 			
-			case LETO_LIZARDMAN:
-			case LETO_LIZARDMAN_ARCHER:
-			case LETO_LIZARDMAN_SOLDIER:
-			case LETO_LIZARDMAN_WARRIOR:
-			case LETO_LIZARDMAN_SHAMAN:
-			case LETO_LIZARDMAN_OVERLORD:
+			case LETO_LIZARDMAN, LETO_LIZARDMAN_ARCHER, LETO_LIZARDMAN_SOLDIER, LETO_LIZARDMAN_WARRIOR, LETO_LIZARDMAN_SHAMAN, LETO_LIZARDMAN_OVERLORD:
 				if (st.getCond() == 13)
 				{
 					if (((player.getInventory().getItemCount(BLOOD_OF_LIZARDMAN) - 120) * 5) > Rnd.get(100))
@@ -346,7 +331,5 @@ public class Q224_TestOfSagittarius extends SecondClassQuest
 				}
 				break;
 		}
-		
-		return null;
 	}
 }

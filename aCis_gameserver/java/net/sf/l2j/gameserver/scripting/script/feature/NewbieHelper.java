@@ -8,21 +8,17 @@ import net.sf.l2j.commons.random.Rnd;
 import net.sf.l2j.commons.util.ArraysUtil;
 
 import net.sf.l2j.gameserver.data.SkillTable.FrequentSkill;
-import net.sf.l2j.gameserver.data.sql.SpawnTable;
 import net.sf.l2j.gameserver.data.xml.NewbieBuffData;
-import net.sf.l2j.gameserver.data.xml.TeleportData;
 import net.sf.l2j.gameserver.enums.QuestStatus;
 import net.sf.l2j.gameserver.enums.TeleportType;
 import net.sf.l2j.gameserver.enums.actors.ClassId;
 import net.sf.l2j.gameserver.enums.actors.ClassRace;
+import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.actor.instance.Monster;
-import net.sf.l2j.gameserver.model.holder.IntIntHolder;
-import net.sf.l2j.gameserver.model.holder.NewbieBuffHolder;
 import net.sf.l2j.gameserver.model.location.Location;
-import net.sf.l2j.gameserver.model.spawn.Spawn;
+import net.sf.l2j.gameserver.model.records.NewbieBuff;
 import net.sf.l2j.gameserver.scripting.Quest;
 import net.sf.l2j.gameserver.scripting.QuestState;
 
@@ -46,6 +42,8 @@ public class NewbieHelper extends Quest
 	private static final int NEWBIE_TRAVEL_TOKEN = 8542;
 	
 	private static final Map<String, Location> TELEPORT_LOCS = new HashMap<>();
+	
+	static
 	{
 		TELEPORT_LOCS.put("30598", new Location(-84053, 243343, -3729));
 		TELEPORT_LOCS.put("30599", new Location(45470, 48328, -3059));
@@ -55,6 +53,8 @@ public class NewbieHelper extends Quest
 	}
 	
 	private static final Map<Integer, Location> NEWBIE_GUIDE_LOCS = new HashMap<>();
+	
+	static
 	{
 		NEWBIE_GUIDE_LOCS.put(30008, new Location(-84058, 243239, -3730));
 		NEWBIE_GUIDE_LOCS.put(30017, new Location(-84058, 243239, -3730));
@@ -247,7 +247,7 @@ public class NewbieHelper extends Quest
 		addTalkId(30009, 30019, 30131, 30400, 30530, 30575, 30008, 30017, 30129, 30370, 30528, 30573, 30598, 30599, 30600, 30601, 30602, 31076, 31077);
 		addFirstTalkId(30009, 30019, 30131, 30400, 30530, 30575, 30008, 30017, 30129, 30370, 30528, 30573, 30598, 30599, 30600, 30601, 30602, 31076, 31077);
 		
-		addKillId(18342);
+		addMyDying(18342);
 	}
 	
 	@Override
@@ -267,17 +267,11 @@ public class NewbieHelper extends Quest
 			{
 				switch (player.getClassId())
 				{
-					case HUMAN_FIGHTER:
-					case ELVEN_FIGHTER:
-					case DARK_FIGHTER:
-					case ORC_FIGHTER:
-					case DWARVEN_FIGHTER:
+					case HUMAN_FIGHTER, ELVEN_FIGHTER, DARK_FIGHTER, ORC_FIGHTER, DWARVEN_FIGHTER:
 						playTutorialVoice(player, "tutorial_voice_009a");
 						break;
 					
-					case HUMAN_MYSTIC:
-					case ELVEN_MYSTIC:
-					case DARK_MYSTIC:
+					case HUMAN_MYSTIC, ELVEN_MYSTIC, DARK_MYSTIC:
 						playTutorialVoice(player, "tutorial_voice_009b");
 						break;
 					
@@ -299,18 +293,15 @@ public class NewbieHelper extends Quest
 						playTutorialVoice(player, "tutorial_voice_010b");
 						break;
 					
-					case ELVEN_FIGHTER:
-					case ELVEN_MYSTIC:
+					case ELVEN_FIGHTER, ELVEN_MYSTIC:
 						playTutorialVoice(player, "tutorial_voice_010c");
 						break;
 					
-					case DARK_FIGHTER:
-					case DARK_MYSTIC:
+					case DARK_FIGHTER, DARK_MYSTIC:
 						playTutorialVoice(player, "tutorial_voice_010d");
 						break;
 					
-					case ORC_FIGHTER:
-					case ORC_MYSTIC:
+					case ORC_FIGHTER, ORC_MYSTIC:
 						playTutorialVoice(player, "tutorial_voice_010e");
 						break;
 					
@@ -351,7 +342,7 @@ public class NewbieHelper extends Quest
 			player.getRadarList().addMarker(NEWBIE_GUIDE_LOCS.get(npc.getNpcId()));
 			
 			final int itemId = getItemId(npc.getNpcId());
-			if (player.getInventory().hasItems(itemId) && st.getInteger("onlyone") == 0)
+			if (player.getInventory().hasItem(itemId) && st.getInteger("onlyone") == 0)
 			{
 				takeItems(player, itemId, 1);
 				rewardExpAndSp(player, 0, 50);
@@ -462,8 +453,8 @@ public class NewbieHelper extends Quest
 			{
 				// Go through the NewbieBuff List and cast skills.
 				int i = 0;
-				for (NewbieBuffHolder buff : NewbieBuffData.getInstance().getValidBuffs(isMage, playerLevel))
-					ThreadPool.schedule(() -> callSkill(player, player, buff.getSkill()), 1000 * i++);
+				for (NewbieBuff buff : NewbieBuffData.getInstance().getValidBuffs(isMage, playerLevel))
+					ThreadPool.schedule(() -> callSkill(player, player, buff.getSkill()), 1000L * i++);
 				
 				return null;
 			}
@@ -474,13 +465,13 @@ public class NewbieHelper extends Quest
 				htmltext = getInvalidHtm(npc);
 			else
 			{
-				TeleportData.getInstance().showTeleportList(player, npc, TeleportType.NEWBIE_TOKEN);
+				npc.showTeleportWindow(player, TeleportType.NEWBIE_TOKEN);
 				return null;
 			}
 		}
 		else if (event.startsWith("NewbieToken"))
 		{
-			if (!player.getInventory().hasItems(NEWBIE_TRAVEL_TOKEN))
+			if (!player.getInventory().hasItem(NEWBIE_TRAVEL_TOKEN))
 				htmltext = "newbie_guide_no_token.htm";
 			else
 			{
@@ -510,14 +501,10 @@ public class NewbieHelper extends Quest
 			if (!ArraysUtil.contains(RADARS, npcId))
 				return null;
 			
-			for (Spawn spawn : SpawnTable.getInstance().getSpawns())
-			{
-				if (npcId == spawn.getNpcId())
-				{
-					player.getRadarList().addMarker(spawn.getLoc());
-					break;
-				}
-			}
+			npc = World.getInstance().getNpc(npcId);
+			if (npc != null)
+				player.getRadarList().addMarker(npc.getSpawnLocation());
+			
 			htmltext = "newbie_guide_move_to_loc.htm";
 		}
 		return htmltext;
@@ -566,6 +553,12 @@ public class NewbieHelper extends Quest
 				return npcId + "-04.htm";
 			
 			final int step = st.getInteger("step");
+			if (step == 0)
+			{
+				npc.showChatWindow(player);
+				return null;
+			}
+			
 			if (step == 1)
 				return npcId + "-01.htm";
 			
@@ -638,17 +631,17 @@ public class NewbieHelper extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final QuestState qs = player.getQuestList().getQuestState(QUEST_NAME_TUTORIAL);
 		if (qs == null)
-			return null;
+			return;
 		
 		final int ex = qs.getInteger("Ex");
 		if (ex <= 1)
@@ -660,10 +653,9 @@ public class NewbieHelper extends Quest
 		
 		if (ex <= 2 && qs.getInteger("Gemstone") == 0 && Rnd.get(100) < 25)
 		{
-			((Monster) npc).dropItem(player, new IntIntHolder(BLUE_GEMSTONE, 1));
+			npc.dropItem(player, BLUE_GEMSTONE, 1);
 			playSound(player, SOUND_TUTORIAL);
 		}
-		return null;
 	}
 	
 	private static String getInvalidHtm(Npc npc)

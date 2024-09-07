@@ -38,35 +38,30 @@ public final class RequestAnswerJoinPledge extends L2GameClientPacket
 		}
 		else
 		{
-			if (!(requestor.getRequest().getRequestPacket() instanceof RequestJoinPledge))
-				return; // hax
-				
-			final RequestJoinPledge requestPacket = (RequestJoinPledge) requestor.getRequest().getRequestPacket();
+			if (!(requestor.getRequest().getRequestPacket() instanceof RequestJoinPledge rjp))
+				return;
+			
 			final Clan clan = requestor.getClan();
 			
 			// we must double check this cause during response time conditions can be changed, i.e. another player could join clan
-			if (clan.checkClanJoinCondition(requestor, player, requestPacket.getPledgeType()))
+			if (clan.checkClanJoinCondition(requestor, player, rjp.getPledgeType()))
 			{
 				player.sendPacket(new JoinPledge(requestor.getClanId()));
 				
-				player.setPledgeType(requestPacket.getPledgeType());
+				player.setPledgeType(rjp.getPledgeType());
 				
-				switch (requestPacket.getPledgeType())
+				switch (rjp.getPledgeType())
 				{
 					case Clan.SUBUNIT_ACADEMY:
 						player.setPowerGrade(9);
 						player.setLvlJoinedAcademy(player.getStatus().getLevel());
 						break;
 					
-					case Clan.SUBUNIT_ROYAL1:
-					case Clan.SUBUNIT_ROYAL2:
+					case Clan.SUBUNIT_ROYAL1, Clan.SUBUNIT_ROYAL2:
 						player.setPowerGrade(7);
 						break;
 					
-					case Clan.SUBUNIT_KNIGHT1:
-					case Clan.SUBUNIT_KNIGHT2:
-					case Clan.SUBUNIT_KNIGHT3:
-					case Clan.SUBUNIT_KNIGHT4:
+					case Clan.SUBUNIT_KNIGHT1, Clan.SUBUNIT_KNIGHT2, Clan.SUBUNIT_KNIGHT3, Clan.SUBUNIT_KNIGHT4:
 						player.setPowerGrade(8);
 						break;
 					
@@ -75,7 +70,6 @@ public final class RequestAnswerJoinPledge extends L2GameClientPacket
 				}
 				
 				clan.addClanMember(player);
-				player.setClanPrivileges(clan.getPrivilegesByRank(player.getPowerGrade()));
 				
 				player.sendPacket(SystemMessageId.ENTERED_THE_CLAN);
 				
@@ -89,6 +83,9 @@ public final class RequestAnswerJoinPledge extends L2GameClientPacket
 				
 				player.setClanJoinExpiryTime(0);
 				player.broadcastUserInfo();
+				
+				// Refresh surrounding Clan War tags.
+				player.forEachKnownType(Player.class, attacker -> clan.getWarList().contains(attacker.getClanId()), Player::broadcastUserInfo);
 			}
 		}
 		player.getRequest().onRequestResponse();

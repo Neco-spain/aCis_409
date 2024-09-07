@@ -19,7 +19,7 @@ public abstract class FloodProtectedListener extends Thread
 	
 	private final ServerSocket _serverSocket;
 	
-	public FloodProtectedListener(String listenIp, int port) throws IOException
+	protected FloodProtectedListener(String listenIp, int port) throws IOException
 	{
 		if (listenIp.equals("*"))
 			_serverSocket = new ServerSocket(port);
@@ -85,7 +85,9 @@ public abstract class FloodProtectedListener extends Thread
 				}
 				catch (Exception e2)
 				{
+					// Do nothing.
 				}
+				
 				if (isInterrupted())
 				{
 					try

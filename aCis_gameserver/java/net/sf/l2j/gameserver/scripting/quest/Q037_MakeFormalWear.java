@@ -34,7 +34,7 @@ public class Q037_MakeFormalWear extends Quest
 		
 		setItemsIds(SIGNET_RING, ICE_WINE, BOX_OF_COOKIES);
 		
-		addStartNpc(ALEXIS);
+		addQuestStart(ALEXIS);
 		addTalkId(ALEXIS, LEIKAR, JEREMY, MIST);
 	}
 	
@@ -134,17 +134,17 @@ public class Q037_MakeFormalWear extends Quest
 						{
 							if (player.getInventory().hasItems(MYSTERIOUS_CLOTH, JEWEL_BOX, SEWING_KIT))
 								htmltext = "31520-4.htm";
-							else if (player.getInventory().hasItems(BOX_OF_COOKIES))
+							else if (player.getInventory().hasItem(BOX_OF_COOKIES))
 								htmltext = "31520-2.htm";
 							else
 								htmltext = "31520-3a.htm";
 						}
 						else if (cond == 7)
-							htmltext = (player.getInventory().hasItems(DRESS_SHOES_BOX)) ? "31520-6.htm" : "31520-5a.htm";
+							htmltext = (player.getInventory().hasItem(DRESS_SHOES_BOX)) ? "31520-6.htm" : "31520-5a.htm";
 						break;
 					
 					case JEREMY:
-						if (player.getInventory().hasItems(SIGNET_RING))
+						if (player.getInventory().hasItem(SIGNET_RING))
 							htmltext = "31521-0.htm";
 						else if (cond == 3)
 							htmltext = "31521-1a.htm";

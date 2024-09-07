@@ -8,113 +8,36 @@ import net.sf.l2j.gameserver.model.item.kind.Item;
  */
 public class ItemInfo
 {
-	/** Identifier of the ItemInstance */
 	private int _objectId;
-	
-	/** The L2Item template of the ItemInstance */
-	private Item _item;
-	
-	/** The level of enchant on the ItemInstance */
 	private int _enchant;
-	
-	/** The augmentation of the item */
 	private int _augmentation;
-	
-	/** The quantity of ItemInstance */
 	private int _count;
-	
-	/** The price of the ItemInstance */
-	private int _price;
-	
-	/** The custom ItemInstance types (used loto, race tickets) */
 	private int _type1;
 	private int _type2;
-	
-	/** If True the ItemInstance is equipped */
 	private int _equipped;
+	private int _manaLeft;
 	
-	/** The action to do clientside (1=ADD, 2=MODIFY, 3=REMOVE) */
-	private ItemState _change;
+	private Item _item;
 	
-	/** The mana of this item */
-	private int _mana;
+	private ItemState _state;
 	
-	/**
-	 * Get all information from ItemInstance to generate ItemInfo.
-	 * @param item The item instance.
-	 */
-	public ItemInfo(ItemInstance item)
+	public ItemInfo(ItemInstance item, ItemState state)
 	{
 		if (item == null)
 			return;
 		
-		// Get the Identifier of the ItemInstance
 		_objectId = item.getObjectId();
-		
-		// Get the L2Item of the ItemInstance
-		_item = item.getItem();
-		
-		// Get the enchant level of the ItemInstance
 		_enchant = item.getEnchantLevel();
-		
-		// Get the augmentation boni
-		if (item.isAugmented())
-			_augmentation = item.getAugmentation().getId();
-		else
-			_augmentation = 0;
-		
-		// Get the quantity of the ItemInstance
+		_augmentation = (item.isAugmented()) ? item.getAugmentation().getId() : 0;
 		_count = item.getCount();
-		
-		// Get custom item types (used loto, race tickets)
 		_type1 = item.getCustomType1();
 		_type2 = item.getCustomType2();
-		
-		// Verify if the ItemInstance is equipped
 		_equipped = item.isEquipped() ? 1 : 0;
+		_manaLeft = item.getManaLeft();
 		
-		// Get the action to do clientside
-		_change = item.getLastChange();
-		
-		// Get shadow item mana
-		_mana = item.getMana();
-	}
-	
-	public ItemInfo(ItemInstance item, ItemState change)
-	{
-		if (item == null)
-			return;
-		
-		// Get the Identifier of the ItemInstance
-		_objectId = item.getObjectId();
-		
-		// Get the L2Item of the ItemInstance
 		_item = item.getItem();
 		
-		// Get the enchant level of the ItemInstance
-		_enchant = item.getEnchantLevel();
-		
-		// Get the augmentation boni
-		if (item.isAugmented())
-			_augmentation = item.getAugmentation().getId();
-		else
-			_augmentation = 0;
-		
-		// Get the quantity of the ItemInstance
-		_count = item.getCount();
-		
-		// Get custom item types (used loto, race tickets)
-		_type1 = item.getCustomType1();
-		_type2 = item.getCustomType2();
-		
-		// Verify if the ItemInstance is equipped
-		_equipped = item.isEquipped() ? 1 : 0;
-		
-		// Get the action to do clientside
-		_change = change;
-		
-		// Get shadow item mana
-		_mana = item.getMana();
+		_state = state;
 	}
 	
 	public int getObjectId()
@@ -132,7 +55,7 @@ public class ItemInfo
 		return _enchant;
 	}
 	
-	public int getAugmentationBoni()
+	public int getAugmentation()
 	{
 		return _augmentation;
 	}
@@ -142,9 +65,9 @@ public class ItemInfo
 		return _count;
 	}
 	
-	public int getPrice()
+	public void setCount(int count)
 	{
-		return _price;
+		_count = count;
 	}
 	
 	public int getCustomType1()
@@ -162,13 +85,18 @@ public class ItemInfo
 		return _equipped;
 	}
 	
-	public ItemState getChange()
+	public ItemState getState()
 	{
-		return _change;
+		return _state;
 	}
 	
-	public int getMana()
+	public int getManaLeft()
 	{
-		return _mana;
+		return _manaLeft;
+	}
+	
+	public int getDisplayedManaLeft()
+	{
+		return _manaLeft / 60;
 	}
 }

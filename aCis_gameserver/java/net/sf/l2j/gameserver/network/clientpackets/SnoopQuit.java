@@ -11,5 +11,6 @@ public final class SnoopQuit extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
+		// Do nothing.
 	}
 }

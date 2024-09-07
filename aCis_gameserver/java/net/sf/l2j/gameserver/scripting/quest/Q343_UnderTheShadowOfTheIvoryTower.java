@@ -53,11 +53,11 @@ public class Q343_UnderTheShadowOfTheIvoryTower extends Quest
 		DROPS.put(20565, new IntIntHolder(650000, 12)); // Enchanted Stone Golem
 		DROPS.put(20566, new IntIntHolder(680000, 13)); // Enchanted Iron Golem
 		
-		addStartNpc(CEMA);
+		addQuestStart(CEMA);
 		addTalkId(CEMA, ICARUS, MARSHA, TRUMPIN);
 		
 		for (int npcId : DROPS.keySet())
-			addKillId(npcId);
+			addMyDying(npcId);
 	}
 	
 	@Override
@@ -78,7 +78,7 @@ public class Q343_UnderTheShadowOfTheIvoryTower extends Quest
 		}
 		else if (event.equalsIgnoreCase("30834-08.htm"))
 		{
-			if (player.getInventory().hasItems(NEBULITE_ORB))
+			if (player.getInventory().hasItem(NEBULITE_ORB))
 			{
 				final int count = player.getInventory().getItemCount(NEBULITE_ORB) * 120;
 				
@@ -95,7 +95,7 @@ public class Q343_UnderTheShadowOfTheIvoryTower extends Quest
 		}
 		else if (event.equalsIgnoreCase("30835-02.htm"))
 		{
-			if (player.getInventory().hasItems(ECTOPLASM_LIQUEUR))
+			if (player.getInventory().hasItem(ECTOPLASM_LIQUEUR))
 			{
 				htmltext = "30835-03.htm";
 				takeItems(player, ECTOPLASM_LIQUEUR, 1);
@@ -422,7 +422,7 @@ public class Q343_UnderTheShadowOfTheIvoryTower extends Quest
 				switch (npc.getNpcId())
 				{
 					case CEMA:
-						htmltext = (!player.getInventory().hasItems(NEBULITE_ORB)) ? "30834-06.htm" : "30834-07.htm";
+						htmltext = (!player.getInventory().hasItem(NEBULITE_ORB)) ? "30834-06.htm" : "30834-07.htm";
 						break;
 					
 					case ICARUS:
@@ -454,24 +454,22 @@ public class Q343_UnderTheShadowOfTheIvoryTower extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final IntIntHolder data = DROPS.get(npc.getNpcId());
 		if (data == null)
-			return null;
+			return;
 		
 		dropItems(player, NEBULITE_ORB, 1, -1, data.getId());
 		
 		final int memoStateEx = st.getInteger("memoStateEx");
 		if (memoStateEx > 1 && Rnd.get(100) <= data.getValue())
 			st.set("memoStateEx", memoStateEx - 1);
-		
-		return null;
 	}
 }

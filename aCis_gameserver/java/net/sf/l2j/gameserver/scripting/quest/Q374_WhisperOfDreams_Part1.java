@@ -62,10 +62,10 @@ public class Q374_WhisperOfDreams_Part1 extends Quest
 		
 		setItemsIds(DEATH_WAVE_LIGHT, CAVE_BEAST_TOOTH, SEALED_MYSTERIOUS_STONE, MYSTERIOUS_STONE);
 		
-		addStartNpc(MANAKIA);
+		addQuestStart(MANAKIA);
 		addTalkId(MANAKIA, TORAI);
 		
-		addKillId(CAVE_BEAST, DEATH_WAVE);
+		addMyDying(CAVE_BEAST, DEATH_WAVE);
 	}
 	
 	@Override
@@ -110,7 +110,7 @@ public class Q374_WhisperOfDreams_Part1 extends Quest
 		// Torai
 		else if (event.equalsIgnoreCase("30557-02.htm"))
 		{
-			if (st.getCond() == 2 && player.getInventory().hasItems(SEALED_MYSTERIOUS_STONE))
+			if (st.getCond() == 2 && player.getInventory().hasItem(SEALED_MYSTERIOUS_STONE))
 			{
 				st.setCond(3);
 				takeItems(player, SEALED_MYSTERIOUS_STONE, -1);
@@ -142,7 +142,7 @@ public class Q374_WhisperOfDreams_Part1 extends Quest
 				switch (npc.getNpcId())
 				{
 					case MANAKIA:
-						if (!(player.getInventory().hasItems(SEALED_MYSTERIOUS_STONE)))
+						if (!player.getInventory().hasItem(SEALED_MYSTERIOUS_STONE))
 						{
 							if (player.getInventory().getItemCount(CAVE_BEAST_TOOTH) >= 65 && player.getInventory().getItemCount(DEATH_WAVE_LIGHT) >= 65)
 								htmltext = "30515-05.htm";
@@ -163,7 +163,7 @@ public class Q374_WhisperOfDreams_Part1 extends Quest
 						break;
 					
 					case TORAI:
-						if (cond == 2 && player.getInventory().hasItems(SEALED_MYSTERIOUS_STONE))
+						if (cond == 2 && player.getInventory().hasItem(SEALED_MYSTERIOUS_STONE))
 							htmltext = "30557-01.htm";
 						break;
 				}
@@ -174,14 +174,14 @@ public class Q374_WhisperOfDreams_Part1 extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		// Drop tooth or light to anyone.
 		QuestState st = getRandomPartyMemberState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		dropItems(st.getPlayer(), (npc.getNpcId() == CAVE_BEAST) ? CAVE_BEAST_TOOTH : DEATH_WAVE_LIGHT, 1, 65, 500000);
 		
@@ -189,7 +189,5 @@ public class Q374_WhisperOfDreams_Part1 extends Quest
 		st = getRandomPartyMember(player, npc, "condStone", "1");
 		if (st != null && dropItems(st.getPlayer(), SEALED_MYSTERIOUS_STONE, 1, 1, 1000))
 			st.unset("condStone");
-		
-		return null;
 	}
 }

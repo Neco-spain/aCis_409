@@ -5,8 +5,8 @@ import java.util.Map;
 
 import net.sf.l2j.commons.random.Rnd;
 
+import net.sf.l2j.gameserver.enums.EventHandler;
 import net.sf.l2j.gameserver.enums.QuestStatus;
-import net.sf.l2j.gameserver.enums.ScriptEventType;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
@@ -40,8 +40,13 @@ public class Q619_RelicsOfTheOldEmpire extends Quest
 	};
 	
 	// Drop chances, Note: when higher then 100%, more items may drop (e.g. 379% -> 79% to drop 4 items, 21% to drop 3)
-	private static final Map<Integer, Integer> FOUR_SEPULCHERS_DROPLIST = new HashMap<>(79);
+	private static final Map<Integer, Integer> FOUR_SEPULCHERS_DROPLIST = HashMap.newHashMap(79);
+	private static final Map<Integer, Integer> IMPERIAL_TOMB_DROPLIST = HashMap.newHashMap(45);
+	
+	public Q619_RelicsOfTheOldEmpire()
 	{
+		super(619, "Relics of the Old Empire");
+		
 		FOUR_SEPULCHERS_DROPLIST.put(18120, 1280000); // r11_roomboss_strong
 		FOUR_SEPULCHERS_DROPLIST.put(18121, 1210000); // r11_roomboss_weak
 		FOUR_SEPULCHERS_DROPLIST.put(18122, 930000); // r11_roomboss_teleport
@@ -121,10 +126,7 @@ public class Q619_RelicsOfTheOldEmpire extends Quest
 		FOUR_SEPULCHERS_DROPLIST.put(18228, 1150000); // r5_wizard_debuff
 		FOUR_SEPULCHERS_DROPLIST.put(18229, 1190000); // r5_wizard_slefbuff
 		FOUR_SEPULCHERS_DROPLIST.put(18230, 1490000); // r5_bomb
-	}
-	
-	private static final Map<Integer, Integer> IMPERIAL_TOMB_DROPLIST = new HashMap<>(45);
-	{
+		
 		IMPERIAL_TOMB_DROPLIST.put(21396, 1510000); // carrion_scarab
 		IMPERIAL_TOMB_DROPLIST.put(21397, 500000); // carrion_scarab_a
 		IMPERIAL_TOMB_DROPLIST.put(21398, 950000); // soldier_scarab
@@ -170,19 +172,14 @@ public class Q619_RelicsOfTheOldEmpire extends Quest
 		IMPERIAL_TOMB_DROPLIST.put(21798, 330000); // guard_skeleton_2d
 		IMPERIAL_TOMB_DROPLIST.put(21799, 610000); // guard_skeleton_3d
 		IMPERIAL_TOMB_DROPLIST.put(21800, 310000); // guard_undead
-	}
-	
-	public Q619_RelicsOfTheOldEmpire()
-	{
-		super(619, "Relics of the Old Empire");
 		
 		setItemsIds(BROKEN_RELIC_PART);
 		
-		addStartNpc(GHOST_OF_ADVENTURER);
+		addQuestStart(GHOST_OF_ADVENTURER);
 		addTalkId(GHOST_OF_ADVENTURER);
 		
-		addEventIds(IMPERIAL_TOMB_DROPLIST.keySet(), ScriptEventType.ON_KILL);
-		addEventIds(FOUR_SEPULCHERS_DROPLIST.keySet(), ScriptEventType.ON_KILL);
+		addEventIds(IMPERIAL_TOMB_DROPLIST.keySet(), EventHandler.MY_DYING);
+		addEventIds(FOUR_SEPULCHERS_DROPLIST.keySet(), EventHandler.MY_DYING);
 	}
 	
 	@Override
@@ -235,7 +232,7 @@ public class Q619_RelicsOfTheOldEmpire extends Quest
 			case STARTED:
 				if (player.getInventory().getItemCount(BROKEN_RELIC_PART) >= 1000)
 					htmltext = "31538-04.htm";
-				else if (player.getInventory().hasItems(ENTRANCE_PASS_TO_THE_SEPULCHER))
+				else if (player.getInventory().hasItem(ENTRANCE_PASS_TO_THE_SEPULCHER))
 					htmltext = "31538-06.htm";
 				else
 					htmltext = "31538-07.htm";
@@ -246,13 +243,13 @@ public class Q619_RelicsOfTheOldEmpire extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMemberState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final int npcId = npc.getNpcId();
 		
@@ -265,7 +262,5 @@ public class Q619_RelicsOfTheOldEmpire extends Quest
 		}
 		else
 			dropItems(st.getPlayer(), BROKEN_RELIC_PART, 1, 0, FOUR_SEPULCHERS_DROPLIST.get(npcId));
-		
-		return null;
 	}
 }

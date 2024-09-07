@@ -4,7 +4,6 @@ import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.item.kind.Item;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.InventoryUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public class RequestUnEquipItem extends L2GameClientPacket
@@ -43,14 +42,9 @@ public class RequestUnEquipItem extends L2GameClientPacket
 		
 		final ItemInstance[] unequipped = player.getInventory().unequipItemInBodySlotAndRecord(_slot);
 		
-		// show the update in the inventory
-		final InventoryUpdate iu = new InventoryUpdate();
 		for (ItemInstance itm : unequipped)
-		{
 			itm.unChargeAllShots();
-			iu.addModifiedItem(itm);
-		}
-		player.sendPacket(iu);
+		
 		player.broadcastUserInfo();
 		
 		// this can be 0 if the user pressed the right mousebutton twice very fast

@@ -18,24 +18,22 @@ public class NoLandingZone extends ZoneType
 	}
 	
 	@Override
-	protected void onEnter(Creature character)
+	protected void onEnter(Creature creature)
 	{
-		if (character instanceof Player)
+		if (creature instanceof Player player)
 		{
-			character.setInsideZone(ZoneId.NO_LANDING, true);
-			
-			((Player) character).enterOnNoLandingZone();
+			player.setInsideZone(ZoneId.NO_LANDING, true);
+			player.enterOnNoLandingZone();
 		}
 	}
 	
 	@Override
-	protected void onExit(Creature character)
+	protected void onExit(Creature creature)
 	{
-		if (character instanceof Player)
+		if (creature instanceof Player player)
 		{
-			character.setInsideZone(ZoneId.NO_LANDING, false);
-			
-			((Player) character).exitOnNoLandingZone();
+			player.setInsideZone(ZoneId.NO_LANDING, false);
+			player.exitOnNoLandingZone();
 		}
 	}
 }

@@ -51,10 +51,10 @@ public class Q344_1000YearsTheEndOfLamentation extends Quest
 		
 		setItemsIds(ARTICLE_DEAD_HERO, OLD_KEY, OLD_HILT, OLD_TOTEM, CRUCIFIX);
 		
-		addStartNpc(GILMORE);
+		addQuestStart(GILMORE);
 		addTalkId(GILMORE, RODEMAI, ORVEN, GARVARENTZ, KAIEN);
 		
-		addKillId(20236, 20237, 20238, 20239, 20240, 20272, 20273, 20274, 20275, 20276);
+		addMyDying(20236, 20237, 20238, 20239, 20240, 20272, 20273, 20274, 20275, 20276);
 	}
 	
 	@Override
@@ -87,7 +87,7 @@ public class Q344_1000YearsTheEndOfLamentation extends Quest
 		}
 		else if (event.equalsIgnoreCase("30754-06.htm"))
 		{
-			if (!player.getInventory().hasItems(ARTICLE_DEAD_HERO))
+			if (!player.getInventory().hasItem(ARTICLE_DEAD_HERO))
 				htmltext = "30754-06a.htm";
 			else
 			{
@@ -149,7 +149,7 @@ public class Q344_1000YearsTheEndOfLamentation extends Quest
 				{
 					case GILMORE:
 						if (cond == 1)
-							htmltext = (player.getInventory().hasItems(ARTICLE_DEAD_HERO)) ? "30754-05.htm" : "30754-09.htm";
+							htmltext = (player.getInventory().hasItem(ARTICLE_DEAD_HERO)) ? "30754-05.htm" : "30754-09.htm";
 						else if (cond == 2)
 							htmltext = (st.getInteger("success") > 0) ? "30754-16.htm" : "30754-15.htm";
 						break;
@@ -177,7 +177,7 @@ public class Q344_1000YearsTheEndOfLamentation extends Quest
 		switch (npcId)
 		{
 			case ORVEN:
-				if (player.getInventory().hasItems(CRUCIFIX))
+				if (player.getInventory().hasItem(CRUCIFIX))
 				{
 					st.set("success", 1);
 					takeItems(player, CRUCIFIX, -1);
@@ -193,7 +193,7 @@ public class Q344_1000YearsTheEndOfLamentation extends Quest
 				break;
 			
 			case GARVARENTZ:
-				if (player.getInventory().hasItems(OLD_TOTEM))
+				if (player.getInventory().hasItem(OLD_TOTEM))
 				{
 					st.set("success", 1);
 					takeItems(player, OLD_TOTEM, -1);
@@ -209,7 +209,7 @@ public class Q344_1000YearsTheEndOfLamentation extends Quest
 				break;
 			
 			case KAIEN:
-				if (player.getInventory().hasItems(OLD_HILT))
+				if (player.getInventory().hasItem(OLD_HILT))
 				{
 					st.set("success", 1);
 					takeItems(player, OLD_HILT, -1);
@@ -227,7 +227,7 @@ public class Q344_1000YearsTheEndOfLamentation extends Quest
 				break;
 			
 			case RODEMAI:
-				if (player.getInventory().hasItems(OLD_KEY))
+				if (player.getInventory().hasItem(OLD_KEY))
 				{
 					st.set("success", 1);
 					takeItems(player, OLD_KEY, -1);
@@ -245,16 +245,14 @@ public class Q344_1000YearsTheEndOfLamentation extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerCondition(player, npc, 1);
 		if (st == null)
-			return null;
+			return;
 		
 		dropItems(player, ARTICLE_DEAD_HERO, 1, 0, CHANCES.get(npc.getNpcId()));
-		
-		return null;
 	}
 }

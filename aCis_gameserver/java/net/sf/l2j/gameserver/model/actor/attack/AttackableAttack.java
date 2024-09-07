@@ -1,9 +1,8 @@
 package net.sf.l2j.gameserver.model.actor.attack;
 
-import net.sf.l2j.gameserver.enums.ScriptEventType;
+import net.sf.l2j.gameserver.enums.EventHandler;
 import net.sf.l2j.gameserver.model.actor.Attackable;
 import net.sf.l2j.gameserver.model.actor.Creature;
-import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.scripting.Quest;
 
 /**
@@ -17,31 +16,29 @@ public class AttackableAttack extends CreatureAttack<Attackable>
 	}
 	
 	@Override
-	public boolean canDoAttack(Creature target)
+	public boolean canAttack(Creature target)
 	{
-		if (!super.canDoAttack(target))
+		if (!super.canAttack(target))
 			return false;
 		
-		if (target.isFakeDeath())
-			return false;
-		
-		return true;
+		return !target.isFakeDeath();
 	}
 	
 	@Override
-	public boolean doAttack(Creature target)
+	protected void onFinishedAttackBow(Creature mainTarget)
 	{
-		final boolean isHit = super.doAttack(target);
-		if (isHit)
-		{
-			// Bypass behavior if the victim isn't a player
-			final Player victim = target.getActingPlayer();
-			if (victim != null)
-			{
-				for (Quest quest : _actor.getTemplate().getEventQuests(ScriptEventType.ON_ATTACK_ACT))
-					quest.notifyAttackAct(_actor, victim);
-			}
-		}
-		return isHit;
+		for (Quest quest : _actor.getTemplate().getEventQuests(EventHandler.ATTACK_FINISHED))
+			quest.onAttackFinished(_actor, mainTarget);
+		
+		super.onFinishedAttackBow(mainTarget);
+	}
+	
+	@Override
+	protected void onFinishedAttack(Creature mainTarget)
+	{
+		for (Quest quest : _actor.getTemplate().getEventQuests(EventHandler.ATTACK_FINISHED))
+			quest.onAttackFinished(_actor, mainTarget);
+		
+		super.onFinishedAttack(mainTarget);
 	}
 }

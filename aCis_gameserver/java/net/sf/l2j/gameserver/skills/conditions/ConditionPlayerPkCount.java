@@ -17,6 +17,6 @@ public class ConditionPlayerPkCount extends Condition
 	@Override
 	public boolean testImpl(Creature effector, Creature effected, L2Skill skill, Item item)
 	{
-		return effector instanceof Player && ((Player) effector).getPkKills() <= _pk;
+		return effector instanceof Player player && player.getPkKills() <= _pk;
 	}
 }

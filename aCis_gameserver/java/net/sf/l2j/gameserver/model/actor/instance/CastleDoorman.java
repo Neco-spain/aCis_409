@@ -1,11 +1,9 @@
 package net.sf.l2j.gameserver.model.actor.instance;
 
-import java.util.StringTokenizer;
-
+import net.sf.l2j.gameserver.enums.PrivilegeType;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
-import net.sf.l2j.gameserver.model.clanhall.SiegableHall;
-import net.sf.l2j.gameserver.model.pledge.Clan;
+import net.sf.l2j.gameserver.model.residence.clanhall.SiegableHall;
 
 /**
  * An instance type extending {@link Doorman}, used by castle doorman.<br>
@@ -22,31 +20,21 @@ public class CastleDoorman extends Doorman
 	@Override
 	protected void openDoors(Player player, String command)
 	{
-		final StringTokenizer st = new StringTokenizer(command.substring(10), ", ");
-		st.nextToken();
+		if (getResidence() == null)
+			return;
 		
-		while (st.hasMoreTokens())
-		{
-			if (getSiegableHall() != null)
-				getSiegableHall().openCloseDoor(Integer.parseInt(st.nextToken()), true);
-			else if (getCastle() != null)
-				getCastle().openDoor(player, Integer.parseInt(st.nextToken()));
-		}
+		for (String doorId : command.substring(11).split(", "))
+			getResidence().openDoor(player, Integer.parseInt(doorId));
 	}
 	
 	@Override
 	protected final void closeDoors(Player player, String command)
 	{
-		final StringTokenizer st = new StringTokenizer(command.substring(11), ", ");
-		st.nextToken();
+		if (getResidence() == null)
+			return;
 		
-		while (st.hasMoreTokens())
-		{
-			if (getSiegableHall() != null)
-				getSiegableHall().openCloseDoor(Integer.parseInt(st.nextToken()), false);
-			else if (getCastle() != null)
-				getCastle().closeDoor(player, Integer.parseInt(st.nextToken()));
-		}
+		for (String doorId : command.substring(12).split(", "))
+			getResidence().closeDoor(player, Integer.parseInt(doorId));
 	}
 	
 	@Override
@@ -55,10 +43,10 @@ public class CastleDoorman extends Doorman
 		if (player.getClan() != null)
 		{
 			if (getSiegableHall() != null)
-				return player.getClanId() == getSiegableHall().getOwnerId() && player.hasClanPrivileges(Clan.CP_CH_OPEN_DOOR);
+				return player.getClanId() == getSiegableHall().getOwnerId() && player.hasClanPrivileges(PrivilegeType.CHP_ENTRY_EXIT_RIGHTS);
 			
 			if (getCastle() != null)
-				return player.getClanId() == getCastle().getOwnerId() && player.hasClanPrivileges(Clan.CP_CS_OPEN_DOOR);
+				return player.getClanId() == getCastle().getOwnerId() && player.hasClanPrivileges(PrivilegeType.CP_ENTRY_EXIT_RIGHTS);
 		}
 		return false;
 	}

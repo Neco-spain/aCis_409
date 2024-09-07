@@ -16,23 +16,17 @@ import net.sf.l2j.loginserver.model.GameServerInfo;
 public class GameServerRegister
 {
 	private static final String DELETE_SERVER = "DELETE FROM gameservers WHERE server_id=?";
-	private static final String DELETE_SERVERS = "DELETE FROM gameservers";
-	
-	private static String _choice;
+	private static final String TRUNCATE_SERVERS = "TRUNCATE gameservers";
 	
 	public static void main(String[] args)
 	{
+		// Load needed classes.
 		Config.loadGameServerRegistration();
-		
 		ConnectionPool.init();
+		GameServerManager.getInstance();
 		
-		try (Scanner _scn = new Scanner(System.in))
+		try (Scanner scn = new Scanner(System.in))
 		{
-			System.out.println();
-			System.out.println();
-			System.out.println("                        aCis gameserver registering");
-			System.out.println("                        ____________________________");
-			System.out.println();
 			System.out.println("OPTIONS : a number : register a server ID, if available and existing on list.");
 			System.out.println("          list : get a list of IDs. A '*' means the id is already used.");
 			System.out.println("          clean : unregister a specified gameserver.");
@@ -43,15 +37,16 @@ public class GameServerRegister
 			{
 				System.out.println();
 				System.out.print("Your choice? ");
-				_choice = _scn.next();
 				
-				if (_choice.equalsIgnoreCase("list"))
+				String choice = scn.next();
+				
+				if (choice.equalsIgnoreCase("list"))
 				{
 					System.out.println();
 					for (Map.Entry<Integer, String> entry : GameServerManager.getInstance().getServerNames().entrySet())
 						System.out.println(entry.getKey() + ": " + entry.getValue() + " " + (GameServerManager.getInstance().getRegisteredGameServers().containsKey(entry.getKey()) ? "*" : ""));
 				}
-				else if (_choice.equalsIgnoreCase("clean"))
+				else if (choice.equalsIgnoreCase("clean"))
 				{
 					System.out.println();
 					
@@ -66,10 +61,10 @@ public class GameServerRegister
 						System.out.println();
 						System.out.print("Your choice? ");
 						
-						_choice = _scn.next();
+						choice = scn.next();
 						try
 						{
-							final int id = Integer.parseInt(_choice);
+							final int id = Integer.parseInt(choice);
 							
 							if (!GameServerManager.getInstance().getRegisteredGameServers().containsKey(id))
 								System.out.println("This server id isn't used.");
@@ -96,17 +91,17 @@ public class GameServerRegister
 						}
 					}
 				}
-				else if (_choice.equalsIgnoreCase("cleanall"))
+				else if (choice.equalsIgnoreCase("cleanall"))
 				{
 					System.out.println();
 					System.out.print("UNREGISTER ALL servers. Are you sure? (y/n) ");
 					
-					_choice = _scn.next();
+					choice = scn.next();
 					
-					if (_choice.equals("y"))
+					if (choice.equals("y"))
 					{
 						try (Connection con = ConnectionPool.getConnection();
-							PreparedStatement ps = con.prepareStatement(DELETE_SERVERS))
+							PreparedStatement ps = con.prepareStatement(TRUNCATE_SERVERS))
 						{
 							ps.executeUpdate();
 						}
@@ -121,7 +116,7 @@ public class GameServerRegister
 					else
 						System.out.println("'cleanall' processus has been aborted.");
 				}
-				else if (_choice.equalsIgnoreCase("exit"))
+				else if (choice.equalsIgnoreCase("exit"))
 					System.exit(0);
 				else
 				{
@@ -133,7 +128,7 @@ public class GameServerRegister
 							System.out.println("No server names available, be sure 'serverNames.xml' is in the LoginServer directory.");
 						else
 						{
-							final int id = Integer.parseInt(_choice);
+							final int id = Integer.parseInt(choice);
 							
 							if (GameServerManager.getInstance().getServerNames().get(id) == null)
 								System.out.println("No name for server id: " + id + ".");

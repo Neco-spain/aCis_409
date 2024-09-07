@@ -39,11 +39,8 @@ public class RequestConfirmRefinerItem extends AbstractRefinePacket
 			return;
 		}
 		
-		final int refinerItemId = refinerItem.getItem().getItemId();
 		final CrystalType grade = targetItem.getItem().getCrystalType();
-		final int gemStoneId = getGemStoneId(grade);
-		final int gemStoneCount = getGemStoneCount(grade);
 		
-		player.sendPacket(new ExConfirmVariationRefiner(_refinerItemObjId, refinerItemId, gemStoneId, gemStoneCount));
+		player.sendPacket(new ExConfirmVariationRefiner(_refinerItemObjId, refinerItem.getItem().getItemId(), grade.getGemstoneId(), grade.getGemstoneCount()));
 	}
 }

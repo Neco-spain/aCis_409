@@ -45,7 +45,7 @@ public class BlessedSpiritShots implements IItemHandler
 		}
 		
 		// Consume bss if player has enough of them
-		if (!player.destroyItemWithoutTrace(item.getObjectId(), weaponItem.getSpiritShotCount()))
+		if (!player.destroyItem(item.getObjectId(), weaponItem.getSpiritShotCount(), false))
 		{
 			if (!player.disableAutoShot(item.getItemId()))
 				player.sendPacket(SystemMessageId.NOT_ENOUGH_SPIRITSHOTS);

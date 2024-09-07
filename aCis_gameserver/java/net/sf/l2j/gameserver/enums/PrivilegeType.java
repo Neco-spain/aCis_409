@@ -1,67 +1,48 @@
 package net.sf.l2j.gameserver.enums;
 
-import java.util.EnumSet;
-import java.util.Set;
-
 public enum PrivilegeType
 {
-	CL_JOIN_CLAN,
-	CL_GIVE_TITLE,
-	CL_VIEW_WAREHOUSE,
-	CL_MANAGE_RANKS,
-	CL_PLEDGE_WAR,
-	CL_DISMISS,
-	CL_REGISTER_CREST,
-	CL_MASTER_RIGHTS,
-	CL_MANAGE_LEVELS,
+	NONE(0),
 	
-	CH_OPEN_DOOR,
-	CH_USE_FUNCTIONS,
-	CH_AUCTION,
-	CH_DISMISS,
-	CH_SET_FUNCTIONS,
+	// System Privileges
+	SP_INVITE(2),
+	SP_MANAGE_TITLES(4),
+	SP_WAREHOUSE_SEARCH(8),
+	SP_MANAGE_RANKS(16),
+	SP_CLAN_WAR(32),
+	SP_DISMISS(64),
+	SP_EDIT_CREST(128),
+	SP_MASTER_RIGHTS(256),
+	SP_MANAGE_LEVELS(512),
 	
-	CS_OPEN_DOOR,
-	CS_MANOR_ADMIN,
-	CS_MANAGE_SIEGE,
-	CS_USE_FUNCTIONS,
-	CS_DISMISS,
-	CS_TAXES,
-	CS_MERCENARIES,
-	CS_SET_FUNCTIONS;
+	// Clan Hall Privileges
+	CHP_ENTRY_EXIT_RIGHTS(1024),
+	CHP_USE_FUNCTIONS(2048),
+	CHP_AUCTION(4096),
+	CHP_RIGHT_TO_DISMISS(8192),
+	CHP_SET_FUNCTIONS(16384),
+	
+	// Castle Privileges
+	CP_ENTRY_EXIT_RIGHTS(32768),
+	CP_MANOR_ADMINISTRATION(65536),
+	CP_MANAGE_SIEGE_WAR(131072),
+	CP_USE_FUNCTIONS(262144),
+	CP_RIGHT_TO_DISMISS(524288),
+	CP_MANAGE_TAXES(1048576),
+	CP_MERCENARIES(2097152),
+	CP_SET_FUNCTIONS(4194304),
+	
+	ALL(8388606);
 	
 	private int _mask;
 	
-	private PrivilegeType()
+	private PrivilegeType(int mask)
 	{
-		_mask = 1 << ordinal();
+		_mask = mask;
 	}
-	
-	public static final PrivilegeType[] VALUES = values();
 	
 	public int getMask()
 	{
 		return _mask;
-	}
-	
-	public static int encode(Set<PrivilegeType> set)
-	{
-		int result = 0;
-		for (PrivilegeType pt : set)
-			result |= pt.getMask();
-		
-		return result;
-	}
-	
-	public static Set<PrivilegeType> decode(int code)
-	{
-		final EnumSet<PrivilegeType> result = EnumSet.noneOf(PrivilegeType.class);
-		for (PrivilegeType pt : VALUES)
-		{
-			if ((pt.getMask() & code) != 0)
-				result.add(pt);
-		}
-		
-		return result;
 	}
 }

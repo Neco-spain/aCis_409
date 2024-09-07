@@ -35,8 +35,12 @@ public class Q355_FamilyHonor extends Quest
 	private static final int STATUE_FORGERY = 4354;
 	
 	// Drop chances
-	private static final Map<Integer, int[]> CHANCES = new HashMap<>();
+	private static final Map<Integer, int[]> CHANCES = HashMap.newHashMap(4);
+	
+	public Q355_FamilyHonor()
 	{
+		super(355, "Family Honor");
+		
 		CHANCES.put(TIMAK_ORC_TROOP_LEADER, new int[]
 		{
 			44,
@@ -57,18 +61,13 @@ public class Q355_FamilyHonor extends Quest
 			32,
 			42
 		});
-	}
-	
-	public Q355_FamilyHonor()
-	{
-		super(355, "Family Honor");
 		
 		setItemsIds(GALIBREDO_BUST);
 		
-		addStartNpc(GALIBREDO);
+		addQuestStart(GALIBREDO);
 		addTalkId(GALIBREDO, PATRIN);
 		
-		addKillId(TIMAK_ORC_TROOP_LEADER, TIMAK_ORC_TROOP_SHAMAN, TIMAK_ORC_TROOP_WARRIOR, TIMAK_ORC_TROOP_ARCHER);
+		addMyDying(TIMAK_ORC_TROOP_LEADER, TIMAK_ORC_TROOP_SHAMAN, TIMAK_ORC_TROOP_WARRIOR, TIMAK_ORC_TROOP_ARCHER);
 	}
 	
 	@Override
@@ -105,7 +104,7 @@ public class Q355_FamilyHonor extends Quest
 		}
 		else if (event.equalsIgnoreCase("30929-7.htm"))
 		{
-			if (player.getInventory().hasItems(WORK_OF_BERONA))
+			if (player.getInventory().hasItem(WORK_OF_BERONA))
 			{
 				takeItems(player, WORK_OF_BERONA, 1);
 				
@@ -161,7 +160,7 @@ public class Q355_FamilyHonor extends Quest
 				switch (npc.getNpcId())
 				{
 					case GALIBREDO:
-						htmltext = (player.getInventory().hasItems(GALIBREDO_BUST)) ? "30181-3a.htm" : "30181-3.htm";
+						htmltext = (player.getInventory().hasItem(GALIBREDO_BUST)) ? "30181-3a.htm" : "30181-3.htm";
 						break;
 					
 					case PATRIN:
@@ -175,20 +174,18 @@ public class Q355_FamilyHonor extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMemberState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final int[] chances = CHANCES.get(npc.getNpcId());
 		final int random = Rnd.get(100);
 		
 		if (random < chances[1])
 			dropItemsAlways(st.getPlayer(), (random < chances[0]) ? GALIBREDO_BUST : WORK_OF_BERONA, 1, 0);
-		
-		return null;
 	}
 }

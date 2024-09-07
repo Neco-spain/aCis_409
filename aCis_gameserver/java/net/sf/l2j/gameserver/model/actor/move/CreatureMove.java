@@ -6,8 +6,10 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ScheduledFuture;
 
+import net.sf.l2j.commons.logging.CLogger;
 import net.sf.l2j.commons.pool.ThreadPool;
 
+import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.manager.ZoneManager;
 import net.sf.l2j.gameserver.enums.AiEventType;
 import net.sf.l2j.gameserver.enums.actors.MoveType;
@@ -16,6 +18,7 @@ import net.sf.l2j.gameserver.geoengine.geodata.GeoStructure;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.location.Location;
@@ -32,6 +35,8 @@ import net.sf.l2j.gameserver.network.serverpackets.StopMove;
  */
 public class CreatureMove<T extends Creature>
 {
+	private static final CLogger LOGGER = new CLogger(CreatureMove.class.getName());
+	
 	private static final int FOLLOW_INTERVAL = 1000;
 	private static final int ATTACK_FOLLOW_INTERVAL = 500;
 	
@@ -55,6 +60,8 @@ public class CreatureMove<T extends Creature>
 	
 	protected ScheduledFuture<?> _task;
 	protected ScheduledFuture<?> _followTask;
+	
+	protected int _geoPathFailCount;
 	
 	public CreatureMove(T actor)
 	{
@@ -118,7 +125,7 @@ public class CreatureMove<T extends Creature>
 	 */
 	public void describeMovementTo(Player player)
 	{
-		player.sendPacket(findPacketToSend());
+		player.sendPacket(new MoveToLocation(_actor));
 	}
 	
 	/**
@@ -150,7 +157,7 @@ public class CreatureMove<T extends Creature>
 		if (_isDebugMove)
 		{
 			// Draw debug packet to surrounding GMs.
-			for (Player p : _actor.getSurroundingGMs())
+			_actor.forEachKnownGM(p ->
 			{
 				// Get debug packet.
 				final ExServerPrimitive debug = p.getDebugPacket("MOVE" + _actor.getObjectId());
@@ -189,7 +196,7 @@ public class CreatureMove<T extends Creature>
 					debug.addLine("No geopath", Color.YELLOW, true, position, destination);
 				
 				p.sendMessage("Moving from " + position.toString() + " to " + destination.toString());
-			}
+			});
 		}
 		
 		// Set the destination.
@@ -231,7 +238,7 @@ public class CreatureMove<T extends Creature>
 	{
 		if (_task != null)
 		{
-			_task.cancel(false);
+			_task.cancel(true);
 			_task = null;
 		}
 	}
@@ -358,7 +365,7 @@ public class CreatureMove<T extends Creature>
 			final String heading = "" + _actor.getHeading();
 			
 			// Draw debug packet to surrounding GMs.
-			for (Player p : _actor.getSurroundingGMs())
+			_actor.forEachKnownGM(p ->
 			{
 				// Get debug packet.
 				final ExServerPrimitive debug = p.getDebugPacket("MOVE" + _actor.getObjectId());
@@ -372,7 +379,7 @@ public class CreatureMove<T extends Creature>
 				// We are supposed to run, but the difference of Z is way too high.
 				if (type == MoveType.GROUND && Math.abs(curZ - _actor.getPosition().getZ()) > 100)
 					p.sendMessage("Falling/Climb bug found when moving from " + curX + ", " + curY + ", " + curZ + " to " + _actor.getPosition().toString());
-			}
+			});
 		}
 		
 		_actor.revalidateZone(false);
@@ -388,11 +395,25 @@ public class CreatureMove<T extends Creature>
 		if (weaponAttackRange < 0)
 			return false;
 		
-		if (_actor.isIn2DRadius(target, (int) (weaponAttackRange + _actor.getCollisionRadius() + target.getCollisionRadius())))
-			return false;
+		boolean shouldFollow = true;
+		int totalRadius = (int) (weaponAttackRange + _actor.getCollisionRadius() + target.getCollisionRadius());
+		if (_actor instanceof Npc)
+			totalRadius += (target.isMoving() ? 50 : 0);
 		
-		if (!_actor.isMovementDisabled())
+		if (_actor.isIn2DRadius(target, totalRadius))
+			shouldFollow = false;
+		
+		if (!shouldFollow)
+		{
+			if (_actor instanceof Npc && !GeoEngine.getInstance().canSeeTarget(_actor, target) && !_actor.isMovementDisabled() && _actor.getAI().getCurrentIntention().getMoveToTarget())
+				startOffensiveFollow(target, (int) target.getCollisionRadius());
+			else
+				return false;
+		}
+		else if (!_actor.isMovementDisabled() && _actor.getAI().getCurrentIntention().getMoveToTarget())
+		{
 			startOffensiveFollow(target, weaponAttackRange);
+		}
 		
 		return true;
 	}
@@ -430,6 +451,10 @@ public class CreatureMove<T extends Creature>
 	 */
 	public void stop()
 	{
+		// Actor isn't actually moving.
+		if (_task == null && _followTask == null)
+			return;
+		
 		cancelFollowTask();
 		cancelMoveTask();
 		
@@ -476,14 +501,20 @@ public class CreatureMove<T extends Creature>
 		
 		// Calculate the path. If no path or too short, calculate the first valid location.
 		final List<Location> path = GeoEngine.getInstance().findPath(ox, oy, oz, tx, ty, tz, _actor instanceof Playable, dummy);
+		
 		if (path.size() < 2)
+		{
+			addGeoPathFailCount();
 			return GeoEngine.getInstance().getValidLocation(ox, oy, oz, tx, ty, tz, null);
+		}
+		
+		resetGeoPathFailCount();
 		
 		// Draw a debug of this movement if activated.
 		if (_isDebugPath)
 		{
 			// Draw debug packet to all players.
-			for (Player p : _actor.getSurroundingGMs())
+			_actor.forEachKnownGM(p ->
 			{
 				// Get debug packet.
 				final ExServerPrimitive debug = p.getDebugPacket("PATH" + _actor.getObjectId());
@@ -494,7 +525,7 @@ public class CreatureMove<T extends Creature>
 				
 				// Send.
 				debug.sendTo(p);
-			}
+			});
 		}
 		
 		// Feed the geopath with whole path.
@@ -511,11 +542,7 @@ public class CreatureMove<T extends Creature>
 	 */
 	public void startFriendlyFollow(Creature pawn, int offset)
 	{
-		if (_followTask != null)
-		{
-			_followTask.cancel(false);
-			_followTask = null;
-		}
+		cancelFollowTask();
 		
 		// Create and Launch an AI Follow Task to execute every 1s
 		_followTask = ThreadPool.scheduleAtFixedRate(() -> friendlyFollowTask(pawn, offset), 5, FOLLOW_INTERVAL);
@@ -528,11 +555,7 @@ public class CreatureMove<T extends Creature>
 	 */
 	public void startOffensiveFollow(Creature pawn, int offset)
 	{
-		if (_followTask != null)
-		{
-			_followTask.cancel(false);
-			_followTask = null;
-		}
+		cancelFollowTask();
 		
 		_followTask = ThreadPool.scheduleAtFixedRate(() -> offensiveFollowTask(pawn, offset), 5, ATTACK_FOLLOW_INTERVAL);
 	}
@@ -545,10 +568,7 @@ public class CreatureMove<T extends Creature>
 		
 		// Pawn isn't registered on knownlist.
 		if (!_actor.knows(target))
-		{
-			_actor.getAI().tryToActive();
 			return;
-		}
 		
 		final Location destination = target.getPosition().clone();
 		final int realOffset = (int) (offset + _actor.getCollisionRadius() + target.getCollisionRadius());
@@ -571,10 +591,10 @@ public class CreatureMove<T extends Creature>
 		
 		// Invalid pawn to follow, or the pawn isn't registered on knownlist.
 		if (!_actor.knows(target))
-		{
-			_actor.getAI().tryToActive();
 			return;
-		}
+		
+		if (target.isInBoat())
+			return;
 		
 		final Location destination = target.getPosition().clone();
 		final int realOffset = (int) (offset + _actor.getCollisionRadius() + target.getCollisionRadius());
@@ -604,5 +624,29 @@ public class CreatureMove<T extends Creature>
 	public void avoidAttack(Creature attacker)
 	{
 		// Summon behavior
+	}
+	
+	public int getGeoPathFailCount()
+	{
+		return _geoPathFailCount;
+	}
+	
+	public void resetGeoPathFailCount()
+	{
+		_geoPathFailCount = 0;
+	}
+	
+	public void addGeoPathFailCount()
+	{
+		if (_geoPathFailCount > Config.MAX_GEOPATH_FAIL_COUNT)
+		{
+			LOGGER.warn("{} fails as geopathing at {}.", _actor.getName(), _actor.getPosition().toString());
+			
+			// Reset the count to 0.
+			_geoPathFailCount = 0;
+			return;
+		}
+		
+		_geoPathFailCount++;
 	}
 }

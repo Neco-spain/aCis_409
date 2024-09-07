@@ -12,7 +12,7 @@ import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.item.kind.Armor;
 import net.sf.l2j.gameserver.model.item.kind.Item;
 import net.sf.l2j.gameserver.model.item.kind.Weapon;
-import net.sf.l2j.gameserver.network.serverpackets.InventoryUpdate;
+import net.sf.l2j.gameserver.network.serverpackets.SkillList;
 import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class AdminEnchant implements IAdminCommandHandler
@@ -65,8 +65,7 @@ public class AdminEnchant implements IAdminCommandHandler
 					return;
 				}
 				
-				item.setEnchantLevel(enchant);
-				item.updateDatabase();
+				item.setEnchantLevel(enchant, player);
 				
 				// If item is equipped, verify the skill obtention/drop (+4 duals, +6 armorset).
 				if (item.isEquipped())
@@ -74,26 +73,26 @@ public class AdminEnchant implements IAdminCommandHandler
 					final int currentEnchant = item.getEnchantLevel();
 					
 					// Skill bestowed by +4 duals.
-					if (toTestItem instanceof Weapon)
+					if (toTestItem instanceof Weapon weapon)
 					{
 						// Old enchant was >= 4 and new is lower : we drop the skill.
 						if (oldEnchant >= 4 && currentEnchant < 4)
 						{
-							final L2Skill enchant4Skill = ((Weapon) toTestItem).getEnchant4Skill();
+							final L2Skill enchant4Skill = weapon.getEnchant4Skill();
 							if (enchant4Skill != null)
 							{
 								targetPlayer.removeSkill(enchant4Skill.getId(), false);
-								targetPlayer.sendSkillList();
+								targetPlayer.sendPacket(new SkillList(targetPlayer));
 							}
 						}
 						// Old enchant was < 4 and new is 4 or more : we add the skill.
 						else if (oldEnchant < 4 && currentEnchant >= 4)
 						{
-							final L2Skill enchant4Skill = ((Weapon) toTestItem).getEnchant4Skill();
+							final L2Skill enchant4Skill = weapon.getEnchant4Skill();
 							if (enchant4Skill != null)
 							{
 								targetPlayer.addSkill(enchant4Skill, false);
-								targetPlayer.sendSkillList();
+								targetPlayer.sendPacket(new SkillList(targetPlayer));
 							}
 						}
 					}
@@ -114,7 +113,7 @@ public class AdminEnchant implements IAdminCommandHandler
 									if (skillId > 0)
 									{
 										targetPlayer.removeSkill(skillId, false);
-										targetPlayer.sendSkillList();
+										targetPlayer.sendPacket(new SkillList(targetPlayer));
 									}
 								}
 							}
@@ -136,7 +135,7 @@ public class AdminEnchant implements IAdminCommandHandler
 										if (skill != null)
 										{
 											targetPlayer.addSkill(skill, false);
-											targetPlayer.sendSkillList();
+											targetPlayer.sendPacket(new SkillList(targetPlayer));
 										}
 									}
 								}
@@ -144,10 +143,6 @@ public class AdminEnchant implements IAdminCommandHandler
 						}
 					}
 				}
-				
-				final InventoryUpdate iu = new InventoryUpdate();
-				iu.addModifiedItem(item);
-				targetPlayer.sendPacket(iu);
 				
 				targetPlayer.broadcastUserInfo();
 				

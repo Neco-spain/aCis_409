@@ -34,11 +34,11 @@ public class MultiSellList extends L2GameServerPacket
 	protected void writeImpl()
 	{
 		writeC(0xd0);
-		writeD(_list.getId()); // list id
-		writeD(1 + (_index / PAGE_SIZE)); // page
-		writeD(_finished ? 1 : 0); // finished
-		writeD(PAGE_SIZE); // size of pages
-		writeD(_size); // list lenght
+		writeD(_list.getId());
+		writeD(1 + (_index / PAGE_SIZE));
+		writeD(_finished ? 1 : 0);
+		writeD(PAGE_SIZE);
+		writeD(_size);
 		
 		while (_size-- > 0)
 		{
@@ -66,8 +66,8 @@ public class MultiSellList extends L2GameServerPacket
 				}
 				writeD(ing.getItemCount());
 				writeH(ing.getEnchantLevel());
-				writeD(0x00); // TODO: i.getAugmentId()
-				writeD(0x00); // TODO: i.getManaLeft()
+				writeD(0x00); // Unused (augment)
+				writeD(0x00); // Unused (mana left)
 			}
 			
 			for (Ingredient ing : ent.getIngredients())
@@ -76,8 +76,8 @@ public class MultiSellList extends L2GameServerPacket
 				writeH(ing.getTemplate() != null ? ing.getTemplate().getType2() : 65535);
 				writeD(ing.getItemCount());
 				writeH(ing.getEnchantLevel());
-				writeD(0x00); // TODO: i.getAugmentId()
-				writeD(0x00); // TODO: i.getManaLeft()
+				writeD(0x00); // Unused (augment)
+				writeD(0x00); // Unused (mana left)
 			}
 		}
 	}

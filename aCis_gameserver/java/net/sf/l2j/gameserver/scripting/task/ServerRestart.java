@@ -21,5 +21,6 @@ public final class ServerRestart extends ScheduledQuest
 	@Override
 	public final void onEnd()
 	{
+		// Do nothing.
 	}
 }

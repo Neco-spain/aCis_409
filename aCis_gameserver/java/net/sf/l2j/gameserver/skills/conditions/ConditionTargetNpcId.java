@@ -20,11 +20,11 @@ public class ConditionTargetNpcId extends Condition
 	@Override
 	public boolean testImpl(Creature effector, Creature effected, L2Skill skill, Item item)
 	{
-		if (effected instanceof Npc)
-			return _npcIds.contains(((Npc) effected).getNpcId());
+		if (effected instanceof Npc targetNpc)
+			return _npcIds.contains(targetNpc.getNpcId());
 		
-		if (effected instanceof Door)
-			return _npcIds.contains(((Door) effected).getDoorId());
+		if (effected instanceof Door targetDoor)
+			return _npcIds.contains(targetDoor.getDoorId());
 		
 		return false;
 	}

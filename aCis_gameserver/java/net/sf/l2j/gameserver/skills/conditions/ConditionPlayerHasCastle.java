@@ -18,10 +18,10 @@ public final class ConditionPlayerHasCastle extends Condition
 	@Override
 	public boolean testImpl(Creature effector, Creature effected, L2Skill skill, Item item)
 	{
-		if (!(effector instanceof Player))
+		if (!(effector instanceof Player player))
 			return false;
 		
-		final Clan clan = ((Player) effector).getClan();
+		final Clan clan = player.getClan();
 		if (clan == null)
 			return _castle == 0;
 		

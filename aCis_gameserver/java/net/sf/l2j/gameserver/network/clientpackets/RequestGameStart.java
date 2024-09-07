@@ -54,7 +54,7 @@ public class RequestGameStart extends L2GameClientPacket
 					
 					client.setState(GameClientState.ENTERING);
 					
-					sendPacket(new CharSelected(player, client.getSessionId().playOkID1));
+					sendPacket(new CharSelected(player, client.getSessionId().playOkId1()));
 				}
 			}
 			finally

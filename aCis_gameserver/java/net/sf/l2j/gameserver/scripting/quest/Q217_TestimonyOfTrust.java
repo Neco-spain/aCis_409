@@ -84,10 +84,10 @@ public class Q217_TestimonyOfTrust extends SecondClassQuest
 		
 		setItemsIds(LETTER_TO_ELF, LETTER_TO_DARK_ELF, LETTER_TO_DWARF, LETTER_TO_ORC, LETTER_TO_SERESIN, SCROLL_OF_DARK_ELF_TRUST, SCROLL_OF_ELF_TRUST, SCROLL_OF_DWARF_TRUST, SCROLL_OF_ORC_TRUST, RECOMMENDATION_OF_HOLLINT, ORDER_OF_ASTERIOS, BREATH_OF_WINDS, SEED_OF_VERDURE, LETTER_FROM_THIFIELL, BLOOD_GUARDIAN_BASILIK, GIANT_APHID, STAKATO_FLUIDS, BASILIK_PLASMA, HONEY_DEW, STAKATO_ICHOR, ORDER_OF_CLAYTON, PARASITE_OF_LOTA, LETTER_TO_MANAKIA, LETTER_OF_MANAKIA, LETTER_TO_NIKOLA, ORDER_OF_NIKOLA, HEARTSTONE_OF_PORTA);
 		
-		addStartNpc(HOLLINT);
+		addQuestStart(HOLLINT);
 		addTalkId(HOLLINT, ASTERIOS, THIFIELL, CLAYTON, SERESIN, KAKAI, MANAKIA, LOCKIRIN, NIKOLA, BIOTIN);
 		
-		addKillId(DRYAD, DRYAD_ELDER, LIREIN, LIREIN_ELDER, ACTEA_OF_VERDANT_WILDS, LUELL_OF_ZEPHYR_WINDS, GUARDIAN_BASILIK, ANT_RECRUIT, ANT_PATROL, ANT_GUARD, ANT_SOLDIER, ANT_WARRIOR_CAPTAIN, MARSH_STAKATO, MARSH_STAKATO_WORKER, MARSH_STAKATO_SOLDIER, MARSH_STAKATO_DRONE, WINDSUS, PORTA);
+		addMyDying(DRYAD, DRYAD_ELDER, LIREIN, LIREIN_ELDER, ACTEA_OF_VERDANT_WILDS, LUELL_OF_ZEPHYR_WINDS, GUARDIAN_BASILIK, ANT_RECRUIT, ANT_PATROL, ANT_GUARD, ANT_SOLDIER, ANT_WARRIOR_CAPTAIN, MARSH_STAKATO, MARSH_STAKATO_WORKER, MARSH_STAKATO_SOLDIER, MARSH_STAKATO_DRONE, WINDSUS, PORTA);
 	}
 	
 	@Override
@@ -388,28 +388,26 @@ public class Q217_TestimonyOfTrust extends SecondClassQuest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
-			case DRYAD:
-			case DRYAD_ELDER:
-				if (st.getCond() == 2 && !player.getInventory().hasItems(SEED_OF_VERDURE) && Rnd.get(100) < 33)
+			case DRYAD, DRYAD_ELDER:
+				if (st.getCond() == 2 && !player.getInventory().hasItem(SEED_OF_VERDURE) && Rnd.get(100) < 33)
 				{
 					addSpawn(ACTEA_OF_VERDANT_WILDS, npc, true, 200000, true);
 					playSound(player, SOUND_BEFORE_BATTLE);
 				}
 				break;
 			
-			case LIREIN:
-			case LIREIN_ELDER:
-				if (st.getCond() == 2 && !player.getInventory().hasItems(BREATH_OF_WINDS) && Rnd.get(100) < 33)
+			case LIREIN, LIREIN_ELDER:
+				if (st.getCond() == 2 && !player.getInventory().hasItem(BREATH_OF_WINDS) && Rnd.get(100) < 33)
 				{
 					addSpawn(LUELL_OF_ZEPHYR_WINDS, npc, true, 200000, true);
 					playSound(player, SOUND_BEFORE_BATTLE);
@@ -417,10 +415,10 @@ public class Q217_TestimonyOfTrust extends SecondClassQuest
 				break;
 			
 			case ACTEA_OF_VERDANT_WILDS:
-				if (st.getCond() == 2 && !player.getInventory().hasItems(SEED_OF_VERDURE))
+				if (st.getCond() == 2 && !player.getInventory().hasItem(SEED_OF_VERDURE))
 				{
 					giveItems(player, SEED_OF_VERDURE, 1);
-					if (player.getInventory().hasItems(BREATH_OF_WINDS))
+					if (player.getInventory().hasItem(BREATH_OF_WINDS))
 					{
 						st.setCond(3);
 						playSound(player, SOUND_MIDDLE);
@@ -431,10 +429,10 @@ public class Q217_TestimonyOfTrust extends SecondClassQuest
 				break;
 			
 			case LUELL_OF_ZEPHYR_WINDS:
-				if (st.getCond() == 2 && !player.getInventory().hasItems(BREATH_OF_WINDS))
+				if (st.getCond() == 2 && !player.getInventory().hasItem(BREATH_OF_WINDS))
 				{
 					giveItems(player, BREATH_OF_WINDS, 1);
-					if (player.getInventory().hasItems(SEED_OF_VERDURE))
+					if (player.getInventory().hasItem(SEED_OF_VERDURE))
 					{
 						st.setCond(3);
 						playSound(player, SOUND_MIDDLE);
@@ -444,11 +442,8 @@ public class Q217_TestimonyOfTrust extends SecondClassQuest
 				}
 				break;
 			
-			case MARSH_STAKATO:
-			case MARSH_STAKATO_WORKER:
-			case MARSH_STAKATO_SOLDIER:
-			case MARSH_STAKATO_DRONE:
-				if (st.getCond() == 6 && !player.getInventory().hasItems(STAKATO_ICHOR) && dropItemsAlways(player, STAKATO_FLUIDS, 1, 10))
+			case MARSH_STAKATO, MARSH_STAKATO_WORKER, MARSH_STAKATO_SOLDIER, MARSH_STAKATO_DRONE:
+				if (st.getCond() == 6 && !player.getInventory().hasItem(STAKATO_ICHOR) && dropItemsAlways(player, STAKATO_FLUIDS, 1, 10))
 				{
 					takeItems(player, STAKATO_FLUIDS, -1);
 					giveItems(player, STAKATO_ICHOR, 1);
@@ -458,12 +453,8 @@ public class Q217_TestimonyOfTrust extends SecondClassQuest
 				}
 				break;
 			
-			case ANT_RECRUIT:
-			case ANT_PATROL:
-			case ANT_GUARD:
-			case ANT_SOLDIER:
-			case ANT_WARRIOR_CAPTAIN:
-				if (st.getCond() == 6 && !player.getInventory().hasItems(HONEY_DEW) && dropItemsAlways(player, GIANT_APHID, 1, 10))
+			case ANT_RECRUIT, ANT_PATROL, ANT_GUARD, ANT_SOLDIER, ANT_WARRIOR_CAPTAIN:
+				if (st.getCond() == 6 && !player.getInventory().hasItem(HONEY_DEW) && dropItemsAlways(player, GIANT_APHID, 1, 10))
 				{
 					takeItems(player, GIANT_APHID, -1);
 					giveItems(player, HONEY_DEW, 1);
@@ -474,7 +465,7 @@ public class Q217_TestimonyOfTrust extends SecondClassQuest
 				break;
 			
 			case GUARDIAN_BASILIK:
-				if (st.getCond() == 6 && !player.getInventory().hasItems(BASILIK_PLASMA) && dropItemsAlways(player, BLOOD_GUARDIAN_BASILIK, 1, 10))
+				if (st.getCond() == 6 && !player.getInventory().hasItem(BASILIK_PLASMA) && dropItemsAlways(player, BLOOD_GUARDIAN_BASILIK, 1, 10))
 				{
 					takeItems(player, BLOOD_GUARDIAN_BASILIK, -1);
 					giveItems(player, BASILIK_PLASMA, 1);
@@ -494,7 +485,5 @@ public class Q217_TestimonyOfTrust extends SecondClassQuest
 					st.setCond(20);
 				break;
 		}
-		
-		return null;
 	}
 }

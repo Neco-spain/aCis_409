@@ -14,8 +14,8 @@ import net.sf.l2j.gameserver.data.xml.RecipeData;
 import net.sf.l2j.gameserver.enums.ShortcutType;
 import net.sf.l2j.gameserver.model.Shortcut;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.craft.ManufactureItem;
-import net.sf.l2j.gameserver.model.item.Recipe;
+import net.sf.l2j.gameserver.model.records.ManufactureItem;
+import net.sf.l2j.gameserver.model.records.Recipe;
 
 public class RecipeBook
 {
@@ -80,7 +80,7 @@ public class RecipeBook
 	{
 		for (ManufactureItem itemToCheck : itemsToCheck)
 		{
-			if (!hasRecipeOnSpecificBook(itemToCheck.getId(), itemToCheck.isDwarven()))
+			if (!hasRecipeOnSpecificBook(itemToCheck.recipeId(), itemToCheck.isDwarven()))
 				return false;
 		}
 		return true;
@@ -99,9 +99,9 @@ public class RecipeBook
 			return;
 		
 		if (isDwarven)
-			_dwarvenRecipes.put(recipe.getId(), recipe);
+			_dwarvenRecipes.put(recipe.id(), recipe);
 		else
-			_commonRecipes.put(recipe.getId(), recipe);
+			_commonRecipes.put(recipe.id(), recipe);
 		
 		// Db call.
 		if (saveOnDb)
@@ -110,10 +110,10 @@ public class RecipeBook
 				PreparedStatement ps = con.prepareStatement(INSERT_RECIPE))
 			{
 				ps.setInt(1, _owner.getObjectId());
-				ps.setInt(2, recipe.getId());
+				ps.setInt(2, recipe.id());
 				ps.execute();
 			}
-			catch (final Exception e)
+			catch (Exception e)
 			{
 				LOGGER.error("Couldn't store recipe.", e);
 			}
@@ -146,7 +146,7 @@ public class RecipeBook
 			ps.setInt(2, recipeId);
 			ps.execute();
 		}
-		catch (final Exception e)
+		catch (Exception e)
 		{
 			LOGGER.error("Couldn't remove recipe.", e);
 		}
@@ -171,7 +171,7 @@ public class RecipeBook
 				}
 			}
 		}
-		catch (final Exception e)
+		catch (Exception e)
 		{
 			LOGGER.error("Couldn't restore recipe book data.", e);
 		}

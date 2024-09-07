@@ -21,8 +21,12 @@ public class Q626_ADarkTwilight extends Quest
 	private static final int HIERARCH = 31517;
 	
 	// Drop chances
-	private static final Map<Integer, Integer> CHANCES = new HashMap<>();
+	private static final Map<Integer, Integer> CHANCES = HashMap.newHashMap(14);
+	
+	public Q626_ADarkTwilight()
 	{
+		super(626, "A Dark Twilight");
+		
 		CHANCES.put(21520, 533000);
 		CHANCES.put(21523, 566000);
 		CHANCES.put(21524, 603000);
@@ -37,19 +41,14 @@ public class Q626_ADarkTwilight extends Quest
 		CHANCES.put(21539, 739000);
 		CHANCES.put(21540, 739000);
 		CHANCES.put(21658, 669000);
-	}
-	
-	public Q626_ADarkTwilight()
-	{
-		super(626, "A Dark Twilight");
 		
 		setItemsIds(BLOOD_OF_SAINT);
 		
-		addStartNpc(HIERARCH);
+		addQuestStart(HIERARCH);
 		addTalkId(HIERARCH);
 		
 		for (int npcId : CHANCES.keySet())
-			addKillId(npcId);
+			addMyDying(npcId);
 	}
 	
 	@Override
@@ -126,17 +125,15 @@ public class Q626_ADarkTwilight extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMember(player, npc, 1);
 		if (st == null)
-			return null;
+			return;
 		
 		if (dropItems(st.getPlayer(), BLOOD_OF_SAINT, 1, 300, CHANCES.get(npc.getNpcId())))
 			st.setCond(2);
-		
-		return null;
 	}
 }

@@ -5,8 +5,11 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import net.sf.l2j.gameserver.data.manager.PartyMatchRoomManager;
+import net.sf.l2j.gameserver.data.manager.RelationManager;
+import net.sf.l2j.gameserver.data.xml.RestartPointData;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.restart.RestartPoint;
 import net.sf.l2j.gameserver.network.NpcStringId;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.CreatureSay;
@@ -36,7 +39,9 @@ public class PartyMatchRoom extends AbstractGroup
 		_id = id;
 		_title = title;
 		_lootType = loot;
-		_location = 1; // TODO Implement bbs behavior.
+		
+		refreshLocation();
+		
 		_minLvl = minLvl;
 		_maxLvl = maxLvl;
 		_maxMembersCount = maxMembersCount;
@@ -74,7 +79,7 @@ public class PartyMatchRoom extends AbstractGroup
 	{
 		for (Player member : _members)
 		{
-			if (!member.getBlockList().isInBlockList(broadcaster))
+			if (!RelationManager.getInstance().isInBlockList(member, broadcaster))
 				member.sendPacket(msg);
 		}
 	}
@@ -94,6 +99,7 @@ public class PartyMatchRoom extends AbstractGroup
 	@Override
 	public void recalculateLevel()
 	{
+		// Do nothing.
 	}
 	
 	@Override
@@ -150,9 +156,10 @@ public class PartyMatchRoom extends AbstractGroup
 		return _location;
 	}
 	
-	public void setLocation(int loc)
+	public void refreshLocation()
 	{
-		_location = loc;
+		final RestartPoint rp = RestartPointData.getInstance().getRestartPoint(getLeader());
+		_location = (rp == null) ? 100 : rp.getBbs();
 	}
 	
 	public int getMaxMembers()

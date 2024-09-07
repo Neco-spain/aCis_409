@@ -30,13 +30,7 @@ public class Clan extends Quest
 				if (!player.isClanLeader())
 					return "9000-05-no.htm";
 				
-			case "9000-07.htm":
-			case "9000-08.htm":
-			case "9000-12a.htm":
-			case "9000-13a.htm":
-			case "9000-13b.htm":
-			case "9000-14a.htm":
-			case "9000-15.htm":
+			case "9000-07.htm", "9000-08.htm", "9000-12a.htm", "9000-13a.htm", "9000-13b.htm", "9000-14a.htm", "9000-15.htm":
 				if (!player.isClanLeader())
 					return "9000-07-no.htm";
 		}

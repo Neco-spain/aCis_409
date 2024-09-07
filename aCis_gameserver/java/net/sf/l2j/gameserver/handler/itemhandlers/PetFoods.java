@@ -52,11 +52,9 @@ public class PetFoods implements IItemHandler
 		final L2Skill skill = SkillTable.getInstance().getInfo(magicId, 1);
 		if (skill != null)
 		{
-			if (playable instanceof Pet)
+			if (playable instanceof Pet pet)
 			{
-				final Pet pet = (Pet) playable;
-				
-				if (pet.destroyItem("Consume", item.getObjectId(), 1, null, false))
+				if (pet.destroyItem(item.getObjectId(), 1, false))
 				{
 					// Send visual effect.
 					playable.broadcastPacket(new MagicSkillUse(playable, playable, magicId, 1, 0, 0));
@@ -71,14 +69,13 @@ public class PetFoods implements IItemHandler
 					return true;
 				}
 			}
-			else if (playable instanceof Player)
+			else if (playable instanceof Player player)
 			{
-				final Player player = ((Player) playable);
 				final int itemId = item.getItemId();
 				
 				if (player.isMounted() && player.getPetTemplate().canEatFood(itemId))
 				{
-					if (player.destroyItem("Consume", item.getObjectId(), 1, null, false))
+					if (player.destroyItem(item.getObjectId(), 1, false))
 					{
 						player.broadcastPacket(new MagicSkillUse(playable, playable, magicId, 1, 0, 0));
 						player.setCurrentFeed(player.getCurrentFeed() + (skill.getFeed() * Config.PET_FOOD_RATE));

@@ -1,8 +1,5 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.enums.actors.OperateType;
 import net.sf.l2j.gameserver.model.World;
@@ -17,7 +14,7 @@ public final class RequestPrivateStoreBuy extends L2GameClientPacket
 	private static final int BATCH_LENGTH = 12; // length of one item
 	
 	private int _storePlayerId;
-	private Set<ItemRequest> _items = null;
+	private ItemRequest[] _items = null;
 	
 	@Override
 	protected void readImpl()
@@ -27,7 +24,7 @@ public final class RequestPrivateStoreBuy extends L2GameClientPacket
 		if (count <= 0 || count > Config.MAX_ITEM_IN_PACKET || count * BATCH_LENGTH != _buf.remaining())
 			return;
 		
-		_items = new HashSet<>();
+		_items = new ItemRequest[count];
 		
 		for (int i = 0; i < count; i++)
 		{
@@ -40,8 +37,7 @@ public final class RequestPrivateStoreBuy extends L2GameClientPacket
 				_items = null;
 				return;
 			}
-			
-			_items.add(new ItemRequest(objectId, cnt, price));
+			_items[i] = new ItemRequest(objectId, cnt, price);
 		}
 	}
 	
@@ -78,13 +74,10 @@ public final class RequestPrivateStoreBuy extends L2GameClientPacket
 			return;
 		}
 		
-		if (storePlayer.getOperateType() == OperateType.PACKAGE_SELL && storeList.size() > _items.size())
+		if (storePlayer.getOperateType() == OperateType.PACKAGE_SELL && storeList.size() > _items.length)
 			return;
 		
-		if (!storeList.privateStoreBuy(player, _items))
-			return;
-		
-		if (storeList.isEmpty())
+		if (storeList.privateStoreBuy(player, _items) && storeList.isEmpty())
 		{
 			storePlayer.setOperateType(OperateType.NONE);
 			storePlayer.broadcastUserInfo();

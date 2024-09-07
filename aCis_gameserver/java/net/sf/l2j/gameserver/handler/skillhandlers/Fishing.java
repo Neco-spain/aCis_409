@@ -24,12 +24,10 @@ public class Fishing implements ISkillHandler
 	};
 	
 	@Override
-	public void useSkill(Creature activeChar, L2Skill skill, WorldObject[] targets)
+	public void useSkill(Creature creature, L2Skill skill, WorldObject[] targets, ItemInstance item)
 	{
-		if (!(activeChar instanceof Player))
+		if (!(creature instanceof Player player))
 			return;
-		
-		Player player = (Player) activeChar;
 		
 		// Cancels fishing
 		if (player.isFishing())
@@ -47,7 +45,7 @@ public class Fishing implements ISkillHandler
 		}
 		
 		// You can't fish while you are on boat
-		if (player.isInBoat())
+		if (player.getBoatInfo().isInBoat())
 		{
 			player.sendPacket(SystemMessageId.CANNOT_FISH_ON_BOAT);
 			return;
@@ -67,8 +65,8 @@ public class Fishing implements ISkillHandler
 		}
 		
 		// Check equipped baits.
-		final ItemInstance item = player.getSecondaryWeaponInstance();
-		if (item == null)
+		final ItemInstance lure = player.getSecondaryWeaponInstance();
+		if (lure == null)
 		{
 			player.sendPacket(SystemMessageId.BAIT_ON_HOOK_BEFORE_FISHING);
 			return;
@@ -103,14 +101,14 @@ public class Fishing implements ISkillHandler
 		}
 		
 		// Has enough bait, consume 1 and update inventory.
-		if (!player.destroyItem("Consume", item, 1, player, false))
+		if (!player.destroyItem(lure, 1, false))
 		{
 			player.sendPacket(SystemMessageId.NOT_ENOUGH_BAIT);
 			return;
 		}
 		
 		// Start fishing.
-		player.getFishingStance().start(baitLoc, item);
+		player.getFishingStance().start(baitLoc, lure);
 	}
 	
 	@Override

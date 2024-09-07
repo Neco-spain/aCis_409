@@ -48,7 +48,7 @@ public final class RequestOustFromPartyRoom extends L2GameClientPacket
 			PartyMatchRoomManager.getInstance().addWaitingPlayer(target);
 			
 			// Send Room list.
-			target.sendPacket(new PartyMatchList(target));
+			target.sendPacket(new PartyMatchList(target, 1, 1));
 			
 			target.sendPacket(SystemMessageId.OUSTED_FROM_PARTY_ROOM);
 		}

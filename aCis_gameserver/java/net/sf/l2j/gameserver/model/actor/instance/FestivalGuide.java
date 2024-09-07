@@ -37,8 +37,7 @@ public final class FestivalGuide extends Folk
 		
 		switch (getNpcId())
 		{
-			case 31127:
-			case 31132:
+			case 31127, 31132:
 				_festivalType = FestivalType.MAX_31;
 				_festivalOracle = CabalType.DAWN;
 				_blueStonesNeeded = 900;
@@ -46,8 +45,7 @@ public final class FestivalGuide extends Folk
 				_redStonesNeeded = 270;
 				break;
 			
-			case 31128:
-			case 31133:
+			case 31128, 31133:
 				_festivalType = FestivalType.MAX_42;
 				_festivalOracle = CabalType.DAWN;
 				_blueStonesNeeded = 1500;
@@ -55,8 +53,7 @@ public final class FestivalGuide extends Folk
 				_redStonesNeeded = 450;
 				break;
 			
-			case 31129:
-			case 31134:
+			case 31129, 31134:
 				_festivalType = FestivalType.MAX_53;
 				_festivalOracle = CabalType.DAWN;
 				_blueStonesNeeded = 3000;
@@ -64,8 +61,7 @@ public final class FestivalGuide extends Folk
 				_redStonesNeeded = 900;
 				break;
 			
-			case 31130:
-			case 31135:
+			case 31130, 31135:
 				_festivalType = FestivalType.MAX_64;
 				_festivalOracle = CabalType.DAWN;
 				_blueStonesNeeded = 4500;
@@ -73,8 +69,7 @@ public final class FestivalGuide extends Folk
 				_redStonesNeeded = 1350;
 				break;
 			
-			case 31131:
-			case 31136:
+			case 31131, 31136:
 				_festivalType = FestivalType.MAX_NONE;
 				_festivalOracle = CabalType.DAWN;
 				_blueStonesNeeded = 6000;
@@ -82,8 +77,7 @@ public final class FestivalGuide extends Folk
 				_redStonesNeeded = 1800;
 				break;
 			
-			case 31137:
-			case 31142:
+			case 31137, 31142:
 				_festivalType = FestivalType.MAX_31;
 				_festivalOracle = CabalType.DUSK;
 				_blueStonesNeeded = 900;
@@ -91,8 +85,7 @@ public final class FestivalGuide extends Folk
 				_redStonesNeeded = 270;
 				break;
 			
-			case 31138:
-			case 31143:
+			case 31138, 31143:
 				_festivalType = FestivalType.MAX_42;
 				_festivalOracle = CabalType.DUSK;
 				_blueStonesNeeded = 1500;
@@ -100,8 +93,7 @@ public final class FestivalGuide extends Folk
 				_redStonesNeeded = 450;
 				break;
 			
-			case 31139:
-			case 31144:
+			case 31139, 31144:
 				_festivalType = FestivalType.MAX_53;
 				_festivalOracle = CabalType.DUSK;
 				_blueStonesNeeded = 3000;
@@ -109,8 +101,7 @@ public final class FestivalGuide extends Folk
 				_redStonesNeeded = 900;
 				break;
 			
-			case 31140:
-			case 31145:
+			case 31140, 31145:
 				_festivalType = FestivalType.MAX_64;
 				_festivalOracle = CabalType.DUSK;
 				_blueStonesNeeded = 4500;
@@ -118,8 +109,7 @@ public final class FestivalGuide extends Folk
 				_redStonesNeeded = 1350;
 				break;
 			
-			case 31141:
-			case 31146:
+			case 31141, 31146:
 				_festivalType = FestivalType.MAX_NONE;
 				_festivalOracle = CabalType.DUSK;
 				_blueStonesNeeded = 6000;
@@ -217,7 +207,7 @@ public final class FestivalGuide extends Folk
 							break;
 					}
 					
-					if (!player.destroyItemByItemId("SevenSigns", stoneType, stonesNeeded, this, true))
+					if (!player.destroyItemByItemId(stoneType, stonesNeeded, true))
 						return;
 					
 					FestivalOfDarknessManager.getInstance().setParticipants(_festivalOracle, festivalIndex, playerParty);
@@ -273,7 +263,7 @@ public final class FestivalGuide extends Folk
 					}
 					
 					final int offeringScore = bloodOfferings.getCount() * FestivalOfDarknessManager.FESTIVAL_OFFERING_VALUE;
-					if (!player.destroyItem("SevenSigns", bloodOfferings, this, false))
+					if (!player.destroyItem(bloodOfferings, false))
 						return;
 					
 					final boolean isHighestScore = FestivalOfDarknessManager.getInstance().setFinalScore(player, _festivalOracle, _festivalType, offeringScore);
@@ -395,32 +385,15 @@ public final class FestivalGuide extends Folk
 		
 		switch (getTemplate().getNpcId())
 		{
-			case 31127: //
-			case 31128: //
-			case 31129: // Dawn Festival Guides
-			case 31130: //
-			case 31131: //
+			case 31127, 31128, 31129, 31130, 31131: // Dawn Festival Guides
 				filename += "festival/dawn_guide.htm";
 				break;
 			
-			case 31137: //
-			case 31138: //
-			case 31139: // Dusk Festival Guides
-			case 31140: //
-			case 31141: //
+			case 31137, 31138, 31139, 31140, 31141: // Dusk Festival Guides
 				filename += "festival/dusk_guide.htm";
 				break;
 			
-			case 31132: //
-			case 31133: //
-			case 31134: //
-			case 31135: //
-			case 31136: // Festival Witches
-			case 31142: //
-			case 31143: //
-			case 31144: //
-			case 31145: //
-			case 31146: //
+			case 31132, 31133, 31134, 31135, 31136, 31142, 31143, 31144, 31145, 31146: // Festival Witches
 				filename += "festival/festival_witch.htm";
 				break;
 		}
@@ -495,7 +468,7 @@ public final class FestivalGuide extends Folk
 	
 	private static final String calculateDate(String milliFromEpoch)
 	{
-		long numMillis = Long.valueOf(milliFromEpoch);
+		long numMillis = Long.parseLong(milliFromEpoch);
 		Calendar calCalc = Calendar.getInstance();
 		
 		calCalc.setTimeInMillis(numMillis);

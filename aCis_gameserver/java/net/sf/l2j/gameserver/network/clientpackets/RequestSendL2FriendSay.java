@@ -5,6 +5,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 import net.sf.l2j.Config;
+import net.sf.l2j.gameserver.data.manager.RelationManager;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.network.SystemMessageId;
@@ -35,14 +36,14 @@ public final class RequestSendL2FriendSay extends L2GameClientPacket
 			return;
 		
 		final Player recipient = World.getInstance().getPlayer(_recipient);
-		if (recipient == null || !recipient.getFriendList().contains(player.getObjectId()))
+		if (recipient == null || !RelationManager.getInstance().areFriends(player.getObjectId(), recipient.getObjectId()))
 		{
 			player.sendPacket(SystemMessageId.TARGET_IS_NOT_FOUND_IN_THE_GAME);
 			return;
 		}
 		
 		// If sender is in block list of recipient then notify him about this and ignore message.
-		if (recipient.getBlockList().isInBlockList(player))
+		if (RelationManager.getInstance().isInBlockList(recipient, player))
 		{
 			player.sendPacket(new L2FriendSay(_recipient, player.getName(), _message, 620));
 			return;
@@ -50,15 +51,15 @@ public final class RequestSendL2FriendSay extends L2GameClientPacket
 		
 		if (Config.LOG_CHAT)
 		{
-			LogRecord record = new LogRecord(Level.INFO, _message);
-			record.setLoggerName("chat");
-			record.setParameters(new Object[]
+			final LogRecord logRecord = new LogRecord(Level.INFO, _message);
+			logRecord.setLoggerName("chat");
+			logRecord.setParameters(new Object[]
 			{
 				"PRIV_MSG",
 				"[" + player.getName() + " to " + _recipient + "]"
 			});
 			
-			CHAT_LOG.log(record);
+			CHAT_LOG.log(logRecord);
 		}
 		
 		recipient.sendPacket(new L2FriendSay(player.getName(), _recipient, _message, 0));

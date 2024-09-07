@@ -44,15 +44,15 @@ public class CastleTeleportZone extends ZoneType
 	}
 	
 	@Override
-	protected void onEnter(Creature character)
+	protected void onEnter(Creature creature)
 	{
-		character.setInsideZone(ZoneId.NO_SUMMON_FRIEND, true);
+		creature.setInsideZone(ZoneId.NO_SUMMON_FRIEND, true);
 	}
 	
 	@Override
-	protected void onExit(Creature character)
+	protected void onExit(Creature creature)
 	{
-		character.setInsideZone(ZoneId.NO_SUMMON_FRIEND, false);
+		creature.setInsideZone(ZoneId.NO_SUMMON_FRIEND, false);
 	}
 	
 	public void oustAllPlayers()

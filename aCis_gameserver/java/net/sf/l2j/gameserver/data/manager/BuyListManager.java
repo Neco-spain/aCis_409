@@ -7,7 +7,6 @@ import java.sql.ResultSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import net.sf.l2j.commons.data.xml.IXmlReader;
 import net.sf.l2j.commons.pool.ConnectionPool;
@@ -89,7 +88,7 @@ public class BuyListManager implements IXmlReader
 	
 	public List<NpcBuyList> getBuyListsByNpcId(int npcId)
 	{
-		return _buyLists.values().stream().filter(b -> b.isNpcAllowed(npcId)).collect(Collectors.toList());
+		return _buyLists.values().stream().filter(b -> b.isNpcAllowed(npcId)).toList();
 	}
 	
 	public static BuyListManager getInstance()

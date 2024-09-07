@@ -25,7 +25,7 @@ public final class ServerList extends L2LoginServerPacket
 		for (GameServerInfo gsi : GameServerManager.getInstance().getRegisteredGameServers().values())
 		{
 			final ServerType type = (account.getAccessLevel() < 0 || (gsi.getType() == ServerType.GM_ONLY && account.getAccessLevel() <= 0)) ? ServerType.DOWN : gsi.getType();
-			final String hostName = gsi.getHostName();
+			final String hostName = (isLocalIp(account.getClientIp()) && gsi.getGameServerThread() != null) ? gsi.getGameServerThread().getConnectionIp() : gsi.getHostName();
 			
 			_servers.add(new ServerData(type, hostName, gsi));
 		}
@@ -40,11 +40,11 @@ public final class ServerList extends L2LoginServerPacket
 		
 		for (ServerData server : _servers)
 		{
-			writeC(server.getServerId());
+			writeC(server.serverId());
 			
 			try
 			{
-				final byte[] raw = InetAddress.getByName(server.getHostName()).getAddress();
+				final byte[] raw = InetAddress.getByName(server.hostName()).getAddress();
 				writeC(raw[0] & 0xff);
 				writeC(raw[1] & 0xff);
 				writeC(raw[2] & 0xff);
@@ -59,12 +59,12 @@ public final class ServerList extends L2LoginServerPacket
 				writeC(1);
 			}
 			
-			writeD(server.getPort());
-			writeC(server.getAgeLimit());
+			writeD(server.port());
+			writeC(server.ageLimit());
 			writeC(server.isPvp() ? 0x01 : 0x00);
-			writeH(server.getCurrentPlayers());
-			writeH(server.getMaxPlayers());
-			writeC(server.getType() == ServerType.DOWN ? 0x00 : 0x01);
+			writeH(server.currentPlayers());
+			writeH(server.maxPlayers());
+			writeC(server.type() == ServerType.DOWN ? 0x00 : 0x01);
 			
 			int bits = 0;
 			if (server.isTestServer())
@@ -76,5 +76,10 @@ public final class ServerList extends L2LoginServerPacket
 			writeD(bits);
 			writeC(server.isShowingBrackets() ? 0x01 : 0x00);
 		}
+	}
+	
+	public static boolean isLocalIp(InetAddress address)
+	{
+		return address == null || address.isLinkLocalAddress() || address.isLoopbackAddress() || address.isAnyLocalAddress() || address.isSiteLocalAddress();
 	}
 }

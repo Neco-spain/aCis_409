@@ -8,7 +8,6 @@ import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.Summon;
-import net.sf.l2j.gameserver.model.actor.ai.type.SummonAI;
 import net.sf.l2j.gameserver.model.actor.instance.Door;
 import net.sf.l2j.gameserver.model.actor.instance.Pet;
 import net.sf.l2j.gameserver.model.actor.instance.Servitor;
@@ -132,13 +131,12 @@ public final class RequestActionUse extends L2GameClientPacket
 				player.tryOpenPrivateBuyStore();
 				break;
 			
-			case 15:
-			case 21: // Change Movement Mode (pet follow/stop)
+			case 15, 21: // Change Movement Mode (pet follow/stop)
 				if (summon == null)
 					return;
 				
 				// You can't order anymore your pet to stop if distance is superior to 2000.
-				if (((SummonAI) summon.getAI()).getFollowStatus() && !player.isIn3DRadius(summon, 2000))
+				if (summon.getAI().getFollowStatus() && !player.isIn3DRadius(summon, 2000))
 					return;
 				
 				if (summon.isOutOfControl())
@@ -147,16 +145,15 @@ public final class RequestActionUse extends L2GameClientPacket
 					return;
 				}
 				
-				((SummonAI) summon.getAI()).switchFollowStatus();
+				summon.getAI().switchFollowStatus();
 				break;
 			
-			case 16:
-			case 22: // Attack (pet attack)
+			case 16, 22: // Attack (pet attack)
 				if (target == null || summon == null || summon == target || player == target)
 					return;
 				
 				// If target is trully dead, then do nothing at all. Fake Death is handled elsewhere (attack task).
-				if (target instanceof Creature && ((Creature) target).isDead())
+				if (target instanceof Creature targetCreature && targetCreature.isDead())
 					return;
 				
 				// Sin eater, Big Boom, Wyvern can't attack with attack button.
@@ -177,20 +174,18 @@ public final class RequestActionUse extends L2GameClientPacket
 				
 				summon.setTarget(target);
 				
-				if (target instanceof Creature)
+				if (target instanceof Creature targetCreature)
 				{
-					final Creature creature = (Creature) target;
-					if (creature.isAttackableWithoutForceBy(player) || (_isCtrlPressed && creature.isAttackableBy(player)))
-						summon.getAI().tryToAttack(creature, _isCtrlPressed, _isShiftPressed);
+					if (targetCreature.isAttackableWithoutForceBy(player) || (_isCtrlPressed && targetCreature.isAttackableBy(player)))
+						summon.getAI().tryToAttack(targetCreature, _isCtrlPressed, _isShiftPressed);
 					else
-						summon.getAI().tryToFollow(creature, _isShiftPressed);
+						summon.getAI().tryToFollow(targetCreature, _isShiftPressed);
 				}
 				else
 					summon.getAI().tryToInteract(target, _isCtrlPressed, _isShiftPressed);
 				break;
 			
-			case 17:
-			case 23: // Stop (pet - cancel action)
+			case 17, 23: // Stop (pet - cancel action)
 				if (summon == null)
 					return;
 				
@@ -200,23 +195,23 @@ public final class RequestActionUse extends L2GameClientPacket
 					return;
 				}
 				
-				summon.getAI().tryToActive();
+				summon.getAI().tryToIdle();
 				break;
 			
 			case 19: // Returns pet to control item
-				if (!(summon instanceof Pet))
+				if (!(summon instanceof Pet pet))
 					return;
 				
-				if (summon.isDead())
+				if (pet.isDead())
 					player.sendPacket(SystemMessageId.DEAD_PET_CANNOT_BE_RETURNED);
-				else if (summon.isOutOfControl())
+				else if (pet.isOutOfControl())
 					player.sendPacket(SystemMessageId.PET_REFUSING_ORDER);
-				else if (summon.getAttack().isAttackingNow() || summon.isInCombat())
+				else if (pet.getAttack().isAttackingNow() || pet.isInCombat())
 					player.sendPacket(SystemMessageId.PET_CANNOT_SENT_BACK_DURING_BATTLE);
-				else if (((Pet) summon).checkUnsummonState())
+				else if (pet.checkUnsummonState())
 					player.sendPacket(SystemMessageId.YOU_CANNOT_RESTORE_HUNGRY_PETS);
 				else
-					summon.unSummon(player);
+					pet.unSummon(player);
 				break;
 			
 			case 38: // pet mount/dismount
@@ -282,21 +277,20 @@ public final class RequestActionUse extends L2GameClientPacket
 				break;
 			
 			case 52: // Unsummon a servitor
-				if (!(summon instanceof Servitor))
+				if (!(summon instanceof Servitor servitor))
 					return;
 				
-				if (summon.isDead())
+				if (servitor.isDead())
 					player.sendPacket(SystemMessageId.DEAD_PET_CANNOT_BE_RETURNED);
-				else if (summon.isOutOfControl())
+				else if (servitor.isOutOfControl())
 					player.sendPacket(SystemMessageId.PET_REFUSING_ORDER);
-				else if (summon.getAttack().isAttackingNow() || summon.isInCombat())
+				else if (servitor.getAttack().isAttackingNow() || servitor.isInCombat())
 					player.sendPacket(SystemMessageId.PET_CANNOT_SENT_BACK_DURING_BATTLE);
 				else
-					summon.unSummon(player);
+					servitor.unSummon(player);
 				break;
 			
-			case 53: // move to target
-			case 54: // move to target hatch/strider
+			case 53, 54: // move to target, move to target hatch/strider
 				if (target == null || summon == null || summon == target)
 					return;
 				
@@ -308,10 +302,10 @@ public final class RequestActionUse extends L2GameClientPacket
 				
 				summon.getAI().setFollowStatus(false);
 				
-				if (!(target instanceof Creature))
-					summon.getAI().tryToInteract(target, _isCtrlPressed, _isShiftPressed);
+				if (target instanceof Creature targetCreature)
+					summon.getAI().tryToFollow(targetCreature, _isShiftPressed);
 				else
-					summon.getAI().tryToFollow((Creature) target, _isShiftPressed);
+					summon.getAI().tryToInteract(target, _isCtrlPressed, _isShiftPressed);
 				break;
 			
 			case 61: // Private Store Package Sell
@@ -470,14 +464,10 @@ public final class RequestActionUse extends L2GameClientPacket
 		if (skill == null)
 			return false;
 		
-		if (summon instanceof Pet && summon.getStatus().getLevel() - player.getStatus().getLevel() > 20)
+		if (summon instanceof Pet pet && pet.getStatus().getLevel() - player.getStatus().getLevel() > 20)
 			return false;
 		
-		Creature finalTarget = null;
-		if (target instanceof Creature)
-			finalTarget = (Creature) target;
-		
-		summon.getAI().tryToCast(finalTarget, skill, _isCtrlPressed, _isShiftPressed, 0);
+		summon.getAI().tryToCast((target instanceof Creature targetCreature) ? targetCreature : null, skill, _isCtrlPressed, _isShiftPressed, 0);
 		return true;
 	}
 }

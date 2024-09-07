@@ -38,34 +38,33 @@ public class ExShowCropSetting extends L2GameServerPacket
 	@Override
 	public void writeImpl()
 	{
-		writeC(0xFE); // Id
-		writeH(0x20); // SubId
+		writeC(0xFE);
+		writeH(0x20);
 		
-		writeD(_manorId); // manor id
-		writeD(_seeds.size()); // size
+		writeD(_manorId);
+		writeD(_seeds.size());
 		
-		CropProcure cp;
 		for (Seed s : _seeds)
 		{
-			writeD(s.getCropId()); // crop id
-			writeD(s.getLevel()); // seed level
+			writeD(s.getCropId());
+			writeD(s.getLevel());
 			writeC(1);
-			writeD(s.getReward(1)); // reward 1 id
+			writeD(s.getReward1());
 			writeC(1);
-			writeD(s.getReward(2)); // reward 2 id
+			writeD(s.getReward2());
 			
-			writeD(s.getCropLimit()); // next sale limit
-			writeD(0); // ???
-			writeD(s.getCropMinPrice()); // min crop price
-			writeD(s.getCropMaxPrice()); // max crop price
+			writeD(s.getCropsLimit());
+			writeD(0);
+			writeD(s.getCropMinPrice());
+			writeD(s.getCropMaxPrice());
 			
 			// Current period
-			if (_current.containsKey(s.getCropId()))
+			CropProcure cp = _current.get(s.getCropId());
+			if (cp != null)
 			{
-				cp = _current.get(s.getCropId());
-				writeD(cp.getStartAmount()); // buy
-				writeD(cp.getPrice()); // price
-				writeC(cp.getReward()); // reward
+				writeD(cp.getStartAmount());
+				writeD(cp.getPrice());
+				writeC(cp.getReward());
 			}
 			else
 			{
@@ -73,13 +72,14 @@ public class ExShowCropSetting extends L2GameServerPacket
 				writeD(0);
 				writeC(0);
 			}
+			
 			// Next period
-			if (_next.containsKey(s.getCropId()))
+			cp = _next.get(s.getCropId());
+			if (cp != null)
 			{
-				cp = _next.get(s.getCropId());
-				writeD(cp.getStartAmount()); // buy
-				writeD(cp.getPrice()); // price
-				writeC(cp.getReward()); // reward
+				writeD(cp.getStartAmount());
+				writeD(cp.getPrice());
+				writeC(cp.getReward());
 			}
 			else
 			{

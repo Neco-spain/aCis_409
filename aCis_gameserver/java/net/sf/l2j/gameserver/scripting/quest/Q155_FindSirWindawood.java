@@ -24,7 +24,7 @@ public class Q155_FindSirWindawood extends Quest
 		
 		setItemsIds(OFFICIAL_LETTER);
 		
-		addStartNpc(ABELLOS);
+		addQuestStart(ABELLOS);
 		addTalkId(WINDAWOOD, ABELLOS);
 	}
 	
@@ -69,7 +69,7 @@ public class Q155_FindSirWindawood extends Quest
 						break;
 					
 					case WINDAWOOD:
-						if (player.getInventory().hasItems(OFFICIAL_LETTER))
+						if (player.getInventory().hasItem(OFFICIAL_LETTER))
 						{
 							htmltext = "30311-01.htm";
 							takeItems(player, OFFICIAL_LETTER, 1);

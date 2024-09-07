@@ -1,13 +1,15 @@
 package net.sf.l2j.gameserver.data.cache;
 
-import java.io.File;
-import java.io.FileFilter;
-import java.io.FileOutputStream;
-import java.io.RandomAccessFile;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
 import net.sf.l2j.commons.logging.CLogger;
+
+import net.sf.l2j.gameserver.enums.CrestType;
 
 /**
  * A cache storing clan crests under .dds format.<br>
@@ -16,38 +18,11 @@ import net.sf.l2j.commons.logging.CLogger;
  */
 public class CrestCache
 {
-	public enum CrestType
-	{
-		PLEDGE("Crest_", 256),
-		PLEDGE_LARGE("LargeCrest_", 2176),
-		ALLY("AllyCrest_", 192);
-		
-		private final String _prefix;
-		private final int _size;
-		
-		private CrestType(String prefix, int size)
-		{
-			_prefix = prefix;
-			_size = size;
-		}
-		
-		public final String getPrefix()
-		{
-			return _prefix;
-		}
-		
-		public final int getSize()
-		{
-			return _size;
-		}
-	}
-	
 	private static final CLogger LOGGER = new CLogger(CrestCache.class.getName());
 	
 	private static final String CRESTS_DIR = "./data/crests/";
 	
 	private final Map<Integer, byte[]> _crests = new HashMap<>();
-	private final FileFilter _ddsFilter = new DdsFilter();
 	
 	public CrestCache()
 	{
@@ -61,59 +36,46 @@ public class CrestCache
 	 */
 	private final void load()
 	{
-		for (File file : new File(CRESTS_DIR).listFiles())
+		try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(CRESTS_DIR), new DdsFilter()))
 		{
-			final String fileName = file.getName();
-			
-			// Invalid file type has been found ; delete it.
-			if (!_ddsFilter.accept(file))
+			for (Path filePath : stream)
 			{
-				file.delete();
+				final String fileName = filePath.getFileName().toString();
 				
-				LOGGER.warn("Invalid file {} has been deleted while loading crests.", fileName);
-				continue;
-			}
-			
-			// Load data on byte array.
-			byte[] data;
-			try (RandomAccessFile f = new RandomAccessFile(file, "r"))
-			{
-				data = new byte[(int) f.length()];
-				f.readFully(data);
-			}
-			catch (Exception e)
-			{
-				LOGGER.error("Error loading crest file: {}.", e, fileName);
-				continue;
-			}
-			
-			// Test each crest type.
-			for (CrestType type : CrestType.values())
-			{
-				// We found a matching crest type.
-				if (fileName.startsWith(type.getPrefix()))
+				// Load data on byte array.
+				final byte[] data = Files.readAllBytes(filePath);
+				
+				// Test each crest type.
+				for (CrestType type : CrestType.values())
 				{
+					// The crest type isn't matching, ignore it.
+					if (!fileName.startsWith(type.getPrefix()))
+						continue;
+					
 					// The data size isn't the required one, delete the file.
 					if (data.length != type.getSize())
 					{
-						file.delete();
-						
-						LOGGER.warn("The data for crest {} is invalid. The crest has been deleted.", fileName);
-						continue;
+						if (Files.deleteIfExists(filePath))
+							LOGGER.warn("The data for crest {} is invalid. The crest has been deleted.", fileName);
 					}
-					
 					// Feed the cache with crest id as key, and crest data as value.
-					_crests.put(Integer.valueOf(fileName.substring(type.getPrefix().length(), fileName.length() - 4)), data);
-					continue;
+					else
+						_crests.put(Integer.valueOf(fileName.substring(type.getPrefix().length(), fileName.length() - 4)), data);
+					
+					break;
 				}
 			}
+		}
+		catch (Exception e)
+		{
+			LOGGER.error("Error loading crest files.", e);
 		}
 		
 		LOGGER.info("Loaded {} crests.", _crests.size());
 	}
 	
 	/**
-	 * Cleans the crest cache, and reload it.
+	 * Clean the crest cache, and reload it.
 	 */
 	public final void reload()
 	{
@@ -129,10 +91,10 @@ public class CrestCache
 	 */
 	public final byte[] getCrest(CrestType type, int id)
 	{
-		// get crest data
+		// Get crest data.
 		byte[] data = _crests.get(id);
 		
-		// crest data is not required type, return
+		// Crest data is not required type, return.
 		if (data == null || data.length != type.getSize())
 			return null;
 		
@@ -140,30 +102,34 @@ public class CrestCache
 	}
 	
 	/**
-	 * Removes the crest from both memory and file system.
+	 * Remove the crest from both memory and file system.
 	 * @param type : The {@link CrestType} to refer on. Size integrity check is made based on it.
 	 * @param id : The crest id to delete.
 	 */
 	public final void removeCrest(CrestType type, int id)
 	{
-		// get crest data
-		byte[] data = _crests.get(id);
-		
-		// crest data is not required type, return
+		// Get crest data.
+		final byte[] data = _crests.get(id);
 		if (data == null || data.length != type.getSize())
 			return;
 		
-		// remove from cache
+		// Remove from cache.
 		_crests.remove(id);
 		
-		// delete file
-		final File file = new File(CRESTS_DIR + type.getPrefix() + id + ".dds");
-		if (!file.delete())
-			LOGGER.warn("Error deleting crest file: {}.", file.getName());
+		// Delete file.
+		final Path filePath = Paths.get(CRESTS_DIR, type.getPrefix() + id + ".dds");
+		try
+		{
+			Files.deleteIfExists(filePath);
+		}
+		catch (Exception e)
+		{
+			LOGGER.error("Error deleting crest file: {}.", e, filePath.getFileName());
+		}
 	}
 	
 	/**
-	 * Stores the crest as a physical file and in cache memory.
+	 * Store the crest as a physical file and in cache memory.
 	 * @param type : The {@link CrestType} used to register the crest. Crest name uses it.
 	 * @param id : The crest id to register this new crest.
 	 * @param data : The crest data to store.
@@ -172,23 +138,23 @@ public class CrestCache
 	public final boolean saveCrest(CrestType type, int id, byte[] data)
 	{
 		// Create the file.
-		final File file = new File(CRESTS_DIR + type.getPrefix() + id + ".dds");
+		final Path filePath = Paths.get(CRESTS_DIR, type.getPrefix() + id + ".dds");
 		
 		// Verify the data size integrity.
 		if (data.length != type.getSize())
 		{
-			LOGGER.warn("The data for crest {} is invalid. Saving process is aborted.", file.getName());
+			LOGGER.warn("The data for crest {} is invalid. Saving process is aborted.", filePath.getFileName());
 			return false;
 		}
 		
 		// Save the crest file with given data.
-		try (FileOutputStream out = new FileOutputStream(file))
+		try
 		{
-			out.write(data);
+			Files.write(filePath, data);
 		}
 		catch (Exception e)
 		{
-			LOGGER.error("Error saving crest file: {}.", e, file.getName());
+			LOGGER.error("Error saving crest file: {}.", e, filePath.getFileName());
 			return false;
 		}
 		
@@ -198,12 +164,12 @@ public class CrestCache
 		return true;
 	}
 	
-	protected class DdsFilter implements FileFilter
+	private static class DdsFilter implements DirectoryStream.Filter<Path>
 	{
 		@Override
-		public boolean accept(File file)
+		public boolean accept(Path file)
 		{
-			final String fileName = file.getName();
+			final String fileName = file.getFileName().toString();
 			
 			return (fileName.startsWith("Crest_") || fileName.startsWith("LargeCrest_") || fileName.startsWith("AllyCrest_")) && fileName.endsWith(".dds");
 		}

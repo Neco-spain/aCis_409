@@ -86,7 +86,7 @@ public class SchemeBuffer extends Folk
 			
 			if (target == null)
 				player.sendMessage("You don't have a pet.");
-			else if (cost == 0 || player.reduceAdena("NPC Buffer", cost, this, true))
+			else if (cost == 0 || player.reduceAdena(cost, true))
 				BufferManager.getInstance().applySchemeEffects(this, target, player.getObjectId(), schemeName);
 		}
 		else if (currentCommand.startsWith("editschemes"))
@@ -268,11 +268,11 @@ public class SchemeBuffer extends Folk
 			sb.append(((row % 2) == 0 ? "<table width=\"280\" bgcolor=\"000000\"><tr>" : "<table width=\"280\"><tr>"));
 			
 			if (schemeSkills.contains(skillId))
-				StringUtil.append(sb, "<td height=40 width=40><img src=\"", icon, "\" width=32 height=32></td><td width=190>", SkillTable.getInstance().getInfo(skillId, 1).getName(), "<br1><font color=\"B09878\">", BufferManager.getInstance().getAvailableBuff(skillId).getDescription(), "</font></td><td><button action=\"bypass npc_%objectId%_skillunselect ", groupType, " ", schemeName, " ", skillId, " ", page, "\" width=32 height=32 back=\"L2UI_CH3.mapbutton_zoomout2\" fore=\"L2UI_CH3.mapbutton_zoomout1\"></td>");
+				StringUtil.append(sb, "<td height=40 width=40><img src=\"", icon, "\" width=32 height=32></td><td width=190>", SkillTable.getInstance().getInfo(skillId, 1).getName(), "<br1><font color=\"B09878\">", BufferManager.getInstance().getAvailableBuff(skillId).description(), "</font></td><td><button action=\"bypass npc_%objectId%_skillunselect ", groupType, " ", schemeName, " ", skillId, " ", page, "\" width=32 height=32 back=\"L2UI_CH3.mapbutton_zoomout2\" fore=\"L2UI_CH3.mapbutton_zoomout1\"></td>");
 			else
-				StringUtil.append(sb, "<td height=40 width=40><img src=\"", icon, "\" width=32 height=32></td><td width=190>", SkillTable.getInstance().getInfo(skillId, 1).getName(), "<br1><font color=\"B09878\">", BufferManager.getInstance().getAvailableBuff(skillId).getDescription(), "</font></td><td><button action=\"bypass npc_%objectId%_skillselect ", groupType, " ", schemeName, " ", skillId, " ", page, "\" width=32 height=32 back=\"L2UI_CH3.mapbutton_zoomin2\" fore=\"L2UI_CH3.mapbutton_zoomin1\"></td>");
+				StringUtil.append(sb, "<td height=40 width=40><img src=\"", icon, "\" width=32 height=32></td><td width=190>", SkillTable.getInstance().getInfo(skillId, 1).getName(), "<br1><font color=\"B09878\">", BufferManager.getInstance().getAvailableBuff(skillId).description(), "</font></td><td><button action=\"bypass npc_%objectId%_skillselect ", groupType, " ", schemeName, " ", skillId, " ", page, "\" width=32 height=32 back=\"L2UI_CH3.mapbutton_zoomin2\" fore=\"L2UI_CH3.mapbutton_zoomin1\"></td>");
 			
-			sb.append("</tr></table><img src=\"L2UI.SquareGray\" width=277 height=1>");
+			sb.append("</tr></table><img src=\"L2UI.SquareGray\" width=280 height=1>");
 			row++;
 		}
 		
@@ -280,7 +280,7 @@ public class SchemeBuffer extends Folk
 			StringUtil.append(sb, "<img height=41>");
 		
 		// Build page footer.
-		sb.append("<br><img src=\"L2UI.SquareGray\" width=277 height=1><table width=\"100%\" bgcolor=000000><tr>");
+		sb.append("<br><img src=\"L2UI.SquareGray\" width=280 height=1><table width=\"100%\" bgcolor=000000><tr>");
 		
 		if (page > 1)
 			StringUtil.append(sb, "<td align=left width=70><a action=\"bypass npc_" + getObjectId() + "_editschemes ", groupType, " ", schemeName, " ", page - 1, "\">Previous</a></td>");
@@ -294,7 +294,7 @@ public class SchemeBuffer extends Folk
 		else
 			StringUtil.append(sb, "<td align=right width=70>Next</td>");
 		
-		sb.append("</tr></table><img src=\"L2UI.SquareGray\" width=277 height=1>");
+		sb.append("</tr></table><img src=\"L2UI.SquareGray\" width=280 height=1>");
 		
 		return sb.toString();
 	}
@@ -347,7 +347,7 @@ public class SchemeBuffer extends Folk
 		
 		int fee = 0;
 		for (int sk : list)
-			fee += BufferManager.getInstance().getAvailableBuff(sk).getPrice();
+			fee += BufferManager.getInstance().getAvailableBuff(sk).price();
 		
 		return fee;
 	}

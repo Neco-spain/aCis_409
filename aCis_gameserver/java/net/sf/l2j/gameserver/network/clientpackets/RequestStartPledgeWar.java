@@ -2,6 +2,7 @@ package net.sf.l2j.gameserver.network.clientpackets;
 
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.sql.ClanTable;
+import net.sf.l2j.gameserver.enums.PrivilegeType;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.network.SystemMessageId;
@@ -28,7 +29,7 @@ public final class RequestStartPledgeWar extends L2GameClientPacket
 		if (attackerClan == null)
 			return;
 		
-		if (!player.hasClanPrivileges(Clan.CP_CL_PLEDGE_WAR))
+		if (!player.hasClanPrivileges(PrivilegeType.SP_CLAN_WAR))
 		{
 			player.sendPacket(SystemMessageId.YOU_ARE_NOT_AUTHORIZED_TO_DO_THAT);
 			return;

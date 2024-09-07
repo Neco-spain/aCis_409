@@ -126,8 +126,8 @@ public class ClanBBSManager extends BaseBBSManager
 		}
 		
 		String content = HtmCache.getInstance().getHtm(CB_PATH + "clan/clanhome-mail.htm");
-		content = content.replaceAll("%clanid%", Integer.toString(clanId));
-		content = content.replaceAll("%clanName%", clan.getName());
+		content = content.replace("%clanid%", Integer.toString(clanId));
+		content = content.replace("%clanName%", clan.getName());
 		separateAndSend(content, player);
 	}
 	
@@ -145,11 +145,11 @@ public class ClanBBSManager extends BaseBBSManager
 		}
 		
 		String content = HtmCache.getInstance().getHtm(CB_PATH + "clan/clanhome-management.htm");
-		content = content.replaceAll("%clanid%", Integer.toString(clan.getClanId()));
-		content = content.replaceAll("%curAnnNonPer%", clan.getAnnBoard().getAccess().getDesc());
-		content = content.replaceAll("%curAnnMemPer%", clan.getAnnBoard().getAccess().getDesc());
-		content = content.replaceAll("%curCbbNonPer%", clan.getCbbBoard().getAccess().getDesc());
-		content = content.replaceAll("%curCbbMemPer%", clan.getCbbBoard().getAccess().getDesc());
+		content = content.replace("%clanid%", Integer.toString(clan.getClanId()));
+		content = content.replace("%curAnnNonPer%", clan.getAnnBoard().getAccess().getDesc());
+		content = content.replace("%curAnnMemPer%", clan.getAnnBoard().getAccess().getDesc());
+		content = content.replace("%curCbbNonPer%", clan.getCbbBoard().getAccess().getDesc());
+		content = content.replace("%curCbbMemPer%", clan.getCbbBoard().getAccess().getDesc());
 		
 		send1001(content, player);
 		send1002(player, clan.getIntroduction(), "", "");
@@ -169,7 +169,7 @@ public class ClanBBSManager extends BaseBBSManager
 		}
 		
 		String content = HtmCache.getInstance().getHtm(CB_PATH + "clan/clanhome-notice.htm");
-		content = content.replaceAll("%clanid%", Integer.toString(clan.getClanId()));
+		content = content.replace("%clanid%", Integer.toString(clan.getClanId()));
 		content = content.replace("%enabled%", "[" + clan.isNoticeEnabled() + "]");
 		content = content.replace("%flag%", String.valueOf(!clan.isNoticeEnabled()));
 		send1001(content, player);
@@ -212,7 +212,6 @@ public class ClanBBSManager extends BaseBBSManager
 		else
 			StringUtil.append(sb, "<td><button action=\"_bbsclan;clan;", index - 1, "\" back=\"l2ui_ch3.prev1_down\" fore=\"l2ui_ch3.prev1\" width=16 height=16 ></td>");
 		
-		i = 0;
 		int pageNumber = ClanTable.getInstance().getClans().size() / 8;
 		if (pageNumber * 8 != ClanTable.getInstance().getClans().size())
 			pageNumber++;
@@ -258,12 +257,12 @@ public class ClanBBSManager extends BaseBBSManager
 		else
 			content = HtmCache.getInstance().getHtm(CB_PATH + "clan/clanhome-member.htm");
 		
-		content = content.replaceAll("%clanid%", Integer.toString(clan.getClanId()));
+		content = content.replace("%clanid%", Integer.toString(clan.getClanId()));
 		content = content.replace("%clanIntro%", clan.getIntroduction());
 		content = content.replace("%clanName%", clan.getName());
 		content = content.replace("%clanLvL%", Integer.toString(clan.getLevel()));
 		content = content.replace("%clanMembers%", Integer.toString(clan.getMembersCount()));
-		content = content.replaceAll("%clanLeader%", clan.getLeaderName());
+		content = content.replace("%clanLeader%", clan.getLeaderName());
 		content = content.replace("%allyName%", (clan.getAllyId() > 0) ? clan.getAllyName() : "");
 		separateAndSend(content, player);
 	}

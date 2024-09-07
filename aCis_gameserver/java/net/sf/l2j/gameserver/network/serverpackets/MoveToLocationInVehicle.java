@@ -2,7 +2,6 @@ package net.sf.l2j.gameserver.network.serverpackets;
 
 import net.sf.l2j.gameserver.model.actor.Boat;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.location.Location;
 
 public class MoveToLocationInVehicle extends L2GameServerPacket
 {
@@ -14,11 +13,6 @@ public class MoveToLocationInVehicle extends L2GameServerPacket
 	private final int _oX;
 	private final int _oY;
 	private final int _oZ;
-	
-	public MoveToLocationInVehicle(Player player, Boat boat, Location tLoc, Location oLoc)
-	{
-		this(player, boat, tLoc.getX(), tLoc.getY(), tLoc.getZ(), oLoc.getX(), oLoc.getY(), oLoc.getZ());
-	}
 	
 	public MoveToLocationInVehicle(Player player, Boat boat, int tX, int tY, int tZ, int oX, int oY, int oZ)
 	{

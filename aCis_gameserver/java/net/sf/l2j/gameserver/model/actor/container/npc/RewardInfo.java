@@ -9,7 +9,7 @@ public final class RewardInfo
 {
 	private final Playable _attacker;
 	
-	private int _damage;
+	private double _damage;
 	
 	public RewardInfo(Playable attacker)
 	{
@@ -21,12 +21,12 @@ public final class RewardInfo
 		return _attacker;
 	}
 	
-	public void addDamage(int damage)
+	public void addDamage(double damage)
 	{
 		_damage += damage;
 	}
 	
-	public int getDamage()
+	public double getDamage()
 	{
 		return _damage;
 	}
@@ -37,8 +37,8 @@ public final class RewardInfo
 		if (this == obj)
 			return true;
 		
-		if (obj instanceof RewardInfo)
-			return (((RewardInfo) obj)._attacker == _attacker);
+		if (obj instanceof RewardInfo ri)
+			return ri._attacker == _attacker;
 		
 		return false;
 	}

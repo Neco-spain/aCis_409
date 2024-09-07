@@ -57,14 +57,11 @@ public class GameServerManager implements IXmlReader
 	@Override
 	public void parseDocument(Document doc, Path path)
 	{
-		forEach(doc, "list", listNode ->
+		forEach(doc, "list", listNode -> forEach(listNode, "server", serverNode ->
 		{
-			forEach(listNode, "server", serverNode ->
-			{
-				final StatSet set = parseAttributes(serverNode);
-				_serverNames.put(set.getInteger("id"), set.getString("name"));
-			});
-		});
+			final StatSet set = parseAttributes(serverNode);
+			_serverNames.put(set.getInteger("id"), set.getString("name"));
+		}));
 	}
 	
 	private void initRSAKeys()

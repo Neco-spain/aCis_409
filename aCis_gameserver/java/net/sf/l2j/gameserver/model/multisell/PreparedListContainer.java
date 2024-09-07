@@ -28,9 +28,13 @@ public class PreparedListContainer extends ListContainer
 		_npcsAllowed = template._npcsAllowed;
 		
 		double taxRate = 0;
+		int npcId = 0;
+		
 		if (npc != null)
 		{
 			_npcObjectId = npc.getObjectId();
+			npcId = npc.getNpcId();
+			
 			if (template.getApplyTaxes() && npc.getCastle() != null && npc.getCastle().getOwnerId() > 0)
 			{
 				setApplyTaxes(true);
@@ -43,14 +47,9 @@ public class PreparedListContainer extends ListContainer
 			if (player == null)
 				return;
 			
-			final ItemInstance[] items;
-			if (getMaintainEnchantment())
-				items = player.getInventory().getUniqueItemsByEnchantLevel(false, false, false);
-			else
-				items = player.getInventory().getUniqueItems(false, false, false);
-			
 			_entries = new LinkedList<>();
-			for (ItemInstance item : items)
+			
+			for (ItemInstance item : player.getInventory().getUniqueItems(getMaintainEnchantment(), false, false, false, npcId == 31760))
 			{
 				// only do the match up on equippable items that are not currently equipped
 				// so for each appropriate item, produce a set of entries for the multisell list.

@@ -1,5 +1,6 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
+import net.sf.l2j.gameserver.enums.PrivilegeType;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.model.pledge.ClanMember;
@@ -32,7 +33,7 @@ public final class RequestPledgeSetAcademyMaster extends L2GameClientPacket
 		if (clan == null)
 			return;
 		
-		if (!player.hasClanPrivileges(Clan.CP_CL_MASTER_RIGHTS))
+		if (!player.hasClanPrivileges(PrivilegeType.SP_MASTER_RIGHTS))
 		{
 			player.sendPacket(SystemMessageId.YOU_DO_NOT_HAVE_THE_RIGHT_TO_DISMISS_AN_APPRENTICE);
 			return;

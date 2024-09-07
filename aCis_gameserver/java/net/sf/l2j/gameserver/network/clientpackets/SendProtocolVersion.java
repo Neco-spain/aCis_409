@@ -18,10 +18,7 @@ public final class SendProtocolVersion extends L2GameClientPacket
 	{
 		switch (_version)
 		{
-			case 737:
-			case 740:
-			case 744:
-			case 746:
+			case 737, 740, 744, 746:
 				getClient().sendPacket(new VersionCheck(getClient().enableCrypt()));
 				break;
 			

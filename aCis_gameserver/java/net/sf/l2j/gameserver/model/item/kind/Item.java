@@ -33,7 +33,50 @@ import net.sf.l2j.gameserver.skills.conditions.Condition;
  */
 public abstract class Item
 {
-	private static final Map<String, Integer> SLOTS = new HashMap<>();
+	public static final int TYPE1_WEAPON_RING_EARRING_NECKLACE = 0;
+	public static final int TYPE1_SHIELD_ARMOR = 1;
+	public static final int TYPE1_ITEM_QUESTITEM_ADENA = 4;
+	
+	public static final int TYPE2_WEAPON = 0;
+	public static final int TYPE2_SHIELD_ARMOR = 1;
+	public static final int TYPE2_ACCESSORY = 2;
+	public static final int TYPE2_QUEST = 3;
+	public static final int TYPE2_MONEY = 4;
+	public static final int TYPE2_OTHER = 5;
+	
+	public static final int SLOT_NONE = 0x0000;
+	public static final int SLOT_UNDERWEAR = 0x0001;
+	public static final int SLOT_R_EAR = 0x0002;
+	public static final int SLOT_L_EAR = 0x0004;
+	public static final int SLOT_LR_EAR = 0x0006;
+	public static final int SLOT_NECK = 0x0008;
+	public static final int SLOT_R_FINGER = 0x0010;
+	public static final int SLOT_L_FINGER = 0x0020;
+	public static final int SLOT_LR_FINGER = 0x0030;
+	public static final int SLOT_HEAD = 0x0040;
+	public static final int SLOT_R_HAND = 0x0080;
+	public static final int SLOT_L_HAND = 0x0100;
+	public static final int SLOT_GLOVES = 0x0200;
+	public static final int SLOT_CHEST = 0x0400;
+	public static final int SLOT_LEGS = 0x0800;
+	public static final int SLOT_FEET = 0x1000;
+	public static final int SLOT_BACK = 0x2000;
+	public static final int SLOT_LR_HAND = 0x4000;
+	public static final int SLOT_FULL_ARMOR = 0x8000;
+	public static final int SLOT_FACE = 0x010000;
+	public static final int SLOT_ALLDRESS = 0x020000;
+	public static final int SLOT_HAIR = 0x040000;
+	public static final int SLOT_HAIRALL = 0x080000;
+	
+	public static final int SLOT_WOLF = -100;
+	public static final int SLOT_HATCHLING = -101;
+	public static final int SLOT_STRIDER = -102;
+	public static final int SLOT_BABYPET = -103;
+	
+	public static final int SLOT_ALLWEAPON = SLOT_LR_HAND | SLOT_R_HAND;
+	
+	private static final Map<String, Integer> SLOTS = HashMap.newHashMap(24);
+	static
 	{
 		SLOTS.put("chest", SLOT_CHEST);
 		SLOTS.put("fullarmor", SLOT_FULL_ARMOR);
@@ -60,48 +103,6 @@ public abstract class Item
 		SLOTS.put("strider", SLOT_STRIDER); // for strider
 		SLOTS.put("babypet", SLOT_BABYPET); // for babypet
 	}
-	
-	public static final int TYPE1_WEAPON_RING_EARRING_NECKLACE = 0;
-	public static final int TYPE1_SHIELD_ARMOR = 1;
-	public static final int TYPE1_ITEM_QUESTITEM_ADENA = 4;
-	
-	public static final int TYPE2_WEAPON = 0;
-	public static final int TYPE2_SHIELD_ARMOR = 1;
-	public static final int TYPE2_ACCESSORY = 2;
-	public static final int TYPE2_QUEST = 3;
-	public static final int TYPE2_MONEY = 4;
-	public static final int TYPE2_OTHER = 5;
-	
-	public static final int SLOT_NONE = 0x0000;
-	public static final int SLOT_UNDERWEAR = 0x0001;
-	public static final int SLOT_R_EAR = 0x0002;
-	public static final int SLOT_L_EAR = 0x0004;
-	public static final int SLOT_LR_EAR = 0x00006;
-	public static final int SLOT_NECK = 0x0008;
-	public static final int SLOT_R_FINGER = 0x0010;
-	public static final int SLOT_L_FINGER = 0x0020;
-	public static final int SLOT_LR_FINGER = 0x0030;
-	public static final int SLOT_HEAD = 0x0040;
-	public static final int SLOT_R_HAND = 0x0080;
-	public static final int SLOT_L_HAND = 0x0100;
-	public static final int SLOT_GLOVES = 0x0200;
-	public static final int SLOT_CHEST = 0x0400;
-	public static final int SLOT_LEGS = 0x0800;
-	public static final int SLOT_FEET = 0x1000;
-	public static final int SLOT_BACK = 0x2000;
-	public static final int SLOT_LR_HAND = 0x4000;
-	public static final int SLOT_FULL_ARMOR = 0x8000;
-	public static final int SLOT_FACE = 0x010000;
-	public static final int SLOT_ALLDRESS = 0x020000;
-	public static final int SLOT_HAIR = 0x040000;
-	public static final int SLOT_HAIRALL = 0x080000;
-	
-	public static final int SLOT_WOLF = -100;
-	public static final int SLOT_HATCHLING = -101;
-	public static final int SLOT_STRIDER = -102;
-	public static final int SLOT_BABYPET = -103;
-	
-	public static final int SLOT_ALLWEAPON = SLOT_LR_HAND | SLOT_R_HAND;
 	
 	private final int _itemId;
 	private final String _name;
@@ -251,8 +252,7 @@ public abstract class Item
 		{
 			switch (_type2)
 			{
-				case TYPE2_SHIELD_ARMOR:
-				case TYPE2_ACCESSORY:
+				case TYPE2_SHIELD_ARMOR, TYPE2_ACCESSORY:
 					return _crystalCount + getCrystalType().getCrystalEnchantBonusArmor() * (3 * enchantLevel - 6);
 				
 				case TYPE2_WEAPON:
@@ -266,8 +266,7 @@ public abstract class Item
 		{
 			switch (_type2)
 			{
-				case TYPE2_SHIELD_ARMOR:
-				case TYPE2_ACCESSORY:
+				case TYPE2_SHIELD_ARMOR, TYPE2_ACCESSORY:
 					return _crystalCount + getCrystalType().getCrystalEnchantBonusArmor() * enchantLevel;
 				case TYPE2_WEAPON:
 					return _crystalCount + getCrystalType().getCrystalEnchantBonusWeapon() * enchantLevel;
@@ -432,12 +431,12 @@ public abstract class Item
 	public boolean checkCondition(Creature creature, WorldObject object, boolean sendMessage)
 	{
 		// Don't allow hero equipment and restricted items during Olympiad
-		if ((isOlyRestrictedItem() || isHeroItem()) && (creature instanceof Player && creature.getActingPlayer().isInOlympiadMode()))
+		if ((isOlyRestrictedItem() || isHeroItem()) && creature instanceof Player player && player.isInOlympiadMode())
 		{
 			if (isEquipable())
-				creature.getActingPlayer().sendPacket(SystemMessageId.THIS_ITEM_CANT_BE_EQUIPPED_FOR_THE_OLYMPIAD_EVENT);
+				player.sendPacket(SystemMessageId.THIS_ITEM_CANT_BE_EQUIPPED_FOR_THE_OLYMPIAD_EVENT);
 			else
-				creature.getActingPlayer().sendPacket(SystemMessageId.THIS_ITEM_IS_NOT_AVAILABLE_FOR_THE_OLYMPIAD_EVENT);
+				player.sendPacket(SystemMessageId.THIS_ITEM_IS_NOT_AVAILABLE_FOR_THE_OLYMPIAD_EVENT);
 			
 			return false;
 		}
@@ -445,7 +444,7 @@ public abstract class Item
 		if (_preConditions == null)
 			return true;
 		
-		final Creature target = (object instanceof Creature) ? (Creature) object : null;
+		final Creature target = (object instanceof Creature targetCreature) ? targetCreature : null;
 		for (Condition preCondition : _preConditions)
 		{
 			if (preCondition == null)
@@ -453,26 +452,28 @@ public abstract class Item
 			
 			if (!preCondition.test(creature, target, null, null))
 			{
-				if (creature instanceof Summon)
+				if (creature instanceof Summon summon)
 				{
-					creature.getActingPlayer().sendPacket(SystemMessageId.PET_CANNOT_USE_ITEM);
+					summon.sendPacket(SystemMessageId.PET_CANNOT_USE_ITEM);
 					return false;
 				}
 				
 				if (sendMessage)
 				{
-					String msg = preCondition.getMessage();
-					int msgId = preCondition.getMessageId();
+					final String msg = preCondition.getMessage();
 					if (msg != null)
-					{
 						creature.sendMessage(msg);
-					}
-					else if (msgId != 0)
+					else
 					{
-						SystemMessage sm = SystemMessage.getSystemMessage(msgId);
-						if (preCondition.isAddName())
-							sm.addItemName(_itemId);
-						creature.sendPacket(sm);
+						final int msgId = preCondition.getMessageId();
+						if (msgId != 0)
+						{
+							final SystemMessage sm = SystemMessage.getSystemMessage(msgId);
+							if (preCondition.isAddName())
+								sm.addItemName(_itemId);
+							
+							creature.sendPacket(sm);
+						}
 					}
 				}
 				return false;
@@ -542,5 +543,10 @@ public abstract class Item
 	public List<Quest> getQuestEvents()
 	{
 		return _questEvents;
+	}
+	
+	public boolean isNightLure()
+	{
+		return ((_itemId >= 8505 && _itemId <= 8513) || _itemId == 8485);
 	}
 }

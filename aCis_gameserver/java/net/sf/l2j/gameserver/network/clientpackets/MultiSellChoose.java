@@ -5,7 +5,6 @@ import java.util.List;
 
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.enums.FloodProtector;
-import net.sf.l2j.gameserver.enums.StatusType;
 import net.sf.l2j.gameserver.model.Augmentation;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Folk;
@@ -15,8 +14,6 @@ import net.sf.l2j.gameserver.model.multisell.Entry;
 import net.sf.l2j.gameserver.model.multisell.Ingredient;
 import net.sf.l2j.gameserver.model.multisell.PreparedListContainer;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.ItemList;
-import net.sf.l2j.gameserver.network.serverpackets.StatusUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public class MultiSellChoose extends L2GameClientPacket
@@ -229,7 +226,7 @@ public class MultiSellChoose extends L2GameClientPacket
 					// if it's a stackable item, just reduce the amount from the first (only) instance that is found in the inventory
 					if (itemToTake.isStackable())
 					{
-						if (!player.destroyItem("Multisell", itemToTake.getObjectId(), (e.getItemCount() * _amount), player.getTarget(), true))
+						if (!player.destroyItem(itemToTake.getObjectId(), (e.getItemCount() * _amount), true))
 						{
 							player.setMultiSell(null);
 							return;
@@ -251,7 +248,7 @@ public class MultiSellChoose extends L2GameClientPacket
 								if (inventoryContents[i].isAugmented())
 									augmentation.add(inventoryContents[i].getAugmentation());
 								
-								if (!player.destroyItem("Multisell", inventoryContents[i].getObjectId(), 1, player.getTarget(), true))
+								if (!player.destroyItem(inventoryContents[i].getObjectId(), 1, true))
 								{
 									player.setMultiSell(null);
 									return;
@@ -282,7 +279,7 @@ public class MultiSellChoose extends L2GameClientPacket
 									}
 								}
 								
-								if (!player.destroyItem("Multisell", itemToTake.getObjectId(), 1, player.getTarget(), true))
+								if (!player.destroyItem(itemToTake.getObjectId(), 1, true))
 								{
 									player.setMultiSell(null);
 									return;
@@ -302,19 +299,18 @@ public class MultiSellChoose extends L2GameClientPacket
 			else
 			{
 				if (e.isStackable())
-					inv.addItem("Multisell", e.getItemId(), e.getItemCount() * _amount, player, player.getTarget());
+					inv.addItem(e.getItemId(), e.getItemCount() * _amount);
 				else
 				{
 					for (int i = 0; i < (e.getItemCount() * _amount); i++)
 					{
-						ItemInstance product = inv.addItem("Multisell", e.getItemId(), 1, player, player.getTarget());
+						ItemInstance product = inv.addItem(e.getItemId(), 1);
 						if (product != null && list.getMaintainEnchantment())
 						{
 							if (i < augmentation.size())
-								product.setAugmentation(new Augmentation(augmentation.get(i).getId(), augmentation.get(i).getSkill()));
+								product.setAugmentation(new Augmentation(augmentation.get(i).getId(), augmentation.get(i).getSkill()), player);
 							
-							product.setEnchantLevel(e.getEnchantLevel());
-							product.updateDatabase();
+							product.setEnchantLevel(e.getEnchantLevel(), player);
 						}
 					}
 				}
@@ -334,17 +330,12 @@ public class MultiSellChoose extends L2GameClientPacket
 				player.sendPacket(sm);
 			}
 		}
-		player.sendPacket(new ItemList(player, false));
 		
 		// All ok, send success message, remove items and add final product
 		player.sendPacket(SystemMessageId.SUCCESSFULLY_TRADED_WITH_NPC);
 		
-		StatusUpdate su = new StatusUpdate(player);
-		su.addAttribute(StatusType.CUR_LOAD, player.getCurrentWeight());
-		player.sendPacket(su);
-		
 		// finally, give the tax to the castle...
 		if (folk != null && entry.getTaxAmount() > 0)
-			folk.getCastle().addToTreasury(entry.getTaxAmount() * _amount);
+			folk.getCastle().riseTaxRevenue(entry.getTaxAmount() * _amount);
 	}
 }

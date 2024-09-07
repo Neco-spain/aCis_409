@@ -5,11 +5,11 @@ import java.util.concurrent.Future;
 import net.sf.l2j.commons.pool.ThreadPool;
 
 import net.sf.l2j.gameserver.enums.actors.NpcRace;
-import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.Summon;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
+import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.olympiad.OlympiadGameManager;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SetSummonRemainTime;
@@ -21,6 +21,7 @@ import net.sf.l2j.gameserver.taskmanager.DecayTaskManager;
 public class Servitor extends Summon
 {
 	private float _expPenalty = 0;
+	
 	private int _itemConsumeId = 0;
 	private int _itemConsumeCount = 0;
 	private int _itemConsumeSteps = 0;
@@ -29,8 +30,7 @@ public class Servitor extends Summon
 	private int _timeLostActive = 1000;
 	private int _timeRemaining;
 	private int _nextItemConsumeTime;
-	
-	public int lastShowntimeRemaining;
+	private int _lastShownTimeRemaining;
 	
 	private Future<?> _summonLifeTask;
 	
@@ -41,6 +41,7 @@ public class Servitor extends Summon
 		if (skill != null)
 		{
 			final L2SkillSummon summonSkill = (L2SkillSummon) skill;
+			
 			_itemConsumeId = summonSkill.getItemConsumeIdOT();
 			_itemConsumeCount = summonSkill.getItemConsumeOT();
 			_itemConsumeSteps = summonSkill.getItemConsumeSteps();
@@ -49,14 +50,26 @@ public class Servitor extends Summon
 			_timeLostActive = summonSkill.getTimeLostActive();
 		}
 		_timeRemaining = _totalLifeTime;
-		lastShowntimeRemaining = _totalLifeTime;
+		_lastShownTimeRemaining = _totalLifeTime;
 		
 		if (_itemConsumeId == 0 || _itemConsumeSteps == 0)
 			_nextItemConsumeTime = -1; // do not consume
 		else
 			_nextItemConsumeTime = _totalLifeTime - _totalLifeTime / (_itemConsumeSteps + 1);
 		
-		_summonLifeTask = ThreadPool.scheduleAtFixedRate(new SummonLifetime(getOwner(), this), 1000, 1000);
+		_summonLifeTask = ThreadPool.scheduleAtFixedRate(this::processLifeTime, 1000, 1000);
+	}
+	
+	@Override
+	public void addItem(ItemInstance item, boolean sendMessage)
+	{
+		// Do nothing.
+	}
+	
+	@Override
+	public ItemInstance addItem(int itemId, int count, boolean sendMessage)
+	{
+		return null;
 	}
 	
 	@Override
@@ -87,7 +100,7 @@ public class Servitor extends Summon
 			else
 				sendPacket(SystemMessage.getSystemMessage(SystemMessageId.SUMMON_GAVE_DAMAGE_S1).addNumber(damage));
 			
-			if (getOwner().isInOlympiadMode() && target instanceof Player && ((Player) target).isInOlympiadMode() && ((Player) target).getOlympiadGameId() == getOwner().getOlympiadGameId())
+			if (getOwner().isInOlympiadMode() && target instanceof Player targetPlayer && targetPlayer.isInOlympiadMode() && targetPlayer.getOlympiadGameId() == getOwner().getOlympiadGameId())
 				OlympiadGameManager.getInstance().notifyCompetitorDamage(getOwner(), damage);
 		}
 	}
@@ -98,17 +111,19 @@ public class Servitor extends Summon
 		if (!super.doDie(killer))
 			return false;
 		
-		// Popup for summon if phoenix buff was on
-		if (isPhoenixBlessed())
-			getOwner().reviveRequest(getOwner(), null, true);
-		
-		DecayTaskManager.getInstance().add(this, getTemplate().getCorpseTime());
-		
+		// Stop the life time task.
 		if (_summonLifeTask != null)
 		{
 			_summonLifeTask.cancel(false);
 			_summonLifeTask = null;
 		}
+		
+		// Send message.
+		sendPacket(SystemMessageId.SERVITOR_PASSED_AWAY);
+		
+		// Run the decay task.
+		DecayTaskManager.getInstance().add(this, getTemplate().getCorpseTime());
+		
 		return true;
 		
 	}
@@ -125,15 +140,15 @@ public class Servitor extends Summon
 	}
 	
 	@Override
-	public boolean destroyItem(String process, int objectId, int count, WorldObject reference, boolean sendMessage)
+	public boolean destroyItem(int objectId, int count, boolean sendMessage)
 	{
-		return getOwner().destroyItem(process, objectId, count, reference, sendMessage);
+		return getOwner().destroyItem(objectId, count, sendMessage);
 	}
 	
 	@Override
-	public boolean destroyItemByItemId(String process, int itemId, int count, WorldObject reference, boolean sendMessage)
+	public boolean destroyItemByItemId(int itemId, int count, boolean sendMessage)
 	{
-		return getOwner().destroyItemByItemId(process, itemId, count, reference, sendMessage);
+		return getOwner().destroyItemByItemId(itemId, count, sendMessage);
 	}
 	
 	@Override
@@ -202,9 +217,9 @@ public class Servitor extends Summon
 		_nextItemConsumeTime -= value;
 	}
 	
-	public void decTimeRemaining(int value)
+	public int decTimeRemaining(int value)
 	{
-		_timeRemaining -= value;
+		return _timeRemaining -= value;
 	}
 	
 	public void addExpAndSp(int addToExp, int addToSp)
@@ -212,51 +227,30 @@ public class Servitor extends Summon
 		getOwner().addExpAndSp(addToExp, addToSp);
 	}
 	
-	private static class SummonLifetime implements Runnable
+	private void processLifeTime()
 	{
-		private final Player _player;
-		private final Servitor _summon;
+		// Keep old timer.
+		final double oldTimeRemaining = getTimeRemaining();
 		
-		protected SummonLifetime(Player activeChar, Servitor summon)
+		// Decrease remaining time.
+		final double newTimeRemaining = decTimeRemaining((isInCombat()) ? getTimeLostActive() : getTimeLostIdle());
+		if (newTimeRemaining < 0)
+			unSummon(getOwner());
+		else if ((newTimeRemaining <= getNextItemConsumeTime()) && (oldTimeRemaining > getNextItemConsumeTime()))
 		{
-			_player = activeChar;
-			_summon = summon;
+			decNextItemConsumeTime(getTotalLifeTime() / (getItemConsumeSteps() + 1));
+			
+			// Check if owner has enought itemConsume, if requested.
+			if (getItemConsumeCount() > 0 && getItemConsumeId() != 0 && !isDead() && !destroyItemByItemId(getItemConsumeId(), getItemConsumeCount(), true))
+				unSummon(getOwner());
 		}
 		
-		@Override
-		public void run()
+		// Prevent useless packet-sending when the difference isn't visible.
+		if ((_lastShownTimeRemaining - newTimeRemaining) > getTotalLifeTime() / 352)
 		{
-			double oldTimeRemaining = _summon.getTimeRemaining();
-			int maxTime = _summon.getTotalLifeTime();
-			double newTimeRemaining;
-			
-			// if pet is attacking
-			if (_summon.isInCombat())
-				_summon.decTimeRemaining(_summon.getTimeLostActive());
-			else
-				_summon.decTimeRemaining(_summon.getTimeLostIdle());
-			
-			newTimeRemaining = _summon.getTimeRemaining();
-			
-			// check if the summon's lifetime has ran out
-			if (newTimeRemaining < 0)
-				_summon.unSummon(_player);
-			else if ((newTimeRemaining <= _summon.getNextItemConsumeTime()) && (oldTimeRemaining > _summon.getNextItemConsumeTime()))
-			{
-				_summon.decNextItemConsumeTime(maxTime / (_summon.getItemConsumeSteps() + 1));
-				
-				// check if owner has enought itemConsume, if requested
-				if (_summon.getItemConsumeCount() > 0 && _summon.getItemConsumeId() != 0 && !_summon.isDead() && !_summon.destroyItemByItemId("Consume", _summon.getItemConsumeId(), _summon.getItemConsumeCount(), _player, true))
-					_summon.unSummon(_player);
-			}
-			
-			// prevent useless packet-sending when the difference isn't visible.
-			if ((_summon.lastShowntimeRemaining - newTimeRemaining) > maxTime / 352)
-			{
-				_player.sendPacket(new SetSummonRemainTime(maxTime, (int) newTimeRemaining));
-				_summon.lastShowntimeRemaining = (int) newTimeRemaining;
-				_summon.updateEffectIcons();
-			}
+			sendPacket(new SetSummonRemainTime(getTotalLifeTime(), (int) newTimeRemaining));
+			_lastShownTimeRemaining = (int) newTimeRemaining;
+			updateEffectIcons();
 		}
 	}
 }

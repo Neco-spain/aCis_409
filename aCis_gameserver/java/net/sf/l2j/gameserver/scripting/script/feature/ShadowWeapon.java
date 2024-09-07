@@ -20,8 +20,8 @@ public class ShadowWeapon extends Quest
 	@Override
 	public String onTalk(Npc npc, Player player)
 	{
-		boolean hasD = player.getInventory().hasItems(D_GRADE_COUPON);
-		boolean hasC = player.getInventory().hasItems(C_GRADE_COUPON);
+		boolean hasD = player.getInventory().hasItem(D_GRADE_COUPON);
+		boolean hasC = player.getInventory().hasItem(C_GRADE_COUPON);
 		
 		if (!hasD && !hasC)
 			return "exchange-no.htm";

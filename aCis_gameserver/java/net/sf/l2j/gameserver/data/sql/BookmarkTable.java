@@ -5,17 +5,16 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import net.sf.l2j.commons.logging.CLogger;
 import net.sf.l2j.commons.pool.ConnectionPool;
 
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.location.Bookmark;
+import net.sf.l2j.gameserver.model.records.Bookmark;
 
 /**
- * This class loads and handles {@link Bookmark} into a List.<br>
- * To retrieve a Bookmark, you need its name and the player objectId.
+ * This class loads and handles {@link Bookmark} into a {@link List}.<br>
+ * To retrieve a {@link Bookmark}, you need its name and the {@link Player} objectId.
  */
 public class BookmarkTable
 {
@@ -41,9 +40,9 @@ public class BookmarkTable
 	
 	/**
 	 * Verify if a {@link Bookmark} already exists.
-	 * @param name : The Bookmark name.
+	 * @param name : The {@link Bookmark} name.
 	 * @param objId : The {@link Player} objectId to make checks on.
-	 * @return true if the Bookmark exists, false otherwise.
+	 * @return true if the {@link Bookmark} exists, false otherwise.
 	 */
 	public boolean isExisting(String name, int objId)
 	{
@@ -52,33 +51,33 @@ public class BookmarkTable
 	
 	/**
 	 * Retrieve a {@link Bookmark} by its name and its specific {@link Player} objectId.
-	 * @param name : The Bookmark name.
-	 * @param objId : The Player objectId to make checks on.
-	 * @return the Bookmark if it exists, null otherwise.
+	 * @param name : The {@link Bookmark} name.
+	 * @param objId : The {@link Player} objectId to make checks on.
+	 * @return the {@link Bookmark} if it exists, null otherwise.
 	 */
 	public Bookmark getBookmark(String name, int objId)
 	{
 		for (Bookmark bk : _bks)
 		{
-			if (bk.getName().equalsIgnoreCase(name) && bk.getId() == objId)
+			if (bk.name().equalsIgnoreCase(name) && bk.id() == objId)
 				return bk;
 		}
 		return null;
 	}
 	
 	/**
-	 * @param objId : The Player objectId to make checks on.
+	 * @param objId : The {@link Player} objectId to make checks on.
 	 * @return the list of {@link Bookmark}s of a {@link Player}.
 	 */
 	public List<Bookmark> getBookmarks(int objId)
 	{
-		return _bks.stream().filter(bk -> bk.getId() == objId).collect(Collectors.toList());
+		return _bks.stream().filter(bk -> bk.id() == objId).toList();
 	}
 	
 	/**
 	 * Creates a new {@link Bookmark} and store info to database.
-	 * @param name : The name of the Bookmark.
-	 * @param player : The {@link Player} who requested the creation. We use the Player location as Bookmark location.
+	 * @param name : The name of the {@link Bookmark}.
+	 * @param player : The {@link Player} who requested the creation. We use the {@link Player} location as {@link Bookmark} location.
 	 */
 	public void saveBookmark(String name, Player player)
 	{
@@ -107,8 +106,8 @@ public class BookmarkTable
 	
 	/**
 	 * Delete a {@link Bookmark}, based on the {@link Player} objectId and its name.
-	 * @param name : The name of the Bookmark.
-	 * @param objId : The Player objectId to make checks on.
+	 * @param name : The name of the {@link Bookmark}.
+	 * @param objId : The {@link Player} objectId to make checks on.
 	 */
 	public void deleteBookmark(String name, int objId)
 	{

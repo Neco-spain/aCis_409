@@ -5,7 +5,7 @@ import net.sf.l2j.gameserver.enums.FloodProtector;
 import net.sf.l2j.gameserver.enums.actors.OperateType;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.craft.RecipeItemMaker;
-import net.sf.l2j.gameserver.model.item.Recipe;
+import net.sf.l2j.gameserver.model.records.Recipe;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 
 public final class RequestRecipeItemMakeSelf extends L2GameClientPacket
@@ -45,7 +45,7 @@ public final class RequestRecipeItemMakeSelf extends L2GameClientPacket
 			return;
 		
 		final RecipeItemMaker maker = new RecipeItemMaker(player, recipe, player);
-		if (maker._isValid)
+		if (maker.isValid())
 			maker.run();
 	}
 }

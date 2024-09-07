@@ -29,38 +29,38 @@ public class L2SkillDrain extends L2Skill
 	}
 	
 	@Override
-	public void useSkill(Creature activeChar, WorldObject[] targets)
+	public void useSkill(Creature creature, WorldObject[] targets)
 	{
-		if (activeChar.isAlikeDead())
+		if (creature.isAlikeDead())
 			return;
 		
-		final boolean sps = activeChar.isChargedShot(ShotType.SPIRITSHOT);
-		final boolean bsps = activeChar.isChargedShot(ShotType.BLESSED_SPIRITSHOT);
-		final boolean isPlayable = activeChar instanceof Playable;
+		final boolean sps = creature.isChargedShot(ShotType.SPIRITSHOT);
+		final boolean bsps = creature.isChargedShot(ShotType.BLESSED_SPIRITSHOT);
+		final boolean isPlayable = creature instanceof Playable;
 		
-		for (WorldObject obj : targets)
+		for (WorldObject target : targets)
 		{
-			if (!(obj instanceof Creature))
+			if (!(target instanceof Creature targetCreature))
 				continue;
 			
-			final Creature target = ((Creature) obj);
-			if (target.isAlikeDead() && getTargetType() != SkillTargetType.CORPSE_MOB)
+			if (targetCreature.isAlikeDead() && getTargetType() != SkillTargetType.CORPSE_MOB)
 				continue;
 			
-			if (activeChar != target && target.isInvul())
-				continue; // No effect on invulnerable chars unless they cast it themselves.
-				
-			final boolean isCrit = Formulas.calcMCrit(activeChar, target, this);
-			final ShieldDefense sDef = Formulas.calcShldUse(activeChar, target, this, false);
-			final int damage = (int) Formulas.calcMagicDam(activeChar, target, this, sDef, sps, bsps, isCrit);
+			// No effect on invulnerable chars unless they cast it themselves.
+			if (creature != targetCreature && targetCreature.isInvul())
+				continue;
+			
+			final boolean isCrit = Formulas.calcMCrit(creature, targetCreature, this);
+			final ShieldDefense sDef = Formulas.calcShldUse(creature, targetCreature, this, false);
+			final int damage = (int) Formulas.calcMagicDam(creature, targetCreature, this, sDef, sps, bsps, isCrit);
 			
 			if (damage > 0)
 			{
 				int targetCp = 0;
-				if (target instanceof Player)
-					targetCp = (int) ((Player) target).getStatus().getCp();
+				if (target instanceof Player targetPlayer)
+					targetCp = (int) targetPlayer.getStatus().getCp();
 				
-				final int targetHp = (int) target.getStatus().getHp();
+				final int targetHp = (int) targetCreature.getStatus().getHp();
 				
 				int drain = 0;
 				if (isPlayable && targetCp > 0)
@@ -75,49 +75,49 @@ public class L2SkillDrain extends L2Skill
 				else
 					drain = damage;
 				
-				activeChar.getStatus().addHp(_absorbAbs + _absorbPart * drain);
+				creature.getStatus().addHp(_absorbAbs + _absorbPart * drain);
 				
 				// That section is launched for drain skills made on ALIVE targets.
-				if (!target.isDead() || getTargetType() != SkillTargetType.CORPSE_MOB)
+				if (!targetCreature.isDead() || getTargetType() != SkillTargetType.CORPSE_MOB)
 				{
 					// Manage cast break of the target (calculating rate, sending message...)
-					Formulas.calcCastBreak(target, damage);
+					Formulas.calcCastBreak(targetCreature, damage);
 					
-					activeChar.sendDamageMessage(target, damage, isCrit, false, false);
+					creature.sendDamageMessage(targetCreature, damage, isCrit, false, false);
 					
 					if (hasEffects() && getTargetType() != SkillTargetType.CORPSE_MOB)
 					{
 						// ignoring vengance-like reflections
-						if ((Formulas.calcSkillReflect(target, this) & Formulas.SKILL_REFLECT_SUCCEED) > 0)
+						if ((Formulas.calcSkillReflect(targetCreature, this) & Formulas.SKILL_REFLECT_SUCCEED) > 0)
 						{
-							activeChar.stopSkillEffects(getId());
-							getEffects(target, activeChar);
+							creature.stopSkillEffects(getId());
+							getEffects(targetCreature, creature);
 						}
 						else
 						{
 							// activate attacked effects, if any
-							target.stopSkillEffects(getId());
-							if (Formulas.calcSkillSuccess(activeChar, target, this, sDef, bsps))
-								getEffects(activeChar, target);
+							targetCreature.stopSkillEffects(getId());
+							if (Formulas.calcSkillSuccess(creature, targetCreature, this, sDef, bsps))
+								getEffects(creature, targetCreature);
 							else
-								activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(target).addSkillName(getId()));
+								creature.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(targetCreature).addSkillName(getId()));
 						}
 					}
-					target.reduceCurrentHp(damage, activeChar, this);
+					targetCreature.reduceCurrentHp(damage, creature, this);
 				}
 			}
 		}
 		
 		if (hasSelfEffects())
 		{
-			final AbstractEffect effect = activeChar.getFirstEffect(getId());
+			final AbstractEffect effect = creature.getFirstEffect(getId());
 			if (effect != null && effect.isSelfEffect())
 				effect.exit();
 			
-			getEffectsSelf(activeChar);
+			getEffectsSelf(creature);
 		}
 		
-		activeChar.setChargedShot(bsps ? ShotType.BLESSED_SPIRITSHOT : ShotType.SPIRITSHOT, isStaticReuse());
+		creature.setChargedShot(bsps ? ShotType.BLESSED_SPIRITSHOT : ShotType.SPIRITSHOT, isStaticReuse());
 	}
 	
 	public float getAbsorbPart()

@@ -4,7 +4,6 @@ import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.trade.TradeList;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.EnchantResult;
 
 public final class TradeDone extends L2GameClientPacket
 {
@@ -24,10 +23,7 @@ public final class TradeDone extends L2GameClientPacket
 			return;
 		
 		final TradeList trade = player.getActiveTradeList();
-		if (trade == null)
-			return;
-		
-		if (trade.isLocked())
+		if (trade == null || trade.isLocked())
 			return;
 		
 		if (_response != 1)
@@ -41,38 +37,28 @@ public final class TradeDone extends L2GameClientPacket
 		if (owner == null || !owner.equals(player))
 			return;
 		
-		// Trade partner not found, cancel trade
+		// Cancel active enchant for trade owner.
+		player.cancelActiveEnchant();
+		
+		// Trade partner not found, cancel trade.
 		final Player partner = trade.getPartner();
 		if (partner == null || World.getInstance().getPlayer(partner.getObjectId()) == null)
 		{
 			player.sendPacket(SystemMessageId.TARGET_IS_NOT_FOUND_IN_THE_GAME);
-			player.cancelActiveTrade();
 			return;
 		}
 		
+		// Check if the trade owner can trade.
 		if (!player.getAccessLevel().allowTransaction())
 		{
 			player.sendPacket(SystemMessageId.YOU_ARE_NOT_AUTHORIZED_TO_DO_THAT);
-			player.cancelActiveTrade();
 			return;
 		}
 		
-		// Sender under enchant process, close it.
-		if (owner.getActiveEnchantItem() != null)
-		{
-			owner.setActiveEnchantItem(null);
-			owner.sendPacket(EnchantResult.CANCELLED);
-			owner.sendPacket(SystemMessageId.ENCHANT_SCROLL_CANCELLED);
-		}
+		// Cancel active enchant for trade partner.
+		partner.cancelActiveEnchant();
 		
-		// Partner under enchant process, close it.
-		if (partner.getActiveEnchantItem() != null)
-		{
-			partner.setActiveEnchantItem(null);
-			partner.sendPacket(EnchantResult.CANCELLED);
-			partner.sendPacket(SystemMessageId.ENCHANT_SCROLL_CANCELLED);
-		}
-		
+		// Confirm the trade.
 		trade.confirm();
 	}
 }

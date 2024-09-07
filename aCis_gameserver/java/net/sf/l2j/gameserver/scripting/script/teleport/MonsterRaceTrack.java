@@ -12,10 +12,12 @@ public class MonsterRaceTrack extends Quest
 {
 	private static final int RACE_MANAGER = 30995;
 	
-	private static final Map<Integer, Location> RETURN_LOCATIONS = new HashMap<>(12);
+	private static final Map<Integer, Location> RETURN_LOCATIONS = HashMap.newHashMap(12);
 	
-	static
+	public MonsterRaceTrack()
 	{
+		super(-1, "teleport");
+		
 		RETURN_LOCATIONS.put(30059, new Location(15670, 142983, -2705)); // TRISHA
 		RETURN_LOCATIONS.put(30080, new Location(83400, 147943, -3404)); // CLARISSA
 		RETURN_LOCATIONS.put(30177, new Location(82956, 53162, -1495)); // VALENTIA
@@ -28,11 +30,6 @@ public class MonsterRaceTrack extends Quest
 		RETURN_LOCATIONS.put(31275, new Location(147930, -55281, -2728)); // TATIANA
 		RETURN_LOCATIONS.put(31320, new Location(43835, -47749, -792)); // ILYANA
 		RETURN_LOCATIONS.put(31964, new Location(87386, -143246, -1293)); // BILIA
-	}
-	
-	public MonsterRaceTrack()
-	{
-		super(-1, "teleport");
 		
 		addTalkId(RACE_MANAGER, 30059, 30080, 30177, 30233, 30256, 30320, 30848, 30899, 31210, 31275, 31320, 31964);
 	}

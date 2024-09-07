@@ -35,10 +35,10 @@ public class Q034_InSearchOfCloth extends Quest
 		
 		setItemsIds(SPINNERET, SPIDERSILK);
 		
-		addStartNpc(RADIA);
+		addQuestStart(RADIA);
 		addTalkId(RADIA, RALFORD, VARAN);
 		
-		addKillId(TRISALIM_SPIDER, TRISALIM_TARANTULA);
+		addMyDying(TRISALIM_SPIDER, TRISALIM_TARANTULA);
 	}
 	
 	@Override
@@ -79,7 +79,7 @@ public class Q034_InSearchOfCloth extends Quest
 		}
 		else if (event.equalsIgnoreCase("30088-5.htm"))
 		{
-			if (player.getInventory().getItemCount(SUEDE) >= 3000 && player.getInventory().getItemCount(THREAD) >= 5000 && player.getInventory().hasItems(SPIDERSILK))
+			if (player.getInventory().getItemCount(SUEDE) >= 3000 && player.getInventory().getItemCount(THREAD) >= 5000 && player.getInventory().hasItem(SPIDERSILK))
 			{
 				takeItems(player, SPIDERSILK, 1);
 				takeItems(player, SUEDE, 3000);
@@ -131,7 +131,7 @@ public class Q034_InSearchOfCloth extends Quest
 							htmltext = "30088-3a.htm";
 						else if (cond == 6)
 						{
-							if (player.getInventory().getItemCount(SUEDE) < 3000 || player.getInventory().getItemCount(THREAD) < 5000 || !player.getInventory().hasItems(SPIDERSILK))
+							if (player.getInventory().getItemCount(SUEDE) < 3000 || player.getInventory().getItemCount(THREAD) < 5000 || !player.getInventory().hasItem(SPIDERSILK))
 								htmltext = "30088-4a.htm";
 							else
 								htmltext = "30088-4.htm";
@@ -167,17 +167,15 @@ public class Q034_InSearchOfCloth extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerCondition(player, npc, 4);
 		if (st == null)
-			return null;
+			return;
 		
 		if (dropItems(player, SPINNERET, 1, 10, 500000))
 			st.setCond(5);
-		
-		return null;
 	}
 }

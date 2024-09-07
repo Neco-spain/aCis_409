@@ -4,18 +4,19 @@ import java.io.File;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Logger;
+
+import net.sf.l2j.commons.logging.CLogger;
 
 import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class SkillTable
 {
-	private static final Logger _log = Logger.getLogger(SkillTable.class.getName());
+	private static final CLogger LOGGER = new CLogger(SkillTable.class.getName());
 	
 	private static final Map<Integer, L2Skill> _skills = new HashMap<>();
 	private static final Map<Integer, Integer> _skillMaxLevel = new HashMap<>();
 	
-	private static final L2Skill[] _heroSkills = new L2Skill[5];
+	private final L2Skill[] _heroSkills = new L2Skill[5];
 	private static final int[] _heroSkillsId =
 	{
 		395,
@@ -25,7 +26,7 @@ public class SkillTable
 		1376
 	};
 	
-	private static final L2Skill[] _nobleSkills = new L2Skill[8];
+	private final L2Skill[] _nobleSkills = new L2Skill[8];
 	private static final int[] _nobleSkillsId =
 	{
 		325,
@@ -38,12 +39,7 @@ public class SkillTable
 		1327
 	};
 	
-	private static final L2Skill[] _clanSkills = new L2Skill[22];
-	
-	public static SkillTable getInstance()
-	{
-		return SingletonHolder._instance;
-	}
+	private final L2Skill[] _clanSkills = new L2Skill[22];
 	
 	protected SkillTable()
 	{
@@ -63,7 +59,7 @@ public class SkillTable
 				_skills.put(getSkillHashCode(skill), skill);
 		}
 		
-		_log.info("SkillTable: Loaded " + _skills.size() + " skills.");
+		LOGGER.info("SkillTable: Loaded {} skills.", _skills.size());
 		
 		// Stores max level of skills in a map for future uses.
 		for (final L2Skill skill : _skills.values())
@@ -147,19 +143,21 @@ public class SkillTable
 	 */
 	public L2Skill[] getSiegeSkills(boolean addNoble)
 	{
-		L2Skill[] temp = new L2Skill[2 + (addNoble ? 1 : 0)];
-		int i = 0;
+		// Create the array with size 2 or 3 depending on addNoble.
+		final L2Skill[] temp = new L2Skill[2 + (addNoble ? 1 : 0)];
 		
-		temp[i++] = _skills.get(SkillTable.getSkillHashCode(246, 1));
-		temp[i++] = _skills.get(SkillTable.getSkillHashCode(247, 1));
+		// Add the base skills.
+		temp[0] = _skills.get(SkillTable.getSkillHashCode(246, 1));
+		temp[1] = _skills.get(SkillTable.getSkillHashCode(247, 1));
 		
+		// Conditionally add the noble skill if addNoble is true.
 		if (addNoble)
-			temp[i++] = _skills.get(SkillTable.getSkillHashCode(326, 1));
+			temp[2] = _skills.get(SkillTable.getSkillHashCode(326, 1));
 		
 		return temp;
 	}
 	
-	public static L2Skill[] getHeroSkills()
+	public L2Skill[] getHeroSkills()
 	{
 		return _heroSkills;
 	}
@@ -173,12 +171,12 @@ public class SkillTable
 		return false;
 	}
 	
-	public static L2Skill[] getNobleSkills()
+	public L2Skill[] getNobleSkills()
 	{
 		return _nobleSkills;
 	}
 	
-	public static L2Skill[] getClanSkills()
+	public L2Skill[] getClanSkills()
 	{
 		return _clanSkills;
 	}
@@ -197,6 +195,8 @@ public class SkillTable
 		
 		DWARVEN_CRAFT(1321, 1),
 		COMMON_CRAFT(1322, 1),
+		
+		HARVEST(2098, 1),
 		
 		FIREWORK(5965, 1),
 		LARGE_FIREWORK(2025, 1),
@@ -237,7 +237,6 @@ public class SkillTable
 		
 		WYVERN_BREATH(4289, 1),
 		ARENA_CP_RECOVERY(4380, 1),
-		VARKA_KETRA_PETRIFICATION(4578, 1),
 		FAKE_PETRIFICATION(4616, 1),
 		
 		THE_VICTOR_OF_WAR(5074, 1),
@@ -259,8 +258,13 @@ public class SkillTable
 		}
 	}
 	
+	public static SkillTable getInstance()
+	{
+		return SingletonHolder.INSTANCE;
+	}
+	
 	private static class SingletonHolder
 	{
-		protected static final SkillTable _instance = new SkillTable();
+		protected static final SkillTable INSTANCE = new SkillTable();
 	}
 }

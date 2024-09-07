@@ -32,10 +32,10 @@ public class Q044_HelpTheSon extends Quest
 		
 		setItemsIds(GEMSTONE_FRAGMENT, GEMSTONE);
 		
-		addStartNpc(LUNDY);
+		addQuestStart(LUNDY);
 		addTalkId(LUNDY, DRIKUS);
 		
-		addKillId(MAILLE, MAILLE_SCOUT, MAILLE_GUARD);
+		addMyDying(MAILLE, MAILLE_SCOUT, MAILLE_GUARD);
 	}
 	
 	@Override
@@ -52,7 +52,7 @@ public class Q044_HelpTheSon extends Quest
 			st.setCond(1);
 			playSound(player, SOUND_ACCEPT);
 		}
-		else if (event.equalsIgnoreCase("30827-03.htm") && player.getInventory().hasItems(WORK_HAMMER))
+		else if (event.equalsIgnoreCase("30827-03.htm") && player.getInventory().hasItem(WORK_HAMMER))
 		{
 			st.setCond(2);
 			playSound(player, SOUND_MIDDLE);
@@ -101,7 +101,7 @@ public class Q044_HelpTheSon extends Quest
 				{
 					case LUNDY:
 						if (cond == 1)
-							htmltext = (!player.getInventory().hasItems(WORK_HAMMER)) ? "30827-01a.htm" : "30827-02.htm";
+							htmltext = (!player.getInventory().hasItem(WORK_HAMMER)) ? "30827-01a.htm" : "30827-02.htm";
 						else if (cond == 2)
 							htmltext = "30827-03a.htm";
 						else if (cond == 3)
@@ -130,17 +130,15 @@ public class Q044_HelpTheSon extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerCondition(player, npc, 2);
 		if (st == null)
-			return null;
+			return;
 		
 		if (dropItemsAlways(player, GEMSTONE_FRAGMENT, 1, 30))
 			st.setCond(3);
-		
-		return null;
 	}
 }

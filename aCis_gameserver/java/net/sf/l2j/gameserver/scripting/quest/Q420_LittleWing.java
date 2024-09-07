@@ -70,7 +70,7 @@ public class Q420_LittleWing extends Quest
 		new Location(110395, 41625, -4642)
 	};
 	
-	private static int _counter = 0;
+	private int _counter = 0;
 	
 	public Q420_LittleWing()
 	{
@@ -78,10 +78,10 @@ public class Q420_LittleWing extends Quest
 		
 		setItemsIds(FAIRY_STONE, DELUXE_FAIRY_STONE, FAIRY_STONE_LIST, DELUXE_FAIRY_STONE_LIST, TOAD_LORD_BACK_SKIN, JUICE_OF_MONKSHOOD, SCALE_OF_DRAKE_EXARION, EGG_OF_DRAKE_EXARION, SCALE_OF_DRAKE_ZWOV, EGG_OF_DRAKE_ZWOV, SCALE_OF_DRAKE_KALIBRAN, EGG_OF_DRAKE_KALIBRAN, SCALE_OF_WYVERN_SUZET, EGG_OF_WYVERN_SUZET, SCALE_OF_WYVERN_SHAMHAI, EGG_OF_WYVERN_SHAMHAI);
 		
-		addStartNpc(COOPER, MIMYU);
+		addQuestStart(COOPER, MIMYU);
 		addTalkId(MARIA, CRONOS, BYRON, MIMYU, EXARION, ZWOV, KALIBRAN, SUZET, SHAMHAI, COOPER);
 		
-		addKillId(20202, 20231, 20233, 20270, 20551, 20580, 20589, 20590, 20591, 20592, 20593, 20594, 20595, 20596, 20597, 20598, 20599);
+		addMyDying(20202, 20231, 20233, 20270, 20551, 20580, 20589, 20590, 20591, 20592, 20593, 20594, 20595, 20596, 20597, 20598, 20599);
 	}
 	
 	@Override
@@ -163,7 +163,7 @@ public class Q420_LittleWing extends Quest
 		{
 			st.setCond(4);
 			playSound(player, SOUND_MIDDLE);
-			if (player.getInventory().hasItems(DELUXE_FAIRY_STONE))
+			if (player.getInventory().hasItem(DELUXE_FAIRY_STONE))
 				htmltext = "30711-04.htm";
 		}
 		// MIMYU
@@ -184,7 +184,7 @@ public class Q420_LittleWing extends Quest
 			playSound(player, SOUND_MIDDLE);
 			giveItems(player, JUICE_OF_MONKSHOOD, 1);
 		}
-		else if (event.equalsIgnoreCase("30747-12.htm") && !player.getInventory().hasItems(FAIRY_DUST))
+		else if (event.equalsIgnoreCase("30747-12.htm") && !player.getInventory().hasItem(FAIRY_DUST))
 		{
 			htmltext = "30747-15.htm";
 			giveRandomPet(player, false);
@@ -193,13 +193,13 @@ public class Q420_LittleWing extends Quest
 		}
 		else if (event.equalsIgnoreCase("30747-13.htm"))
 		{
-			giveRandomPet(player, player.getInventory().hasItems(FAIRY_DUST));
+			giveRandomPet(player, player.getInventory().hasItem(FAIRY_DUST));
 			playSound(player, SOUND_FINISH);
 			st.exitQuest(true);
 		}
 		else if (event.equalsIgnoreCase("30747-14.htm"))
 		{
-			if (player.getInventory().hasItems(FAIRY_DUST))
+			if (player.getInventory().hasItem(FAIRY_DUST))
 			{
 				takeItems(player, FAIRY_DUST, 1);
 				giveRandomPet(player, true);
@@ -331,9 +331,9 @@ public class Q420_LittleWing extends Quest
 							htmltext = "30608-06.htm";
 						else if (cond == 2)
 						{
-							if (player.getInventory().hasItems(FAIRY_STONE_LIST))
+							if (player.getInventory().hasItem(FAIRY_STONE_LIST))
 								htmltext = (checkItems(player, false)) ? "30608-02.htm" : "30608-01.htm";
-							else if (player.getInventory().hasItems(DELUXE_FAIRY_STONE_LIST))
+							else if (player.getInventory().hasItem(DELUXE_FAIRY_STONE_LIST))
 								htmltext = (checkItems(player, true)) ? "30608-04.htm" : "30608-01.htm";
 						}
 						break;
@@ -342,14 +342,14 @@ public class Q420_LittleWing extends Quest
 						final int deluxestone = st.getInteger("deluxestone");
 						if (deluxestone == 1)
 						{
-							if (player.getInventory().hasItems(FAIRY_STONE))
+							if (player.getInventory().hasItem(FAIRY_STONE))
 							{
 								htmltext = "30711-05.htm";
 								st.setCond(4);
 								st.unset("deluxestone");
 								playSound(player, SOUND_MIDDLE);
 							}
-							else if (player.getInventory().hasItems(DELUXE_FAIRY_STONE))
+							else if (player.getInventory().hasItem(DELUXE_FAIRY_STONE))
 							{
 								htmltext = "30711-06.htm";
 								st.setCond(4);
@@ -365,9 +365,9 @@ public class Q420_LittleWing extends Quest
 							htmltext = "30711-01.htm";
 						else if (cond == 4)
 						{
-							if (player.getInventory().hasItems(FAIRY_STONE))
+							if (player.getInventory().hasItem(FAIRY_STONE))
 								htmltext = "30711-07.htm";
-							else if (player.getInventory().hasItems(DELUXE_FAIRY_STONE))
+							else if (player.getInventory().hasItem(DELUXE_FAIRY_STONE))
 								htmltext = "30711-08.htm";
 						}
 						break;
@@ -377,9 +377,9 @@ public class Q420_LittleWing extends Quest
 						{
 							if (st.getInteger("mimyu") == 1)
 								htmltext = "30747-06.htm";
-							else if (player.getInventory().hasItems(FAIRY_STONE))
+							else if (player.getInventory().hasItem(FAIRY_STONE))
 								htmltext = "30747-01.htm";
-							else if (player.getInventory().hasItems(DELUXE_FAIRY_STONE))
+							else if (player.getInventory().hasItem(DELUXE_FAIRY_STONE))
 								htmltext = "30747-03.htm";
 						}
 						else if (cond == 5)
@@ -498,60 +498,50 @@ public class Q420_LittleWing extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
 			case 20231:
-				if (player.getInventory().hasItems(FAIRY_STONE_LIST))
+				if (player.getInventory().hasItem(FAIRY_STONE_LIST))
 					dropItems(player, TOAD_LORD_BACK_SKIN, 1, 10, 300000);
-				else if (player.getInventory().hasItems(DELUXE_FAIRY_STONE_LIST))
+				else if (player.getInventory().hasItem(DELUXE_FAIRY_STONE_LIST))
 					dropItems(player, TOAD_LORD_BACK_SKIN, 1, 20, 300000);
 				break;
 			
 			case 20580:
-				if (player.getInventory().hasItems(SCALE_OF_DRAKE_EXARION) && !dropItems(player, EGG_OF_DRAKE_EXARION, 1, 20, 500000))
+				if (player.getInventory().hasItem(SCALE_OF_DRAKE_EXARION) && !dropItems(player, EGG_OF_DRAKE_EXARION, 1, 20, 500000))
 					npc.broadcastNpcSay(NpcStringId.ID_42049);
 				break;
 			
 			case 20233:
-				if (player.getInventory().hasItems(SCALE_OF_DRAKE_ZWOV))
+				if (player.getInventory().hasItem(SCALE_OF_DRAKE_ZWOV))
 					dropItems(player, EGG_OF_DRAKE_ZWOV, 1, 20, 500000);
 				break;
 			
 			case 20551:
-				if (player.getInventory().hasItems(SCALE_OF_DRAKE_KALIBRAN) && !dropItems(player, EGG_OF_DRAKE_KALIBRAN, 1, 20, 500000))
+				if (player.getInventory().hasItem(SCALE_OF_DRAKE_KALIBRAN) && !dropItems(player, EGG_OF_DRAKE_KALIBRAN, 1, 20, 500000))
 					npc.broadcastNpcSay(NpcStringId.ID_42046);
 				break;
 			
 			case 20270:
-				if (player.getInventory().hasItems(SCALE_OF_WYVERN_SUZET) && !dropItems(player, EGG_OF_WYVERN_SUZET, 1, 20, 500000))
+				if (player.getInventory().hasItem(SCALE_OF_WYVERN_SUZET) && !dropItems(player, EGG_OF_WYVERN_SUZET, 1, 20, 500000))
 					npc.broadcastNpcSay(NpcStringId.ID_42047);
 				break;
 			
 			case 20202:
-				if (player.getInventory().hasItems(SCALE_OF_WYVERN_SHAMHAI))
+				if (player.getInventory().hasItem(SCALE_OF_WYVERN_SHAMHAI))
 					dropItems(player, EGG_OF_WYVERN_SHAMHAI, 1, 20, 500000);
 				break;
 			
-			case 20589:
-			case 20590:
-			case 20591:
-			case 20592:
-			case 20593:
-			case 20594:
-			case 20595:
-			case 20596:
-			case 20597:
-			case 20598:
-			case 20599:
-				if (player.getInventory().hasItems(DELUXE_FAIRY_STONE) && Rnd.get(100) < 30)
+			case 20589, 20590, 20591, 20592, 20593, 20594, 20595, 20596, 20597, 20598, 20599:
+				if (player.getInventory().hasItem(DELUXE_FAIRY_STONE) && Rnd.get(100) < 30)
 				{
 					st.set("deluxestone", 2);
 					playSound(player, SOUND_MIDDLE);
@@ -560,7 +550,6 @@ public class Q420_LittleWing extends Quest
 				}
 				break;
 		}
-		return null;
 	}
 	
 	private static boolean checkItems(Player player, boolean isDeluxe)
@@ -586,7 +575,7 @@ public class Q420_LittleWing extends Quest
 	{
 		int pet = DRAGONFLUTE_OF_TWILIGHT;
 		int chance = Rnd.get(100);
-		if (player.getInventory().hasItems(EGG_OF_DRAKE_EXARION))
+		if (player.getInventory().hasItem(EGG_OF_DRAKE_EXARION))
 		{
 			takeItems(player, EGG_OF_DRAKE_EXARION, 1);
 			if (hasFairyDust)
@@ -601,7 +590,7 @@ public class Q420_LittleWing extends Quest
 			else if (chance < 85)
 				pet = DRAGONFLUTE_OF_STAR;
 		}
-		else if (player.getInventory().hasItems(EGG_OF_WYVERN_SUZET))
+		else if (player.getInventory().hasItem(EGG_OF_WYVERN_SUZET))
 		{
 			takeItems(player, EGG_OF_WYVERN_SUZET, 1);
 			if (hasFairyDust)
@@ -616,7 +605,7 @@ public class Q420_LittleWing extends Quest
 			else if (chance < 95)
 				pet = DRAGONFLUTE_OF_STAR;
 		}
-		else if (player.getInventory().hasItems(EGG_OF_DRAKE_KALIBRAN))
+		else if (player.getInventory().hasItem(EGG_OF_DRAKE_KALIBRAN))
 		{
 			takeItems(player, EGG_OF_DRAKE_KALIBRAN, 1);
 			if (hasFairyDust)
@@ -631,7 +620,7 @@ public class Q420_LittleWing extends Quest
 			else
 				pet = DRAGONFLUTE_OF_STAR;
 		}
-		else if (player.getInventory().hasItems(EGG_OF_WYVERN_SHAMHAI))
+		else if (player.getInventory().hasItem(EGG_OF_WYVERN_SHAMHAI))
 		{
 			takeItems(player, EGG_OF_WYVERN_SHAMHAI, 1);
 			if (hasFairyDust)
@@ -646,7 +635,7 @@ public class Q420_LittleWing extends Quest
 			else
 				pet = DRAGONFLUTE_OF_STAR;
 		}
-		else if (player.getInventory().hasItems(EGG_OF_DRAKE_ZWOV))
+		else if (player.getInventory().hasItem(EGG_OF_DRAKE_ZWOV))
 		{
 			takeItems(player, EGG_OF_DRAKE_ZWOV, 1);
 			if (hasFairyDust)

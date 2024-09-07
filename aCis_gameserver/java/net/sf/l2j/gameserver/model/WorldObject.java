@@ -3,6 +3,8 @@ package net.sf.l2j.gameserver.model;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import net.sf.l2j.commons.logging.CLogger;
@@ -14,6 +16,7 @@ import net.sf.l2j.gameserver.idfactory.IdFactory;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.boat.BoatItinerary;
 import net.sf.l2j.gameserver.model.location.Location;
 import net.sf.l2j.gameserver.model.location.SpawnLocation;
 import net.sf.l2j.gameserver.model.zone.type.subtype.ZoneType;
@@ -34,9 +37,37 @@ public abstract class WorldObject
 	
 	private boolean _isVisible;
 	
-	public WorldObject(int objectId)
+	protected WorldObject(int objectId)
 	{
 		_objectId = objectId;
+	}
+	
+	@Override
+	public int hashCode()
+	{
+		return Objects.hash(_objectId);
+	}
+	
+	@Override
+	public boolean equals(Object obj)
+	{
+		if (this == obj)
+			return true;
+		
+		if (obj == null)
+			return false;
+		
+		if (getClass() != obj.getClass())
+			return false;
+		
+		final WorldObject other = (WorldObject) obj;
+		return _objectId == other._objectId;
+	}
+	
+	@Override
+	public String toString()
+	{
+		return getName() + " [objId=" + getObjectId() + "]";
 	}
 	
 	public boolean isAttackableBy(Creature attacker)
@@ -47,12 +78,6 @@ public abstract class WorldObject
 	public boolean isAttackableWithoutForceBy(Playable attacker)
 	{
 		return false;
-	}
-	
-	@Override
-	public String toString()
-	{
-		return (getClass().getSimpleName() + ":" + getName() + "[" + getObjectId() + "]");
 	}
 	
 	public void onAction(Player player, boolean isCtrlPressed, boolean isShiftPressed)
@@ -69,7 +94,7 @@ public abstract class WorldObject
 	 */
 	public void decayMe()
 	{
-		setRegion(null);
+		setIsVisible(false);
 		
 		World.getInstance().removeObject(this);
 	}
@@ -123,6 +148,11 @@ public abstract class WorldObject
 		spawnMe(loc.getX(), loc.getY(), loc.getZ(), loc.getHeading());
 	}
 	
+	public final void spawnMe(BoatItinerary itinerary)
+	{
+		spawnMe(itinerary.getInfo()[0].getDock().getDockLoc(), itinerary.getHeading());
+	}
+	
 	/**
 	 * Initialize the position of this {@link WorldObject} and add it in the world as a visible object.
 	 * @param x : The X position to set.
@@ -131,7 +161,7 @@ public abstract class WorldObject
 	 */
 	public final void spawnMe(int x, int y, int z)
 	{
-		_position.set(MathUtil.limit(x, World.WORLD_X_MIN, World.WORLD_X_MAX), MathUtil.limit(y, World.WORLD_Y_MIN, World.WORLD_Y_MAX), z);
+		_position.set(Math.clamp(x, World.WORLD_X_MIN, World.WORLD_X_MAX), Math.clamp(y, World.WORLD_Y_MIN, World.WORLD_Y_MAX), z);
 		
 		spawnMe();
 	}
@@ -145,7 +175,7 @@ public abstract class WorldObject
 	 */
 	public final void spawnMe(int x, int y, int z, int heading)
 	{
-		_position.set(MathUtil.limit(x, World.WORLD_X_MIN, World.WORLD_X_MAX), MathUtil.limit(y, World.WORLD_Y_MIN, World.WORLD_Y_MAX), z, heading);
+		_position.set(Math.clamp(x, World.WORLD_X_MIN, World.WORLD_X_MAX), Math.clamp(y, World.WORLD_Y_MIN, World.WORLD_Y_MAX), z, heading);
 		
 		spawnMe();
 	}
@@ -283,7 +313,7 @@ public abstract class WorldObject
 	 */
 	public final void setXYZInvisible(int x, int y, int z)
 	{
-		_position.set(MathUtil.limit(x, World.WORLD_X_MIN, World.WORLD_X_MAX), MathUtil.limit(y, World.WORLD_Y_MIN, World.WORLD_Y_MAX), z);
+		_position.set(Math.clamp(x, World.WORLD_X_MIN, World.WORLD_X_MAX), Math.clamp(y, World.WORLD_Y_MIN, World.WORLD_Y_MAX), z);
 		
 		setIsVisible(false);
 	}
@@ -355,14 +385,14 @@ public abstract class WorldObject
 					zone.removeKnownObject(this);
 				
 				// Update all objects.
-				for (WorldObject obj : region.getObjects())
+				region.getObjects().forEach(o ->
 				{
-					if (obj == this)
-						continue;
+					if (o == this)
+						return;
 					
-					obj.removeKnownObject(this);
-					removeKnownObject(obj);
-				}
+					o.removeKnownObject(this);
+					removeKnownObject(o);
+				});
 				
 				// Desactivate the old neighbor region.
 				if (this instanceof Player && region.isEmptyNeighborhood())
@@ -380,14 +410,14 @@ public abstract class WorldObject
 					zone.addKnownObject(this);
 				
 				// Update all objects.
-				for (WorldObject obj : region.getObjects())
+				region.getObjects().forEach(o ->
 				{
-					if (obj == this)
-						continue;
+					if (o == this)
+						return;
 					
-					obj.addKnownObject(this);
-					addKnownObject(obj);
-				}
+					o.addKnownObject(this);
+					addKnownObject(o);
+				});
 				
 				// Activate the new neighbor region.
 				if (this instanceof Player)
@@ -415,10 +445,10 @@ public abstract class WorldObject
 	}
 	
 	/**
-	 * @param target : The WorldObject to check.
-	 * @return true if the {@link WorldObject} set as parameter is registered in same grid of regions than this WorldObject.
+	 * @param target : The {@link WorldObject} to check.
+	 * @return True if the {@link WorldObject} set as parameter is registered in same grid of regions than this WorldObject, false otherwise.
 	 */
-	public final boolean knows(WorldObject target)
+	public boolean knows(WorldObject target)
 	{
 		// Object doesn't exist, return false.
 		if (target == null)
@@ -434,23 +464,17 @@ public abstract class WorldObject
 		if (targetRegion == null)
 			return false;
 		
-		// Return instantly true if one surrounding WorldRegions of this WorldObject matches with target WorldRegion.
-		for (WorldRegion reg : region.getSurroundingRegions())
-		{
-			if (reg == targetRegion)
-				return true;
-		}
-		return false;
+		// Return true if one surrounding WorldRegions of this WorldObject matches with target WorldRegion.
+		return region.getSurroundingRegions().contains(targetRegion);
 	}
 	
 	/**
 	 * Return the knownlist of this {@link WorldObject} for a given object type.
-	 * @param <A> : The object type must be an instance of WorldObject.
+	 * @param <A> : The object type must be an instance of {@link WorldObject}.
 	 * @param type : The class specifying object type.
 	 * @return List<A> : The knownlist of given object type.
 	 */
-	@SuppressWarnings("unchecked")
-	public final <A> List<A> getKnownType(Class<A> type)
+	public final <A extends WorldObject> List<A> getKnownType(Class<A> type)
 	{
 		final WorldRegion region = _region;
 		if (region == null)
@@ -458,29 +482,51 @@ public abstract class WorldObject
 		
 		final List<A> result = new ArrayList<>();
 		
-		for (WorldRegion reg : region.getSurroundingRegions())
-		{
-			for (WorldObject obj : reg.getObjects())
-			{
-				if (obj == this || !type.isAssignableFrom(obj.getClass()))
-					continue;
-				
-				result.add((A) obj);
-			}
-		}
+		// Collect the objects of the specified type.
+		region.forEachSurroundingRegion(r -> r.forEachType(type, o -> this != o, result::add));
 		
 		return result;
 	}
 	
 	/**
-	 * Return the knownlist of this {@link WorldObject} for a given object type.
-	 * @param <A> : The object type must be an instance of WorldObject.
+	 * Run a {@link Consumer} upon surrounding {@link WorldObject}s of this {@link WorldObject}.
+	 * @param <A> : A class extending {@link WorldObject}.
+	 * @param type : The type of {@link WorldObject}s to affect.
+	 * @param action : The {@link Consumer} to use.
+	 */
+	public <A extends WorldObject> void forEachKnownType(Class<A> type, Consumer<A> action)
+	{
+		final WorldRegion region = _region;
+		if (region == null)
+			return;
+		
+		region.forEachSurroundingRegion(r -> r.forEachType(type, o -> this != o, action));
+	}
+	
+	/**
+	 * Run a {@link Consumer} upon filtered surrounding {@link WorldObject}s of this {@link WorldObject}.
+	 * @param <A> : A class extending {@link WorldObject}.
+	 * @param type : The type of {@link WorldObject}s to affect.
+	 * @param filter : A {@link Predicate} used as filter.
+	 * @param action : The {@link Consumer} to use.
+	 */
+	public <A extends WorldObject> void forEachKnownType(Class<A> type, Predicate<A> filter, Consumer<A> action)
+	{
+		final WorldRegion region = _region;
+		if (region == null)
+			return;
+		
+		region.forEachSurroundingRegion(r -> r.forEachType(type, o -> this != o && filter.test(o), action));
+	}
+	
+	/**
+	 * Return the filtered knownlist of this {@link WorldObject} for a given object type.
+	 * @param <A> : The object type must be an instance of {@link WorldObject}.
 	 * @param type : The class specifying object type.
-	 * @param predicate : The predicate to match.
+	 * @param filter : A {@link Predicate} used as filter.
 	 * @return List<A> : The knownlist of given object type.
 	 */
-	@SuppressWarnings("unchecked")
-	public final <A> List<A> getKnownType(Class<A> type, Predicate<A> predicate)
+	public final <A extends WorldObject> List<A> getKnownType(Class<A> type, Predicate<A> filter)
 	{
 		final WorldRegion region = _region;
 		if (region == null)
@@ -488,18 +534,27 @@ public abstract class WorldObject
 		
 		final List<A> result = new ArrayList<>();
 		
-		for (WorldRegion reg : region.getSurroundingRegions())
-		{
-			for (WorldObject obj : reg.getObjects())
-			{
-				if (obj == this || !type.isAssignableFrom(obj.getClass()) || !predicate.test((A) obj))
-					continue;
-				
-				result.add((A) obj);
-			}
-		}
+		region.forEachSurroundingRegion(r -> r.forEachType(type, o -> this != o && filter.test(o), result::add));
 		
 		return result;
+	}
+	
+	/**
+	 * Run a {@link Consumer} upon surrounding {@link WorldObject}s of this {@link WorldObject} in a defined radius.
+	 * @param <A> : A class extending {@link WorldObject}.
+	 * @param type : The type of {@link WorldObject}s to affect.
+	 * @param radius : The radius to check in which object must be located.
+	 * @param action : The {@link Consumer} to use.
+	 */
+	public <A extends WorldObject> void forEachKnownTypeInRadius(Class<A> type, int radius, Consumer<A> action)
+	{
+		final WorldRegion region = _region;
+		if (region == null)
+			return;
+		
+		final int depth = (radius <= 2048) ? 1 : (int) ((radius / 2048) + 1);
+		
+		region.forEachRegion(depth, r -> r.forEachType(type, o -> this != o && MathUtil.checkIfInRange(radius, this, o, true), action));
 	}
 	
 	/**
@@ -509,56 +564,57 @@ public abstract class WorldObject
 	 * @param radius : The radius to check in which object must be located.
 	 * @return List<A> : The knownlist of given object type.
 	 */
-	@SuppressWarnings("unchecked")
-	public final <A> List<A> getKnownTypeInRadius(Class<A> type, int radius)
+	public final <A extends WorldObject> List<A> getKnownTypeInRadius(Class<A> type, int radius)
 	{
 		final WorldRegion region = _region;
 		if (region == null)
 			return Collections.emptyList();
 		
 		final List<A> result = new ArrayList<>();
+		final int depth = (radius <= 2048) ? 1 : (int) ((radius / 2048) + 1);
 		
-		for (WorldRegion reg : region.getSurroundingRegions())
-		{
-			for (WorldObject obj : reg.getObjects())
-			{
-				if (obj == this || !type.isAssignableFrom(obj.getClass()) || !MathUtil.checkIfInRange(radius, this, obj, true))
-					continue;
-				
-				result.add((A) obj);
-			}
-		}
+		region.forEachRegion(depth, r -> r.forEachType(type, o -> this != o && MathUtil.checkIfInRange(radius, this, o, true), result::add));
 		
 		return result;
 	}
 	
 	/**
-	 * Return the knownlist of this {@link WorldObject} for a given object type within specified radius.
+	 * Run a {@link Consumer} upon filtered surrounding {@link WorldObject}s of this {@link WorldObject} in a defined radius.
+	 * @param <A> : A class extending {@link WorldObject}.
+	 * @param type : The type of {@link WorldObject}s to affect.
+	 * @param radius : The radius to check in which object must be located.
+	 * @param filter : A {@link Predicate} used as filter.
+	 * @param action : The {@link Consumer} to use.
+	 */
+	public <A extends WorldObject> void forEachKnownTypeInRadius(Class<A> type, int radius, Predicate<A> filter, Consumer<A> action)
+	{
+		final WorldRegion region = _region;
+		if (region == null)
+			return;
+		
+		final int depth = (radius <= 2048) ? 1 : (int) ((radius / 2048) + 1);
+		
+		region.forEachRegion(depth, r -> r.forEachType(type, o -> this != o && MathUtil.checkIfInRange(radius, this, o, true) && filter.test(o), action));
+	}
+	
+	/**
+	 * Return the filtered knownlist of this {@link WorldObject} for a given object type within specified radius.
 	 * @param <A> : The object type must be an instance of WorldObject.
 	 * @param type : The class specifying object type.
 	 * @param radius : The radius to check in which object must be located.
-	 * @param predicate : The predicate to match.
+	 * @param filter : A {@link Predicate} used as filter.
 	 * @return List<A> : The knownlist of given object type.
 	 */
-	@SuppressWarnings("unchecked")
-	public final <A> List<A> getKnownTypeInRadius(Class<A> type, int radius, Predicate<A> predicate)
+	public final <A extends WorldObject> List<A> getKnownTypeInRadius(Class<A> type, int radius, Predicate<A> filter)
 	{
 		final WorldRegion region = _region;
 		if (region == null)
 			return Collections.emptyList();
 		
 		final List<A> result = new ArrayList<>();
+		final int depth = (radius <= 2048) ? 1 : (int) ((radius / 2048) + 1);
 		
-		for (WorldRegion reg : region.getSurroundingRegions())
-		{
-			for (WorldObject obj : reg.getObjects())
-			{
-				if (obj == this || !type.isAssignableFrom(obj.getClass()) || !MathUtil.checkIfInRange(radius, this, obj, true) || !predicate.test((A) obj))
-					continue;
-				
-				result.add((A) obj);
-			}
-		}
+		region.forEachRegion(depth, r -> r.forEachType(type, o -> this != o && MathUtil.checkIfInRange(radius, this, o, true) && filter.test(o), result::add));
 		
 		return result;
 	}
@@ -572,17 +628,14 @@ public abstract class WorldObject
 		if (region == null)
 			return;
 		
-		for (WorldRegion reg : region.getSurroundingRegions())
+		region.forEachSurroundingRegion(r -> r.getObjects().forEach(o ->
 		{
-			for (WorldObject obj : reg.getObjects())
-			{
-				if (obj == this)
-					continue;
-				
-				obj.addKnownObject(this);
-				addKnownObject(obj);
-			}
-		}
+			if (o == this)
+				return;
+			
+			o.addKnownObject(this);
+			addKnownObject(o);
+		}));
 	}
 	
 	/**
@@ -611,9 +664,9 @@ public abstract class WorldObject
 		}
 		
 		// Then test surrounding WorldRegions.
-		for (WorldRegion wr : region.getSurroundingRegions())
+		region.forEachSurroundingRegion(r ->
 		{
-			for (ZoneType zt : wr.getZones())
+			for (ZoneType zt : r.getZones())
 			{
 				if (zones.contains(zt))
 					continue;
@@ -623,7 +676,7 @@ public abstract class WorldObject
 				
 				zones.add(zt);
 			}
-		}
+		});
 		return zones;
 	}
 	

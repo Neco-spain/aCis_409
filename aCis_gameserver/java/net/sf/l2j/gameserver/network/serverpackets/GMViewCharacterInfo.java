@@ -160,7 +160,7 @@ public class GMViewCharacterInfo extends L2GameServerPacket
 		writeD(_player.getAllyId()); // ally id
 		writeC(_player.getMountType()); // mount type
 		writeC(_player.getOperateType().getId());
-		writeC(_player.hasDwarvenCraft() ? 1 : 0);
+		writeC(_player.hasCrystallize() ? 1 : 0);
 		writeD(_player.getPkKills());
 		writeD(_player.getPvpKills());
 		

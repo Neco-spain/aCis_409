@@ -10,32 +10,21 @@ import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 public class ItemLogFormatter extends MasterFormatter
 {
 	@Override
-	public String format(LogRecord record)
+	public String format(LogRecord logRecord)
 	{
 		final StringBuilder sb = new StringBuilder();
 		
-		StringUtil.append(sb, "[", getFormatedDate(record.getMillis()), "] ", SPACE, record.getMessage(), SPACE);
+		StringUtil.append(sb, "[", getFormatedDate(logRecord.getMillis()), "] ", SPACE, logRecord.getMessage());
 		
-		for (Object p : record.getParameters())
+		for (Object p : logRecord.getParameters())
 		{
 			if (p == null)
 				continue;
 			
-			if (p instanceof ItemInstance)
-			{
-				final ItemInstance item = (ItemInstance) p;
-				
-				StringUtil.append(sb, item.getCount(), SPACE);
-				
-				if (item.getEnchantLevel() > 0)
-					StringUtil.append(sb, "+", item.getEnchantLevel(), " ");
-				
-				StringUtil.append(sb, item.getItem().getName(), SPACE, item.getObjectId());
-			}
+			if (p instanceof ItemInstance item)
+				StringUtil.append(sb, SPACE, item.getLocation(), SPACE, item.getCount(), ((item.getEnchantLevel() > 0) ? " +" + item.getEnchantLevel() + " " : " "), p.toString());
 			else
-				sb.append(p.toString());
-			
-			sb.append(SPACE);
+				StringUtil.append(sb, SPACE, p.toString());
 		}
 		sb.append(CRLF);
 		

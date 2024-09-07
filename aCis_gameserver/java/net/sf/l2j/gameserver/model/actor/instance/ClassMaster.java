@@ -5,14 +5,12 @@ import java.util.List;
 import net.sf.l2j.commons.lang.StringUtil;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.gameserver.data.xml.ItemData;
 import net.sf.l2j.gameserver.data.xml.PlayerData;
 import net.sf.l2j.gameserver.enums.actors.ClassId;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
 import net.sf.l2j.gameserver.network.serverpackets.UserInfo;
 
@@ -37,26 +35,14 @@ public final class ClassMaster extends Folk
 	}
 	
 	@Override
-	public void showChatWindow(Player player)
+	public String getHtmlPath(int npcId, int val)
 	{
-		player.sendPacket(ActionFailed.STATIC_PACKET);
-		String filename = "data/html/classmaster/disabled.htm";
-		
-		if (Config.ALLOW_CLASS_MASTERS)
-			filename = "data/html/classmaster/" + getNpcId() + ".htm";
-		
-		final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
-		html.setFile(filename);
-		html.replace("%objectId%", getObjectId());
-		player.sendPacket(html);
+		return "data/html/mods/classmaster/" + npcId + ((val == 0) ? "" : ("-" + val)) + ".htm";
 	}
 	
 	@Override
 	public void onBypassFeedback(Player player, String command)
 	{
-		if (!Config.ALLOW_CLASS_MASTERS)
-			return;
-		
 		if (command.startsWith("1stClass"))
 			showHtmlMenu(player, getObjectId(), 1);
 		else if (command.startsWith("2ndClass"))
@@ -65,12 +51,12 @@ public final class ClassMaster extends Folk
 			showHtmlMenu(player, getObjectId(), 3);
 		else if (command.startsWith("change_class"))
 		{
-			int val = Integer.parseInt(command.substring(13));
+			final int val = Integer.parseInt(command.substring(13));
 			
 			if (checkAndChangeClass(player, val))
 			{
 				final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
-				html.setFile("data/html/classmaster/ok.htm");
+				html.setFile(getHtmlPath(getNpcId(), 4));
 				html.replace("%name%", PlayerData.getInstance().getClassNameById(val));
 				player.sendPacket(html);
 			}
@@ -79,18 +65,17 @@ public final class ClassMaster extends Folk
 		{
 			final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
 			
-			if (!player.isNoble())
-			{
-				player.setNoble(true, true);
-				player.sendPacket(new UserInfo(player));
-				html.setFile("data/html/classmaster/nobleok.htm");
-				player.sendPacket(html);
-			}
+			if (player.isNoble())
+				html.setFile(getHtmlPath(getNpcId(), 5));
 			else
 			{
-				html.setFile("data/html/classmaster/alreadynoble.htm");
-				player.sendPacket(html);
+				html.setFile(getHtmlPath(getNpcId(), 6));
+				
+				player.setNoble(true, true);
+				player.sendPacket(new UserInfo(player));
 			}
+			
+			player.sendPacket(html);
 		}
 		else if (command.startsWith("learn_skills"))
 			player.rewardSkills();
@@ -98,7 +83,7 @@ public final class ClassMaster extends Folk
 			super.onBypassFeedback(player, command);
 	}
 	
-	private static final void showHtmlMenu(Player player, int objectId, int level)
+	private final void showHtmlMenu(Player player, int objectId, int level)
 	{
 		final NpcHtmlMessage html = new NpcHtmlMessage(objectId);
 		
@@ -147,7 +132,7 @@ public final class ClassMaster extends Folk
 		{
 			final ClassId currentClassId = player.getClassId();
 			if (currentClassId.getLevel() >= level)
-				html.setFile("data/html/classmaster/nomore.htm");
+				html.setFile(getHtmlPath(getNpcId(), 1));
 			else
 			{
 				final int minLevel = getMinLevel(currentClassId.getLevel());
@@ -165,13 +150,13 @@ public final class ClassMaster extends Folk
 					
 					if (menu.length() > 0)
 					{
-						html.setFile("data/html/classmaster/template.htm");
+						html.setFile(getHtmlPath(getNpcId(), 2));
 						html.replace("%name%", PlayerData.getInstance().getClassNameById(currentClassId.getId()));
 						html.replace("%menu%", menu.toString());
 					}
 					else
 					{
-						html.setFile("data/html/classmaster/comebacklater.htm");
+						html.setFile(getHtmlPath(getNpcId(), 3));
 						html.replace("%level%", getMinLevel(level - 1));
 					}
 				}
@@ -179,11 +164,11 @@ public final class ClassMaster extends Folk
 				{
 					if (minLevel < Integer.MAX_VALUE)
 					{
-						html.setFile("data/html/classmaster/comebacklater.htm");
+						html.setFile(getHtmlPath(getNpcId(), 3));
 						html.replace("%level%", minLevel);
 					}
 					else
-						html.setFile("data/html/classmaster/nomore.htm");
+						html.setFile(getHtmlPath(getNpcId(), 1));
 				}
 			}
 		}
@@ -205,13 +190,10 @@ public final class ClassMaster extends Folk
 		int newJobLevel = currentClassId.getLevel() + 1;
 		
 		// Weight/Inventory check
-		if (!Config.CLASS_MASTER_SETTINGS.getRewardItems(newJobLevel).isEmpty())
+		if (player.getWeightPenalty().ordinal() > 2 && !Config.CLASS_MASTER_SETTINGS.getRewardItems(newJobLevel).isEmpty())
 		{
-			if (player.getWeightPenalty().ordinal() > 2)
-			{
-				player.sendPacket(SystemMessageId.INVENTORY_LESS_THAN_80_PERCENT);
-				return false;
-			}
+			player.sendPacket(SystemMessageId.INVENTORY_LESS_THAN_80_PERCENT);
+			return false;
 		}
 		
 		final List<IntIntHolder> neededItems = Config.CLASS_MASTER_SETTINGS.getRequiredItems(newJobLevel);
@@ -229,13 +211,13 @@ public final class ClassMaster extends Folk
 		// get all required items for class transfer
 		for (IntIntHolder item : neededItems)
 		{
-			if (!player.destroyItemByItemId("ClassMaster", item.getId(), item.getValue(), player, true))
+			if (!player.destroyItemByItemId(item.getId(), item.getValue(), true))
 				return false;
 		}
 		
 		// reward player with items
 		for (IntIntHolder item : Config.CLASS_MASTER_SETTINGS.getRewardItems(newJobLevel))
-			player.addItem("ClassMaster", item.getId(), item.getValue(), player, true);
+			player.addItem(item.getId(), item.getValue(), true);
 		
 		player.setClassId(val);
 		
@@ -301,21 +283,18 @@ public final class ClassMaster extends Folk
 		if (oldCID == newCID.getParent())
 			return true;
 		
-		if (Config.ALLOW_ENTIRE_TREE && newCID.isChildOf(oldCID))
-			return true;
-		
-		return false;
+		return Config.ALLOW_ENTIRE_TREE && newCID.isChildOf(oldCID);
 	}
 	
 	private static String getRequiredItems(int level)
 	{
 		final List<IntIntHolder> neededItems = Config.CLASS_MASTER_SETTINGS.getRequiredItems(level);
 		if (neededItems == null || neededItems.isEmpty())
-			return "<tr><td>none</td></r>";
+			return "<tr><td>none</td></tr>";
 		
 		final StringBuilder sb = new StringBuilder();
 		for (IntIntHolder item : neededItems)
-			StringUtil.append(sb, "<tr><td><font color=\"LEVEL\">", item.getValue(), "</font></td><td>", ItemData.getInstance().getTemplate(item.getId()).getName(), "</td></tr>");
+			StringUtil.append(sb, "<tr><td><font color=\"LEVEL\">", item.getValue(), "</font></td><td>&#", item.getId(), "</td></tr>");
 		
 		return sb.toString();
 	}

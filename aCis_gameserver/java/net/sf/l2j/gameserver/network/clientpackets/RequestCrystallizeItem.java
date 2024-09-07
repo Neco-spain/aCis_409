@@ -5,7 +5,6 @@ import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
-import net.sf.l2j.gameserver.network.serverpackets.InventoryUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.skills.L2Skill;
 
@@ -97,11 +96,7 @@ public final class RequestCrystallizeItem extends L2GameClientPacket
 		// Unequip the item if needed.
 		if (item.isEquipped())
 		{
-			InventoryUpdate iu = new InventoryUpdate();
-			for (ItemInstance items : player.getInventory().unequipItemInSlotAndRecord(item.getLocationSlot()))
-				iu.addModifiedItem(items);
-			
-			player.sendPacket(iu);
+			player.getInventory().unequipItemInSlotAndRecord(item.getLocationSlot());
 			
 			if (item.getEnchantLevel() > 0)
 				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.EQUIPMENT_S1_S2_REMOVED).addNumber(item.getEnchantLevel()).addItemName(item.getItemId()));
@@ -110,17 +105,12 @@ public final class RequestCrystallizeItem extends L2GameClientPacket
 		}
 		
 		// Remove the item from inventory.
-		ItemInstance removedItem = player.getInventory().destroyItem("Crystalize", _objectId, _count, player, null);
-		
-		InventoryUpdate iu = new InventoryUpdate();
-		iu.addRemovedItem(removedItem);
-		player.sendPacket(iu);
+		ItemInstance removedItem = player.getInventory().destroyItem(_objectId, _count);
 		
 		player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_CRYSTALLIZED).addItemName(removedItem.getItemId()));
 		
 		// add crystals
-		ItemInstance crystals = player.getInventory().addItem("Crystalize", item.getItem().getCrystalItemId(), item.getCrystalCount(), player, player);
-		player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.EARNED_S2_S1_S).addItemName(crystals.getItemId()).addItemNumber(item.getCrystalCount()));
+		player.addItem(item.getItem().getCrystalItemId(), item.getCrystalCount(), true);
 		
 		player.broadcastUserInfo();
 		player.setCrystallizing(false);

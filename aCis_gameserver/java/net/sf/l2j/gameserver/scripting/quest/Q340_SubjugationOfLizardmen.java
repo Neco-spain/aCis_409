@@ -29,10 +29,10 @@ public class Q340_SubjugationOfLizardmen extends Quest
 		
 		setItemsIds(CARGO, HOLY, ROSARY, TOTEM);
 		
-		addStartNpc(WEISZ);
+		addQuestStart(WEISZ);
 		addTalkId(WEISZ, ADONIUS, LEVIAN, CHEST);
 		
-		addKillId(20008, 20010, 20014, 20024, 20027, 20030, 25146);
+		addMyDying(20008, 20010, 20014, 20024, 20027, 20030, 25146);
 	}
 	
 	@Override
@@ -172,13 +172,13 @@ public class Q340_SubjugationOfLizardmen extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
@@ -197,21 +197,14 @@ public class Q340_SubjugationOfLizardmen extends Quest
 					dropItems(player, CARGO, 1, 30, 550000);
 				break;
 			
-			case 20024:
-			case 20027:
-			case 20030:
-				if (st.getCond() == 3)
-				{
-					if (dropItems(player, HOLY, 1, 1, 100000))
-						dropItems(player, ROSARY, 1, 1, 100000);
-				}
+			case 20024, 20027, 20030:
+				if (st.getCond() == 3 && dropItems(player, HOLY, 1, 1, 100000))
+					dropItems(player, ROSARY, 1, 1, 100000);
 				break;
 			
 			case 25146:
 				addSpawn(CHEST, npc, false, 30000, false);
 				break;
 		}
-		
-		return null;
 	}
 }

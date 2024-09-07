@@ -4,12 +4,12 @@ import java.util.StringTokenizer;
 
 import net.sf.l2j.gameserver.data.manager.BuyListManager;
 import net.sf.l2j.gameserver.data.manager.SevenSignsManager;
+import net.sf.l2j.gameserver.enums.PrivilegeType;
 import net.sf.l2j.gameserver.enums.SealType;
 import net.sf.l2j.gameserver.enums.actors.NpcTalkCond;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
 import net.sf.l2j.gameserver.model.buylist.NpcBuyList;
-import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.network.serverpackets.BuyList;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
 
@@ -65,7 +65,7 @@ public final class MercenaryManagerNpc extends Folk
 		else if (command.startsWith("merc_limit"))
 		{
 			final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
-			html.setFile("data/html/mercmanager/" + ((getCastle().getCastleId() == 5) ? "aden_msellerLimit.htm" : "msellerLimit.htm"));
+			html.setFile("data/html/mercmanager/" + ((getCastle().getId() == 5) ? "aden_msellerLimit.htm" : "msellerLimit.htm"));
 			html.replace("%castleName%", getCastle().getName());
 			html.replace("%objectId%", getObjectId());
 			player.sendPacket(html);
@@ -79,30 +79,34 @@ public final class MercenaryManagerNpc extends Folk
 	{
 		final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
 		
-		final NpcTalkCond condition = getNpcTalkCond(player);
-		if (condition == NpcTalkCond.NONE)
-			html.setFile("data/html/mercmanager/mseller002.htm");
-		else if (condition == NpcTalkCond.UNDER_SIEGE)
-			html.setFile("data/html/mercmanager/mseller003.htm");
-		else
+		switch (getNpcTalkCond(player))
 		{
-			// Different output depending about who is currently owning the Seal of Strife.
-			switch (SevenSignsManager.getInstance().getSealOwner(SealType.STRIFE))
-			{
-				case DAWN:
-					html.setFile("data/html/mercmanager/mseller001_dawn.htm");
-					break;
-				
-				case DUSK:
-					html.setFile("data/html/mercmanager/mseller001_dusk.htm");
-					break;
-				
-				default:
-					html.setFile("data/html/mercmanager/mseller001.htm");
-					break;
-			}
+			case NONE:
+				html.setFile("data/html/mercmanager/mseller002.htm");
+				break;
+			
+			case UNDER_SIEGE:
+				html.setFile("data/html/mercmanager/mseller003.htm");
+				break;
+			
+			default:
+				// Different output depending about who is currently owning the Seal of Strife.
+				switch (SevenSignsManager.getInstance().getSealOwner(SealType.STRIFE))
+				{
+					case DAWN:
+						html.setFile("data/html/mercmanager/mseller001_dawn.htm");
+						break;
+					
+					case DUSK:
+						html.setFile("data/html/mercmanager/mseller001_dusk.htm");
+						break;
+					
+					default:
+						html.setFile("data/html/mercmanager/mseller001.htm");
+						break;
+				}
+				break;
 		}
-		
 		html.replace("%objectId%", getObjectId());
 		player.sendPacket(html);
 	}
@@ -115,7 +119,7 @@ public final class MercenaryManagerNpc extends Folk
 			if (getCastle().getSiege().isInProgress())
 				return NpcTalkCond.UNDER_SIEGE;
 			
-			if (getCastle().getOwnerId() == player.getClanId() && player.hasClanPrivileges(Clan.CP_CS_MERCENARIES))
+			if (getCastle().getOwnerId() == player.getClanId() && player.hasClanPrivileges(PrivilegeType.CP_MERCENARIES))
 				return NpcTalkCond.OWNER;
 		}
 		return NpcTalkCond.NONE;

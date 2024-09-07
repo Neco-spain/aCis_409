@@ -27,10 +27,10 @@ public class Q637_ThroughTheGateOnceMore extends Quest
 		
 		setItemsIds(NECROMANCER_HEART);
 		
-		addStartNpc(FLAURON);
+		addQuestStart(FLAURON);
 		addTalkId(FLAURON);
 		
-		addKillId(21565, 21566, 21567);
+		addMyDying(21565, 21566, 21567);
 	}
 	
 	@Override
@@ -64,9 +64,9 @@ public class Q637_ThroughTheGateOnceMore extends Quest
 		switch (st.getState())
 		{
 			case CREATED:
-				if (player.getStatus().getLevel() < 73 || !player.getInventory().hasItems(FADED_VISITOR_MARK))
+				if (player.getStatus().getLevel() < 73 || !player.getInventory().hasItem(FADED_VISITOR_MARK))
 					htmltext = "32010-01a.htm";
-				else if (player.getInventory().hasItems(PAGAN_MARK))
+				else if (player.getInventory().hasItem(PAGAN_MARK))
 					htmltext = "32010-00.htm";
 				else
 					htmltext = "32010-01.htm";
@@ -97,17 +97,15 @@ public class Q637_ThroughTheGateOnceMore extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMember(player, npc, 1);
 		if (st == null)
-			return null;
+			return;
 		
 		if (dropItems(st.getPlayer(), NECROMANCER_HEART, 1, 10, 400000))
 			st.setCond(2);
-		
-		return null;
 	}
 }

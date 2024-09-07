@@ -14,7 +14,7 @@ public class Q004_LongliveThePaagrioLord extends Quest
 {
 	private static final String QUEST_NAME = "Q004_LongliveThePaagrioLord";
 	
-	private static final Map<Integer, Integer> NPC_GIFTS = new HashMap<>(6);
+	private static final Map<Integer, Integer> NPC_GIFTS = HashMap.newHashMap(6);
 	
 	public Q004_LongliveThePaagrioLord()
 	{
@@ -29,7 +29,7 @@ public class Q004_LongliveThePaagrioLord extends Quest
 		
 		setItemsIds(1541, 1542, 1543, 1544, 1545, 1546);
 		
-		addStartNpc(30578); // Nakusin
+		addQuestStart(30578); // Nakusin
 		addTalkId(30578, 30585, 30566, 30562, 30560, 30559, 30587);
 	}
 	
@@ -92,7 +92,7 @@ public class Q004_LongliveThePaagrioLord extends Quest
 				else
 				{
 					int i = NPC_GIFTS.get(npcId);
-					if (player.getInventory().hasItems(i))
+					if (player.getInventory().hasItem(i))
 						htmltext = npcId + "-02.htm";
 					else
 					{

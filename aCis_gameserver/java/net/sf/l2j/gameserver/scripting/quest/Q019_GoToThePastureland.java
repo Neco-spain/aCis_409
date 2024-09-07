@@ -23,7 +23,7 @@ public class Q019_GoToThePastureland extends Quest
 		
 		setItemsIds(YOUNG_WILD_BEAST_MEAT);
 		
-		addStartNpc(VLADIMIR);
+		addQuestStart(VLADIMIR);
 		addTalkId(VLADIMIR, TUNATUN);
 	}
 	
@@ -44,7 +44,7 @@ public class Q019_GoToThePastureland extends Quest
 		}
 		else if (event.equalsIgnoreCase("019_finish"))
 		{
-			if (player.getInventory().hasItems(YOUNG_WILD_BEAST_MEAT))
+			if (player.getInventory().hasItem(YOUNG_WILD_BEAST_MEAT))
 			{
 				htmltext = "31537-01.htm";
 				takeItems(player, YOUNG_WILD_BEAST_MEAT, 1);

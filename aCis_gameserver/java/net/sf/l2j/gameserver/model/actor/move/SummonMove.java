@@ -1,6 +1,6 @@
 package net.sf.l2j.gameserver.model.actor.move;
 
-import net.sf.l2j.commons.random.Rnd;
+import net.sf.l2j.commons.geometry.Circle;
 
 import net.sf.l2j.gameserver.enums.IntentionType;
 import net.sf.l2j.gameserver.enums.actors.MoveType;
@@ -26,20 +26,16 @@ public class SummonMove extends CreatureMove<Summon>
 		if (owner == null || owner == attacker || !owner.isIn3DRadius(_actor, 2 * AVOID_RADIUS) || !owner.isInCombat())
 			return;
 		
-		if (_actor.getAI().getCurrentIntention().getType() != IntentionType.ACTIVE && _actor.getAI().getCurrentIntention().getType() != IntentionType.FOLLOW)
+		if (_actor.getAI().getCurrentIntention().getType() != IntentionType.IDLE && _actor.getAI().getCurrentIntention().getType() != IntentionType.FOLLOW)
 			return;
 		
 		if (_actor.isMoving() || _actor.isDead() || _actor.isMovementDisabled())
 			return;
 		
-		final int ownerX = owner.getX();
-		final int ownerY = owner.getY();
-		final double angle = Math.toRadians(Rnd.get(-90, 90)) + Math.atan2(ownerY - _actor.getY(), ownerX - _actor.getX());
+		final Circle circle = new Circle(owner.getX(), owner.getY(), AVOID_RADIUS);
+		final Location fleeLoc = circle.getRandomEquidistantPoint(12, owner.getZ());
 		
-		final int targetX = ownerX + (int) (AVOID_RADIUS * Math.cos(angle));
-		final int targetY = ownerY + (int) (AVOID_RADIUS * Math.sin(angle));
-		
-		maybeMoveToLocation(new Location(targetX, targetY, _actor.getZ()), 0, true, false);
+		_actor.getAI().tryToMoveTo(fleeLoc, null);
 	}
 	
 	@Override
@@ -53,7 +49,7 @@ public class SummonMove extends CreatureMove<Summon>
 		if (!_actor.knows(target))
 		{
 			_actor.getAI().setFollowStatus(false);
-			_actor.getAI().tryToActive();
+			_actor.getAI().tryToIdle();
 			return;
 		}
 		
@@ -81,7 +77,7 @@ public class SummonMove extends CreatureMove<Summon>
 		if (!_actor.knows(target))
 		{
 			_actor.getAI().setFollowStatus(false);
-			_actor.getAI().tryToActive();
+			_actor.getAI().tryToIdle();
 			return;
 		}
 		
@@ -95,6 +91,11 @@ public class SummonMove extends CreatureMove<Summon>
 		_pawn = null;
 		_offset = 0;
 		
+		if (target.getActingPlayer() != _actor.getOwner())
+		{
+			_actor.tryToPassBoatEntrance(destination);
+			return;
+		}
 		moveToLocation(destination, true);
 	}
 }

@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import net.sf.l2j.commons.geometry.basic.Line2D;
+
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.location.Location;
 
@@ -199,6 +201,19 @@ public class ExServerPrimitive extends L2GameServerPacket
 	 * @param name : The {@link String} name that will be displayed over the point.
 	 * @param color : The used {@link Color}.
 	 * @param isNameColored : If true, the name will be colored.
+	 * @param line : The {@link Line2D} to take coordinates.
+	 * @param z : The z axis used to draw the line.
+	 */
+	public void addLine(String name, Color color, boolean isNameColored, Line2D line, int z)
+	{
+		addLine(name, color, isNameColored, line.getP1x(), line.getP1y(), z, line.getP2x(), line.getP2y(), z);
+	}
+	
+	/**
+	 * Add a line to be displayed on client.
+	 * @param name : The {@link String} name that will be displayed over the point.
+	 * @param color : The used {@link Color}.
+	 * @param isNameColored : If true, the name will be colored.
 	 * @param x : The x coordinate for this line end point.
 	 * @param y : The y coordinate for this line end point.
 	 * @param z : The z coordinate for this line end point.
@@ -272,6 +287,17 @@ public class ExServerPrimitive extends L2GameServerPacket
 	public void addLine(Color color, Location loc, Location loc2)
 	{
 		addLine("", color, false, loc.getX(), loc.getY(), loc.getZ(), loc2.getX(), loc2.getY(), loc2.getZ());
+	}
+	
+	/**
+	 * Add a line to be displayed on client.
+	 * @param color : The used {@link Color}.
+	 * @param line : The {@link Line2D} to take coordinates.
+	 * @param z : The z axis used to draw the line.
+	 */
+	public void addLine(Color color, Line2D line, int z)
+	{
+		addLine("", color, false, line.getP1x(), line.getP1y(), z, line.getP2x(), line.getP2y(), z);
 	}
 	
 	/**

@@ -4,9 +4,9 @@ import java.util.Calendar;
 
 import net.sf.l2j.gameserver.data.sql.ClanTable;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.clanhall.SiegableHall;
-import net.sf.l2j.gameserver.model.entity.Castle;
 import net.sf.l2j.gameserver.model.pledge.Clan;
+import net.sf.l2j.gameserver.model.residence.castle.Castle;
+import net.sf.l2j.gameserver.model.residence.clanhall.SiegableHall;
 
 public class SiegeInfo extends L2GameServerPacket
 {
@@ -36,7 +36,7 @@ public class SiegeInfo extends L2GameServerPacket
 		{
 			final int ownerId = _castle.getOwnerId();
 			
-			writeD(_castle.getCastleId());
+			writeD(_castle.getId());
 			writeD((ownerId == player.getClanId() && player.isClanLeader()) ? 0x01 : 0x00);
 			writeD(ownerId);
 			

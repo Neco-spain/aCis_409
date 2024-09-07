@@ -50,10 +50,10 @@ public final class AttackStanceTaskManager implements Runnable
 			// Stop character attack stance animation.
 			creature.broadcastPacket(new AutoAttackStop(creature.getObjectId()));
 			
-			if (creature instanceof Player)
+			if (creature instanceof Player player)
 			{
 				// Stop summon attack stance animation.
-				final Summon summon = ((Player) creature).getSummon();
+				final Summon summon = player.getSummon();
 				if (summon != null)
 					summon.broadcastPacket(new AutoAttackStop(summon.getObjectId()));
 			}

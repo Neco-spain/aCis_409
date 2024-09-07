@@ -8,21 +8,31 @@ import java.util.concurrent.ConcurrentHashMap;
 import net.sf.l2j.commons.pool.ThreadPool;
 
 import net.sf.l2j.gameserver.enums.Paperdoll;
+import net.sf.l2j.gameserver.enums.items.ItemState;
 import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.itemcontainer.listeners.OnEquipListener;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.InventoryUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 /**
- * Updates the timer and removes the {@link ItemInstance} as a shadow item.
+ * Manage {@link ItemInstance} as shadow item, temporary weapons with short lifespans.<br>
+ * <br>
+ * A Shadow Weapon has the same abilities and appearance as an ordinary weapon, but it has a limited lifespan.<br>
+ * <br>
+ * When a Shadow Weapon's total duration or mana reaches 0, it will be removed from inventory and disappear.<br>
+ * <br>
+ * The remaining duration or mana is consumed from the time the item is equipped, and the consumption ends when it is no longer equipped.<br>
+ * <br>
+ * Warning: If the item is equipped and unequipped multiple times, the remaining duration or mana is consumed faster than normal. Logging in and out of the game with the weapon equipped will also decrease its duration.<br>
+ * <br>
+ * As a short-term item, shadow weapons cannot be moved through trading, drop, or cargo, and it can only be stored in a private warehouse. Short-term items also cannot be enchanted, augmented, given a special ability or crystallized.<br>
+ * <br>
+ * A weapon that is obtained by using a Shadow Weapon Exchange Coupon has a lower total duration or mana than a Shadow Weapon bought at a weapon shop.
  */
 public class ShadowItemTaskManager implements Runnable, OnEquipListener
 {
-	private static final int DELAY = 1; // 1 second
-	
 	private final Map<ItemInstance, Player> _shadowItems = new ConcurrentHashMap<>();
 	
 	protected ShadowItemTaskManager()
@@ -46,39 +56,34 @@ public class ShadowItemTaskManager implements Runnable, OnEquipListener
 			final Player player = entry.getValue();
 			
 			// Decrease item mana.
-			int mana = item.decreaseMana();
+			item.decreaseMana(1);
 			
 			// If not enough mana, destroy the item and inform the player.
-			if (mana == -1)
+			if (item.getManaLeft() <= 0)
 			{
-				// Remove item first.
-				player.getInventory().unequipItemInSlotAndRecord(item.getLocationSlot());
-				InventoryUpdate iu = new InventoryUpdate();
-				iu.addModifiedItem(item);
-				player.sendPacket(iu);
+				// Unequip the item.
+				if (item.isEquipped())
+					player.useEquippableItem(item, false);
 				
-				// Destroy shadow item, remove from list.
-				player.destroyItem("ShadowItem", item, player, false);
-				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1S_REMAINING_MANA_IS_NOW_0).addItemName(item.getItemId()));
+				// Destroy the item.
+				player.destroyItem(item, true);
+				
+				// Remove the item from this task manager.
 				_shadowItems.remove(item);
-				
-				continue;
 			}
-			
 			// Enough mana, show messages.
-			if (mana == 60 - DELAY)
-				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1S_REMAINING_MANA_IS_NOW_1).addItemName(item.getItemId()));
-			else if (mana == 300 - DELAY)
-				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1S_REMAINING_MANA_IS_NOW_5).addItemName(item.getItemId()));
-			else if (mana == 600 - DELAY)
-				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1S_REMAINING_MANA_IS_NOW_10).addItemName(item.getItemId()));
-			
-			// Update inventory every minute.
-			if (mana % 60 == 60 - DELAY)
+			else
 			{
-				InventoryUpdate iu = new InventoryUpdate();
-				iu.addModifiedItem(item);
-				player.sendPacket(iu);
+				if (item.getManaLeft() == 60)
+					player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1S_REMAINING_MANA_IS_NOW_1).addItemName(item.getItemId()));
+				else if (item.getManaLeft() == 300)
+					player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1S_REMAINING_MANA_IS_NOW_5).addItemName(item.getItemId()));
+				else if (item.getManaLeft() == 600)
+					player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1S_REMAINING_MANA_IS_NOW_10).addItemName(item.getItemId()));
+				
+				// Update inventory every minute.
+				if (item.getManaLeft() % 60 == 60)
+					item.updateState(player, ItemState.MODIFIED);
 			}
 		}
 	}
@@ -91,10 +96,14 @@ public class ShadowItemTaskManager implements Runnable, OnEquipListener
 			return;
 		
 		// Must be a player.
-		if (!(playable instanceof Player))
+		if (!(playable instanceof Player player))
 			return;
 		
-		_shadowItems.put(item, (Player) playable);
+		// Decrease mana time by 1 minute for each equip action subsequent to the first one.
+		if (item.getManaLeft() != item.getItem().getDuration() * 60)
+			item.decreaseMana(60);
+		
+		_shadowItems.put(item, player);
 	}
 	
 	@Override

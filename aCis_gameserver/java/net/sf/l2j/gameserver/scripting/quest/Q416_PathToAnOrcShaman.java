@@ -58,10 +58,10 @@ public class Q416_PathToAnOrcShaman extends Quest
 		
 		setItemsIds(FIRE_CHARM, KASHA_BEAR_PELT, KASHA_BLADE_SPIDER_HUSK, FIERY_EGG_1, HESTUI_MASK, FIERY_EGG_2, TOTEM_SPIRIT_CLAW, TATARU_LETTER, FLAME_CHARM, GRIZZLY_BLOOD, BLOOD_CAULDRON, SPIRIT_NET, BOUND_DURKA_SPIRIT, DURKA_PARASITE, TOTEM_SPIRIT_BLOOD);
 		
-		addStartNpc(TATARU_ZU_HESTUI);
+		addQuestStart(TATARU_ZU_HESTUI);
 		addTalkId(TATARU_ZU_HESTUI, UMOS, HESTUI_TOTEM_SPIRIT, DUDA_MARA_TOTEM_SPIRIT, MOIRA, TOTEM_SPIRIT_OF_GANDI, DEAD_LEOPARD_CARCASS);
 		
-		addKillId(VENOMOUS_SPIDER, ARACHNID_TRACKER, GRIZZLY_BEAR, SCARLET_SALAMANDER, KASHA_BLADE_SPIDER, KASHA_BEAR, DURKA_SPIRIT, BLACK_LEOPARD);
+		addMyDying(VENOMOUS_SPIDER, ARACHNID_TRACKER, GRIZZLY_BEAR, SCARLET_SALAMANDER, KASHA_BLADE_SPIDER, KASHA_BEAR, DURKA_SPIRIT, BLACK_LEOPARD);
 	}
 	
 	@Override
@@ -79,7 +79,7 @@ public class Q416_PathToAnOrcShaman extends Quest
 				htmltext = (player.getClassId() == ClassId.ORC_SHAMAN) ? "30585-02a.htm" : "30585-02.htm";
 			else if (player.getStatus().getLevel() < 19)
 				htmltext = "30585-03.htm";
-			else if (player.getInventory().hasItems(MASK_OF_MEDIUM))
+			else if (player.getInventory().hasItem(MASK_OF_MEDIUM))
 				htmltext = "30585-04.htm";
 		}
 		else if (event.equalsIgnoreCase("30585-06.htm"))
@@ -308,20 +308,20 @@ public class Q416_PathToAnOrcShaman extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final int cond = st.getCond();
 		
 		switch (npc.getNpcId())
 		{
 			case KASHA_BEAR:
-				if (cond == 1 && !player.getInventory().hasItems(KASHA_BEAR_PELT))
+				if (cond == 1 && !player.getInventory().hasItem(KASHA_BEAR_PELT))
 				{
 					giveItems(player, KASHA_BEAR_PELT, 1);
 					if (player.getInventory().hasItems(FIERY_EGG_1, KASHA_BLADE_SPIDER_HUSK))
@@ -335,7 +335,7 @@ public class Q416_PathToAnOrcShaman extends Quest
 				break;
 			
 			case KASHA_BLADE_SPIDER:
-				if (cond == 1 && !player.getInventory().hasItems(KASHA_BLADE_SPIDER_HUSK))
+				if (cond == 1 && !player.getInventory().hasItem(KASHA_BLADE_SPIDER_HUSK))
 				{
 					giveItems(player, KASHA_BLADE_SPIDER_HUSK, 1);
 					if (player.getInventory().hasItems(KASHA_BEAR_PELT, FIERY_EGG_1))
@@ -349,7 +349,7 @@ public class Q416_PathToAnOrcShaman extends Quest
 				break;
 			
 			case SCARLET_SALAMANDER:
-				if (cond == 1 && !player.getInventory().hasItems(FIERY_EGG_1))
+				if (cond == 1 && !player.getInventory().hasItem(FIERY_EGG_1))
 				{
 					giveItems(player, FIERY_EGG_1, 1);
 					if (player.getInventory().hasItems(KASHA_BEAR_PELT, KASHA_BLADE_SPIDER_HUSK))
@@ -367,8 +367,7 @@ public class Q416_PathToAnOrcShaman extends Quest
 					st.setCond(7);
 				break;
 			
-			case VENOMOUS_SPIDER:
-			case ARACHNID_TRACKER:
+			case VENOMOUS_SPIDER, ARACHNID_TRACKER:
 				if (cond == 9)
 				{
 					final int count = player.getInventory().getItemCount(DURKA_PARASITE);
@@ -424,7 +423,5 @@ public class Q416_PathToAnOrcShaman extends Quest
 				}
 				break;
 		}
-		
-		return null;
 	}
 }

@@ -9,6 +9,5 @@ public enum ItemLocation
 	CLANWH,
 	PET,
 	PET_EQUIP,
-	LEASE,
 	FREIGHT
 }

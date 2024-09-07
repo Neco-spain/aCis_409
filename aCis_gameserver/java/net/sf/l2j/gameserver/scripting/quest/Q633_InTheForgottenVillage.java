@@ -22,8 +22,14 @@ public class Q633_InTheForgottenVillage extends Quest
 	private static final int ZOMBIE_LIVER = 7545;
 	
 	// MOBS / DROP chances
-	private static final Map<Integer, Integer> MOBS = new HashMap<>();
+	private static final Map<Integer, Integer> MOBS = HashMap.newHashMap(16);
+	
+	private static final Map<Integer, Integer> UNDEADS = HashMap.newHashMap(10);
+	
+	public Q633_InTheForgottenVillage()
 	{
+		super(633, "In the Forgotten Village");
+		
 		MOBS.put(21557, 328000); // Bone Snatcher
 		MOBS.put(21558, 328000); // Bone Snatcher
 		MOBS.put(21559, 337000); // Bone Maker
@@ -40,10 +46,7 @@ public class Q633_InTheForgottenVillage extends Quest
 		MOBS.put(21581, 395000); // Bone Puppeteer
 		MOBS.put(21583, 397000); // Bone Scavenger
 		MOBS.put(21584, 401000); // Bone Scavenger
-	}
-	
-	private static final Map<Integer, Integer> UNDEADS = new HashMap<>();
-	{
+		
 		UNDEADS.put(21553, 347000); // Trampled Man
 		UNDEADS.put(21554, 347000); // Trampled Man
 		UNDEADS.put(21561, 450000); // Sacrificed Man
@@ -54,22 +57,17 @@ public class Q633_InTheForgottenVillage extends Quest
 		UNDEADS.put(21599, 395000); // Requiem Priest
 		UNDEADS.put(21600, 408000); // Requiem Behemoth
 		UNDEADS.put(21601, 411000); // Requiem Behemoth
-	}
-	
-	public Q633_InTheForgottenVillage()
-	{
-		super(633, "In the Forgotten Village");
 		
 		setItemsIds(RIB_BONE, ZOMBIE_LIVER);
 		
-		addStartNpc(MINA);
+		addQuestStart(MINA);
 		addTalkId(MINA);
 		
 		for (int i : MOBS.keySet())
-			addKillId(i);
+			addMyDying(i);
 		
 		for (int i : UNDEADS.keySet())
-			addKillId(i);
+			addMyDying(i);
 	}
 	
 	@Override
@@ -135,7 +133,7 @@ public class Q633_InTheForgottenVillage extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		final int npcId = npc.getNpcId();
@@ -144,7 +142,7 @@ public class Q633_InTheForgottenVillage extends Quest
 		{
 			final QuestState st = getRandomPartyMemberState(player, npc, QuestStatus.STARTED);
 			if (st == null)
-				return null;
+				return;
 			
 			dropItems(st.getPlayer(), ZOMBIE_LIVER, 1, 0, UNDEADS.get(npcId));
 		}
@@ -152,12 +150,10 @@ public class Q633_InTheForgottenVillage extends Quest
 		{
 			final QuestState st = getRandomPartyMember(player, npc, 1);
 			if (st == null)
-				return null;
+				return;
 			
 			if (dropItems(st.getPlayer(), RIB_BONE, 1, 200, MOBS.get(npcId)))
 				st.setCond(2);
 		}
-		
-		return null;
 	}
 }

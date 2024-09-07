@@ -1,6 +1,5 @@
 package net.sf.l2j.gameserver.handler.admincommandhandlers;
 
-import java.util.List;
 import java.util.StringTokenizer;
 
 import net.sf.l2j.commons.lang.StringUtil;
@@ -11,13 +10,13 @@ import net.sf.l2j.gameserver.handler.IAdminCommandHandler;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.item.ArmorSet;
 import net.sf.l2j.gameserver.model.item.kind.Item;
-import net.sf.l2j.gameserver.network.serverpackets.ItemList;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
 
 public class AdminItem implements IAdminCommandHandler
 {
 	private static final String[] ADMIN_COMMANDS =
 	{
+		"admin_give",
 		"admin_item"
 	};
 	
@@ -29,7 +28,27 @@ public class AdminItem implements IAdminCommandHandler
 		final StringTokenizer st = new StringTokenizer(command);
 		command = st.nextToken();
 		
-		if (command.startsWith("admin_item"))
+		if (command.startsWith("admin_give"))
+		{
+			if (!st.hasMoreTokens())
+			{
+				player.sendMessage("Usage: //give itemId count");
+				return;
+			}
+			
+			final String param = st.nextToken();
+			if (!StringUtil.isDigit(param))
+			{
+				player.sendMessage("Usage: //give itemId count");
+				return;
+			}
+			
+			final int id = Integer.parseInt(param);
+			final int count = (st.hasMoreTokens()) ? Integer.parseInt(st.nextToken()) : 1;
+			
+			createItem(player, targetPlayer, id, count, 0);
+		}
+		else if (command.startsWith("admin_item"))
 		{
 			if (!st.hasMoreTokens())
 			{
@@ -90,17 +109,14 @@ public class AdminItem implements IAdminCommandHandler
 								for (int itemId : armorSet.getSetItemsId())
 								{
 									if (itemId > 0)
-										targetPlayer.getInventory().addItem("Admin", itemId, 1, targetPlayer, player);
+										targetPlayer.getInventory().addItem(itemId, 1);
 								}
 								
 								if (armorSet.getShield() > 0)
-									targetPlayer.getInventory().addItem("Admin", armorSet.getShield(), 1, targetPlayer, player);
+									targetPlayer.getInventory().addItem(armorSet.getShield(), 1);
 								
 								if (player != targetPlayer)
 									player.sendMessage("You have spawned " + armorSet.toString() + " in " + targetPlayer.getName() + "'s inventory.");
-								
-								// Send the whole item list and open inventory window.
-								targetPlayer.sendPacket(new ItemList(targetPlayer, true));
 							}
 							catch (Exception e)
 							{
@@ -159,15 +175,12 @@ public class AdminItem implements IAdminCommandHandler
 		
 		if (radius > 0)
 		{
-			final List<Player> knownPlayers = player.getKnownTypeInRadius(Player.class, radius);
-			for (Player knownPlayer : knownPlayers)
-				knownPlayer.addItem("Admin", id, num, player, true);
-			
-			player.sendMessage(knownPlayers.size() + " players rewarded with " + num + " " + item.getName() + " in a " + radius + " radius.");
+			player.forEachKnownTypeInRadius(Player.class, radius, p -> p.addItem(id, num, true));
+			player.sendMessage("Surrounding players were rewarded with " + num + " " + item.getName() + " in a " + radius + " radius.");
 		}
 		else
 		{
-			targetPlayer.addItem("Admin", id, num, player, true);
+			targetPlayer.addItem(id, num, true);
 			
 			if (player != targetPlayer)
 				player.sendMessage("You have spawned " + num + " " + item.getName() + " (" + id + ") in " + targetPlayer.getName() + "'s inventory.");

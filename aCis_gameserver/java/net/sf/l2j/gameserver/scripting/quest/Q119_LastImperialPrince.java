@@ -23,7 +23,7 @@ public class Q119_LastImperialPrince extends Quest
 		
 		setItemsIds(ANTIQUE_BROOCH);
 		
-		addStartNpc(NAMELESS_SPIRIT);
+		addQuestStart(NAMELESS_SPIRIT);
 		addTalkId(NAMELESS_SPIRIT, DEVORIN);
 	}
 	
@@ -37,7 +37,7 @@ public class Q119_LastImperialPrince extends Quest
 		
 		if (event.equalsIgnoreCase("31453-04.htm"))
 		{
-			if (player.getInventory().hasItems(ANTIQUE_BROOCH))
+			if (player.getInventory().hasItem(ANTIQUE_BROOCH))
 			{
 				st.setState(QuestStatus.STARTED);
 				st.setCond(1);
@@ -51,7 +51,7 @@ public class Q119_LastImperialPrince extends Quest
 		}
 		else if (event.equalsIgnoreCase("32009-02.htm"))
 		{
-			if (!player.getInventory().hasItems(ANTIQUE_BROOCH))
+			if (!player.getInventory().hasItem(ANTIQUE_BROOCH))
 			{
 				htmltext = "31453-02a.htm";
 				st.exitQuest(true);
@@ -82,7 +82,7 @@ public class Q119_LastImperialPrince extends Quest
 		switch (st.getState())
 		{
 			case CREATED:
-				htmltext = (!player.getInventory().hasItems(ANTIQUE_BROOCH) || player.getStatus().getLevel() < 74) ? "31453-00a.htm" : "31453-01.htm";
+				htmltext = (!player.getInventory().hasItem(ANTIQUE_BROOCH) || player.getStatus().getLevel() < 74) ? "31453-00a.htm" : "31453-01.htm";
 				break;
 			
 			case STARTED:

@@ -24,21 +24,15 @@ public class FestivalMonster extends Monster
 	}
 	
 	@Override
-	public boolean hasRandomAnimation()
-	{
-		return false;
-	}
-	
-	@Override
-	public void doItemDrop(NpcTemplate template, Creature attacker)
+	public void doItemDrop(Creature attacker)
 	{
 		final Player player = attacker.getActingPlayer();
 		if (player == null || !player.isInParty())
 			return;
 		
-		player.getParty().getLeader().addItem("Sign", FestivalOfDarknessManager.FESTIVAL_OFFERING_ID, _bonusMultiplier, attacker, true);
+		player.getParty().getLeader().addItem(FestivalOfDarknessManager.FESTIVAL_OFFERING_ID, _bonusMultiplier, true);
 		
-		super.doItemDrop(template, attacker);
+		super.doItemDrop(attacker);
 	}
 	
 	public void setOfferingBonus(int bonusMultiplier)

@@ -36,7 +36,7 @@ public class Q120_PavelsResearch extends Quest
 		
 		setItemsIds(LOCKUP_RESEARCH_REPORT, RESEARCH_REPORT, KEY_OF_ENIGMA, FLOWER_OF_PAVEL, HEART_OF_ATLANTA, WENDY_NECKLACE);
 		
-		addStartNpc(SUSPICIOUS_PILE_OF_STONES);
+		addQuestStart(SUSPICIOUS_PILE_OF_STONES);
 		addTalkId(YUMI, WEATHERMASTER_1, WEATHERMASTER_2, WEATHERMASTER_3, DOCTOR_CHAOS_SECRET_BOOKSHELF, SUSPICIOUS_PILE_OF_STONES, WENDY);
 	}
 	
@@ -206,7 +206,7 @@ public class Q120_PavelsResearch extends Quest
 			playSound(player, SOUND_MIDDLE);
 			
 			playSound(player, "AmbSound.ed_drone_02");
-			npc.getAI().tryToCast(player, 5073, 5);
+			npc.getAI().addCastDesire(player, 5073, 5, 1000000);
 		}
 		else if (event.equalsIgnoreCase("32045-02.htm"))
 		{
@@ -214,7 +214,7 @@ public class Q120_PavelsResearch extends Quest
 			playSound(player, SOUND_MIDDLE);
 			giveItems(player, LOCKUP_RESEARCH_REPORT, 1);
 			
-			npc.getAI().tryToCast(player, 5073, 5);
+			npc.getAI().addCastDesire(player, 5073, 5, 1000000);
 		}
 		else if (event.equalsIgnoreCase("32046-04.htm") || event.equalsIgnoreCase("32046-05.htm"))
 		{
@@ -422,7 +422,7 @@ public class Q120_PavelsResearch extends Quest
 						else if (cond == 15)
 							htmltext = "32041-14.htm";
 						else if (cond == 16)
-							htmltext = (!player.getInventory().hasItems(RESEARCH_REPORT)) ? "32041-17.htm" : "32041-18.htm";
+							htmltext = (!player.getInventory().hasItem(RESEARCH_REPORT)) ? "32041-17.htm" : "32041-18.htm";
 						else if (cond > 16 && cond < 25)
 							htmltext = "32041-22.htm";
 						else if (cond == 25)

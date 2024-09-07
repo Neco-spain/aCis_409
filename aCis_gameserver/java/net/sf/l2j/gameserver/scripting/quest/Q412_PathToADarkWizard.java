@@ -39,10 +39,10 @@ public class Q412_PathToADarkWizard extends Quest
 		
 		setItemsIds(SEED_OF_ANGER, SEED_OF_DESPAIR, SEED_OF_HORROR, SEED_OF_LUNACY, FAMILY_REMAINS, VARIKA_LIQUOR, KNEE_BONE, HEART_OF_LUNACY, LUCKY_KEY, CANDLE, HUB_SCENT);
 		
-		addStartNpc(VARIKA);
+		addQuestStart(VARIKA);
 		addTalkId(VARIKA, CHARKEREN, ANNIKA, ARKENIA);
 		
-		addKillId(20015, 20022, 20045, 20517, 20518);
+		addMyDying(20015, 20022, 20045, 20517, 20518);
 	}
 	
 	@Override
@@ -59,7 +59,7 @@ public class Q412_PathToADarkWizard extends Quest
 				htmltext = (player.getClassId() == ClassId.DARK_WIZARD) ? "30421-02a.htm" : "30421-03.htm";
 			else if (player.getStatus().getLevel() < 19)
 				htmltext = "30421-02.htm";
-			else if (player.getInventory().hasItems(JEWEL_OF_DARKNESS))
+			else if (player.getInventory().hasItem(JEWEL_OF_DARKNESS))
 				htmltext = "30421-04.htm";
 			else
 			{
@@ -71,23 +71,23 @@ public class Q412_PathToADarkWizard extends Quest
 		}
 		else if (event.equalsIgnoreCase("30421-07.htm"))
 		{
-			if (player.getInventory().hasItems(SEED_OF_ANGER))
+			if (player.getInventory().hasItem(SEED_OF_ANGER))
 				htmltext = "30421-06.htm";
-			else if (player.getInventory().hasItems(LUCKY_KEY))
+			else if (player.getInventory().hasItem(LUCKY_KEY))
 				htmltext = "30421-08.htm";
 			else if (player.getInventory().getItemCount(FAMILY_REMAINS) == 3)
 				htmltext = "30421-18.htm";
 		}
 		else if (event.equalsIgnoreCase("30421-10.htm"))
 		{
-			if (player.getInventory().hasItems(SEED_OF_HORROR))
+			if (player.getInventory().hasItem(SEED_OF_HORROR))
 				htmltext = "30421-09.htm";
 			else if (player.getInventory().getItemCount(KNEE_BONE) == 2)
 				htmltext = "30421-19.htm";
 		}
 		else if (event.equalsIgnoreCase("30421-13.htm"))
 		{
-			if (player.getInventory().hasItems(SEED_OF_LUNACY))
+			if (player.getInventory().hasItem(SEED_OF_LUNACY))
 				htmltext = "30421-12.htm";
 		}
 		else if (event.equalsIgnoreCase("30415-03.htm"))
@@ -140,9 +140,9 @@ public class Q412_PathToADarkWizard extends Quest
 						break;
 					
 					case CHARKEREN:
-						if (player.getInventory().hasItems(SEED_OF_ANGER))
+						if (player.getInventory().hasItem(SEED_OF_ANGER))
 							htmltext = "30415-06.htm";
-						else if (!player.getInventory().hasItems(LUCKY_KEY))
+						else if (!player.getInventory().hasItem(LUCKY_KEY))
 							htmltext = "30415-01.htm";
 						else if (player.getInventory().getItemCount(FAMILY_REMAINS) == 3)
 						{
@@ -157,9 +157,9 @@ public class Q412_PathToADarkWizard extends Quest
 						break;
 					
 					case ANNIKA:
-						if (player.getInventory().hasItems(SEED_OF_HORROR))
+						if (player.getInventory().hasItem(SEED_OF_HORROR))
 							htmltext = "30418-04.htm";
-						else if (!player.getInventory().hasItems(CANDLE))
+						else if (!player.getInventory().hasItem(CANDLE))
 							htmltext = "30418-01.htm";
 						else if (player.getInventory().getItemCount(KNEE_BONE) == 2)
 						{
@@ -174,9 +174,9 @@ public class Q412_PathToADarkWizard extends Quest
 						break;
 					
 					case ARKENIA:
-						if (player.getInventory().hasItems(SEED_OF_LUNACY))
+						if (player.getInventory().hasItem(SEED_OF_LUNACY))
 							htmltext = "30419-03.htm";
-						else if (!player.getInventory().hasItems(HUB_SCENT))
+						else if (!player.getInventory().hasItem(HUB_SCENT))
 						{
 							htmltext = "30419-01.htm";
 							playSound(player, SOUND_MIDDLE);
@@ -201,34 +201,30 @@ public class Q412_PathToADarkWizard extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
 			case 20015:
-				if (player.getInventory().hasItems(LUCKY_KEY))
+				if (player.getInventory().hasItem(LUCKY_KEY))
 					dropItems(player, FAMILY_REMAINS, 1, 3, 500000);
 				break;
 			
-			case 20022:
-			case 20517:
-			case 20518:
-				if (player.getInventory().hasItems(CANDLE))
+			case 20022, 20517, 20518:
+				if (player.getInventory().hasItem(CANDLE))
 					dropItems(player, KNEE_BONE, 1, 2, 500000);
 				break;
 			
 			case 20045:
-				if (player.getInventory().hasItems(HUB_SCENT))
+				if (player.getInventory().hasItem(HUB_SCENT))
 					dropItems(player, HEART_OF_LUNACY, 1, 3, 500000);
 				break;
 		}
-		
-		return null;
 	}
 }

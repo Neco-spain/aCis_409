@@ -11,9 +11,9 @@ public class Calculators implements IItemHandler
 	@Override
 	public void useItem(Playable playable, ItemInstance item, boolean forceUse)
 	{
-		if (!(playable instanceof Player))
+		if (!(playable instanceof Player player))
 			return;
 		
-		playable.sendPacket(new ShowCalculator(item.getItemId()));
+		player.sendPacket(new ShowCalculator(item.getItemId()));
 	}
 }

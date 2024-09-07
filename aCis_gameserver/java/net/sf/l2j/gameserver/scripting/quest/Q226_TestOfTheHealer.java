@@ -61,11 +61,11 @@ public class Q226_TestOfTheHealer extends SecondClassQuest
 		
 		setItemsIds(REPORT_OF_PERRIN, KRISTINA_LETTER, PICTURE_OF_WINDY, GOLDEN_STATUE, WINDY_PEBBLES, ORDER_OF_SORIUS, SECRET_LETTER_1, SECRET_LETTER_2, SECRET_LETTER_3, SECRET_LETTER_4);
 		
-		addStartNpc(BANDELLOS);
+		addQuestStart(BANDELLOS);
 		addTalkId(BANDELLOS, SORIUS, ALLANA, PERRIN, GUPU, ORPHAN_GIRL, WINDY_SHAORING, MYSTERIOUS_DARKELF, PIPER_LONGBOW, SLEIN_SHINING_BLADE, KAIN_FLYING_KNIFE, KRISTINA, DAURIN_HAMMERCRUSH);
 		
-		addKillId(LETO_LIZARDMAN_LEADER, LETO_LIZARDMAN_ASSASSIN, LETO_LIZARDMAN_SNIPER, LETO_LIZARDMAN_WIZARD, LETO_LIZARDMAN_LORD, TATOMA);
-		addDecayId(LETO_LIZARDMAN_LEADER, TATOMA);
+		addDecayed(LETO_LIZARDMAN_LEADER, TATOMA);
+		addMyDying(LETO_LIZARDMAN_LEADER, LETO_LIZARDMAN_ASSASSIN, LETO_LIZARDMAN_SNIPER, LETO_LIZARDMAN_WIZARD, LETO_LIZARDMAN_LORD, TATOMA);
 	}
 	
 	@Override
@@ -108,7 +108,7 @@ public class Q226_TestOfTheHealer extends SecondClassQuest
 		// GUPU
 		else if (event.equalsIgnoreCase("30658-02.htm"))
 		{
-			if (player.getInventory().getItemCount(57) >= 100000)
+			if (player.getAdena() >= 100000)
 			{
 				st.setCond(7);
 				playSound(player, SOUND_MIDDLE);
@@ -188,7 +188,7 @@ public class Q226_TestOfTheHealer extends SecondClassQuest
 							htmltext = "30473-05.htm";
 						else
 						{
-							if (!player.getInventory().hasItems(GOLDEN_STATUE))
+							if (!player.getInventory().hasItem(GOLDEN_STATUE))
 							{
 								htmltext = "30473-06.htm";
 								giveItems(player, MARK_OF_HEALER, 1);
@@ -262,7 +262,7 @@ public class Q226_TestOfTheHealer extends SecondClassQuest
 					case WINDY_SHAORING:
 						if (cond == 7)
 							htmltext = "30660-01.htm";
-						else if (player.getInventory().hasItems(WINDY_PEBBLES))
+						else if (player.getInventory().hasItem(WINDY_PEBBLES))
 							htmltext = "30660-04.htm";
 						break;
 					
@@ -306,9 +306,7 @@ public class Q226_TestOfTheHealer extends SecondClassQuest
 							htmltext = "30674-04.htm";
 						break;
 					
-					case PIPER_LONGBOW:
-					case SLEIN_SHINING_BLADE:
-					case KAIN_FLYING_KNIFE:
+					case PIPER_LONGBOW, SLEIN_SHINING_BLADE, KAIN_FLYING_KNIFE:
 						if (cond == 13 || cond == 14)
 							htmltext = npc.getNpcId() + "-01.htm";
 						else if (cond > 14 && cond < 19)
@@ -385,13 +383,26 @@ public class Q226_TestOfTheHealer extends SecondClassQuest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onDecayed(Npc npc)
+	{
+		if (npc == _tatoma)
+		{
+			_tatoma = null;
+		}
+		else if (npc == _letoLeader)
+		{
+			_letoLeader = null;
+		}
+	}
+	
+	@Override
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final int cond = st.getCond();
 		switch (npc.getNpcId())
@@ -440,22 +451,5 @@ public class Q226_TestOfTheHealer extends SecondClassQuest
 				}
 				break;
 		}
-		
-		return null;
-	}
-	
-	@Override
-	public String onDecay(Npc npc)
-	{
-		if (npc == _tatoma)
-		{
-			_tatoma = null;
-		}
-		else if (npc == _letoLeader)
-		{
-			_letoLeader = null;
-		}
-		
-		return null;
 	}
 }

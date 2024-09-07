@@ -32,8 +32,7 @@ public class AdminAnnouncements implements IAdminCommandHandler
 						AnnouncementData.getInstance().listAnnouncements(player);
 						break;
 					
-					case "all":
-					case "all_auto":
+					case "all", "all_auto":
 						final boolean isAuto = tokens[1].equalsIgnoreCase("all_auto");
 						World.getInstance().getPlayers().forEach(p -> AnnouncementData.getInstance().showAnnouncements(p, isAuto));
 						

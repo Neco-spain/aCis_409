@@ -102,11 +102,11 @@ public class Q376_ExplorationOfTheGiantsCave_Part1 extends Quest
 		
 		setItemsIds(ANCIENT_DICTIONARY_BASIC_LEVEL, MYSTERIOUS_BOOK);
 		
-		addStartNpc(SOBLING);
+		addQuestStart(SOBLING);
 		addTalkId(SOBLING, CLIFF);
 		
 		for (int npcId : CHANCES.keySet())
-			addKillId(npcId);
+			addMyDying(npcId);
 	}
 	
 	@Override
@@ -169,7 +169,7 @@ public class Q376_ExplorationOfTheGiantsCave_Part1 extends Quest
 						break;
 					
 					case CLIFF:
-						if (cond == 2 && player.getInventory().hasItems(MYSTERIOUS_BOOK))
+						if (cond == 2 && player.getInventory().hasItem(MYSTERIOUS_BOOK))
 							htmltext = "30182-01.htm";
 						else if (cond == 3)
 							htmltext = "30182-03.htm";
@@ -182,13 +182,13 @@ public class Q376_ExplorationOfTheGiantsCave_Part1 extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		QuestState st = getRandomPartyMemberState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		// Drop Mysterious Book to people who still need it.
 		if (!st.getPlayer().getInventory().hasAtLeastOneItem(MYSTERIOUS_BOOK, ANCIENT_DICTIONARY_INTERMEDIATE_LEVEL))
@@ -196,13 +196,11 @@ public class Q376_ExplorationOfTheGiantsCave_Part1 extends Quest
 		
 		// Drop parchment to anyone.
 		dropItems(st.getPlayer(), ANCIENT_PARCHMENT, 1, 0, CHANCES.get(npc.getNpcId()));
-		
-		return null;
 	}
 	
 	private static String checkItems(Player player, QuestState st)
 	{
-		if (player.getInventory().hasItems(MYSTERIOUS_BOOK))
+		if (player.getInventory().hasItem(MYSTERIOUS_BOOK))
 		{
 			if (st.getCond() == 1)
 			{
@@ -218,7 +216,7 @@ public class Q376_ExplorationOfTheGiantsCave_Part1 extends Quest
 			boolean complete = true;
 			for (int book : BOOKS[type])
 			{
-				if (!player.getInventory().hasItems(book))
+				if (!player.getInventory().hasItem(book))
 					complete = false;
 			}
 			

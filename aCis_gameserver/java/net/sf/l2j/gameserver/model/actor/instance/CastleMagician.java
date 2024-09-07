@@ -24,17 +24,22 @@ public class CastleMagician extends Folk
 		
 		final NpcHtmlMessage html = new NpcHtmlMessage(getObjectId());
 		
-		final NpcTalkCond condition = getNpcTalkCond(player);
-		if (condition == NpcTalkCond.NONE)
-			html.setFile("data/html/castlemagician/magician-no.htm");
-		else if (condition == NpcTalkCond.UNDER_SIEGE)
-			html.setFile("data/html/castlemagician/magician-busy.htm");
-		else
+		switch (getNpcTalkCond(player))
 		{
-			if (val == 0)
-				html.setFile("data/html/castlemagician/magician.htm");
-			else
-				html.setFile("data/html/castlemagician/magician-" + val + ".htm");
+			case NONE:
+				html.setFile("data/html/castlemagician/magician-no.htm");
+				break;
+			
+			case UNDER_SIEGE:
+				html.setFile("data/html/castlemagician/magician-busy.htm");
+				break;
+			
+			default:
+				if (val == 0)
+					html.setFile("data/html/castlemagician/magician.htm");
+				else
+					html.setFile("data/html/castlemagician/magician-" + val + ".htm");
+				break;
 		}
 		html.replace("%objectId%", getObjectId());
 		player.sendPacket(html);
@@ -50,11 +55,9 @@ public class CastleMagician extends Folk
 			{
 				val = Integer.parseInt(command.substring(5));
 			}
-			catch (IndexOutOfBoundsException ioobe)
+			catch (IndexOutOfBoundsException | NumberFormatException e)
 			{
-			}
-			catch (NumberFormatException nfe)
-			{
+				// Do nothing.
 			}
 			showChatWindow(player, val);
 		}

@@ -11,7 +11,7 @@ public class MasterFormatter extends Formatter
 	protected static final String SPACE = "\t";
 	
 	@Override
-	public String format(LogRecord record)
+	public String format(LogRecord logRecord)
 	{
 		return null;
 	}

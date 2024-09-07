@@ -23,10 +23,7 @@ public final class EtcItem extends Item
 		
 		switch (getDefaultAction())
 		{
-			case soulshot:
-			case summon_soulshot:
-			case summon_spiritshot:
-			case spiritshot:
+			case soulshot, spiritshot, summon_soulshot, summon_spiritshot:
 				_type = EtcItemType.SHOT;
 				break;
 		}

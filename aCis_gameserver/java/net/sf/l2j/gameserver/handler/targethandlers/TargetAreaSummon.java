@@ -22,7 +22,7 @@ public class TargetAreaSummon implements ITargetHandler
 	@Override
 	public Creature[] getTargetList(Creature caster, Creature target, L2Skill skill)
 	{
-		if (!(caster instanceof Playable))
+		if (!(caster instanceof Playable playable))
 			return EMPTY_TARGET_ARRAY;
 		
 		final List<Creature> list = new ArrayList<>();
@@ -33,7 +33,7 @@ public class TargetAreaSummon implements ITargetHandler
 			
 			if (creature instanceof Attackable || creature instanceof Playable)
 			{
-				if (creature.isAttackableWithoutForceBy((Playable) caster))
+				if (creature.isAttackableWithoutForceBy(playable))
 					list.add(creature);
 			}
 		}
@@ -47,11 +47,7 @@ public class TargetAreaSummon implements ITargetHandler
 	@Override
 	public Creature getFinalTarget(Creature caster, Creature target, L2Skill skill)
 	{
-		final Creature summon = caster.getSummon();
-		if (summon == null)
-			return null;
-		
-		return summon;
+		return caster.getSummon();
 	}
 	
 	@Override

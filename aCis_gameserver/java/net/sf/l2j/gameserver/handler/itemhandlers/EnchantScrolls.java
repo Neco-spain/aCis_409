@@ -12,10 +12,8 @@ public class EnchantScrolls implements IItemHandler
 	@Override
 	public void useItem(Playable playable, ItemInstance item, boolean forceUse)
 	{
-		if (!(playable instanceof Player))
+		if (!(playable instanceof Player player))
 			return;
-		
-		final Player player = (Player) playable;
 		
 		if (player.getActiveEnchantItem() == null)
 			player.sendPacket(SystemMessageId.SELECT_ITEM_TO_ENCHANT);

@@ -35,10 +35,10 @@ public class Q413_PathToAShillienOracle extends Quest
 		
 		setItemsIds(SIDRA_LETTER, BLANK_SHEET, BLOODY_RUNE, GARMIEL_BOOK, PRAYER_OF_ADONIUS, PENITENT_MARK, ASHEN_BONES, ANDARIEL_BOOK);
 		
-		addStartNpc(SIDRA);
+		addQuestStart(SIDRA);
 		addTalkId(SIDRA, ADONIUS, TALBOT);
 		
-		addKillId(20776, 20457, 20458, 20514, 20515);
+		addMyDying(20776, 20457, 20458, 20514, 20515);
 	}
 	
 	@Override
@@ -55,7 +55,7 @@ public class Q413_PathToAShillienOracle extends Quest
 				htmltext = (player.getClassId() == ClassId.SHILLIEN_ORACLE) ? "30330-02a.htm" : "30330-03.htm";
 			else if (player.getStatus().getLevel() < 19)
 				htmltext = "30330-02.htm";
-			else if (player.getInventory().hasItems(ORB_OF_ABYSS))
+			else if (player.getInventory().hasItem(ORB_OF_ABYSS))
 				htmltext = "30330-04.htm";
 		}
 		else if (event.equalsIgnoreCase("30330-06.htm"))
@@ -125,7 +125,7 @@ public class Q413_PathToAShillienOracle extends Quest
 						if (cond == 1)
 							htmltext = "30377-01.htm";
 						else if (cond == 2)
-							htmltext = (player.getInventory().hasItems(BLOODY_RUNE)) ? "30377-04.htm" : "30377-03.htm";
+							htmltext = (player.getInventory().hasItem(BLOODY_RUNE)) ? "30377-04.htm" : "30377-03.htm";
 						else if (cond == 3)
 						{
 							htmltext = "30377-05.htm";
@@ -145,7 +145,7 @@ public class Q413_PathToAShillienOracle extends Quest
 						if (cond == 4)
 							htmltext = "30375-01.htm";
 						else if (cond == 5)
-							htmltext = (player.getInventory().hasItems(ASHEN_BONES)) ? "30375-05.htm" : "30375-06.htm";
+							htmltext = (player.getInventory().hasItem(ASHEN_BONES)) ? "30375-05.htm" : "30375-06.htm";
 						else if (cond == 6)
 						{
 							htmltext = "30375-07.htm";
@@ -166,13 +166,13 @@ public class Q413_PathToAShillienOracle extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		if (npc.getNpcId() == 20776)
 		{
@@ -185,7 +185,5 @@ public class Q413_PathToAShillienOracle extends Quest
 		}
 		else if (st.getCond() == 5 && dropItemsAlways(player, ASHEN_BONES, 1, 10))
 			st.setCond(6);
-		
-		return null;
 	}
 }

@@ -35,6 +35,7 @@ public enum SkillType
 	SIGNET(L2SkillSignet.class),
 	SIGNET_CASTTIME(L2SkillSignetCasttime.class),
 	SEED(L2SkillSeed.class),
+	REAL_DAMAGE,
 	
 	// Disablers
 	BLEED,

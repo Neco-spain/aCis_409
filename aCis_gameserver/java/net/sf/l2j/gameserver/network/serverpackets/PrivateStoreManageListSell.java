@@ -4,24 +4,24 @@ import java.util.List;
 
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.trade.TradeItem;
+import net.sf.l2j.gameserver.model.trade.TradeList;
 
 public class PrivateStoreManageListSell extends L2GameServerPacket
 {
-	private final int _objId;
+	private final int _objectId;
 	private final int _playerAdena;
 	private final boolean _packageSale;
-	private final TradeItem[] _itemList;
-	private final List<TradeItem> _sellList;
+	private final List<TradeItem> _itemList;
+	private final TradeList _sellList;
 	
 	public PrivateStoreManageListSell(Player player, boolean isPackageSale)
 	{
-		_objId = player.getObjectId();
+		player.getSellList().updateItems(false);
+		
+		_objectId = player.getObjectId();
 		_playerAdena = player.getAdena();
-		
-		player.getSellList().updateItems();
-		
-		_packageSale = (player.getSellList().isPackaged()) ? true : isPackageSale;
-		_itemList = player.getInventory().getAvailableItems(player.getSellList(), false);
+		_packageSale = player.getSellList().isPackaged() || isPackageSale;
+		_itemList = player.getInventory().getItemsToSell();
 		_sellList = player.getSellList();
 	}
 	
@@ -29,11 +29,11 @@ public class PrivateStoreManageListSell extends L2GameServerPacket
 	protected final void writeImpl()
 	{
 		writeC(0x9a);
-		writeD(_objId);
+		writeD(_objectId);
 		writeD(_packageSale ? 1 : 0);
 		writeD(_playerAdena);
 		
-		writeD(_itemList.length);
+		writeD(_itemList.size());
 		for (TradeItem item : _itemList)
 		{
 			writeD(item.getItem().getType2());

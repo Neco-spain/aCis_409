@@ -1,7 +1,7 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.item.Henna;
+import net.sf.l2j.gameserver.model.records.Henna;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.HennaInfo;
 import net.sf.l2j.gameserver.network.serverpackets.UserInfo;
@@ -40,9 +40,9 @@ public final class RequestHennaUnequip extends L2GameClientPacket
 		sendPacket(new HennaInfo(player));
 		sendPacket(new UserInfo(player));
 		
-		player.reduceAdena("Henna", henna.getRemovePrice(), player, false);
+		player.reduceAdena(henna.getRemovePrice(), false);
 		
-		player.addItem("Henna", henna.getDyeId(), Henna.REMOVE_AMOUNT, player, true);
+		player.addItem(henna.dyeId(), Henna.REMOVE_AMOUNT, true);
 		player.sendPacket(SystemMessageId.SYMBOL_DELETED);
 	}
 }

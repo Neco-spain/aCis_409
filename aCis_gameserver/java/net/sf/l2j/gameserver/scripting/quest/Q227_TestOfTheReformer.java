@@ -4,7 +4,6 @@ import net.sf.l2j.commons.util.ArraysUtil;
 
 import net.sf.l2j.gameserver.enums.QuestStatus;
 import net.sf.l2j.gameserver.enums.actors.ClassId;
-import net.sf.l2j.gameserver.model.actor.Attackable;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
@@ -93,12 +92,12 @@ public class Q227_TestOfTheReformer extends SecondClassQuest
 		
 		setItemsIds(BOOK_OF_REFORM, LETTER_OF_INTRODUCTION, SLA_LETTER, GREETINGS, OL_MAHUM_MONEY, KATARI_LETTER, NYAKURI_LETTER, UNDEAD_LIST, RAMUS_LETTER, RIPPED_DIARY, HUGE_NAIL, LETTER_OF_BETRAYER, BONE_FRAGMENT_4, BONE_FRAGMENT_5, BONE_FRAGMENT_6, BONE_FRAGMENT_7, BONE_FRAGMENT_8, BONE_FRAGMENT_9, KAKAN_LETTER);
 		
-		addStartNpc(PUPINA);
+		addQuestStart(PUPINA);
 		addTalkId(PUPINA, SLA, RAMUS, KATARI, KAKAN, NYAKURI, OL_MAHUM_PILGRIM);
 		
-		addAttackId(NAMELESS_REVENANT, CRIMSON_WEREWOLF);
-		addKillId(MISERY_SKELETON, SKELETON_ARCHER, SKELETON_MARKSMAN, SKELETON_LORD, SILENT_HORROR, NAMELESS_REVENANT, ARURAUNE, OL_MAHUM_INSPECTOR, OL_MAHUM_BETRAYER, CRIMSON_WEREWOLF, KRUDEL_LIZARDMAN);
-		addDecayId(OL_MAHUM_PILGRIM, OL_MAHUM_INSPECTOR, OL_MAHUM_BETRAYER, CRIMSON_WEREWOLF, KRUDEL_LIZARDMAN);
+		addAttacked(NAMELESS_REVENANT, CRIMSON_WEREWOLF, OL_MAHUM_PILGRIM);
+		addDecayed(OL_MAHUM_PILGRIM, OL_MAHUM_INSPECTOR, OL_MAHUM_BETRAYER, CRIMSON_WEREWOLF, KRUDEL_LIZARDMAN);
+		addMyDying(MISERY_SKELETON, SKELETON_ARCHER, SKELETON_MARKSMAN, SKELETON_LORD, SILENT_HORROR, NAMELESS_REVENANT, ARURAUNE, OL_MAHUM_INSPECTOR, OL_MAHUM_BETRAYER, CRIMSON_WEREWOLF, KRUDEL_LIZARDMAN);
 	}
 	
 	@Override
@@ -151,10 +150,7 @@ public class Q227_TestOfTheReformer extends SecondClassQuest
 			if (_crimsonWerewolf == null)
 				_crimsonWerewolf = addSpawn(CRIMSON_WEREWOLF, -9382, -89852, -2333, 0, false, 300000, true);
 			
-			((Attackable) _crimsonWerewolf).getAggroList().addDamageHate(_olMahumPilgrim_Kakan, 0, 2000);
-			_crimsonWerewolf.getAI().tryToAttack(_olMahumPilgrim_Kakan);
-			
-			_olMahumPilgrim_Kakan.getAI().tryToAttack(_crimsonWerewolf);
+			_crimsonWerewolf.getAI().addAttackDesire(_olMahumPilgrim_Kakan, 2000);
 		}
 		// NYAKURI
 		else if (event.equalsIgnoreCase("30670-03.htm"))
@@ -168,10 +164,7 @@ public class Q227_TestOfTheReformer extends SecondClassQuest
 			if (_krudelLizardman == null)
 				_krudelLizardman = addSpawn(KRUDEL_LIZARDMAN, 126019, -179983, -1781, 0, false, 300000, true);
 			
-			((Attackable) _krudelLizardman).getAggroList().addDamageHate(_olMahumPilgrim_Nyakuri, 0, 2000);
-			_krudelLizardman.getAI().tryToAttack(_olMahumPilgrim_Nyakuri);
-			
-			_olMahumPilgrim_Nyakuri.getAI().tryToAttack(_krudelLizardman);
+			_krudelLizardman.getAI().addAttackDesire(_olMahumPilgrim_Nyakuri, 2000);
 		}
 		
 		return htmltext;
@@ -272,10 +265,7 @@ public class Q227_TestOfTheReformer extends SecondClassQuest
 							if (_olMahumInspector == null)
 								_olMahumInspector = addSpawn(OL_MAHUM_INSPECTOR, -4034, 40201, -3665, 0, false, 300000, true);
 							
-							((Attackable) _olMahumInspector).getAggroList().addDamageHate(_olMahumPilgrim_Katari, 0, 2000);
-							_olMahumInspector.getAI().tryToAttack(_olMahumPilgrim_Katari);
-							
-							_olMahumPilgrim_Katari.getAI().tryToAttack(_olMahumInspector);
+							_olMahumInspector.getAI().addAttackDesire(_olMahumPilgrim_Katari, 2000);
 						}
 						else if (cond == 8)
 						{
@@ -285,7 +275,7 @@ public class Q227_TestOfTheReformer extends SecondClassQuest
 							{
 								_olMahumBetrayer = addSpawn(OL_MAHUM_BETRAYER, -4106, 40174, -3660, 0, false, 60000, true);
 								_olMahumBetrayer.forceRunStance();
-								_olMahumBetrayer.getAI().tryToMoveTo(new Location(-7732, 36787, -3709), null);
+								_olMahumBetrayer.getAI().addMoveToDesire(new Location(-7732, 36787, -3709), 10000);
 							}
 						}
 						else if (cond == 9)
@@ -379,13 +369,20 @@ public class Q227_TestOfTheReformer extends SecondClassQuest
 	}
 	
 	@Override
-	public String onAttack(Npc npc, Creature attacker, int damage, L2Skill skill)
+	public void onAttacked(Npc npc, Creature attacker, int damage, L2Skill skill)
 	{
+		switch (npc.getNpcId())
+		{
+			case CRIMSON_WEREWOLF, KRUDEL_LIZARDMAN, OL_MAHUM_PILGRIM:
+				npc.getAI().addAttackDesire(attacker, 2000);
+				break;
+		}
+		
 		final Player player = attacker.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final int cond = st.getCond();
 		switch (npc.getNpcId())
@@ -403,12 +400,10 @@ public class Q227_TestOfTheReformer extends SecondClassQuest
 				}
 				break;
 		}
-		
-		return null;
 	}
 	
 	@Override
-	public String onDecay(Npc npc)
+	public void onDecayed(Npc npc)
 	{
 		if (npc == _olMahumPilgrim_Katari)
 		{
@@ -438,18 +433,16 @@ public class Q227_TestOfTheReformer extends SecondClassQuest
 		{
 			_krudelLizardman = null;
 		}
-		
-		return null;
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		int cond = st.getCond();
 		switch (npc.getNpcId())
@@ -507,7 +500,7 @@ public class Q227_TestOfTheReformer extends SecondClassQuest
 				break;
 			
 			case SILENT_HORROR:
-				if (cond == 18 && !player.getInventory().hasItems(BONE_FRAGMENT_4))
+				if (cond == 18 && !player.getInventory().hasItem(BONE_FRAGMENT_4))
 				{
 					giveItems(player, BONE_FRAGMENT_4, 1);
 					if (player.getInventory().hasItems(BONE_FRAGMENT_5, BONE_FRAGMENT_6, BONE_FRAGMENT_7, BONE_FRAGMENT_8))
@@ -521,7 +514,7 @@ public class Q227_TestOfTheReformer extends SecondClassQuest
 				break;
 			
 			case SKELETON_LORD:
-				if (cond == 18 && !player.getInventory().hasItems(BONE_FRAGMENT_5))
+				if (cond == 18 && !player.getInventory().hasItem(BONE_FRAGMENT_5))
 				{
 					giveItems(player, BONE_FRAGMENT_5, 1);
 					if (player.getInventory().hasItems(BONE_FRAGMENT_4, BONE_FRAGMENT_6, BONE_FRAGMENT_7, BONE_FRAGMENT_8))
@@ -535,7 +528,7 @@ public class Q227_TestOfTheReformer extends SecondClassQuest
 				break;
 			
 			case SKELETON_MARKSMAN:
-				if (cond == 18 && !player.getInventory().hasItems(BONE_FRAGMENT_6))
+				if (cond == 18 && !player.getInventory().hasItem(BONE_FRAGMENT_6))
 				{
 					giveItems(player, BONE_FRAGMENT_6, 1);
 					if (player.getInventory().hasItems(BONE_FRAGMENT_4, BONE_FRAGMENT_5, BONE_FRAGMENT_7, BONE_FRAGMENT_8))
@@ -549,7 +542,7 @@ public class Q227_TestOfTheReformer extends SecondClassQuest
 				break;
 			
 			case MISERY_SKELETON:
-				if (cond == 18 && !player.getInventory().hasItems(BONE_FRAGMENT_7))
+				if (cond == 18 && !player.getInventory().hasItem(BONE_FRAGMENT_7))
 				{
 					giveItems(player, BONE_FRAGMENT_7, 1);
 					if (player.getInventory().hasItems(BONE_FRAGMENT_4, BONE_FRAGMENT_5, BONE_FRAGMENT_6, BONE_FRAGMENT_8))
@@ -563,7 +556,7 @@ public class Q227_TestOfTheReformer extends SecondClassQuest
 				break;
 			
 			case SKELETON_ARCHER:
-				if (cond == 18 && !player.getInventory().hasItems(BONE_FRAGMENT_8))
+				if (cond == 18 && !player.getInventory().hasItem(BONE_FRAGMENT_8))
 				{
 					giveItems(player, BONE_FRAGMENT_8, 1);
 					if (player.getInventory().hasItems(BONE_FRAGMENT_4, BONE_FRAGMENT_5, BONE_FRAGMENT_6, BONE_FRAGMENT_7))
@@ -576,7 +569,5 @@ public class Q227_TestOfTheReformer extends SecondClassQuest
 				}
 				break;
 		}
-		
-		return null;
 	}
 }

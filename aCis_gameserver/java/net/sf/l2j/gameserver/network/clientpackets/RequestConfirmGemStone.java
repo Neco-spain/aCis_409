@@ -1,6 +1,7 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.item.LifeStone;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ExConfirmVariationGemstone;
@@ -52,7 +53,7 @@ public final class RequestConfirmGemStone extends AbstractRefinePacket
 		if (ls == null)
 			return;
 		
-		if (_gemStoneCount != getGemStoneCount(targetItem.getItem().getCrystalType()))
+		if (_gemStoneCount != targetItem.getItem().getCrystalType().getGemstoneCount())
 		{
 			player.sendPacket(SystemMessageId.GEMSTONE_QUANTITY_IS_INCORRECT);
 			return;

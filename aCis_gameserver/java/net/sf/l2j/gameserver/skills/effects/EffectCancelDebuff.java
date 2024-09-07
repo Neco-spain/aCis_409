@@ -37,16 +37,16 @@ public class EffectCancelDebuff extends AbstractEffect
 	
 	private static boolean cancel(Creature caster, Creature target, L2Skill skill, SkillType effectType)
 	{
-		if (!(target instanceof Player) || target.isDead())
+		if (!(target instanceof Player targetPlayer) || targetPlayer.isDead())
 			return false;
 		
 		final int cancelLvl = skill.getMagicLevel();
 		int count = skill.getMaxNegatedEffects();
-		double baseRate = Formulas.calcSkillVulnerability(caster, target, skill, effectType);
+		double baseRate = Formulas.calcSkillVulnerability(caster, targetPlayer, skill, effectType);
 		
 		AbstractEffect effect;
 		int lastCanceledSkillId = 0;
-		final AbstractEffect[] effects = target.getAllEffects();
+		final AbstractEffect[] effects = targetPlayer.getAllEffects();
 		for (int i = effects.length; --i >= 0;)
 		{
 			effect = effects[i];

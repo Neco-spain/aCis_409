@@ -23,7 +23,7 @@ public class Q606_WarWithVarkaSilenos extends Quest
 		
 		setItemsIds(VARKA_MANE);
 		
-		addStartNpc(31370); // Kadun Zu Ketra
+		addQuestStart(31370); // Kadun Zu Ketra
 		addTalkId(31370);
 	}
 	
@@ -76,7 +76,7 @@ public class Q606_WarWithVarkaSilenos extends Quest
 				break;
 			
 			case STARTED:
-				htmltext = (player.getInventory().hasItems(VARKA_MANE)) ? "31370-04.htm" : "31370-05.htm";
+				htmltext = (player.getInventory().hasItem(VARKA_MANE)) ? "31370-04.htm" : "31370-05.htm";
 				break;
 		}
 		

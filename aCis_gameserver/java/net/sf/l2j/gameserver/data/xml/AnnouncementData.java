@@ -110,13 +110,10 @@ public class AnnouncementData implements IXmlReader
 	 */
 	public void handleAnnounce(String command, int lengthToTrim, boolean critical)
 	{
-		try
-		{
-			World.announceToOnlinePlayers(command.substring(lengthToTrim), critical);
-		}
-		catch (StringIndexOutOfBoundsException e)
-		{
-		}
+		if (command.length() <= lengthToTrim)
+			return;
+		
+		World.announceToOnlinePlayers(command.substring(lengthToTrim), critical);
 	}
 	
 	/**
@@ -135,7 +132,7 @@ public class AnnouncementData implements IXmlReader
 				final int index = entry.getKey();
 				final Announcement announce = entry.getValue();
 				
-				StringUtil.append(sb, "<tr><td width=240>#", index, " - ", announce.getMessage(), "</td><td></td></tr><tr><td>Critical: ", announce.isCritical(), " | Auto: ", announce.isAuto(), "</td><td><button value=\"Delete\" action=\"bypass -h admin_announce del ", index, "\" width=65 height=19 back=\"L2UI_ch3.smallbutton2_over\" fore=\"L2UI_ch3.smallbutton2\"></td></tr>");
+				StringUtil.append(sb, "<table width=260><tr><td width=240>#", index, " - ", announce.getMessage(), "</td><td></td></tr></table><table width=260><tr><td>Critical: ", announce.isCritical(), " | Auto: ", announce.isAuto(), "</td><td><button value=\"Delete\" action=\"bypass -h admin_announce del ", index, "\" width=65 height=19 back=\"L2UI_ch3.smallbutton2_over\" fore=\"L2UI_ch3.smallbutton2\"></td></tr></table>");
 			}
 		}
 		

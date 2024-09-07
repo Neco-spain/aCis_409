@@ -5,7 +5,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
 
 import net.sf.l2j.commons.data.StatSet;
 
@@ -60,7 +59,6 @@ public final class DocumentItem extends DocumentBase
 		{
 			if ("list".equalsIgnoreCase(n.getNodeName()))
 			{
-				
 				for (Node d = n.getFirstChild(); d != null; d = d.getNextSibling())
 				{
 					if ("item".equalsIgnoreCase(d.getNodeName()))
@@ -74,7 +72,7 @@ public final class DocumentItem extends DocumentBase
 						}
 						catch (Exception e)
 						{
-							_log.log(Level.WARNING, "Cannot create item " + _currentItem.id, e);
+							LOGGER.error("Cannot create item {}.", e, _currentItem.id);
 						}
 					}
 				}

@@ -8,6 +8,7 @@ import net.sf.l2j.gameserver.handler.ISkillHandler;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.skills.AbstractEffect;
@@ -22,66 +23,65 @@ public class Manadam implements ISkillHandler
 	};
 	
 	@Override
-	public void useSkill(Creature activeChar, L2Skill skill, WorldObject[] targets)
+	public void useSkill(Creature creature, L2Skill skill, WorldObject[] targets, ItemInstance item)
 	{
-		if (activeChar.isAlikeDead())
+		if (creature.isAlikeDead())
 			return;
 		
-		final boolean sps = activeChar.isChargedShot(ShotType.SPIRITSHOT);
-		final boolean bsps = activeChar.isChargedShot(ShotType.BLESSED_SPIRITSHOT);
+		final boolean sps = creature.isChargedShot(ShotType.SPIRITSHOT);
+		final boolean bsps = creature.isChargedShot(ShotType.BLESSED_SPIRITSHOT);
 		
-		for (WorldObject obj : targets)
+		for (WorldObject target : targets)
 		{
-			if (!(obj instanceof Creature))
+			if (!(target instanceof Creature targetCreature))
 				continue;
 			
-			Creature target = ((Creature) obj);
-			if (Formulas.calcSkillReflect(target, skill) == Formulas.SKILL_REFLECT_SUCCEED)
-				target = activeChar;
+			if (Formulas.calcSkillReflect(targetCreature, skill) == Formulas.SKILL_REFLECT_SUCCEED)
+				targetCreature = creature;
 			
-			boolean acted = Formulas.calcMagicAffected(activeChar, target, skill);
-			if (target.isInvul() || !acted)
-				activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.MISSED_TARGET));
+			boolean acted = Formulas.calcMagicAffected(creature, targetCreature, skill);
+			if (targetCreature.isInvul() || !acted)
+				creature.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.MISSED_TARGET));
 			else
 			{
 				if (skill.hasEffects())
 				{
-					target.stopSkillEffects(skill.getId());
+					targetCreature.stopSkillEffects(skill.getId());
 					
-					final ShieldDefense sDef = Formulas.calcShldUse(activeChar, target, skill, false);
-					if (Formulas.calcSkillSuccess(activeChar, target, skill, sDef, bsps))
-						skill.getEffects(activeChar, target, sDef, bsps);
+					final ShieldDefense sDef = Formulas.calcShldUse(creature, targetCreature, skill, false);
+					if (Formulas.calcSkillSuccess(creature, targetCreature, skill, sDef, bsps))
+						skill.getEffects(creature, targetCreature, sDef, bsps);
 					else
-						activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(target).addSkillName(skill));
+						creature.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(targetCreature).addSkillName(skill));
 				}
 				
-				double damage = Formulas.calcManaDam(activeChar, target, skill, sps, bsps);
+				double damage = Formulas.calcManaDam(creature, targetCreature, skill, sps, bsps);
 				
-				double mp = (damage > target.getStatus().getMp() ? target.getStatus().getMp() : damage);
-				target.getStatus().reduceMp(mp);
+				double mp = (damage > targetCreature.getStatus().getMp() ? targetCreature.getStatus().getMp() : damage);
+				targetCreature.getStatus().reduceMp(mp);
 				if (damage > 0)
 				{
-					target.stopEffects(EffectType.SLEEP);
-					target.stopEffects(EffectType.IMMOBILE_UNTIL_ATTACKED);
+					targetCreature.stopEffects(EffectType.SLEEP);
+					targetCreature.stopEffects(EffectType.IMMOBILE_UNTIL_ATTACKED);
 				}
 				
-				if (target instanceof Player)
-					target.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S2_MP_HAS_BEEN_DRAINED_BY_S1).addCharName(activeChar).addNumber((int) mp));
+				if (target instanceof Player targetPlayer)
+					targetPlayer.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S2_MP_HAS_BEEN_DRAINED_BY_S1).addCharName(creature).addNumber((int) mp));
 				
-				if (activeChar instanceof Player)
-					activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOUR_OPPONENTS_MP_WAS_REDUCED_BY_S1).addNumber((int) mp));
+				if (creature instanceof Player player)
+					player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOUR_OPPONENTS_MP_WAS_REDUCED_BY_S1).addNumber((int) mp));
 			}
 		}
 		
 		if (skill.hasSelfEffects())
 		{
-			final AbstractEffect effect = activeChar.getFirstEffect(skill.getId());
+			final AbstractEffect effect = creature.getFirstEffect(skill.getId());
 			if (effect != null && effect.isSelfEffect())
 				effect.exit();
 			
-			skill.getEffectsSelf(activeChar);
+			skill.getEffectsSelf(creature);
 		}
-		activeChar.setChargedShot(bsps ? ShotType.BLESSED_SPIRITSHOT : ShotType.SPIRITSHOT, skill.isStaticReuse());
+		creature.setChargedShot(bsps ? ShotType.BLESSED_SPIRITSHOT : ShotType.SPIRITSHOT, skill.isStaticReuse());
 	}
 	
 	@Override

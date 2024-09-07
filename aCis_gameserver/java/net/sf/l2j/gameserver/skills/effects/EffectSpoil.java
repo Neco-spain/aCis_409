@@ -5,7 +5,6 @@ import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Monster;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.skills.AbstractEffect;
 import net.sf.l2j.gameserver.skills.Formulas;
 import net.sf.l2j.gameserver.skills.L2Skill;
@@ -26,26 +25,25 @@ public class EffectSpoil extends AbstractEffect
 	@Override
 	public boolean onStart()
 	{
-		if (!(getEffector() instanceof Player))
+		if (!(getEffector() instanceof Player player))
 			return false;
 		
-		if (!(getEffected() instanceof Monster))
+		if (!(getEffected() instanceof Monster targetMonster))
 			return false;
 		
-		final Monster target = (Monster) getEffected();
-		if (target.isDead())
+		if (targetMonster.isDead())
 			return false;
 		
-		if (target.getSpoilState().isSpoiled())
+		if (targetMonster.getSpoilState().isSpoiled())
 		{
-			getEffector().sendPacket(SystemMessage.getSystemMessage(SystemMessageId.ALREADY_SPOILED));
+			player.sendPacket(SystemMessageId.ALREADY_SPOILED);
 			return false;
 		}
 		
-		if (Formulas.calcMagicSuccess(getEffector(), target, getSkill()))
+		if (Formulas.calcMagicSuccess(player, targetMonster, getSkill()))
 		{
-			target.getSpoilState().setSpoilerId(getEffector().getObjectId());
-			getEffector().sendPacket(SystemMessage.getSystemMessage(SystemMessageId.SPOIL_SUCCESS));
+			targetMonster.getSpoilState().setSpoilerId(player.getObjectId());
+			player.sendPacket(SystemMessageId.SPOIL_SUCCESS);
 		}
 		
 		return true;

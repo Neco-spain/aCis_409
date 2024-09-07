@@ -3,7 +3,7 @@ package net.sf.l2j.gameserver.network.serverpackets;
 import java.util.List;
 
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.item.Henna;
+import net.sf.l2j.gameserver.model.records.Henna;
 
 public class HennaUnequipList extends L2GameServerPacket
 {
@@ -28,8 +28,8 @@ public class HennaUnequipList extends L2GameServerPacket
 		
 		for (Henna henna : _hennas)
 		{
-			writeD(henna.getSymbolId());
-			writeD(henna.getDyeId());
+			writeD(henna.symbolId());
+			writeD(henna.dyeId());
 			writeD(Henna.REMOVE_AMOUNT);
 			writeD(henna.getRemovePrice());
 			writeD(0x01);

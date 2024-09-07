@@ -5,7 +5,7 @@ import net.sf.l2j.gameserver.enums.SpawnType;
 import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.entity.Castle;
+import net.sf.l2j.gameserver.model.residence.castle.Castle;
 import net.sf.l2j.gameserver.model.zone.type.subtype.ResidenceZoneType;
 
 /**
@@ -30,13 +30,8 @@ public class CastleZone extends ResidenceZoneType
 		if (castle == null)
 			return;
 		
-		for (Player player : getKnownTypeInside(Player.class))
-		{
-			if (player.getClanId() == clanId)
-				continue;
-			
+		for (Player player : getKnownTypeInside(Player.class, p -> p.getClanId() != clanId))
 			player.teleportTo(castle.getRndSpawn(SpawnType.BANISH), 20);
-		}
 	}
 	
 	@Override
@@ -49,14 +44,14 @@ public class CastleZone extends ResidenceZoneType
 	}
 	
 	@Override
-	protected void onEnter(Creature character)
+	protected void onEnter(Creature creature)
 	{
-		character.setInsideZone(ZoneId.CASTLE, true);
+		creature.setInsideZone(ZoneId.CASTLE, true);
 	}
 	
 	@Override
-	protected void onExit(Creature character)
+	protected void onExit(Creature creature)
 	{
-		character.setInsideZone(ZoneId.CASTLE, false);
+		creature.setInsideZone(ZoneId.CASTLE, false);
 	}
 }

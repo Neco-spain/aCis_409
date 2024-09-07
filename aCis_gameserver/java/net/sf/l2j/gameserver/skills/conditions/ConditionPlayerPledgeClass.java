@@ -17,10 +17,8 @@ public final class ConditionPlayerPledgeClass extends Condition
 	@Override
 	public boolean testImpl(Creature effector, Creature effected, L2Skill skill, Item item)
 	{
-		if (!(effector instanceof Player))
+		if (!(effector instanceof Player player))
 			return false;
-		
-		final Player player = (Player) effector;
 		
 		if (player.getClan() == null)
 			return false;

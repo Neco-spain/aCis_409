@@ -272,7 +272,7 @@ public class FirstClassChange extends Quest
 	}
 	
 	// Also used by ShadowWeapon script.
-	public static final int[] FIRST_CLASS_NPCS =
+	protected static final int[] FIRST_CLASS_NPCS =
 	{
 		30026,
 		30031,
@@ -326,7 +326,7 @@ public class FirstClassChange extends Quest
 			
 			if (player.getClassId().getId() == array[1] && player.getRace().ordinal() == array[2])
 			{
-				final boolean gotItem = player.getInventory().hasItems(array[7]);
+				final boolean gotItem = player.getInventory().hasItem(array[7]);
 				
 				if (player.getStatus().getLevel() < 20)
 					suffix = "-" + ((gotItem) ? array[4] : array[3]);
@@ -369,9 +369,7 @@ public class FirstClassChange extends Quest
 		final int npcId = npc.getNpcId();
 		switch (npcId)
 		{
-			case 30290: // Dark Elf
-			case 30297:
-			case 30462:
+			case 30290, 30297, 30462: // Dark Elf
 				if (player.getRace() == ClassRace.DARK_ELF)
 				{
 					if (player.getClassId().getLevel() == 0)
@@ -409,10 +407,7 @@ public class FirstClassChange extends Quest
 					htmltext = npcId + "-11.htm";
 				break;
 			
-			case 30500: // Orcs
-			case 30505:
-			case 30508:
-			case 32097:
+			case 30500, 30505, 30508, 32097: // Orcs
 				if (player.getRace() == ClassRace.ORC)
 				{
 					if (player.getClassId().getLevel() == 0)
@@ -450,14 +445,7 @@ public class FirstClassChange extends Quest
 					htmltext = npcId + "-11.htm";
 				break;
 			
-			case 30503: // Dwarf
-			case 30594:
-			case 30498:
-			case 32092:
-			case 32093:
-			case 30504:
-			case 30595:
-			case 30499:
+			case 30498, 30499, 30503, 30504, 30594, 30595, 32092, 32093: // Dwarf
 				if (player.getRace() == ClassRace.DWARF)
 				{
 					if (player.getClassId().getLevel() == 0)
@@ -474,8 +462,7 @@ public class FirstClassChange extends Quest
 					htmltext = npcId + "-11.htm";
 				break;
 			
-			case 30525: // Bronk and Reed(dwarf)
-			case 30520:
+			case 30520, 30525: // Bronk and Reed(dwarf)
 				if (player.getRace() == ClassRace.DWARF)
 				{
 					if (player.getClassId().getLevel() == 0)
@@ -492,10 +479,7 @@ public class FirstClassChange extends Quest
 					htmltext = npcId + "-07.htm";
 				break;
 			
-			case 30070: // Elfs and humans mages
-			case 30037:
-			case 30289:
-			case 32098:
+			case 30037, 30070, 30289, 32098: // Elfs and humans mages
 				if (player.getRace() == ClassRace.ELF)
 				{
 					if (player.isMageClass())
@@ -575,9 +559,7 @@ public class FirstClassChange extends Quest
 					htmltext = npcId + "-08.htm";
 				break;
 			
-			case 30373: // Human and Elfs fighters
-			case 30288:
-			case 30066:
+			case 30066, 30288, 30373: // Human and Elfs fighters
 				if (player.getRace() == ClassRace.HUMAN)
 				{
 					if (player.getClassId().getLevel() == 0)

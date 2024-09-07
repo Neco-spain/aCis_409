@@ -9,7 +9,6 @@ import net.sf.l2j.gameserver.data.manager.CursedWeaponManager;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.InventoryUpdate;
 
 public final class RequestDestroyItem extends L2GameClientPacket
 {
@@ -59,18 +58,7 @@ public final class RequestDestroyItem extends L2GameClientPacket
 		}
 		
 		if (itemToRemove.isEquipped() && (!itemToRemove.isStackable() || (itemToRemove.isStackable() && _count >= itemToRemove.getCount())))
-		{
-			final ItemInstance[] unequipped = player.getInventory().unequipItemInSlotAndRecord(itemToRemove.getLocationSlot());
-			final InventoryUpdate iu = new InventoryUpdate();
-			for (ItemInstance item : unequipped)
-			{
-				item.unChargeAllShots();
-				iu.addModifiedItem(item);
-			}
-			
-			player.sendPacket(iu);
-			player.broadcastUserInfo();
-		}
+			player.useEquippableItem(itemToRemove, false);
 		
 		// if it's a pet control item.
 		if (itemToRemove.isSummonItem())
@@ -94,6 +82,6 @@ public final class RequestDestroyItem extends L2GameClientPacket
 			}
 		}
 		
-		player.destroyItem("Destroy", _objectId, _count, player, true);
+		player.destroyItem(_objectId, _count, true);
 	}
 }

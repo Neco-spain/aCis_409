@@ -25,7 +25,7 @@ public class Q027_ChestCaughtWithABaitOfWind extends Quest
 		
 		setItemsIds(STRANGE_BLUEPRINT);
 		
-		addStartNpc(LANOSCO);
+		addQuestStart(LANOSCO);
 		addTalkId(LANOSCO, SHALING);
 	}
 	
@@ -45,7 +45,7 @@ public class Q027_ChestCaughtWithABaitOfWind extends Quest
 		}
 		else if (event.equalsIgnoreCase("31570-07.htm"))
 		{
-			if (player.getInventory().hasItems(LARGE_BLUE_TREASURE_CHEST))
+			if (player.getInventory().hasItem(LARGE_BLUE_TREASURE_CHEST))
 			{
 				st.setCond(2);
 				takeItems(player, LARGE_BLUE_TREASURE_CHEST, 1);
@@ -56,7 +56,7 @@ public class Q027_ChestCaughtWithABaitOfWind extends Quest
 		}
 		else if (event.equalsIgnoreCase("31434-02.htm"))
 		{
-			if (player.getInventory().hasItems(STRANGE_BLUEPRINT))
+			if (player.getInventory().hasItem(STRANGE_BLUEPRINT))
 			{
 				htmltext = "31434-02.htm";
 				takeItems(player, STRANGE_BLUEPRINT, 1);
@@ -100,7 +100,7 @@ public class Q027_ChestCaughtWithABaitOfWind extends Quest
 				{
 					case LANOSCO:
 						if (cond == 1)
-							htmltext = (!player.getInventory().hasItems(LARGE_BLUE_TREASURE_CHEST)) ? "31570-06.htm" : "31570-05.htm";
+							htmltext = (!player.getInventory().hasItem(LARGE_BLUE_TREASURE_CHEST)) ? "31570-06.htm" : "31570-05.htm";
 						else if (cond == 2)
 							htmltext = "31570-09.htm";
 						break;

@@ -36,10 +36,10 @@ public class Q235_MimirsElixir extends Quest
 		
 		setItemsIds(PURE_SILVER, TRUE_GOLD, SAGE_STONE, BLOOD_FIRE, MAGISTER_MIXING_STONE, MIMIR_ELIXIR);
 		
-		addStartNpc(LADD);
+		addQuestStart(LADD);
 		addTalkId(LADD, JOAN, MIXING_URN);
 		
-		addKillId(20965, 21090);
+		addMyDying(20965, 21090);
 	}
 	
 	@Override
@@ -56,13 +56,13 @@ public class Q235_MimirsElixir extends Quest
 			st.setCond(1);
 			playSound(player, SOUND_ACCEPT);
 		}
-		else if (event.equalsIgnoreCase("30721-12.htm") && player.getInventory().hasItems(TRUE_GOLD))
+		else if (event.equalsIgnoreCase("30721-12.htm") && player.getInventory().hasItem(TRUE_GOLD))
 		{
 			st.setCond(6);
 			playSound(player, SOUND_MIDDLE);
 			giveItems(player, MAGISTER_MIXING_STONE, 1);
 		}
-		else if (event.equalsIgnoreCase("30721-16.htm") && player.getInventory().hasItems(MIMIR_ELIXIR))
+		else if (event.equalsIgnoreCase("30721-16.htm") && player.getInventory().hasItem(MIMIR_ELIXIR))
 		{
 			player.broadcastPacket(new MagicSkillUse(player, player, 4339, 1, 1, 1));
 			
@@ -81,7 +81,7 @@ public class Q235_MimirsElixir extends Quest
 		}
 		else if (event.equalsIgnoreCase("31149-02.htm"))
 		{
-			if (!player.getInventory().hasItems(MAGISTER_MIXING_STONE))
+			if (!player.getInventory().hasItem(MAGISTER_MIXING_STONE))
 				htmltext = "31149-havent.htm";
 		}
 		else if (event.equalsIgnoreCase("31149-03.htm"))
@@ -130,7 +130,7 @@ public class Q235_MimirsElixir extends Quest
 			case CREATED:
 				if (player.getStatus().getLevel() < 75)
 					htmltext = "30721-01b.htm";
-				else if (!player.getInventory().hasItems(STAR_OF_DESTINY))
+				else if (!player.getInventory().hasItem(STAR_OF_DESTINY))
 					htmltext = "30721-01a.htm";
 				else
 					htmltext = "30721-01.htm";
@@ -143,7 +143,7 @@ public class Q235_MimirsElixir extends Quest
 					case LADD:
 						if (cond == 1)
 						{
-							if (player.getInventory().hasItems(PURE_SILVER))
+							if (player.getInventory().hasItem(PURE_SILVER))
 							{
 								htmltext = "30721-08.htm";
 								st.setCond(2);
@@ -154,11 +154,11 @@ public class Q235_MimirsElixir extends Quest
 						}
 						else if (cond < 5)
 							htmltext = "30721-10.htm";
-						else if (cond == 5 && player.getInventory().hasItems(TRUE_GOLD))
+						else if (cond == 5 && player.getInventory().hasItem(TRUE_GOLD))
 							htmltext = "30721-11.htm";
 						else if (cond == 6 || cond == 7)
 							htmltext = "30721-13.htm";
-						else if (cond == 8 && player.getInventory().hasItems(MIMIR_ELIXIR))
+						else if (cond == 8 && player.getInventory().hasItem(MIMIR_ELIXIR))
 							htmltext = "30721-14.htm";
 						break;
 					
@@ -167,7 +167,7 @@ public class Q235_MimirsElixir extends Quest
 							htmltext = "30718-01.htm";
 						else if (cond == 3)
 							htmltext = "30718-04.htm";
-						else if (cond == 4 && player.getInventory().hasItems(SAGE_STONE))
+						else if (cond == 4 && player.getInventory().hasItem(SAGE_STONE))
 						{
 							htmltext = "30718-05.htm";
 							st.setCond(5);
@@ -195,13 +195,13 @@ public class Q235_MimirsElixir extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
@@ -215,7 +215,5 @@ public class Q235_MimirsElixir extends Quest
 					st.setCond(7);
 				break;
 		}
-		
-		return null;
 	}
 }

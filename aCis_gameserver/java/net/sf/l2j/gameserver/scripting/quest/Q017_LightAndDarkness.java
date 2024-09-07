@@ -26,7 +26,7 @@ public class Q017_LightAndDarkness extends Quest
 		
 		setItemsIds(BLOOD_OF_SAINT);
 		
-		addStartNpc(HIERARCH);
+		addQuestStart(HIERARCH);
 		addTalkId(HIERARCH, SAINT_ALTAR_1, SAINT_ALTAR_2, SAINT_ALTAR_3, SAINT_ALTAR_4);
 	}
 	
@@ -47,7 +47,7 @@ public class Q017_LightAndDarkness extends Quest
 		}
 		else if (event.equalsIgnoreCase("31508-02.htm"))
 		{
-			if (player.getInventory().hasItems(BLOOD_OF_SAINT))
+			if (player.getInventory().hasItem(BLOOD_OF_SAINT))
 			{
 				st.setCond(2);
 				playSound(player, SOUND_MIDDLE);
@@ -58,7 +58,7 @@ public class Q017_LightAndDarkness extends Quest
 		}
 		else if (event.equalsIgnoreCase("31509-02.htm"))
 		{
-			if (player.getInventory().hasItems(BLOOD_OF_SAINT))
+			if (player.getInventory().hasItem(BLOOD_OF_SAINT))
 			{
 				st.setCond(3);
 				playSound(player, SOUND_MIDDLE);
@@ -69,7 +69,7 @@ public class Q017_LightAndDarkness extends Quest
 		}
 		else if (event.equalsIgnoreCase("31510-02.htm"))
 		{
-			if (player.getInventory().hasItems(BLOOD_OF_SAINT))
+			if (player.getInventory().hasItem(BLOOD_OF_SAINT))
 			{
 				st.setCond(4);
 				playSound(player, SOUND_MIDDLE);
@@ -80,7 +80,7 @@ public class Q017_LightAndDarkness extends Quest
 		}
 		else if (event.equalsIgnoreCase("31511-02.htm"))
 		{
-			if (player.getInventory().hasItems(BLOOD_OF_SAINT))
+			if (player.getInventory().hasItem(BLOOD_OF_SAINT))
 			{
 				st.setCond(5);
 				playSound(player, SOUND_MIDDLE);
@@ -121,7 +121,7 @@ public class Q017_LightAndDarkness extends Quest
 						}
 						else
 						{
-							if (player.getInventory().hasItems(BLOOD_OF_SAINT))
+							if (player.getInventory().hasItem(BLOOD_OF_SAINT))
 								htmltext = "31517-05.htm";
 							else
 							{

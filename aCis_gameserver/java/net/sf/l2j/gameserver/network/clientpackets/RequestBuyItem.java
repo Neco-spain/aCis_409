@@ -3,7 +3,6 @@ package net.sf.l2j.gameserver.network.clientpackets;
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.cache.HtmCache;
 import net.sf.l2j.gameserver.data.manager.BuyListManager;
-import net.sf.l2j.gameserver.enums.StatusType;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Player;
@@ -16,7 +15,6 @@ import net.sf.l2j.gameserver.model.holder.IntIntHolder;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ItemList;
 import net.sf.l2j.gameserver.network.serverpackets.NpcHtmlMessage;
-import net.sf.l2j.gameserver.network.serverpackets.StatusUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public final class RequestBuyItem extends L2GameClientPacket
@@ -147,7 +145,7 @@ public final class RequestBuyItem extends L2GameClientPacket
 		}
 		
 		// Charge buyer and add tax to castle treasury if not owned by npc clan
-		if (subTotal < 0 || !player.reduceAdena("Buy", (int) subTotal, player.getCurrentFolk(), false))
+		if (subTotal < 0 || !player.reduceAdena((int) subTotal, false))
 		{
 			sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_NOT_ENOUGH_ADENA));
 			return;
@@ -163,17 +161,17 @@ public final class RequestBuyItem extends L2GameClientPacket
 			if (product.hasLimitedStock())
 			{
 				if (product.decreaseCount(i.getValue()))
-					player.getInventory().addItem("Buy", i.getId(), i.getValue(), player, merchant);
+					player.getInventory().addItem(i.getId(), i.getValue());
 			}
 			else
-				player.getInventory().addItem("Buy", i.getId(), i.getValue(), player, merchant);
+				player.getInventory().addItem(i.getId(), i.getValue());
 		}
 		
 		// Add to castle treasury and send the htm, if existing.
 		if (merchant != null)
 		{
 			if (merchant.getCastle() != null)
-				merchant.getCastle().addToTreasury((int) (subTotal * castleTaxRate));
+				merchant.getCastle().riseTaxRevenue((int) (subTotal * castleTaxRate));
 			
 			String htmlFolder = "";
 			if (merchant instanceof Fisherman)
@@ -193,10 +191,6 @@ public final class RequestBuyItem extends L2GameClientPacket
 				}
 			}
 		}
-		
-		StatusUpdate su = new StatusUpdate(player);
-		su.addAttribute(StatusType.CUR_LOAD, player.getCurrentWeight());
-		player.sendPacket(su);
 		player.sendPacket(new ItemList(player, true));
 	}
 }

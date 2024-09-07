@@ -19,6 +19,6 @@ public class ConditionTargetRaceId extends Condition
 	@Override
 	public boolean testImpl(Creature effector, Creature effected, L2Skill skill, Item item)
 	{
-		return effected instanceof Npc && _raceIds.contains(((Npc) effected).getTemplate().getRace().ordinal());
+		return effected instanceof Npc targetNpc && _raceIds.contains(targetNpc.getTemplate().getRace().ordinal());
 	}
 }

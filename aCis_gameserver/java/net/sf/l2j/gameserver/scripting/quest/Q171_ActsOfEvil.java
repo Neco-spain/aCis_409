@@ -40,25 +40,24 @@ public class Q171_ActsOfEvil extends Quest
 	private static final int OL_MAHUM_SUPPORT_TROOP = 27190;
 	
 	// Turek Orcs drop chances
-	private static final Map<Integer, Integer> CHANCES = new HashMap<>();
-	{
-		CHANCES.put(20496, 530000);
-		CHANCES.put(20497, 550000);
-		CHANCES.put(20498, 510000);
-		CHANCES.put(20499, 500000);
-	}
+	private static final Map<Integer, Integer> CHANCES = HashMap.newHashMap(4);
 	
 	public Q171_ActsOfEvil()
 	{
 		super(171, "Acts of Evil");
 		
+		CHANCES.put(20496, 530000);
+		CHANCES.put(20497, 550000);
+		CHANCES.put(20498, 510000);
+		CHANCES.put(20499, 500000);
+		
 		setItemsIds(BLADE_MOLD, TYRA_BILL, RANGER_REPORT_1, RANGER_REPORT_2, RANGER_REPORT_3, RANGER_REPORT_4, WEAPON_TRADE_CONTRACT, ATTACK_DIRECTIVES, CERTIFICATE, CARGO_BOX, OL_MAHUM_HEAD);
 		
-		addStartNpc(ALVAH);
+		addQuestStart(ALVAH);
 		addTalkId(ALVAH, ARODIN, TYRA, ROLENTO, NETI, BURAI);
 		
-		addKillId(20496, 20497, 20498, 20499, 20062, 20064, 20066, 20438);
-		addDecayId(OL_MAHUM_SUPPORT_TROOP);
+		addDecayed(OL_MAHUM_SUPPORT_TROOP);
+		addMyDying(20496, 20497, 20498, 20499, 20062, 20064, 20066, 20438);
 	}
 	
 	@Override
@@ -173,7 +172,7 @@ public class Q171_ActsOfEvil extends Quest
 							htmltext = "30207-01a.htm";
 						else if (cond == 3)
 						{
-							if (player.getInventory().hasItems(TYRA_BILL))
+							if (player.getInventory().hasItem(TYRA_BILL))
 							{
 								htmltext = "30207-03.htm";
 								st.setCond(4);
@@ -254,64 +253,58 @@ public class Q171_ActsOfEvil extends Quest
 	}
 	
 	@Override
-	public String onDecay(Npc npc)
+	public void onDecayed(Npc npc)
 	{
 		if (!npc.isDead())
 			npc.broadcastNpcSay(NpcStringId.ID_17151);
-		
-		return null;
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final int npcId = npc.getNpcId();
 		
 		switch (npcId)
 		{
-			case 20496:
-			case 20497:
-			case 20498:
-			case 20499:
+			case 20496, 20497, 20498, 20499:
 				if (st.getCond() == 2 && !dropItems(player, BLADE_MOLD, 1, 20, CHANCES.get(npcId)))
 				{
 					final int count = player.getInventory().getItemCount(BLADE_MOLD);
 					if (count == 5 || (count >= 10 && Rnd.get(100) < 25))
 					{
 						Npc troop = addSpawn(OL_MAHUM_SUPPORT_TROOP, npc, false, 200000, true);
-						troop.forceAttack(player, 2000);
+						troop.getAI().addAttackDesire(player, 2000);
 					}
 				}
 				break;
 			
-			case 20062:
-			case 20064:
+			case 20062, 20064:
 				if (st.getCond() == 5)
 				{
-					if (!player.getInventory().hasItems(RANGER_REPORT_1))
+					if (!player.getInventory().hasItem(RANGER_REPORT_1))
 					{
 						giveItems(player, RANGER_REPORT_1, 1);
 						playSound(player, SOUND_ITEMGET);
 					}
 					else if (Rnd.get(100) < 20)
 					{
-						if (!player.getInventory().hasItems(RANGER_REPORT_2))
+						if (!player.getInventory().hasItem(RANGER_REPORT_2))
 						{
 							giveItems(player, RANGER_REPORT_2, 1);
 							playSound(player, SOUND_ITEMGET);
 						}
-						else if (!player.getInventory().hasItems(RANGER_REPORT_3))
+						else if (!player.getInventory().hasItem(RANGER_REPORT_3))
 						{
 							giveItems(player, RANGER_REPORT_3, 1);
 							playSound(player, SOUND_ITEMGET);
 						}
-						else if (!player.getInventory().hasItems(RANGER_REPORT_4))
+						else if (!player.getInventory().hasItem(RANGER_REPORT_4))
 						{
 							giveItems(player, RANGER_REPORT_4, 1);
 							playSound(player, SOUND_ITEMGET);
@@ -334,7 +327,5 @@ public class Q171_ActsOfEvil extends Quest
 					dropItems(player, OL_MAHUM_HEAD, 1, 30, 500000);
 				break;
 		}
-		
-		return null;
 	}
 }

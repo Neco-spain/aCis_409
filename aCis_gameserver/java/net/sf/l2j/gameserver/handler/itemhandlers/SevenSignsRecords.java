@@ -11,9 +11,9 @@ public class SevenSignsRecords implements IItemHandler
 	@Override
 	public void useItem(Playable playable, ItemInstance item, boolean forceUse)
 	{
-		if (!(playable instanceof Player))
+		if (!(playable instanceof Player player))
 			return;
 		
-		playable.sendPacket(new SSQStatus(playable.getObjectId(), 1));
+		player.sendPacket(new SSQStatus(player.getObjectId(), 1));
 	}
 }

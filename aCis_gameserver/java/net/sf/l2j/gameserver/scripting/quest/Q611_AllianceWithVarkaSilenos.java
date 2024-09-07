@@ -20,49 +20,9 @@ public class Q611_AllianceWithVarkaSilenos extends Quest
 	private static final String QUEST_NAME = "Q611_AllianceWithVarkaSilenos";
 	private static final String qn2 = "Q612_WarWithKetraOrcs";
 	
-	private static final Map<Integer, Integer> CHANCES = new HashMap<>();
-	{
-		CHANCES.put(21324, 500000);
-		CHANCES.put(21325, 500000);
-		CHANCES.put(21327, 509000);
-		CHANCES.put(21328, 521000);
-		CHANCES.put(21329, 519000);
-		CHANCES.put(21331, 500000);
-		CHANCES.put(21332, 500000);
-		CHANCES.put(21334, 509000);
-		CHANCES.put(21335, 518000);
-		CHANCES.put(21336, 518000);
-		CHANCES.put(21338, 527000);
-		CHANCES.put(21339, 500000);
-		CHANCES.put(21340, 500000);
-		CHANCES.put(21342, 508000);
-		CHANCES.put(21343, 628000);
-		CHANCES.put(21344, 604000);
-		CHANCES.put(21345, 627000);
-		CHANCES.put(21346, 604000);
-		CHANCES.put(21347, 649000);
-		CHANCES.put(21348, 626000);
-		CHANCES.put(21349, 626000);
-	}
+	private static final Map<Integer, Integer> CHANCES = HashMap.newHashMap(21);
 	
-	private static final Map<Integer, Integer> CHANCES_MOLAR = new HashMap<>();
-	{
-		CHANCES_MOLAR.put(21324, 500000);
-		CHANCES_MOLAR.put(21327, 510000);
-		CHANCES_MOLAR.put(21328, 522000);
-		CHANCES_MOLAR.put(21329, 519000);
-		CHANCES_MOLAR.put(21331, 529000);
-		CHANCES_MOLAR.put(21332, 529000);
-		CHANCES_MOLAR.put(21334, 539000);
-		CHANCES_MOLAR.put(21336, 548000);
-		CHANCES_MOLAR.put(21338, 558000);
-		CHANCES_MOLAR.put(21339, 568000);
-		CHANCES_MOLAR.put(21340, 568000);
-		CHANCES_MOLAR.put(21342, 578000);
-		CHANCES_MOLAR.put(21343, 664000);
-		CHANCES_MOLAR.put(21345, 713000);
-		CHANCES_MOLAR.put(21347, 738000);
-	}
+	private static final Map<Integer, Integer> CHANCES_MOLAR = HashMap.newHashMap(15);
 	
 	// Quest Items
 	private static final int KETRA_BADGE_SOLDIER = 7226;
@@ -84,13 +44,51 @@ public class Q611_AllianceWithVarkaSilenos extends Quest
 	{
 		super(611, "Alliance with Varka Silenos");
 		
+		CHANCES.put(21324, 500000);
+		CHANCES.put(21325, 500000);
+		CHANCES.put(21327, 509000);
+		CHANCES.put(21328, 521000);
+		CHANCES.put(21329, 519000);
+		CHANCES.put(21331, 500000);
+		CHANCES.put(21332, 500000);
+		CHANCES.put(21334, 509000);
+		CHANCES.put(21335, 518000);
+		CHANCES.put(21336, 518000);
+		CHANCES.put(21338, 527000);
+		CHANCES.put(21339, 500000);
+		CHANCES.put(21340, 500000);
+		CHANCES.put(21342, 508000);
+		CHANCES.put(21343, 628000);
+		CHANCES.put(21344, 604000);
+		CHANCES.put(21345, 627000);
+		CHANCES.put(21346, 604000);
+		CHANCES.put(21347, 649000);
+		CHANCES.put(21348, 626000);
+		CHANCES.put(21349, 626000);
+		
+		CHANCES_MOLAR.put(21324, 500000);
+		CHANCES_MOLAR.put(21327, 510000);
+		CHANCES_MOLAR.put(21328, 522000);
+		CHANCES_MOLAR.put(21329, 519000);
+		CHANCES_MOLAR.put(21331, 529000);
+		CHANCES_MOLAR.put(21332, 529000);
+		CHANCES_MOLAR.put(21334, 539000);
+		CHANCES_MOLAR.put(21336, 548000);
+		CHANCES_MOLAR.put(21338, 558000);
+		CHANCES_MOLAR.put(21339, 568000);
+		CHANCES_MOLAR.put(21340, 568000);
+		CHANCES_MOLAR.put(21342, 578000);
+		CHANCES_MOLAR.put(21343, 664000);
+		CHANCES_MOLAR.put(21345, 713000);
+		CHANCES_MOLAR.put(21347, 738000);
+		
 		setItemsIds(KETRA_BADGE_SOLDIER, KETRA_BADGE_OFFICER, KETRA_BADGE_CAPTAIN);
 		
-		addStartNpc(31378); // Naran Ashanuk
+		addQuestStart(31378); // Naran Ashanuk
 		addTalkId(31378);
 		
 		for (int mobs : CHANCES.keySet())
-			addKillId(mobs);
+			addMyDying(mobs);
 	}
 	
 	@Override
@@ -111,7 +109,7 @@ public class Q611_AllianceWithVarkaSilenos extends Quest
 				playSound(player, SOUND_ACCEPT);
 				for (int i = VARKA_ALLIANCE_1; i <= VARKA_ALLIANCE_5; i++)
 				{
-					if (player.getInventory().hasItems(i))
+					if (player.getInventory().hasItem(i))
 					{
 						st.setCond(i - 7219);
 						player.setAllianceWithVarkaKetra(7220 - i);
@@ -249,14 +247,14 @@ public class Q611_AllianceWithVarkaSilenos extends Quest
 				}
 				else if (cond == 4)
 				{
-					if (player.getInventory().getItemCount(KETRA_BADGE_SOLDIER) < 300 || player.getInventory().getItemCount(KETRA_BADGE_OFFICER) < 300 || player.getInventory().getItemCount(KETRA_BADGE_CAPTAIN) < 200 || !player.getInventory().hasItems(VALOR_FEATHER))
+					if (player.getInventory().getItemCount(KETRA_BADGE_SOLDIER) < 300 || player.getInventory().getItemCount(KETRA_BADGE_OFFICER) < 300 || player.getInventory().getItemCount(KETRA_BADGE_CAPTAIN) < 200 || !player.getInventory().hasItem(VALOR_FEATHER))
 						htmltext = "31378-21.htm";
 					else
 						htmltext = "31378-22.htm";
 				}
 				else if (cond == 5)
 				{
-					if (player.getInventory().getItemCount(KETRA_BADGE_SOLDIER) < 400 || player.getInventory().getItemCount(KETRA_BADGE_OFFICER) < 400 || player.getInventory().getItemCount(KETRA_BADGE_CAPTAIN) < 200 || !player.getInventory().hasItems(WISDOM_FEATHER))
+					if (player.getInventory().getItemCount(KETRA_BADGE_SOLDIER) < 400 || player.getInventory().getItemCount(KETRA_BADGE_OFFICER) < 400 || player.getInventory().getItemCount(KETRA_BADGE_CAPTAIN) < 200 || !player.getInventory().hasItem(WISDOM_FEATHER))
 						htmltext = "31378-17.htm";
 					else
 					{
@@ -281,13 +279,13 @@ public class Q611_AllianceWithVarkaSilenos extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMemberState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		player = st.getPlayer();
 		final int npcId = npc.getNpcId();
@@ -297,20 +295,16 @@ public class Q611_AllianceWithVarkaSilenos extends Quest
 		if (st2 != null && Rnd.nextBoolean() && CHANCES_MOLAR.containsKey(npcId))
 		{
 			dropItems(player, MOLAR_OF_KETRA_ORC, 1, 0, CHANCES_MOLAR.get(npcId));
-			return null;
+			return;
 		}
 		
 		final int cond = st.getCond();
 		if (cond == 6)
-			return null;
+			return;
 		
 		switch (npcId)
 		{
-			case 21324:
-			case 21325:
-			case 21327:
-			case 21328:
-			case 21329:
+			case 21324, 21325, 21327, 21328, 21329:
 				if (cond == 1)
 					dropItems(player, KETRA_BADGE_SOLDIER, 1, 100, CHANCES.get(npcId));
 				else if (cond == 2)
@@ -321,14 +315,7 @@ public class Q611_AllianceWithVarkaSilenos extends Quest
 					dropItems(player, KETRA_BADGE_SOLDIER, 1, 400, CHANCES.get(npcId));
 				break;
 			
-			case 21331:
-			case 21332:
-			case 21334:
-			case 21335:
-			case 21336:
-			case 21338:
-			case 21343:
-			case 21344:
+			case 21331, 21332, 21334, 21335, 21336, 21338, 21343, 21344:
 				if (cond == 2)
 					dropItems(player, KETRA_BADGE_OFFICER, 1, 100, CHANCES.get(npcId));
 				else if (cond == 3)
@@ -339,21 +326,12 @@ public class Q611_AllianceWithVarkaSilenos extends Quest
 					dropItems(player, KETRA_BADGE_OFFICER, 1, 400, CHANCES.get(npcId));
 				break;
 			
-			case 21339:
-			case 21340:
-			case 21342:
-			case 21345:
-			case 21346:
-			case 21347:
-			case 21348:
-			case 21349:
+			case 21339, 21340, 21342, 21345, 21346, 21347, 21348, 21349:
 				if (cond == 3)
 					dropItems(player, KETRA_BADGE_CAPTAIN, 1, 100, CHANCES.get(npcId));
 				else if (cond == 4 || cond == 5)
 					dropItems(player, KETRA_BADGE_CAPTAIN, 1, 200, CHANCES.get(npcId));
 				break;
 		}
-		
-		return null;
 	}
 }

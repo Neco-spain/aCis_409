@@ -31,10 +31,10 @@ public class Q111_ElrokianHuntersProof extends Quest
 		
 		setItemsIds(FRAGMENT, EXPEDITION_LETTER, CLAW, BONE, SKIN, PRACTICE_TRAP);
 		
-		addStartNpc(MARQUEZ);
+		addQuestStart(MARQUEZ);
 		addTalkId(MARQUEZ, MUSHIKA, ASAMAH, KIRIKASHIN);
 		
-		addKillId(22196, 22197, 22198, 22218, 22200, 22201, 22202, 22219, 22208, 22209, 22210, 22221, 22203, 22204, 22205, 22220);
+		addMyDying(22196, 22197, 22198, 22218, 22200, 22201, 22202, 22219, 22208, 22209, 22210, 22221, 22203, 22204, 22205, 22220);
 	}
 	
 	@Override
@@ -187,54 +187,40 @@ public class Q111_ElrokianHuntersProof extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMemberState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		player = st.getPlayer();
 		
 		switch (npc.getNpcId())
 		{
-			case 22196:
-			case 22197:
-			case 22198:
-			case 22218:
+			case 22196, 22197, 22198, 22218:
 				if (st.getCond() == 4 && dropItems(player, FRAGMENT, 1, 50, 250000))
 					st.setCond(5);
 				break;
 			
-			case 22200:
-			case 22201:
-			case 22202:
-			case 22219:
+			case 22200, 22201, 22202, 22219:
 				if (st.getCond() == 10 && dropItems(player, CLAW, 1, 10, 650000))
 					if (player.getInventory().getItemCount(BONE) >= 10 && player.getInventory().getItemCount(SKIN) >= 10)
 						st.setCond(11);
 				break;
 			
-			case 22208:
-			case 22209:
-			case 22210:
-			case 22221:
+			case 22208, 22209, 22210, 22221:
 				if (st.getCond() == 10 && dropItems(player, SKIN, 1, 10, 650000))
 					if (player.getInventory().getItemCount(CLAW) >= 10 && player.getInventory().getItemCount(BONE) >= 10)
 						st.setCond(11);
 				break;
 			
-			case 22203:
-			case 22204:
-			case 22205:
-			case 22220:
+			case 22203, 22204, 22205, 22220:
 				if (st.getCond() == 10 && dropItems(player, BONE, 1, 10, 650000))
 					if (player.getInventory().getItemCount(CLAW) >= 10 && player.getInventory().getItemCount(SKIN) >= 10)
 						st.setCond(11);
 				break;
 		}
-		
-		return null;
 	}
 }

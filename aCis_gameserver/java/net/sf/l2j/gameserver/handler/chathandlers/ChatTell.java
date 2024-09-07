@@ -1,5 +1,6 @@
 package net.sf.l2j.gameserver.handler.chathandlers;
 
+import net.sf.l2j.gameserver.data.manager.RelationManager;
 import net.sf.l2j.gameserver.enums.SayType;
 import net.sf.l2j.gameserver.handler.IChatHandler;
 import net.sf.l2j.gameserver.model.World;
@@ -36,13 +37,13 @@ public class ChatTell implements IChatHandler
 		
 		if (!player.isGM())
 		{
-			if (targetPlayer.getBlockList().isBlockingAll())
+			if (targetPlayer.isBlockingAll())
 			{
 				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_BLOCKED_EVERYTHING).addCharName(targetPlayer));
 				return;
 			}
 			
-			if (targetPlayer.getBlockList().isInBlockList(player))
+			if (RelationManager.getInstance().isInBlockList(targetPlayer, player))
 			{
 				player.sendPacket(SystemMessageId.THE_PERSON_IS_IN_MESSAGE_REFUSAL_MODE);
 				return;

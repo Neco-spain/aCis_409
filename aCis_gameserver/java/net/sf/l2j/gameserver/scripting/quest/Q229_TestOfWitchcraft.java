@@ -88,12 +88,12 @@ public class Q229_TestOfWitchcraft extends SecondClassQuest
 		
 		setItemsIds(ORIM_DIAGRAM, ALEXANDRIA_BOOK, IKER_LIST, DIRE_WYRM_FANG, LETO_LIZARDMAN_CHARM, EN_GOLEM_HEARTSTONE, LARA_MEMO, NESTLE_MEMO, LEOPOLD_JOURNAL, AKLANTOTH_GEM_1, AKLANTOTH_GEM_2, AKLANTOTH_GEM_3, AKLANTOTH_GEM_4, AKLANTOTH_GEM_5, AKLANTOTH_GEM_6, BRIMSTONE_1, ORIM_INSTRUCTIONS, ORIM_LETTER_1, ORIM_LETTER_2, SIR_VASPER_LETTER, VADIN_CRUCIFIX, TAMLIN_ORC_AMULET, VADIN_SANCTIONS, IKER_AMULET, SOULTRAP_CRYSTAL, PURGATORY_KEY, ZERUEL_BIND_CRYSTAL, BRIMSTONE_2, SWORD_OF_BINDING);
 		
-		addStartNpc(ORIM);
+		addQuestStart(ORIM);
 		addTalkId(LARA, ALEXANDRIA, IKER, VADIN, NESTLE, SIR_KLAUS_VASPER, LEOPOLD, KAIRA, ORIM, RODERIK, ENDRIGO, EVERT);
 		
-		addAttackId(NAMELESS_REVENANT, SKELETAL_MERCENARY, DREVANUL_PRINCE_ZERUEL);
-		addKillId(DIRE_WYRM, ENCHANTED_STONE_GOLEM, LETO_LIZARDMAN, LETO_LIZARDMAN_ARCHER, LETO_LIZARDMAN_SOLDIER, LETO_LIZARDMAN_WARRIOR, LETO_LIZARDMAN_SHAMAN, LETO_LIZARDMAN_OVERLORD, TAMLIN_ORC, TAMLIN_ORC_ARCHER, NAMELESS_REVENANT, SKELETAL_MERCENARY, DREVANUL_PRINCE_ZERUEL);
-		addDecayId(DREVANUL_PRINCE_ZERUEL);
+		addAttacked(NAMELESS_REVENANT, SKELETAL_MERCENARY, DREVANUL_PRINCE_ZERUEL);
+		addDecayed(DREVANUL_PRINCE_ZERUEL);
+		addMyDying(DIRE_WYRM, ENCHANTED_STONE_GOLEM, LETO_LIZARDMAN, LETO_LIZARDMAN_ARCHER, LETO_LIZARDMAN_SOLDIER, LETO_LIZARDMAN_WARRIOR, LETO_LIZARDMAN_SHAMAN, LETO_LIZARDMAN_OVERLORD, TAMLIN_ORC, TAMLIN_ORC_ARCHER, NAMELESS_REVENANT, SKELETAL_MERCENARY, DREVANUL_PRINCE_ZERUEL);
 	}
 	
 	@Override
@@ -175,7 +175,7 @@ public class Q229_TestOfWitchcraft extends SecondClassQuest
 			giveItems(player, IKER_AMULET, 1);
 			giveItems(player, SOULTRAP_CRYSTAL, 1);
 			
-			if (player.getInventory().hasItems(SWORD_OF_BINDING))
+			if (player.getInventory().hasItem(SWORD_OF_BINDING))
 			{
 				st.setCond(7);
 				playSound(player, SOUND_MIDDLE);
@@ -319,7 +319,7 @@ public class Q229_TestOfWitchcraft extends SecondClassQuest
 						break;
 					
 					case KAIRA:
-						if (player.getInventory().hasItems(AKLANTOTH_GEM_2))
+						if (player.getInventory().hasItem(AKLANTOTH_GEM_2))
 							htmltext = "30476-03.htm";
 						else if (cond == 2)
 							htmltext = "30476-01.htm";
@@ -328,9 +328,9 @@ public class Q229_TestOfWitchcraft extends SecondClassQuest
 						break;
 					
 					case IKER:
-						if (player.getInventory().hasItems(AKLANTOTH_GEM_1))
+						if (player.getInventory().hasItem(AKLANTOTH_GEM_1))
 							htmltext = "30110-06.htm";
-						else if (player.getInventory().hasItems(IKER_LIST))
+						else if (player.getInventory().hasItem(IKER_LIST))
 						{
 							if (player.getInventory().getItemCount(DIRE_WYRM_FANG) + player.getInventory().getItemCount(LETO_LIZARDMAN_CHARM) + player.getInventory().getItemCount(EN_GOLEM_HEARTSTONE) < 60)
 								htmltext = "30110-04.htm";
@@ -354,7 +354,7 @@ public class Q229_TestOfWitchcraft extends SecondClassQuest
 						}
 						else if (cond == 2)
 							htmltext = "30110-01.htm";
-						else if (cond == 6 && !player.getInventory().hasItems(SOULTRAP_CRYSTAL))
+						else if (cond == 6 && !player.getInventory().hasItem(SOULTRAP_CRYSTAL))
 							htmltext = "30110-07.htm";
 						else if (cond >= 6 && cond < 10)
 							htmltext = "30110-09.htm";
@@ -363,9 +363,9 @@ public class Q229_TestOfWitchcraft extends SecondClassQuest
 						break;
 					
 					case LARA:
-						if (player.getInventory().hasItems(AKLANTOTH_GEM_3))
+						if (player.getInventory().hasItem(AKLANTOTH_GEM_3))
 							htmltext = "30063-04.htm";
-						else if (player.getInventory().hasItems(LARA_MEMO))
+						else if (player.getInventory().hasItem(LARA_MEMO))
 							htmltext = "30063-03.htm";
 						else if (cond == 2)
 							htmltext = "30063-01.htm";
@@ -373,8 +373,7 @@ public class Q229_TestOfWitchcraft extends SecondClassQuest
 							htmltext = "30063-05.htm";
 						break;
 					
-					case RODERIK:
-					case ENDRIGO:
+					case RODERIK, ENDRIGO:
 						if (player.getInventory().hasAtLeastOneItem(LARA_MEMO, AKLANTOTH_GEM_3))
 							htmltext = npc.getNpcId() + "-01.htm";
 						break;
@@ -402,13 +401,13 @@ public class Q229_TestOfWitchcraft extends SecondClassQuest
 					case SIR_KLAUS_VASPER:
 						if (player.getInventory().hasAtLeastOneItem(SIR_VASPER_LETTER, VADIN_CRUCIFIX))
 							htmltext = "30417-04.htm";
-						else if (player.getInventory().hasItems(VADIN_SANCTIONS))
+						else if (player.getInventory().hasItem(VADIN_SANCTIONS))
 						{
 							htmltext = "30417-05.htm";
 							takeItems(player, VADIN_SANCTIONS, 1);
 							giveItems(player, SWORD_OF_BINDING, 1);
 							
-							if (player.getInventory().hasItems(SOULTRAP_CRYSTAL))
+							if (player.getInventory().hasItem(SOULTRAP_CRYSTAL))
 							{
 								st.setCond(7);
 								playSound(player, SOUND_MIDDLE);
@@ -423,14 +422,14 @@ public class Q229_TestOfWitchcraft extends SecondClassQuest
 						break;
 					
 					case VADIN:
-						if (player.getInventory().hasItems(SIR_VASPER_LETTER))
+						if (player.getInventory().hasItem(SIR_VASPER_LETTER))
 						{
 							htmltext = "30188-01.htm";
 							playSound(player, SOUND_ITEMGET);
 							takeItems(player, SIR_VASPER_LETTER, 1);
 							giveItems(player, VADIN_CRUCIFIX, 1);
 						}
-						else if (player.getInventory().hasItems(VADIN_CRUCIFIX))
+						else if (player.getInventory().hasItem(VADIN_CRUCIFIX))
 						{
 							if (player.getInventory().getItemCount(TAMLIN_ORC_AMULET) < 20)
 								htmltext = "30188-02.htm";
@@ -443,7 +442,7 @@ public class Q229_TestOfWitchcraft extends SecondClassQuest
 								giveItems(player, VADIN_SANCTIONS, 1);
 							}
 						}
-						else if (player.getInventory().hasItems(VADIN_SANCTIONS))
+						else if (player.getInventory().hasItem(VADIN_SANCTIONS))
 							htmltext = "30188-04.htm";
 						else if (cond > 6)
 							htmltext = "30188-05.htm";
@@ -474,18 +473,18 @@ public class Q229_TestOfWitchcraft extends SecondClassQuest
 	}
 	
 	@Override
-	public String onAttack(Npc npc, Creature attacker, int damage, L2Skill skill)
+	public void onAttacked(Npc npc, Creature attacker, int damage, L2Skill skill)
 	{
 		final Player player = attacker.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
 			case NAMELESS_REVENANT:
-				if (player.getInventory().hasItems(LARA_MEMO) && !npc.isScriptValue(1))
+				if (player.getInventory().hasItem(LARA_MEMO) && !npc.isScriptValue(1))
 				{
 					npc.setScriptValue(1);
 					npc.broadcastNpcSay(NpcStringId.ID_22933);
@@ -521,12 +520,10 @@ public class Q229_TestOfWitchcraft extends SecondClassQuest
 				}
 				break;
 		}
-		
-		return null;
 	}
 	
 	@Override
-	public String onDecay(Npc npc)
+	public void onDecayed(Npc npc)
 	{
 		if (npc == _drevanulPrinceZeruel_Orim)
 		{
@@ -536,49 +533,46 @@ public class Q229_TestOfWitchcraft extends SecondClassQuest
 		{
 			_drevanulPrinceZeruel_Evert = null;
 		}
-		
-		return null;
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
 			case DIRE_WYRM:
-				if (player.getInventory().hasItems(IKER_LIST))
+				if (player.getInventory().hasItem(IKER_LIST))
 					dropItemsAlways(player, DIRE_WYRM_FANG, 1, 20);
 				break;
 			
 			case ENCHANTED_STONE_GOLEM:
-				if (player.getInventory().hasItems(IKER_LIST))
+				if (player.getInventory().hasItem(IKER_LIST))
 					dropItemsAlways(player, EN_GOLEM_HEARTSTONE, 1, 20);
 				break;
 			
-			case LETO_LIZARDMAN:
-			case LETO_LIZARDMAN_ARCHER:
-				if (player.getInventory().hasItems(IKER_LIST))
+			case LETO_LIZARDMAN, LETO_LIZARDMAN_ARCHER:
+				if (player.getInventory().hasItem(IKER_LIST))
 					dropItems(player, LETO_LIZARDMAN_CHARM, 1, 20, 500000);
 				break;
-			case LETO_LIZARDMAN_SOLDIER:
-			case LETO_LIZARDMAN_WARRIOR:
-				if (player.getInventory().hasItems(IKER_LIST))
+			
+			case LETO_LIZARDMAN_SOLDIER, LETO_LIZARDMAN_WARRIOR:
+				if (player.getInventory().hasItem(IKER_LIST))
 					dropItems(player, LETO_LIZARDMAN_CHARM, 1, 20, 600000);
 				break;
-			case LETO_LIZARDMAN_SHAMAN:
-			case LETO_LIZARDMAN_OVERLORD:
-				if (player.getInventory().hasItems(IKER_LIST))
+			
+			case LETO_LIZARDMAN_SHAMAN, LETO_LIZARDMAN_OVERLORD:
+				if (player.getInventory().hasItem(IKER_LIST))
 					dropItems(player, LETO_LIZARDMAN_CHARM, 1, 20, 700000);
 				break;
 			
 			case NAMELESS_REVENANT:
-				if (player.getInventory().hasItems(LARA_MEMO))
+				if (player.getInventory().hasItem(LARA_MEMO))
 				{
 					takeItems(player, LARA_MEMO, 1);
 					giveItems(player, AKLANTOTH_GEM_3, 1);
@@ -623,9 +617,8 @@ public class Q229_TestOfWitchcraft extends SecondClassQuest
 				}
 				break;
 			
-			case TAMLIN_ORC:
-			case TAMLIN_ORC_ARCHER:
-				if (player.getInventory().hasItems(VADIN_CRUCIFIX))
+			case TAMLIN_ORC, TAMLIN_ORC_ARCHER:
+				if (player.getInventory().hasItem(VADIN_CRUCIFIX))
 					dropItems(player, TAMLIN_ORC_AMULET, 1, 20, 500000);
 				break;
 			
@@ -642,7 +635,5 @@ public class Q229_TestOfWitchcraft extends SecondClassQuest
 				}
 				break;
 		}
-		
-		return null;
 	}
 }

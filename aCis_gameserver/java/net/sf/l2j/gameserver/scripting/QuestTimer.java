@@ -45,10 +45,9 @@ public class QuestTimer
 		if (obj == null)
 			return false;
 		
-		if (!(obj instanceof QuestTimer))
+		if (!(obj instanceof QuestTimer other))
 			return false;
 		
-		final QuestTimer other = (QuestTimer) obj;
 		return Objects.equals(_name, other._name) && Objects.equals(_npc, other._npc) && Objects.equals(_player, other._player) && Objects.equals(_quest, other._quest);
 	}
 	

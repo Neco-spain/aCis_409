@@ -20,9 +20,9 @@ import net.sf.l2j.gameserver.handler.skillhandlers.TakeCastle;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Monster;
-import net.sf.l2j.gameserver.model.entity.Siege;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.location.Location;
+import net.sf.l2j.gameserver.model.residence.castle.Siege;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.MagicSkillLaunched;
 import net.sf.l2j.gameserver.network.serverpackets.MagicSkillUse;
@@ -67,9 +67,6 @@ public class PlayerCast extends PlayableCast<Player>
 		if (initMpConsume > 0)
 			_actor.getStatus().reduceMp(initMpConsume);
 		
-		if (target != _actor)
-			_actor.getPosition().setHeadingTo(target);
-		
 		_targets = new Creature[]
 		{
 			target
@@ -79,12 +76,12 @@ public class PlayerCast extends PlayableCast<Player>
 		final int coolTime = skill.getCoolTime();
 		final long castInterruptTime = System.currentTimeMillis() + hitTime - 200;
 		
-		setCastTask(skill, target, hitTime, coolTime, castInterruptTime);
+		setCastTask(skill, target, null, hitTime, coolTime, castInterruptTime);
 		
 		if (skill.getSkillType() == SkillType.FUSION)
 			_actor.startFusionSkill(target, skill);
 		else
-			callSkill(skill, _targets);
+			callSkill(skill, _targets, null);
 		
 		_actor.broadcastPacket(new MagicSkillUse(_actor, target, skill.getId(), skill.getLevel(), hitTime, reuseDelay, false));
 		_actor.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.USE_S1).addSkillName(skill));
@@ -96,15 +93,13 @@ public class PlayerCast extends PlayableCast<Player>
 	@Override
 	public void doInstantCast(L2Skill skill, ItemInstance item)
 	{
-		if (!item.isHerb() && !_actor.destroyItem("Consume", item.getObjectId(), (skill.getItemConsumeId() == 0 && skill.getItemConsume() > 0) ? skill.getItemConsume() : 1, null, false))
+		if (!item.isHerb() && !_actor.destroyItem(item.getObjectId(), (skill.getItemConsumeId() == 0 && skill.getItemConsume() > 0) ? skill.getItemConsume() : 1, false))
 		{
 			_actor.sendPacket(SystemMessageId.NOT_ENOUGH_ITEMS);
 			return;
 		}
 		
-		int reuseDelay = skill.getReuseDelay();
-		if (reuseDelay > 10)
-			_actor.disableSkill(skill, reuseDelay);
+		_actor.addItemSkillTimeStamp(skill, item);
 		
 		_actor.broadcastPacket(new MagicSkillUse(_actor, _actor, skill.getId(), skill.getLevel(), 0, 0));
 		
@@ -121,13 +116,13 @@ public class PlayerCast extends PlayableCast<Player>
 		callSkill(skill, new Creature[]
 		{
 			_actor
-		});
+		}, item);
 	}
 	
 	@Override
 	public void doToggleCast(L2Skill skill, Creature target)
 	{
-		setCastTask(skill, target, 0, 0, 0);
+		setCastTask(skill, target, null, 0, 0, 0);
 		
 		_actor.broadcastPacket(new MagicSkillUse(_actor, _actor, _skill.getId(), _skill.getLevel(), 0, 0));
 		
@@ -170,7 +165,7 @@ public class PlayerCast extends PlayableCast<Player>
 			
 			final ISkillHandler handler = SkillHandler.getInstance().getHandler(_skill.getSkillType());
 			if (handler != null)
-				handler.useSkill(_actor, _skill, _targets);
+				handler.useSkill(_actor, _skill, _targets, _item);
 			else
 				_skill.useSkill(_actor, _targets);
 		}
@@ -184,7 +179,7 @@ public class PlayerCast extends PlayableCast<Player>
 		super.doCast(skill, target, itemInstance);
 		
 		if (skill.getItemConsumeId() > 0)
-			_actor.destroyItemByItemId("Consume", skill.getItemConsumeId(), skill.getItemConsume(), null, true);
+			_actor.destroyItemByItemId(skill.getItemConsumeId(), skill.getItemConsume(), true);
 		
 		_actor.clearRecentFakeDeath();
 	}
@@ -250,7 +245,7 @@ public class PlayerCast extends PlayableCast<Player>
 			
 			if (_actor.isInsideZone(ZoneId.CASTLE))
 			{
-				_actor.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.NOT_CALL_PET_FROM_THIS_LOCATION));
+				_actor.sendPacket(SystemMessageId.NOT_CALL_PET_FROM_THIS_LOCATION);
 				return false;
 			}
 			
@@ -265,18 +260,33 @@ public class PlayerCast extends PlayableCast<Player>
 	}
 	
 	@Override
-	public boolean canDoCast(Creature target, L2Skill skill, boolean isCtrlPressed, int itemObjectId)
+	public boolean canCast(Creature target, L2Skill skill, boolean isCtrlPressed, int itemObjectId)
 	{
-		if (!super.canDoCast(target, skill, isCtrlPressed, itemObjectId))
+		if (!super.canCast(target, skill, isCtrlPressed, itemObjectId))
 			return false;
 		
 		switch (skill.getSkillType())
 		{
 			case SUMMON:
-				if (!((L2SkillSummon) skill).isCubic() && (_actor.getSummon() != null || _actor.isMounted()))
+				if (!((L2SkillSummon) skill).isCubic())
 				{
-					_actor.sendPacket(SystemMessageId.SUMMON_ONLY_ONE);
-					return false;
+					if (_actor.getSummon() != null || _actor.isMounted())
+					{
+						_actor.sendPacket(SystemMessageId.SUMMON_ONLY_ONE);
+						return false;
+					}
+					
+					if (_actor.getAttack().isAttackingNow())
+					{
+						_actor.sendPacket(SystemMessageId.YOU_CANNOT_SUMMON_IN_COMBAT);
+						return false;
+					}
+					
+					if (_actor.isInBoat())
+					{
+						_actor.sendPacket(SystemMessageId.NOT_CALL_PET_FROM_THIS_LOCATION);
+						return false;
+					}
 				}
 				break;
 			
@@ -290,33 +300,32 @@ public class PlayerCast extends PlayableCast<Player>
 						return false;
 					}
 					
-					final SiegeSide side = siege.getSide(_actor.getClan());
-					if (side == SiegeSide.DEFENDER || side == SiegeSide.OWNER)
+					switch (siege.getSide(_actor.getClan()))
 					{
-						if (siege.getControlTowerCount() == 0)
-						{
-							_actor.sendPacket(SystemMessageId.TOWER_DESTROYED_NO_RESURRECTION);
+						case DEFENDER, OWNER:
+							if (siege.getCastle().getAliveLifeTowerCount() == 0)
+							{
+								_actor.sendPacket(SystemMessageId.TOWER_DESTROYED_NO_RESURRECTION);
+								return false;
+							}
+							break;
+						
+						case ATTACKER:
+							if (_actor.getClan().getFlag() == null)
+							{
+								_actor.sendPacket(SystemMessageId.NO_RESURRECTION_WITHOUT_BASE_CAMP);
+								return false;
+							}
+							break;
+						
+						default:
+							_actor.sendPacket(SystemMessageId.CANNOT_BE_RESURRECTED_DURING_SIEGE);
 							return false;
-						}
-					}
-					else if (side == SiegeSide.ATTACKER)
-					{
-						if (_actor.getClan().getFlag() == null)
-						{
-							_actor.sendPacket(SystemMessageId.NO_RESURRECTION_WITHOUT_BASE_CAMP);
-							return false;
-						}
-					}
-					else
-					{
-						_actor.sendPacket(SystemMessageId.CANNOT_BE_RESURRECTED_DURING_SIEGE);
-						return false;
 					}
 				}
 				break;
 			
-			case SPOIL:
-			case DRAIN_SOUL:
+			case SPOIL, DRAIN_SOUL:
 				if (!(target instanceof Monster))
 				{
 					_actor.sendPacket(SystemMessageId.INVALID_TARGET);
@@ -325,9 +334,9 @@ public class PlayerCast extends PlayableCast<Player>
 				break;
 			
 			case SWEEP:
-				if (skill.getTargetType() != SkillTargetType.AREA_CORPSE_MOB)
+				if (skill.getTargetType() != SkillTargetType.AREA_CORPSE_MOB && target instanceof Monster targetMonster)
 				{
-					final int spoilerId = ((Monster) target).getSpoilState().getSpoilerId();
+					final int spoilerId = targetMonster.getSpoilState().getSpoilerId();
 					if (spoilerId == 0)
 					{
 						_actor.sendPacket(SystemMessageId.SWEEPER_FAILED_TARGET_NOT_SPOILED);
@@ -355,7 +364,7 @@ public class PlayerCast extends PlayableCast<Player>
 				break;
 			
 			case STRIDER_SIEGE_ASSAULT:
-				if (!StriderSiegeAssault.check(_actor, target, skill))
+				if (StriderSiegeAssault.check(_actor, target, skill) == null)
 					return false;
 				
 				break;
@@ -367,6 +376,14 @@ public class PlayerCast extends PlayableCast<Player>
 				break;
 		}
 		return true;
+	}
+	
+	@Override
+	public void stop()
+	{
+		super.stop();
+		
+		_actor.getAI().clientActionFailed();
 	}
 	
 	/**
@@ -384,7 +401,7 @@ public class PlayerCast extends PlayableCast<Player>
 		{
 			_actor.getFusionSkill().onCastAbort();
 			
-			clearCastTask();
+			_isCastingNow = false;
 			return;
 		}
 		
@@ -418,7 +435,7 @@ public class PlayerCast extends PlayableCast<Player>
 		if (_skill.isOffensive() && _targets.length != 0)
 			_actor.getAI().startAttackStance();
 		
-		clearCastTask();
+		_isCastingNow = false;
 		
 		_actor.getAI().notifyEvent(AiEventType.FINISHED_CASTING, null, null);
 	}

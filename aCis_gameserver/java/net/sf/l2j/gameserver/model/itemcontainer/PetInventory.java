@@ -8,17 +8,15 @@ import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 
 public class PetInventory extends Inventory
 {
-	private final Pet _owner;
-	
 	public PetInventory(Pet owner)
 	{
-		_owner = owner;
+		super(owner);
 	}
 	
 	@Override
 	public Pet getOwner()
 	{
-		return _owner;
+		return (Pet) _owner;
 	}
 	
 	@Override
@@ -27,7 +25,7 @@ public class PetInventory extends Inventory
 		int id;
 		try
 		{
-			id = _owner.getOwner().getObjectId();
+			id = getOwner().getOwner().getObjectId();
 		}
 		catch (NullPointerException e)
 		{
@@ -37,12 +35,14 @@ public class PetInventory extends Inventory
 	}
 	
 	@Override
-	protected void refreshWeight()
+	public boolean updateWeight()
 	{
-		super.refreshWeight();
+		if (!super.updateWeight())
+			return false;
 		
 		getOwner().updateAndBroadcastStatus(1);
 		getOwner().sendPetInfosToOwner();
+		return true;
 	}
 	
 	public boolean validateCapacity(ItemInstance item)
@@ -61,7 +61,7 @@ public class PetInventory extends Inventory
 		if (slotCount == 0)
 			return true;
 		
-		return _items.size() + slotCount <= _owner.getInventoryLimit();
+		return _items.size() + slotCount <= getOwner().getInventoryLimit();
 	}
 	
 	public boolean validateWeight(ItemInstance item, int count)
@@ -96,14 +96,15 @@ public class PetInventory extends Inventory
 			for (ItemInstance item : _items)
 			{
 				if (petOwner.getInventory().validateCapacity(1))
-					getOwner().transferItem("return", item.getObjectId(), item.getCount(), petOwner.getInventory(), petOwner, getOwner());
+					getOwner().transferItem(item.getObjectId(), item.getCount(), petOwner);
 				else
 				{
-					final ItemInstance droppedItem = dropItem("drop", item.getObjectId(), item.getCount(), petOwner, getOwner());
+					final ItemInstance droppedItem = dropItem(item.getObjectId(), item.getCount());
 					droppedItem.dropMe(getOwner(), 70);
 				}
 			}
 		}
+		
 		_items.clear();
 	}
 }

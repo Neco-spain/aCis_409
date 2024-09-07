@@ -7,6 +7,7 @@ import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.group.Party;
+import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ConfirmDlg;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
@@ -21,12 +22,11 @@ public class SummonFriend implements ISkillHandler
 	};
 	
 	@Override
-	public void useSkill(Creature activeChar, L2Skill skill, WorldObject[] targets)
+	public void useSkill(Creature creature, L2Skill skill, WorldObject[] targets, ItemInstance item)
 	{
-		if (!(activeChar instanceof Player))
+		// Must be called by a Player.
+		if (!(creature instanceof Player player))
 			return;
-		
-		final Player player = (Player) activeChar;
 		
 		// Check player status.
 		if (!checkSummoner(player))
@@ -77,7 +77,7 @@ public class SummonFriend implements ISkillHandler
 				{
 					final ConfirmDlg confirm = new ConfirmDlg(SystemMessageId.S1_WISHES_TO_SUMMON_YOU_FROM_S2_DO_YOU_ACCEPT.getId());
 					confirm.addCharName(player);
-					confirm.addZoneName(activeChar.getPosition());
+					confirm.addZoneName(player.getPosition());
 					confirm.addTime(30000);
 					confirm.addRequesterId(player.getObjectId());
 					target.sendPacket(confirm);
@@ -193,7 +193,7 @@ public class SummonFriend implements ISkillHandler
 				return;
 			}
 			
-			player.destroyItemByItemId("Consume", skill.getTargetConsumeId(), skill.getTargetConsume(), player, true);
+			player.destroyItemByItemId(skill.getTargetConsumeId(), skill.getTargetConsume(), true);
 		}
 		player.teleportTo(target.getPosition(), 20);
 	}

@@ -20,10 +20,10 @@ public class Q338_AlligatorHunter extends Quest
 		
 		setItemsIds(ALLIGATOR_PELT);
 		
-		addStartNpc(30892); // Enverun
+		addQuestStart(30892); // Enverun
 		addTalkId(30892);
 		
-		addKillId(20135); // Alligator
+		addMyDying(20135); // Alligator
 	}
 	
 	@Override
@@ -75,7 +75,7 @@ public class Q338_AlligatorHunter extends Quest
 				break;
 			
 			case STARTED:
-				htmltext = (player.getInventory().hasItems(ALLIGATOR_PELT)) ? "30892-03.htm" : "30892-04.htm";
+				htmltext = (player.getInventory().hasItem(ALLIGATOR_PELT)) ? "30892-03.htm" : "30892-04.htm";
 				break;
 		}
 		
@@ -83,16 +83,14 @@ public class Q338_AlligatorHunter extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		dropItemsAlways(player, ALLIGATOR_PELT, 1, 0);
-		
-		return null;
 	}
 }

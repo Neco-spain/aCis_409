@@ -7,12 +7,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import net.sf.l2j.commons.data.StatSet;
+import net.sf.l2j.commons.logging.CLogger;
 
 import net.sf.l2j.gameserver.enums.actors.ClassRace;
 import net.sf.l2j.gameserver.enums.items.ArmorType;
@@ -21,7 +21,9 @@ import net.sf.l2j.gameserver.enums.skills.AbnormalEffect;
 import net.sf.l2j.gameserver.enums.skills.PlayerState;
 import net.sf.l2j.gameserver.enums.skills.SkillType;
 import net.sf.l2j.gameserver.enums.skills.Stats;
+import net.sf.l2j.gameserver.model.holder.IntIntHolder;
 import net.sf.l2j.gameserver.model.item.kind.Item;
+import net.sf.l2j.gameserver.model.zone.form.ZoneNPoly;
 import net.sf.l2j.gameserver.skills.ChanceCondition;
 import net.sf.l2j.gameserver.skills.L2Skill;
 import net.sf.l2j.gameserver.skills.basefuncs.FuncTemplate;
@@ -38,6 +40,7 @@ import net.sf.l2j.gameserver.skills.conditions.ConditionPlayerCharges;
 import net.sf.l2j.gameserver.skills.conditions.ConditionPlayerHasCastle;
 import net.sf.l2j.gameserver.skills.conditions.ConditionPlayerHasClanHall;
 import net.sf.l2j.gameserver.skills.conditions.ConditionPlayerHp;
+import net.sf.l2j.gameserver.skills.conditions.ConditionPlayerInsidePoly;
 import net.sf.l2j.gameserver.skills.conditions.ConditionPlayerInvSize;
 import net.sf.l2j.gameserver.skills.conditions.ConditionPlayerIsHero;
 import net.sf.l2j.gameserver.skills.conditions.ConditionPlayerLevel;
@@ -60,10 +63,11 @@ import net.sf.l2j.gameserver.skills.effects.EffectTemplate;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 abstract class DocumentBase
 {
-	static Logger _log = Logger.getLogger(DocumentBase.class.getName());
+	protected static final CLogger LOGGER = new CLogger(DocumentBase.class.getName());
 	
 	private final File _file;
 	protected Map<String, String[]> _tables;
@@ -79,17 +83,19 @@ abstract class DocumentBase
 		Document doc = null;
 		try
 		{
-			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-			factory.setValidating(false);
-			factory.setIgnoringComments(true);
+			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			dbf.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+			dbf.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+			dbf.setValidating(false);
+			dbf.setIgnoringComments(true);
 			
-			doc = factory.newDocumentBuilder().parse(_file);
+			doc = dbf.newDocumentBuilder().parse(_file);
 			
 			parseDocument(doc);
 		}
 		catch (Exception e)
 		{
-			_log.log(Level.SEVERE, "Error loading file " + _file, e);
+			LOGGER.error("Error loading file {}.", e, _file);
 		}
 		return doc;
 	}
@@ -181,12 +187,13 @@ abstract class DocumentBase
 		
 		final Condition applyCond = parseCondition(n.getFirstChild(), template);
 		final FuncTemplate ft = new FuncTemplate(attachCond, applyCond, function, stat, value);
-		if (template instanceof Item)
-			((Item) template).attach(ft);
-		else if (template instanceof L2Skill)
-			((L2Skill) template).attach(ft);
-		else if (template instanceof EffectTemplate)
-			((EffectTemplate) template).attach(ft);
+		
+		if (template instanceof Item item)
+			item.attach(ft);
+		else if (template instanceof L2Skill skill)
+			skill.attach(ft);
+		else if (template instanceof EffectTemplate effect)
+			effect.attach(ft);
 		else
 			throw new RuntimeException("Attaching stat to a non-effect template!!!");
 	}
@@ -207,18 +214,12 @@ abstract class DocumentBase
 			time = Integer.decode(getValue(attrs.getNamedItem("time").getNodeValue(), template));
 		
 		boolean self = false;
-		if (attrs.getNamedItem("self") != null)
-		{
-			if (Integer.decode(getValue(attrs.getNamedItem("self").getNodeValue(), template)) == 1)
-				self = true;
-		}
+		if (attrs.getNamedItem("self") != null && Integer.decode(getValue(attrs.getNamedItem("self").getNodeValue(), template)) == 1)
+			self = true;
 		
 		boolean icon = true;
-		if (attrs.getNamedItem("noicon") != null)
-		{
-			if (Integer.decode(getValue(attrs.getNamedItem("noicon").getNodeValue(), template)) == 1)
-				icon = false;
-		}
+		if (attrs.getNamedItem("noicon") != null && Integer.decode(getValue(attrs.getNamedItem("noicon").getNodeValue(), template)) == 1)
+			icon = false;
 		
 		String valueString = n.getAttributes().getNamedItem("val").getNodeValue();
 		double value;
@@ -231,7 +232,11 @@ abstract class DocumentBase
 		if (attrs.getNamedItem("abnormal") != null)
 		{
 			String abn = attrs.getNamedItem("abnormal").getNodeValue();
-			abnormal = AbnormalEffect.getByName(abn);
+			
+			if (abn.charAt(0) == '#')
+				abnormal = AbnormalEffect.getByName(getTableValue(abn));
+			else
+				abnormal = AbnormalEffect.getByName(abn);
 		}
 		
 		String stackType = "none";
@@ -263,7 +268,7 @@ abstract class DocumentBase
 		
 		EffectTemplate lt;
 		
-		final boolean isChanceSkillTrigger = (name == EffectChanceSkillTrigger.class.getName());
+		final boolean isChanceSkillTrigger = (name.equals(EffectChanceSkillTrigger.class.getName()));
 		int trigId = 0;
 		if (attrs.getNamedItem("triggeredId") != null)
 			trigId = Integer.parseInt(getValue(attrs.getNamedItem("triggeredId").getNodeValue(), template));
@@ -292,12 +297,12 @@ abstract class DocumentBase
 		lt = new EffectTemplate(attachCond, name, value, count, time, abnormal, stackType, stackOrder, icon, effectPower, type, trigId, trigLvl, chance);
 		
 		parseTemplate(n, lt);
-		if (template instanceof L2Skill)
+		if (template instanceof L2Skill skill)
 		{
 			if (self)
-				((L2Skill) template).attachSelf(lt);
+				skill.attachSelf(lt);
 			else
-				((L2Skill) template).attach(lt);
+				skill.attach(lt);
 		}
 	}
 	
@@ -344,7 +349,7 @@ abstract class DocumentBase
 				cond.add(parseCondition(n, template));
 			
 		if (cond.conditions == null || cond.conditions.length == 0)
-			_log.severe("Empty <and> condition in " + _file);
+			LOGGER.error("Empty <and> condition in {}.", _file);
 		
 		return cond;
 	}
@@ -357,7 +362,7 @@ abstract class DocumentBase
 				cond.add(parseCondition(n, template));
 			
 		if (cond.conditions == null || cond.conditions.length == 0)
-			_log.severe("Empty <or> condition in " + _file);
+			LOGGER.error("Empty <or> condition in {}.", _file);
 		
 		return cond;
 	}
@@ -368,7 +373,7 @@ abstract class DocumentBase
 			if (n.getNodeType() == Node.ELEMENT_NODE)
 				return new ConditionLogicNot(parseCondition(n, template));
 			
-		_log.severe("Empty <not> condition in " + _file);
+		LOGGER.error("Empty <not> condition in {}.", _file);
 		return null;
 	}
 	
@@ -394,47 +399,47 @@ abstract class DocumentBase
 			}
 			else if ("resting".equalsIgnoreCase(a.getNodeName()))
 			{
-				boolean val = Boolean.valueOf(a.getNodeValue());
+				boolean val = Boolean.parseBoolean(a.getNodeValue());
 				cond = joinAnd(cond, new ConditionPlayerState(PlayerState.RESTING, val));
 			}
 			else if ("riding".equalsIgnoreCase(a.getNodeName()))
 			{
-				boolean val = Boolean.valueOf(a.getNodeValue());
+				boolean val = Boolean.parseBoolean(a.getNodeValue());
 				cond = joinAnd(cond, new ConditionPlayerState(PlayerState.RIDING, val));
 			}
 			else if ("flying".equalsIgnoreCase(a.getNodeName()))
 			{
-				boolean val = Boolean.valueOf(a.getNodeValue());
+				boolean val = Boolean.parseBoolean(a.getNodeValue());
 				cond = joinAnd(cond, new ConditionPlayerState(PlayerState.FLYING, val));
 			}
 			else if ("moving".equalsIgnoreCase(a.getNodeName()))
 			{
-				boolean val = Boolean.valueOf(a.getNodeValue());
+				boolean val = Boolean.parseBoolean(a.getNodeValue());
 				cond = joinAnd(cond, new ConditionPlayerState(PlayerState.MOVING, val));
 			}
 			else if ("running".equalsIgnoreCase(a.getNodeName()))
 			{
-				boolean val = Boolean.valueOf(a.getNodeValue());
+				boolean val = Boolean.parseBoolean(a.getNodeValue());
 				cond = joinAnd(cond, new ConditionPlayerState(PlayerState.RUNNING, val));
 			}
 			else if ("behind".equalsIgnoreCase(a.getNodeName()))
 			{
-				boolean val = Boolean.valueOf(a.getNodeValue());
+				boolean val = Boolean.parseBoolean(a.getNodeValue());
 				cond = joinAnd(cond, new ConditionPlayerState(PlayerState.BEHIND, val));
 			}
 			else if ("front".equalsIgnoreCase(a.getNodeName()))
 			{
-				boolean val = Boolean.valueOf(a.getNodeValue());
+				boolean val = Boolean.parseBoolean(a.getNodeValue());
 				cond = joinAnd(cond, new ConditionPlayerState(PlayerState.FRONT, val));
 			}
 			else if ("olympiad".equalsIgnoreCase(a.getNodeName()))
 			{
-				boolean val = Boolean.valueOf(a.getNodeValue());
+				boolean val = Boolean.parseBoolean(a.getNodeValue());
 				cond = joinAnd(cond, new ConditionPlayerState(PlayerState.OLYMPIAD, val));
 			}
 			else if ("ishero".equalsIgnoreCase(a.getNodeName()))
 			{
-				boolean val = Boolean.valueOf(a.getNodeValue());
+				boolean val = Boolean.parseBoolean(a.getNodeValue());
 				cond = joinAnd(cond, new ConditionPlayerIsHero(val));
 			}
 			else if ("hp".equalsIgnoreCase(a.getNodeName()))
@@ -545,6 +550,40 @@ abstract class DocumentBase
 			{
 				ElementSeeds[4] = Integer.decode(getValue(a.getNodeValue(), null));
 			}
+			else if ("insidePoly".equalsIgnoreCase(a.getNodeName()))
+			{
+				final Node zoneNode = n.getFirstChild().getNextSibling();
+				final NamedNodeMap pAttrs = zoneNode.getAttributes();
+				
+				final int minZ = Integer.decode(getValue(pAttrs.getNamedItem("minZ").getNodeValue(), null));
+				final int maxZ = Integer.decode(getValue(pAttrs.getNamedItem("maxZ").getNodeValue(), null));
+				final boolean checkInside = Boolean.parseBoolean(getValue(a.getNodeValue(), null));
+				
+				final NodeList nNodes = zoneNode.getChildNodes();
+				
+				final List<IntIntHolder> pNodes = new ArrayList<>();
+				
+				for (int j = 0; j < nNodes.getLength(); j++)
+					if (nNodes.item(j).getNodeType() == Node.ELEMENT_NODE)
+					{
+						final NamedNodeMap nodeAttrs = nNodes.item(j).getAttributes();
+						final int xCoord = Integer.decode(getValue(nodeAttrs.getNamedItem("x").getNodeValue(), null));
+						final int yCoord = Integer.decode(getValue(nodeAttrs.getNamedItem("y").getNodeValue(), null));
+						
+						pNodes.add(new IntIntHolder(xCoord, yCoord));
+					}
+				
+				final int[] aX = new int[pNodes.size()];
+				final int[] aY = new int[pNodes.size()];
+				
+				for (int k = 0; k < pNodes.size(); k++)
+				{
+					aX[k] = pNodes.get(k).getId();
+					aY[k] = pNodes.get(k).getValue();
+				}
+				
+				cond = joinAnd(cond, new ConditionPlayerInsidePoly(new ZoneNPoly(aX, aY, minZ, maxZ), checkInside));
+			}
 		}
 		
 		// Elemental seed condition processing
@@ -561,7 +600,7 @@ abstract class DocumentBase
 			cond = joinAnd(cond, new ConditionForceBuff(forces));
 		
 		if (cond == null)
-			_log.severe("Unrecognized <player> condition in " + _file);
+			LOGGER.error("Unrecognized <player> condition in {}.", _file);
 		
 		return cond;
 	}
@@ -610,7 +649,7 @@ abstract class DocumentBase
 		}
 		
 		if (cond == null)
-			_log.severe("Unrecognized <target> condition in " + _file);
+			LOGGER.error("Unrecognized <target> condition in {}.", _file);
 		
 		return cond;
 	}
@@ -656,14 +695,14 @@ abstract class DocumentBase
 					}
 					
 					if (old == mask)
-						_log.info("[parseUsingCondition=\"kind\"] Unknown item type name: " + item);
+						LOGGER.error("[parseUsingCondition=\"kind\"] Unknown item type name: {}.", item);
 				}
 				cond = joinAnd(cond, new ConditionUsingItemType(mask));
 			}
 		}
 		
 		if (cond == null)
-			_log.severe("Unrecognized <using> condition in " + _file);
+			LOGGER.error("Unrecognized <using> condition in {}.", _file);
 		
 		return cond;
 	}
@@ -677,13 +716,13 @@ abstract class DocumentBase
 			Node a = attrs.item(i);
 			if ("night".equalsIgnoreCase(a.getNodeName()))
 			{
-				boolean val = Boolean.valueOf(a.getNodeValue());
+				boolean val = Boolean.parseBoolean(a.getNodeValue());
 				cond = joinAnd(cond, new ConditionGameTime(val));
 			}
 		}
 		
 		if (cond == null)
-			_log.severe("Unrecognized <game> condition in " + _file);
+			LOGGER.error("Unrecognized <game> condition in {}.", _file);
 		
 		return cond;
 	}
@@ -724,10 +763,11 @@ abstract class DocumentBase
 		{
 			if (template instanceof L2Skill)
 				return getTableValue(value);
-			else if (template instanceof Integer)
-				return getTableValue(value, ((Integer) template).intValue());
-			else
-				throw new IllegalStateException();
+			
+			if (template instanceof Integer intTemplate)
+				return getTableValue(value, intTemplate.intValue());
+			
+			throw new IllegalStateException();
 		}
 		return value;
 	}
@@ -737,14 +777,15 @@ abstract class DocumentBase
 		if (cond == null)
 			return c;
 		
-		if (cond instanceof ConditionLogicAnd)
+		if (cond instanceof ConditionLogicAnd cla)
 		{
-			((ConditionLogicAnd) cond).add(c);
+			cla.add(c);
 			return cond;
 		}
-		ConditionLogicAnd and = new ConditionLogicAnd();
-		and.add(cond);
-		and.add(c);
-		return and;
+		
+		final ConditionLogicAnd cla = new ConditionLogicAnd();
+		cla.add(cond);
+		cla.add(c);
+		return cla;
 	}
 }

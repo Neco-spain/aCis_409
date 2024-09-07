@@ -102,17 +102,28 @@ public abstract class AbstractNpcInfo extends L2GameServerPacket
 			if (_npc.getTemplate().isUsingServerSideTitle())
 				_title = _npc.getTitle();
 			
-			if (Config.SHOW_NPC_LVL && _npc instanceof Monster)
-				_title = "Lv " + _npc.getStatus().getLevel() + (_npc.getTemplate().getAggroRange() > 0 ? "* " : " ") + _title;
+			if (Config.SHOW_NPC_LVL && _npc instanceof Monster monster)
+				_title = "Lv " + monster.getStatus().getLevel() + (monster.getTemplate().getAggroRange() > 0 ? "* " : " ") + _title;
 			
 			// NPC crest system
-			if (Config.SHOW_NPC_CREST && _npc.getCastle() != null && _npc.getCastle().getOwnerId() != 0)
+			if (Config.SHOW_NPC_CREST)
 			{
-				Clan clan = ClanTable.getInstance().getClan(_npc.getCastle().getOwnerId());
-				_clanCrest = clan.getCrestId();
-				_clanId = clan.getClanId();
-				_allyCrest = clan.getAllyCrestId();
-				_allyId = clan.getAllyId();
+				if (_npc.getCastle() != null && _npc.getCastle().getOwnerId() != 0)
+				{
+					Clan clan = ClanTable.getInstance().getClan(_npc.getCastle().getOwnerId());
+					_clanCrest = clan.getCrestId();
+					_clanId = clan.getClanId();
+					_allyCrest = clan.getAllyCrestId();
+					_allyId = clan.getAllyId();
+				}
+				else if (_npc.getClanId() != 0)
+				{
+					Clan clan = ClanTable.getInstance().getClan(_npc.getClanId());
+					_clanCrest = clan.getCrestId();
+					_clanId = clan.getClanId();
+					_allyCrest = clan.getAllyCrestId();
+					_allyId = clan.getAllyId();
+				}
 			}
 		}
 		
@@ -157,7 +168,7 @@ public abstract class AbstractNpcInfo extends L2GameServerPacket
 			writeC(_npc.isRunning() ? 1 : 0);
 			writeC(_npc.isInCombat() ? 1 : 0);
 			writeC(_npc.isAlikeDead() ? 1 : 0);
-			writeC(_isSummoned ? 2 : 0);
+			writeC(_isSummoned ? 2 : 2);
 			
 			writeS(_name);
 			writeS(_title);
@@ -204,9 +215,7 @@ public abstract class AbstractNpcInfo extends L2GameServerPacket
 			
 			_isAttackable = _summon.isAttackableWithoutForceBy(attacker);
 			_rhand = _summon.getWeapon();
-			_lhand = 0;
 			_chest = _summon.getArmor();
-			_enchantEffect = _summon.getTemplate().getEnchantEffect();
 			_title = (_owner == null || !_owner.isOnline()) ? "" : _owner.getName();
 			_idTemplate = _summon.getTemplate().getIdTemplate();
 			
@@ -318,8 +327,6 @@ public abstract class AbstractNpcInfo extends L2GameServerPacket
 			
 			_collisionHeight = _template.getCollisionHeight();
 			_collisionRadius = _template.getCollisionRadius();
-			
-			_enchantEffect = _template.getEnchantEffect();
 		}
 		
 		@Override

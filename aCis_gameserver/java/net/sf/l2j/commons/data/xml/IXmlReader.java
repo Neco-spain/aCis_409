@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -16,6 +17,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -78,6 +80,8 @@ public interface IXmlReader
 		else
 		{
 			final DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			dbf.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+			dbf.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
 			dbf.setNamespaceAware(true);
 			dbf.setValidating(validate);
 			dbf.setIgnoringComments(ignoreComments);
@@ -302,6 +306,36 @@ public interface IXmlReader
 	default <T extends Enum<T>> T parseEnum(NamedNodeMap attrs, Class<T> clazz, String name, T defaultValue)
 	{
 		return parseEnum(attrs.getNamedItem(name), clazz, defaultValue);
+	}
+	
+	default Location parseLocation(NamedNodeMap attrs, String name)
+	{
+		final Node node = attrs.getNamedItem(name);
+		if (node == null)
+			return null;
+		
+		final int[] loc = Arrays.stream(node.getNodeValue().split(";")).mapToInt(Integer::parseInt).toArray();
+		return new Location(loc[0], loc[1], loc[2]);
+	}
+	
+	default SpawnLocation parseSpawnLocation(NamedNodeMap attrs, String name)
+	{
+		final Node node = attrs.getNamedItem(name);
+		if (node == null)
+			return null;
+		
+		final int[] pos = Arrays.stream(node.getNodeValue().split(";")).mapToInt(Integer::parseInt).toArray();
+		return new SpawnLocation(pos[0], pos[1], pos[2], pos[3]);
+	}
+	
+	default IntIntHolder parseIntIntHolder(NamedNodeMap attrs, String name)
+	{
+		final Node node = attrs.getNamedItem(name);
+		if (node == null)
+			return null;
+		
+		final int[] var = Arrays.stream(node.getNodeValue().split(";")).mapToInt(Integer::parseInt).toArray();
+		return new IntIntHolder(var[0], var[1]);
 	}
 	
 	default StatSet parseAttributes(Node node)

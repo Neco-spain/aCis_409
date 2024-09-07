@@ -33,7 +33,7 @@ public class HeroWeapon extends Quest
 	@Override
 	public String onAdvEvent(String event, Npc npc, Player player)
 	{
-		int weaponId = Integer.valueOf(event);
+		int weaponId = Integer.parseInt(event);
 		if (ArraysUtil.contains(WEAPON_IDS, weaponId))
 			giveItems(player, weaponId, 1);
 		

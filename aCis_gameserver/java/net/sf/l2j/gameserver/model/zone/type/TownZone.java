@@ -5,11 +5,12 @@ import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.zone.type.subtype.SpawnZoneType;
+import net.sf.l2j.gameserver.model.zone.type.subtype.ZoneType;
 
 /**
  * A zone extending {@link SpawnZoneType}, used by towns. A town zone is generally associated to a castle for taxes.
  */
-public class TownZone extends SpawnZoneType
+public class TownZone extends ZoneType
 {
 	private int _townId;
 	private int _castleId;
@@ -35,24 +36,24 @@ public class TownZone extends SpawnZoneType
 	}
 	
 	@Override
-	protected void onEnter(Creature character)
+	protected void onEnter(Creature creature)
 	{
-		if (Config.ZONE_TOWN == 1 && character instanceof Player && ((Player) character).getSiegeState() != 0)
+		if (Config.ZONE_TOWN == 1 && creature instanceof Player player && player.getSiegeState() != 0)
 			return;
 		
 		if (_isPeaceZone && Config.ZONE_TOWN != 2)
-			character.setInsideZone(ZoneId.PEACE, true);
+			creature.setInsideZone(ZoneId.PEACE, true);
 		
-		character.setInsideZone(ZoneId.TOWN, true);
+		creature.setInsideZone(ZoneId.TOWN, true);
 	}
 	
 	@Override
-	protected void onExit(Creature character)
+	protected void onExit(Creature creature)
 	{
 		if (_isPeaceZone)
-			character.setInsideZone(ZoneId.PEACE, false);
+			creature.setInsideZone(ZoneId.PEACE, false);
 		
-		character.setInsideZone(ZoneId.TOWN, false);
+		creature.setInsideZone(ZoneId.TOWN, false);
 	}
 	
 	public int getTownId()

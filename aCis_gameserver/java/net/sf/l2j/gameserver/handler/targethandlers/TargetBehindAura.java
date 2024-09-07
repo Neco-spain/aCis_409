@@ -30,9 +30,9 @@ public class TargetBehindAura implements ITargetHandler
 			if (creature.isDead() || !creature.isBehind(caster) || !GeoEngine.getInstance().canSeeTarget(caster, creature))
 				continue;
 			
-			if (caster instanceof Playable && (creature instanceof Attackable || creature instanceof Playable))
+			if (caster instanceof Playable playable && (creature instanceof Attackable || creature instanceof Playable))
 			{
-				if (creature.isAttackableWithoutForceBy((Playable) caster))
+				if (creature.isAttackableWithoutForceBy(playable))
 					list.add(creature);
 			}
 			else if (caster instanceof Attackable && creature instanceof Playable)

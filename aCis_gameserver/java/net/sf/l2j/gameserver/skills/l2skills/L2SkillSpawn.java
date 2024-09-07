@@ -22,17 +22,16 @@ public class L2SkillSpawn extends L2Skill
 	}
 	
 	@Override
-	public void useSkill(Creature caster, WorldObject[] targets)
+	public void useSkill(Creature creature, WorldObject[] targets)
 	{
-		if (caster.isAlikeDead())
+		if (creature.isAlikeDead())
 			return;
 		
 		try
 		{
 			// Create spawn.
 			final Spawn spawn = new Spawn(_npcId);
-			spawn.setRespawnState(false);
-			spawn.setLoc(caster.getPosition());
+			spawn.setLoc(creature.getPosition());
 			
 			// Spawn NPC.
 			final Npc npc = spawn.doSpawn(false);

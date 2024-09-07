@@ -77,9 +77,9 @@ public class PcFreight extends ItemContainer
 	}
 	
 	@Override
-	protected void addItem(ItemInstance item)
+	protected void addBasicItem(ItemInstance item)
 	{
-		super.addItem(item);
+		super.addBasicItem(item);
 		
 		if (_activeLocationId > 0)
 			item.setLocation(item.getLocation(), _activeLocationId);

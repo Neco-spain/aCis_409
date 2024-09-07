@@ -25,15 +25,15 @@ public class TargetClan implements ITargetHandler
 	{
 		final List<Creature> list = new ArrayList<>();
 		// TODO : Currently SkillTargetType.CLAN is used only by NPC skills.
-		if (caster instanceof Attackable)
+		if (caster instanceof Attackable attackable)
 		{
 			list.add(caster);
-			for (Attackable attackable : caster.getKnownTypeInRadius(Attackable.class, skill.getCastRange()))
+			for (Attackable targetAttackable : caster.getKnownTypeInRadius(Attackable.class, skill.getSkillRadius()))
 			{
-				if (attackable.isDead() || !ArraysUtil.contains(((Attackable) caster).getTemplate().getClans(), attackable.getTemplate().getClans()))
+				if (targetAttackable.isDead() || !ArraysUtil.contains(attackable.getTemplate().getClans(), targetAttackable.getTemplate().getClans()))
 					continue;
 				
-				list.add(attackable);
+				list.add(targetAttackable);
 			}
 		}
 		

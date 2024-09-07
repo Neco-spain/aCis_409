@@ -16,28 +16,17 @@ public class PlayerAttack extends PlayableAttack<Player>
 	}
 	
 	@Override
-	public boolean doAttack(Creature target)
+	public void doAttack(Creature target)
 	{
-		final boolean isHit = super.doAttack(target);
-		if (isHit)
-		{
-			// If hit by a CW or by an hero while holding a CW, CP are reduced to 0.
-			if (target instanceof Player && !target.isInvul())
-			{
-				final Player targetPlayer = (Player) target;
-				if (_actor.isCursedWeaponEquipped() || (_actor.isHero() && targetPlayer.isCursedWeaponEquipped()))
-					targetPlayer.getStatus().setCp(0);
-			}
-		}
+		super.doAttack(target);
 		
 		_actor.clearRecentFakeDeath();
-		return isHit;
 	}
 	
 	@Override
-	public boolean canDoAttack(Creature target)
+	public boolean canAttack(Creature target)
 	{
-		if (!super.canDoAttack(target))
+		if (!super.canAttack(target))
 			return false;
 		
 		final Weapon weaponItem = _actor.getActiveWeaponItem();
@@ -63,5 +52,13 @@ public class PlayerAttack extends PlayableAttack<Player>
 				}
 		}
 		return true;
+	}
+	
+	@Override
+	public void stop()
+	{
+		super.stop();
+		
+		_actor.getAI().clientActionFailed();
 	}
 }

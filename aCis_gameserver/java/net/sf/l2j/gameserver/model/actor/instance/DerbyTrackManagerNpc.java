@@ -6,7 +6,6 @@ import net.sf.l2j.commons.lang.StringUtil;
 
 import net.sf.l2j.gameserver.data.manager.DerbyTrackManager;
 import net.sf.l2j.gameserver.data.manager.DerbyTrackManager.RaceState;
-import net.sf.l2j.gameserver.idfactory.IdFactory;
 import net.sf.l2j.gameserver.model.HistoryInfo;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Npc;
@@ -130,26 +129,24 @@ public class DerbyTrackManagerNpc extends Folk
 				if (player.getRace(0) == 0 || player.getRace(1) == 0)
 					return;
 				
-				int ticket = player.getRace(0);
-				int priceId = player.getRace(1);
+				final int lane = player.getRace(0);
+				final int priceId = player.getRace(1);
 				
-				if (!player.reduceAdena("Race", TICKET_PRICES[priceId - 1], this, true))
+				if (!player.reduceAdena(TICKET_PRICES[priceId - 1], true))
 					return;
 				
 				player.setRace(0, 0);
 				player.setRace(1, 0);
 				
-				ItemInstance item = new ItemInstance(IdFactory.getInstance().getNextId(), 4443);
-				item.setCount(1);
-				item.setEnchantLevel(DerbyTrackManager.getInstance().getRaceNumber());
-				item.setCustomType1(ticket);
-				item.setCustomType2(TICKET_PRICES[priceId - 1] / 100);
+				final ItemInstance ticket = player.addItem(4443, 1, false);
+				ticket.setEnchantLevel(DerbyTrackManager.getInstance().getRaceNumber(), player);
+				ticket.setCustomType1(lane);
+				ticket.setCustomType2(TICKET_PRICES[priceId - 1] / 100);
 				
-				player.addItem("Race", item, player, false);
 				player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.ACQUIRED_S1_S2).addNumber(DerbyTrackManager.getInstance().getRaceNumber()).addItemName(4443));
 				
 				// Refresh lane bet.
-				DerbyTrackManager.getInstance().setBetOnLane(ticket, TICKET_PRICES[priceId - 1], true);
+				DerbyTrackManager.getInstance().setBetOnLane(lane, TICKET_PRICES[priceId - 1], true);
 				super.onBypassFeedback(player, "Chat 0");
 				return;
 			}
@@ -294,8 +291,8 @@ public class DerbyTrackManagerNpc extends Folk
 			}
 			
 			// Destroy the ticket.
-			if (player.destroyItem("MonsterTrack", ticket, this, true))
-				player.addAdena("MonsterTrack", (int) (bet * ((lane == info.getFirst() + 1) ? info.getOddRate() : 0.01)), this, true);
+			if (player.destroyItem(ticket, true))
+				player.addAdena((int) (bet * ((lane == info.getFirst() + 1) ? info.getOddRate() : 0.01)), true);
 			
 			super.onBypassFeedback(player, "Chat 0");
 		}
@@ -325,8 +322,8 @@ public class DerbyTrackManagerNpc extends Folk
 	@Override
 	public void addKnownObject(WorldObject object)
 	{
-		if (object instanceof Player)
-			((Player) object).sendPacket(DerbyTrackManager.getInstance().getRacePacket());
+		if (object instanceof Player objectPlayer)
+			objectPlayer.sendPacket(DerbyTrackManager.getInstance().getRacePacket());
 	}
 	
 	@Override
@@ -334,12 +331,10 @@ public class DerbyTrackManagerNpc extends Folk
 	{
 		super.removeKnownObject(object);
 		
-		if (object instanceof Player)
+		if (object instanceof Player objectPlayer)
 		{
-			final Player player = ((Player) object);
-			
 			for (Npc npc : DerbyTrackManager.getInstance().getRunners())
-				player.sendPacket(new DeleteObject(npc));
+				objectPlayer.sendPacket(new DeleteObject(npc));
 		}
 	}
 }

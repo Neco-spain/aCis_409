@@ -49,10 +49,10 @@ public class Q212_TrialOfDuty extends SecondClassQuest
 		
 		setItemsIds(LETTER_OF_DUSTIN, KNIGHTS_TEAR, MIRROR_OF_ORPIC, TEAR_OF_CONFESSION, REPORT_PIECE_1, REPORT_PIECE_2, TEAR_OF_LOYALTY, MILITAS_ARTICLE, SAINTS_ASHES_URN, ATHEBALDT_SKULL, ATHEBALDT_RIBS, ATHEBALDT_SHIN, LETTER_OF_WINDAWOOD, OLD_KNIGHT_SWORD);
 		
-		addStartNpc(HANNAVALT);
+		addQuestStart(HANNAVALT);
 		addTalkId(HANNAVALT, DUSTIN, SIR_COLLIN, SIR_ARON, SIR_KIEL, SILVERSHADOW, SPIRIT_TALIANUS);
 		
-		addKillId(20144, 20190, 20191, 20200, 20201, 20270, 27119, 20577, 20578, 20579, 20580, 20581, 20582);
+		addMyDying(20144, 20190, 20191, 20200, 20201, 20270, 27119, 20577, 20578, 20579, 20580, 20581, 20582);
 	}
 	
 	@Override
@@ -265,19 +265,18 @@ public class Q212_TrialOfDuty extends SecondClassQuest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		int cond = st.getCond();
 		switch (npc.getNpcId())
 		{
-			case 20190:
-			case 20191:
+			case 20190, 20191:
 				if (cond == 2 && Rnd.get(10) < 1)
 				{
 					playSound(player, SOUND_BEFORE_BATTLE);
@@ -294,8 +293,7 @@ public class Q212_TrialOfDuty extends SecondClassQuest
 				}
 				break;
 			
-			case 20201:
-			case 20200:
+			case 20200, 20201:
 				if (cond == 5 && dropItemsAlways(player, REPORT_PIECE_1, 1, 10))
 				{
 					st.setCond(6);
@@ -316,12 +314,7 @@ public class Q212_TrialOfDuty extends SecondClassQuest
 				}
 				break;
 			
-			case 20577:
-			case 20578:
-			case 20579:
-			case 20580:
-			case 20581:
-			case 20582:
+			case 20577, 20578, 20579, 20580, 20581, 20582:
 				if (cond == 11 && dropItemsAlways(player, MILITAS_ARTICLE, 1, 20))
 					st.setCond(12);
 				break;
@@ -329,17 +322,17 @@ public class Q212_TrialOfDuty extends SecondClassQuest
 			case 20270:
 				if (cond == 14 && Rnd.nextBoolean())
 				{
-					if (!player.getInventory().hasItems(ATHEBALDT_SKULL))
+					if (!player.getInventory().hasItem(ATHEBALDT_SKULL))
 					{
 						playSound(player, SOUND_ITEMGET);
 						giveItems(player, ATHEBALDT_SKULL, 1);
 					}
-					else if (!player.getInventory().hasItems(ATHEBALDT_RIBS))
+					else if (!player.getInventory().hasItem(ATHEBALDT_RIBS))
 					{
 						playSound(player, SOUND_ITEMGET);
 						giveItems(player, ATHEBALDT_RIBS, 1);
 					}
-					else if (!player.getInventory().hasItems(ATHEBALDT_SHIN))
+					else if (!player.getInventory().hasItem(ATHEBALDT_SHIN))
 					{
 						st.setCond(15);
 						playSound(player, SOUND_MIDDLE);
@@ -348,7 +341,5 @@ public class Q212_TrialOfDuty extends SecondClassQuest
 				}
 				break;
 		}
-		
-		return null;
 	}
 }

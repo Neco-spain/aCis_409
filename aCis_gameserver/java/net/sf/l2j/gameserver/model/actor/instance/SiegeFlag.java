@@ -15,16 +15,12 @@ import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class SiegeFlag extends Npc
 {
-	private final Clan _clan;
-	
+	private Clan _clan;
 	private Future<?> _task;
 	
-	public SiegeFlag(Clan clan, int objectId, NpcTemplate template)
+	public SiegeFlag(int objectId, NpcTemplate template)
 	{
 		super(objectId, template);
-		
-		_clan = clan;
-		_clan.setFlag(this);
 	}
 	
 	@Override
@@ -55,19 +51,14 @@ public class SiegeFlag extends Npc
 	@Override
 	public void onInteract(Player player)
 	{
-	}
-	
-	@Override
-	public boolean hasRandomAnimation()
-	{
-		return false;
+		// Do nothing.
 	}
 	
 	@Override
 	public void reduceCurrentHp(double damage, Creature attacker, L2Skill skill)
 	{
 		// Any SiegeSummon can hurt SiegeFlag (excepted Swoop Cannon - anti-infantery summon).
-		if (attacker instanceof SiegeSummon && ((SiegeSummon) attacker).getNpcId() == SiegeSummon.SWOOP_CANNON_ID)
+		if (attacker instanceof SiegeSummon siegeSummon && siegeSummon.getNpcId() == SiegeSummon.SWOOP_CANNON_ID)
 			return;
 		
 		// Send warning to owners of headquarters that theirs base is under attack.
@@ -83,11 +74,24 @@ public class SiegeFlag extends Npc
 	@Override
 	public void addFuncsToNewCharacter()
 	{
+		// Do nothing.
 	}
 	
 	@Override
 	public boolean canBeHealed()
 	{
 		return false;
+	}
+	
+	@Override
+	public boolean isLethalable()
+	{
+		return false;
+	}
+	
+	public void setClan(Clan clan)
+	{
+		_clan = clan;
+		_clan.setFlag(this);
 	}
 }

@@ -11,5 +11,6 @@ public final class RequestPCCafeCouponUse extends L2GameClientPacket
 	@Override
 	protected void runImpl()
 	{
+		// Do nothing.
 	}
 }

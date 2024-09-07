@@ -27,9 +27,9 @@ public class Q650_ABrokenDream extends Quest
 		
 		setItemsIds(DREAM_FRAGMENT);
 		
-		addStartNpc(GHOST);
+		addQuestStart(GHOST);
 		addTalkId(GHOST);
-		addKillId(CREWMAN, VAGABOND);
+		addMyDying(CREWMAN, VAGABOND);
 	}
 	
 	@Override
@@ -48,7 +48,7 @@ public class Q650_ABrokenDream extends Quest
 		}
 		else if (event.equalsIgnoreCase("32054-03.htm"))
 		{
-			if (!player.getInventory().hasItems(DREAM_FRAGMENT))
+			if (!player.getInventory().hasItem(DREAM_FRAGMENT))
 				htmltext = "32054-04.htm";
 		}
 		else if (event.equalsIgnoreCase("32054-05.htm"))
@@ -90,16 +90,14 @@ public class Q650_ABrokenDream extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		dropItems(player, DREAM_FRAGMENT, 1, 0, 250000);
-		
-		return null;
 	}
 }

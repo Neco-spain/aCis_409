@@ -31,9 +31,9 @@ public class TargetArea implements ITargetHandler
 			if (creature == caster || creature.isDead() || !GeoEngine.getInstance().canSeeTarget(target, creature))
 				continue;
 			
-			if (caster instanceof Playable && (creature instanceof Attackable || creature instanceof Playable))
+			if (caster instanceof Playable playable && (creature instanceof Attackable || creature instanceof Playable))
 			{
-				if (creature.isAttackableWithoutForceBy((Playable) caster))
+				if (creature.isAttackableWithoutForceBy(playable))
 					list.add(creature);
 			}
 			else if (caster instanceof Attackable && creature instanceof Playable)
@@ -63,6 +63,12 @@ public class TargetArea implements ITargetHandler
 	{
 		if (skill.isOffensive())
 		{
+			if (target instanceof Playable targetPlayable && !caster.canCastOffensiveSkillOnPlayable(targetPlayable, skill, isCtrlPressed))
+			{
+				caster.sendPacket(SystemMessageId.INVALID_TARGET);
+				return false;
+			}
+			
 			if (!target.isAttackableBy(caster) || (!isCtrlPressed && !target.isAttackableWithoutForceBy(caster.getActingPlayer())))
 			{
 				caster.sendPacket(SystemMessageId.INVALID_TARGET);

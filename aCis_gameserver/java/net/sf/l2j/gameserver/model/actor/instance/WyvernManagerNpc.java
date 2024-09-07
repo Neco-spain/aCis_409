@@ -36,7 +36,7 @@ public class WyvernManagerNpc extends CastleChamberlain
 		
 		if (command.startsWith("RideWyvern"))
 		{
-			if (!player.isClanLeader())
+			if (!isLordOwner(player))
 			{
 				sendHtm(player, "2");
 				return;
@@ -65,7 +65,7 @@ public class WyvernManagerNpc extends CastleChamberlain
 			}
 			
 			// Check for items consumption.
-			if (!player.destroyItemByItemId("Wyvern", 1460, Config.WYVERN_REQUIRED_CRYSTALS, player, true))
+			if (!player.destroyItemByItemId(1460, Config.WYVERN_REQUIRED_CRYSTALS, true))
 			{
 				sendHtm(player, "5");
 				return;
@@ -80,13 +80,15 @@ public class WyvernManagerNpc extends CastleChamberlain
 		}
 		else if (command.startsWith("Chat"))
 		{
-			String val = "1"; // Default send you to error HTM.
+			// Default send you to error HTM.
+			String val = "1";
 			try
 			{
 				val = command.substring(5);
 			}
 			catch (IndexOutOfBoundsException ioobe)
 			{
+				// Do nothing.
 			}
 			
 			sendHtm(player, val);
@@ -98,19 +100,26 @@ public class WyvernManagerNpc extends CastleChamberlain
 	@Override
 	public void showChatWindow(Player player)
 	{
-		final NpcTalkCond condition = getNpcTalkCond(player);
-		if (condition == NpcTalkCond.OWNER)
-			sendHtm(player, (player.isFlying()) ? "4" : "0");
-		else if (condition == NpcTalkCond.CLAN_MEMBER)
-			sendHtm(player, "2");
-		else
-			sendHtm(player, "0a");
+		switch (getNpcTalkCond(player))
+		{
+			case OWNER:
+				sendHtm(player, (player.isFlying()) ? "4" : "0");
+				break;
+			
+			case CLAN_MEMBER:
+				sendHtm(player, "2");
+				break;
+			
+			default:
+				sendHtm(player, "0a");
+				break;
+		}
 	}
 	
 	@Override
 	protected NpcTalkCond getNpcTalkCond(Player player)
 	{
-		if (player.getClan() != null && ((getCastle() != null && getCastle().getOwnerId() == player.getClanId()) || (getSiegableHall() != null && getSiegableHall().getOwnerId() == player.getClanId())))
+		if (player.getClan() != null && getResidence() != null && getResidence().getOwnerId() == player.getClanId())
 			return (player.isClanLeader()) ? NpcTalkCond.OWNER : NpcTalkCond.CLAN_MEMBER;
 		
 		return NpcTalkCond.NONE;

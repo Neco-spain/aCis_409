@@ -37,7 +37,7 @@ public final class SelectorThread<T extends MMOClient<?>> extends Thread
 	private final int MAX_SEND_PER_PASS;
 	private final int MAX_READ_PER_PASS;
 	private final long SLEEP_TIME;
-	public boolean TCP_NODELAY;
+	private final boolean TCP_NODELAY;
 	
 	// Main Buffers
 	private final ByteBuffer DIRECT_WRITE_BUFFER;
@@ -57,7 +57,7 @@ public final class SelectorThread<T extends MMOClient<?>> extends Thread
 	
 	public SelectorThread(final SelectorConfig sc, final IMMOExecutor<T> executor, final IPacketHandler<T> packetHandler, final IClientFactory<T> clientFactory, final IAcceptFilter acceptFilter) throws IOException
 	{
-		super.setName("SelectorThread-" + super.getId());
+		super.setName("SelectorThread-" + super.threadId());
 		
 		HELPER_BUFFER_SIZE = sc.HELPER_BUFFER_SIZE;
 		HELPER_BUFFER_COUNT = sc.HELPER_BUFFER_COUNT;
@@ -309,10 +309,10 @@ public final class SelectorThread<T extends MMOClient<?>> extends Thread
 			{
 				switch (result)
 				{
-					case 0:
-					case -1:
+					case 0, -1:
 						closeConnectionImpl(key, con);
 						break;
+					
 					case -2:
 						con.getClient().onForcedDisconnection();
 						closeConnectionImpl(key, con);

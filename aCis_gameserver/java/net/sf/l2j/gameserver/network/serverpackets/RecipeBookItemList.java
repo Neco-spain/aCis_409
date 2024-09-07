@@ -3,7 +3,7 @@ package net.sf.l2j.gameserver.network.serverpackets;
 import java.util.Collection;
 
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.item.Recipe;
+import net.sf.l2j.gameserver.model.records.Recipe;
 
 public class RecipeBookItemList extends L2GameServerPacket
 {
@@ -35,7 +35,7 @@ public class RecipeBookItemList extends L2GameServerPacket
 			int i = 0;
 			for (Recipe recipe : _recipes)
 			{
-				writeD(recipe.getId());
+				writeD(recipe.id());
 				writeD(++i);
 			}
 		}

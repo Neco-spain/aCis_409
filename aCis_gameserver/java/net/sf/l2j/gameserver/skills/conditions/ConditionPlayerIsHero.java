@@ -17,6 +17,6 @@ public class ConditionPlayerIsHero extends Condition
 	@Override
 	public boolean testImpl(Creature effector, Creature effected, L2Skill skill, Item item)
 	{
-		return effector instanceof Player && ((Player) effector).isHero() == _val;
+		return effector instanceof Player player && player.isHero() == _val;
 	}
 }

@@ -11,6 +11,7 @@ import net.sf.l2j.commons.pool.ThreadPool;
 
 import net.sf.l2j.gameserver.scripting.Quest;
 import net.sf.l2j.gameserver.scripting.ScheduledQuest;
+import net.sf.l2j.gameserver.scripting.script.ai.individual.DefaultNpc;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
@@ -62,8 +63,12 @@ public final class ScriptData implements IXmlReader, Runnable
 				// Add quest, script, AI or any other custom type of script.
 				_quests.add(instance);
 				
+				// If script is part of AI, try to parse EventHandlers.
+				if (instance instanceof DefaultNpc)
+					instance.feedEventHandlers();
+				
 				// The script has been identified as a scheduled script, make proper checks and schedule the launch.
-				if (instance instanceof ScheduledQuest)
+				if (instance instanceof ScheduledQuest sq)
 				{
 					// Get schedule parameter, when not exist, script is not scheduled.
 					final String type = parseString(params, "schedule");
@@ -82,8 +87,8 @@ public final class ScriptData implements IXmlReader, Runnable
 					final String end = parseString(params, "end");
 					
 					// Schedule script, when successful, register it.
-					if (((ScheduledQuest) instance).setSchedule(type, start, end))
-						_scheduled.add(((ScheduledQuest) instance));
+					if (sq.setSchedule(type, start, end))
+						_scheduled.add(sq);
 				}
 			}
 			catch (Exception e)
@@ -127,6 +132,17 @@ public final class ScriptData implements IXmlReader, Runnable
 		_scheduled.clear();
 		
 		load();
+	}
+	
+	/**
+	 * Notifies all {@link ScheduledQuest} to stop.<br>
+	 * <br>
+	 * Note: Can be used to store script values and variables.
+	 */
+	public final void stopAllScripts()
+	{
+		for (ScheduledQuest sq : _scheduled)
+			sq.stop();
 	}
 	
 	/**

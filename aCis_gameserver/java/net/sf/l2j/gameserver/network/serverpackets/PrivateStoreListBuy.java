@@ -7,24 +7,22 @@ import net.sf.l2j.gameserver.model.trade.TradeItem;
 
 public class PrivateStoreListBuy extends L2GameServerPacket
 {
-	private final Player _storePlayer;
+	private final int _objectId;
 	private final int _playerAdena;
 	private final List<TradeItem> _items;
 	
 	public PrivateStoreListBuy(Player player, Player storePlayer)
 	{
-		_storePlayer = storePlayer;
-		_storePlayer.getSellList().updateItems();
-		
+		_objectId = storePlayer.getObjectId();
 		_playerAdena = player.getAdena();
-		_items = _storePlayer.getBuyList().getAvailableItems(player.getInventory());
+		_items = storePlayer.getBuyList().getAvailableItems(player.getInventory());
 	}
 	
 	@Override
 	protected final void writeImpl()
 	{
 		writeC(0xb8);
-		writeD(_storePlayer.getObjectId());
+		writeD(_objectId);
 		writeD(_playerAdena);
 		writeD(_items.size());
 		

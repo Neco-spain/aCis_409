@@ -10,7 +10,8 @@ import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Door;
-import net.sf.l2j.gameserver.model.entity.Siege;
+import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
+import net.sf.l2j.gameserver.model.residence.castle.Siege;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.skills.Formulas;
@@ -24,33 +25,35 @@ public class StriderSiegeAssault implements ISkillHandler
 	};
 	
 	@Override
-	public void useSkill(Creature activeChar, L2Skill skill, WorldObject[] targets)
+	public void useSkill(Creature creature, L2Skill skill, WorldObject[] targets, ItemInstance item)
 	{
-		if (!(activeChar instanceof Player))
+		// Must be called by a Player.
+		if (!(creature instanceof Player player))
 			return;
 		
-		final Player player = (Player) activeChar;
-		if (!check(player, targets[0], skill))
+		// Do various checks, and return the Door.
+		final Door doorTarget = check(player, targets[0], skill);
+		if (doorTarget == null)
 			return;
 		
-		final Door door = (Door) targets[0];
-		if (door.isAlikeDead())
+		// The Door must be alive.
+		if (doorTarget.isAlikeDead())
 			return;
 		
-		final boolean isCrit = Formulas.calcCrit(activeChar, door, skill);
-		final boolean ss = activeChar.isChargedShot(ShotType.SOULSHOT);
-		final ShieldDefense sDef = Formulas.calcShldUse(activeChar, door, skill, isCrit);
+		final boolean isCrit = skill.getBaseCritRate() > 0 && Formulas.calcCrit(skill.getBaseCritRate() * 10 * Formulas.getSTRBonus(player));
+		final boolean ss = player.isChargedShot(ShotType.SOULSHOT);
+		final ShieldDefense sDef = Formulas.calcShldUse(player, doorTarget, skill, isCrit);
 		
-		final int damage = (int) Formulas.calcPhysicalSkillDamage(activeChar, door, skill, sDef, isCrit, ss);
+		final int damage = (int) Formulas.calcPhysicalSkillDamage(player, doorTarget, skill, sDef, isCrit, ss);
 		if (damage > 0)
 		{
-			activeChar.sendDamageMessage(door, damage, false, false, false);
-			door.reduceCurrentHp(damage, activeChar, skill);
+			player.sendDamageMessage(doorTarget, damage, false, false, false);
+			doorTarget.reduceCurrentHp(damage, player, skill);
 		}
 		else
-			activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.ATTACK_FAILED));
+			player.sendPacket(SystemMessageId.ATTACK_FAILED);
 		
-		activeChar.setChargedShot(ShotType.SOULSHOT, skill.isStaticReuse());
+		player.setChargedShot(ShotType.SOULSHOT, skill.isStaticReuse());
 	}
 	
 	@Override
@@ -63,26 +66,32 @@ public class StriderSiegeAssault implements ISkillHandler
 	 * @param player : The {@link Player} to test.
 	 * @param target : The {@link WorldObject} to test.
 	 * @param skill : The {@link L2Skill} to test.
-	 * @return True if the {@link Player} can cast the {@link L2Skill} on the {@link WorldObject}.
+	 * @return The {@link Door} if the {@link Player} can cast the {@link L2Skill} on the {@link WorldObject} set as target.
 	 */
-	public static boolean check(Player player, WorldObject target, L2Skill skill)
+	public static Door check(Player player, WorldObject target, L2Skill skill)
 	{
-		SystemMessage sm = null;
-		
+		// Player must be riding.
 		if (!player.isRiding())
-			sm = SystemMessage.getSystemMessage(SystemMessageId.S1_CANNOT_BE_USED).addSkillName(skill);
-		else if (!(target instanceof Door))
-			sm = SystemMessage.getSystemMessage(SystemMessageId.INVALID_TARGET);
-		else
 		{
-			final Siege siege = CastleManager.getInstance().getActiveSiege(player);
-			if (siege == null || !siege.checkSide(player.getClan(), SiegeSide.ATTACKER))
-				sm = SystemMessage.getSystemMessage(SystemMessageId.S1_CANNOT_BE_USED).addSkillName(skill);
+			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_CANNOT_BE_USED).addSkillName(skill));
+			return null;
 		}
 		
-		if (sm != null)
-			player.sendPacket(sm);
+		// Target must be a Door.
+		if (!(target instanceof Door doorTarget))
+		{
+			player.sendPacket(SystemMessageId.INVALID_TARGET);
+			return null;
+		}
 		
-		return sm == null;
+		// An active siege must be running, and the Player must be from attacker side.
+		final Siege siege = CastleManager.getInstance().getActiveSiege(player);
+		if (siege == null || !siege.checkSide(player.getClan(), SiegeSide.ATTACKER))
+		{
+			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_CANNOT_BE_USED).addSkillName(skill));
+			return null;
+		}
+		
+		return doorTarget;
 	}
 }

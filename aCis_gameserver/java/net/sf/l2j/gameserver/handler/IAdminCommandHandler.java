@@ -12,11 +12,13 @@ public interface IAdminCommandHandler
 {
 	final CLogger LOGGER = new CLogger(IAdminCommandHandler.class.getName());
 	
+	public static final int PAGE_LIMIT_1 = 1;
 	public static final int PAGE_LIMIT_7 = 7;
 	public static final int PAGE_LIMIT_8 = 8;
 	public static final int PAGE_LIMIT_10 = 10;
+	public static final int PAGE_LIMIT_12 = 12;
+	public static final int PAGE_LIMIT_14 = 14;
 	public static final int PAGE_LIMIT_15 = 15;
-	public static final int PAGE_LIMIT_18 = 18;
 	public static final int PAGE_LIMIT_20 = 20;
 	
 	public void useAdminCommand(String command, Player player);
@@ -46,16 +48,15 @@ public interface IAdminCommandHandler
 	 * @param defaultAdmin : If true, we test the {@link Player} itself, in case target was invalid, otherwise we return null directly.
 	 * @return The target of the {@link Player} set as parameter, under the given {@link Class} type. If the target isn't assignable to that {@link Class}, or if the defaultAdmin is set to true and the {@link Player} instance isn't assignable to that {@link Class} aswell, then return null.
 	 */
-	@SuppressWarnings("unchecked")
-	public default <A> A getTarget(Class<A> type, Player player, boolean defaultAdmin)
+	public default <A extends WorldObject> A getTarget(Class<A> type, Player player, boolean defaultAdmin)
 	{
 		final WorldObject target = player.getTarget();
 		
 		// Current player target is null or not assignable, return either himself (if type was assignable to Player) or null.
 		if (target == null || !type.isAssignableFrom(target.getClass()))
-			return (defaultAdmin && type.isAssignableFrom(player.getClass())) ? (A) player : null;
+			return (defaultAdmin && type.isAssignableFrom(player.getClass())) ? type.cast(player) : null;
 		
-		return (A) target;
+		return type.cast(target);
 	}
 	
 	public default void sendFile(Player player, String filename)

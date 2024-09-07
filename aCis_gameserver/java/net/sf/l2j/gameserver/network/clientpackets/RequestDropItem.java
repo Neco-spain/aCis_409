@@ -7,8 +7,6 @@ import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.item.kind.Item;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.InventoryUpdate;
-import net.sf.l2j.gameserver.network.serverpackets.ItemList;
 
 public final class RequestDropItem extends L2GameClientPacket
 {
@@ -98,19 +96,14 @@ public final class RequestDropItem extends L2GameClientPacket
 		
 		if (item.isEquipped() && (!item.isStackable() || (item.isStackable() && _count >= item.getCount())))
 		{
-			ItemInstance[] unequipped = player.getInventory().unequipItemInBodySlotAndRecord(item);
-			InventoryUpdate iu = new InventoryUpdate();
-			for (ItemInstance itm : unequipped)
-			{
-				itm.unChargeAllShots();
-				iu.addModifiedItem(itm);
-			}
+			final ItemInstance[] unequipped = player.getInventory().unequipItemInBodySlotAndRecord(item);
 			
-			player.sendPacket(iu);
+			for (ItemInstance itm : unequipped)
+				itm.unChargeAllShots();
+			
 			player.broadcastUserInfo();
-			player.sendPacket(new ItemList(player, true));
 		}
 		
-		player.dropItem("Drop", _objectId, _count, _x, _y, _z, null, false);
+		player.dropItem(_objectId, _count, _x, _y, _z, false);
 	}
 }

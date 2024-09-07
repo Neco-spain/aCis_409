@@ -11,6 +11,7 @@ import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SetupGauge;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
+import net.sf.l2j.gameserver.skills.Formulas;
 
 /**
  * Updates {@link Player} drown timer and reduces {@link Player} HP, when drowning.
@@ -45,8 +46,10 @@ public final class WaterTaskManager implements Runnable
 			// Get player.
 			final Player player = entry.getKey();
 			
-			// Reduce 1% of HP per second.
-			final double hp = player.getStatus().getMaxHp() / 100.0;
+			// Calculate drown damage.
+			final double hp = Formulas.calcDrownDamage(player);
+			
+			// Reduce HPs.
 			player.reduceCurrentHp(hp, player, false, false, null);
 			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.DROWN_DAMAGE_S1).addNumber((int) hp));
 		}

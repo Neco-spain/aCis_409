@@ -2,6 +2,7 @@ package net.sf.l2j.gameserver.data.xml;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,11 +15,11 @@ import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 
 /**
- * This class loads and stores routes for Walker NPCs, under a List of {@link WalkerLocation} ; the key being the npcId.
+ * This class loads and stores routes for walking NPCs, under a List of {@link WalkerLocation} ; the key being the npcId.
  */
 public class WalkerRouteData implements IXmlReader
 {
-	private final Map<Integer, List<WalkerLocation>> _routes = new HashMap<>();
+	private final Map<String, Map<String, List<WalkerLocation>>> _routes = new HashMap<>();
 	
 	protected WalkerRouteData()
 	{
@@ -29,7 +30,7 @@ public class WalkerRouteData implements IXmlReader
 	public void load()
 	{
 		parseFile("./data/xml/walkerRoutes.xml");
-		LOGGER.info("Loaded {} Walker routes.", _routes.size());
+		LOGGER.info("Loaded {} walking routes.", _routes.size());
 	}
 	
 	@Override
@@ -37,12 +38,20 @@ public class WalkerRouteData implements IXmlReader
 	{
 		forEach(doc, "list", listNode -> forEach(listNode, "route", routeNode ->
 		{
-			final NamedNodeMap attrs = routeNode.getAttributes();
-			final List<WalkerLocation> list = new ArrayList<>();
-			final int npcId = parseInteger(attrs, "npcId");
-			final boolean run = parseBoolean(attrs, "run");
-			forEach(routeNode, "node", nodeNode -> list.add(new WalkerLocation(parseAttributes(nodeNode), run)));
-			_routes.put(npcId, list);
+			final NamedNodeMap routeAttrs = routeNode.getAttributes();
+			final String routeName = parseString(routeAttrs, "name");
+			final Map<String, List<WalkerLocation>> routeList = new HashMap<>();
+			
+			forEach(routeNode, "npc", npcNode ->
+			{
+				final NamedNodeMap npcAttrs = npcNode.getAttributes();
+				final String npcName = parseString(npcAttrs, "name");
+				final List<WalkerLocation> nodeList = new ArrayList<>();
+				
+				forEach(npcNode, "node", nodeNode -> nodeList.add(new WalkerLocation(parseAttributes(nodeNode))));
+				routeList.put(npcName, nodeList);
+			});
+			_routes.put(routeName, routeList);
 		}));
 	}
 	
@@ -53,14 +62,18 @@ public class WalkerRouteData implements IXmlReader
 		load();
 	}
 	
-	public Map<Integer, List<WalkerLocation>> getWalkerRoutes()
+	public Map<String, Map<String, List<WalkerLocation>>> getWalkerRoutes()
 	{
 		return _routes;
 	}
 	
-	public List<WalkerLocation> getWalkerRoute(int npcId)
+	public List<WalkerLocation> getWalkerRoute(String routeName, String npcName)
 	{
-		return _routes.get(npcId);
+		final Map<String, List<WalkerLocation>> npcRoutes = _routes.get(routeName);
+		if (npcRoutes == null)
+			return Collections.emptyList();
+		
+		return npcRoutes.get(npcName);
 	}
 	
 	public static WalkerRouteData getInstance()

@@ -22,10 +22,10 @@ public class Q614_SlayTheEnemyCommander extends Quest
 		
 		setItemsIds(HEAD_OF_TAYR);
 		
-		addStartNpc(31377); // Ashas Varka Durai
+		addQuestStart(31377); // Ashas Varka Durai
 		addTalkId(31377);
 		
-		addKillId(25302); // Tayr
+		addMyDying(25302); // Tayr
 	}
 	
 	@Override
@@ -44,7 +44,7 @@ public class Q614_SlayTheEnemyCommander extends Quest
 		}
 		else if (event.equalsIgnoreCase("31377-07.htm"))
 		{
-			if (player.getInventory().hasItems(HEAD_OF_TAYR))
+			if (player.getInventory().hasItem(HEAD_OF_TAYR))
 			{
 				takeItems(player, HEAD_OF_TAYR, -1);
 				giveItems(player, FEATHER_OF_WISDOM, 1);
@@ -76,7 +76,7 @@ public class Q614_SlayTheEnemyCommander extends Quest
 			case CREATED:
 				if (player.getStatus().getLevel() >= 75)
 				{
-					if (player.getAllianceWithVarkaKetra() <= -4 && player.getInventory().hasItems(VARKA_ALLIANCE_4) && !player.getInventory().hasItems(FEATHER_OF_WISDOM))
+					if (player.getAllianceWithVarkaKetra() <= -4 && player.getInventory().hasItem(VARKA_ALLIANCE_4) && !player.getInventory().hasItem(FEATHER_OF_WISDOM))
 						htmltext = "31377-01.htm";
 					else
 						htmltext = "31377-02.htm";
@@ -86,7 +86,7 @@ public class Q614_SlayTheEnemyCommander extends Quest
 				break;
 			
 			case STARTED:
-				htmltext = (player.getInventory().hasItems(HEAD_OF_TAYR)) ? "31377-05.htm" : "31377-06.htm";
+				htmltext = (player.getInventory().hasItem(HEAD_OF_TAYR)) ? "31377-05.htm" : "31377-06.htm";
 				break;
 		}
 		
@@ -94,21 +94,19 @@ public class Q614_SlayTheEnemyCommander extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		for (QuestState st : getPartyMembers(player, npc, 1))
 		{
 			Player pm = st.getPlayer();
-			if (pm.getAllianceWithVarkaKetra() <= -4 && pm.getInventory().hasItems(VARKA_ALLIANCE_4))
+			if (pm.getAllianceWithVarkaKetra() <= -4 && pm.getInventory().hasItem(VARKA_ALLIANCE_4))
 			{
 				st.setCond(2);
 				playSound(pm, SOUND_MIDDLE);
 				giveItems(pm, HEAD_OF_TAYR, 1);
 			}
 		}
-		
-		return null;
 	}
 }

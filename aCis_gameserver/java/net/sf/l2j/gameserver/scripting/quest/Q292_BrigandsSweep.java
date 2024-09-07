@@ -38,10 +38,10 @@ public class Q292_BrigandsSweep extends Quest
 		
 		setItemsIds(GOBLIN_NECKLACE, GOBLIN_PENDANT, GOBLIN_LORD_PENDANT, SUSPICIOUS_MEMO, SUSPICIOUS_CONTRACT);
 		
-		addStartNpc(SPIRON);
+		addQuestStart(SPIRON);
 		addTalkId(SPIRON, BALANKI);
 		
-		addKillId(GOBLIN_BRIGAND, GOBLIN_BRIGAND_LEADER, GOBLIN_BRIGAND_LIEUTENANT, GOBLIN_SNOOPER, GOBLIN_LORD);
+		addMyDying(GOBLIN_BRIGAND, GOBLIN_BRIGAND_LEADER, GOBLIN_BRIGAND_LIEUTENANT, GOBLIN_SNOOPER, GOBLIN_LORD);
 	}
 	
 	@Override
@@ -97,7 +97,7 @@ public class Q292_BrigandsSweep extends Quest
 						
 						final int countAll = goblinNecklaces + goblinPendants + goblinLordPendants;
 						
-						final boolean hasContract = player.getInventory().hasItems(SUSPICIOUS_CONTRACT);
+						final boolean hasContract = player.getInventory().hasItem(SUSPICIOUS_CONTRACT);
 						
 						if (countAll == 0)
 							htmltext = "30532-04.htm";
@@ -130,7 +130,7 @@ public class Q292_BrigandsSweep extends Quest
 						break;
 					
 					case BALANKI:
-						if (!player.getInventory().hasItems(SUSPICIOUS_CONTRACT))
+						if (!player.getInventory().hasItem(SUSPICIOUS_CONTRACT))
 							htmltext = "30533-01.htm";
 						else
 						{
@@ -148,13 +148,13 @@ public class Q292_BrigandsSweep extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final int chance = Rnd.get(10);
 		
@@ -162,9 +162,7 @@ public class Q292_BrigandsSweep extends Quest
 		{
 			switch (npc.getNpcId())
 			{
-				case GOBLIN_BRIGAND:
-				case GOBLIN_SNOOPER:
-				case GOBLIN_BRIGAND_LIEUTENANT:
+				case GOBLIN_BRIGAND, GOBLIN_SNOOPER, GOBLIN_BRIGAND_LIEUTENANT:
 					dropItemsAlways(player, GOBLIN_NECKLACE, 1, 0);
 					break;
 				
@@ -183,7 +181,5 @@ public class Q292_BrigandsSweep extends Quest
 			takeItems(player, SUSPICIOUS_MEMO, -1);
 			giveItems(player, SUSPICIOUS_CONTRACT, 1);
 		}
-		
-		return null;
 	}
 }

@@ -38,7 +38,7 @@ import org.w3c.dom.Node;
  */
 public class ZoneManager implements IXmlReader
 {
-	private static final String DELETE_GRAND_BOSS_LIST = "DELETE FROM grandboss_list";
+	private static final String TRUNCATE_GRAND_BOSS_LIST = "TRUNCATE grandboss_list";
 	private static final String INSERT_GRAND_BOSS_LIST = "INSERT INTO grandboss_list (player_id,zone) VALUES (?,?)";
 	
 	private final Map<Class<? extends ZoneType>, Map<Integer, ? extends ZoneType>> _zones = new HashMap<>();
@@ -114,12 +114,12 @@ public class ZoneManager implements IXmlReader
 				temp.setParameter(parseString(statAttrs, "name"), parseString(statAttrs, "val"));
 			});
 			
-			if (temp instanceof SpawnZoneType)
+			if (temp instanceof SpawnZoneType szt)
 			{
 				forEach(zoneNode, "spawn", spawnNode ->
 				{
 					final NamedNodeMap spawnAttrs = spawnNode.getAttributes();
-					((SpawnZoneType) temp).addSpawn(parseEnum(spawnAttrs, SpawnType.class, "type"), parseLocation(spawnNode));
+					szt.addSpawn(parseEnum(spawnAttrs, SpawnType.class, "type"), parseLocation(spawnNode));
 				});
 			}
 			
@@ -216,8 +216,8 @@ public class ZoneManager implements IXmlReader
 		// Revalidate creatures in zones.
 		for (WorldObject object : World.getInstance().getObjects())
 		{
-			if (object instanceof Creature)
-				((Creature) object).revalidateZone(true);
+			if (object instanceof Creature creature)
+				creature.revalidateZone(true);
 		}
 	}
 	
@@ -231,7 +231,7 @@ public class ZoneManager implements IXmlReader
 		try (Connection con = ConnectionPool.getConnection())
 		{
 			// clear table first
-			try (PreparedStatement ps = con.prepareStatement(DELETE_GRAND_BOSS_LIST))
+			try (PreparedStatement ps = con.prepareStatement(TRUNCATE_GRAND_BOSS_LIST))
 			{
 				ps.executeUpdate();
 			}

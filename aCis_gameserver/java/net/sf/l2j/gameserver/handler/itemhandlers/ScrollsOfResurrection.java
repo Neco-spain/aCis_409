@@ -19,70 +19,56 @@ public class ScrollsOfResurrection implements IItemHandler
 	public void useItem(Playable playable, ItemInstance item, boolean forceUse)
 	{
 		final WorldObject obj = playable.getTarget();
-		if (!(obj instanceof Creature))
+		if (!(obj instanceof Creature targetCreature))
 		{
 			playable.sendPacket(SystemMessageId.INVALID_TARGET);
 			return;
 		}
 		
-		final Creature target = (Creature) obj;
-		
-		if (target.isDead())
+		if (targetCreature.isDead())
 		{
-			final Player targetPlayer;
-			if (target instanceof Player)
-				targetPlayer = (Player) target;
-			else
-				targetPlayer = null;
-			
-			final Pet targetPet;
-			if (target instanceof Pet)
-				targetPet = (Pet) target;
-			else
-				targetPet = null;
-			
-			if (targetPlayer != null || targetPet != null)
+			if (targetCreature instanceof Player targetPlayer)
+			{
+				// Check if the target isn't in a active siege zone.
+				if (targetPlayer.isInsideZone(ZoneId.SIEGE) && targetPlayer.getSiegeState() == 0)
+				{
+					playable.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.CANNOT_BE_RESURRECTED_DURING_SIEGE));
+					return;
+				}
+				
+				// Check if the target is in a festival.
+				if (targetPlayer.isFestivalParticipant())
+				{
+					playable.sendMessage("You may not resurrect participants in a festival.");
+					return;
+				}
+				
+				if (targetPlayer.isReviveRequested())
+				{
+					final Player player = (Player) playable;
+					
+					if (targetPlayer.isRevivingPet())
+						player.sendPacket(SystemMessageId.CANNOT_RES_MASTER);
+					else
+						player.sendPacket(SystemMessageId.RES_HAS_ALREADY_BEEN_PROPOSED);
+					
+					return;
+				}
+			}
+			else if (targetCreature instanceof Pet targetPet)
 			{
 				final Player player = (Player) playable;
-				if (targetPlayer != null)
+				
+				if (targetPet.getOwner() != player)
 				{
-					// Check if the target isn't in a active siege zone.
-					if (targetPlayer.isInsideZone(ZoneId.SIEGE) && targetPlayer.getSiegeState() == 0)
+					if (targetPet.getOwner().isReviveRequested())
 					{
-						playable.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.CANNOT_BE_RESURRECTED_DURING_SIEGE));
-						return;
-					}
-					
-					// Check if the target is in a festival.
-					if (targetPlayer.isFestivalParticipant())
-					{
-						playable.sendMessage("You may not resurrect participants in a festival.");
-						return;
-					}
-					
-					if (targetPlayer.isReviveRequested())
-					{
-						if (targetPlayer.isRevivingPet())
-							player.sendPacket(SystemMessageId.CANNOT_RES_MASTER);
-						else
+						if (targetPet.getOwner().isRevivingPet())
 							player.sendPacket(SystemMessageId.RES_HAS_ALREADY_BEEN_PROPOSED);
+						else
+							player.sendPacket(SystemMessageId.CANNOT_RES_PET2);
 						
 						return;
-					}
-				}
-				else if (targetPet != null)
-				{
-					if (targetPet.getOwner() != player)
-					{
-						if (targetPet.getOwner().isReviveRequested())
-						{
-							if (targetPet.getOwner().isRevivingPet())
-								player.sendPacket(SystemMessageId.RES_HAS_ALREADY_BEEN_PROPOSED);
-							else
-								player.sendPacket(SystemMessageId.CANNOT_RES_PET2);
-							
-							return;
-						}
 					}
 				}
 			}
@@ -105,7 +91,7 @@ public class ScrollsOfResurrection implements IItemHandler
 				continue;
 			
 			// Scroll consumption is made on skill call, not on item call.
-			playable.getAI().tryToCast(target, itemSkill);
+			playable.getAI().tryToCast(targetCreature, itemSkill);
 		}
 	}
 }

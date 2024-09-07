@@ -73,10 +73,10 @@ public class Q228_TestOfMagus extends SecondClassQuest
 		
 		setItemsIds(RUKAL_LETTER, PARINA_LETTER, LILAC_CHARM, GOLDEN_SEED_1, GOLDEN_SEED_2, GOLDEN_SEED_3, SCORE_OF_ELEMENTS, DAZZLING_DROP, FLAME_CRYSTAL, HARPY_FEATHER, WYRM_WINGBONE, WINDSUS_MANE, EN_MONSTEREYE_SHELL, EN_STONEGOLEM_POWDER, EN_IRONGOLEM_SCRAP, TONE_OF_WATER, TONE_OF_FIRE, TONE_OF_WIND, TONE_OF_EARTH, SALAMANDER_CHARM, SYLPH_CHARM, UNDINE_CHARM, SERPENT_CHARM);
 		
-		addStartNpc(RUKAL);
+		addQuestStart(RUKAL);
 		addTalkId(PARINA, EARTH_SNAKE, FLAME_SALAMANDER, WIND_SYLPH, WATER_UNDINE, CASIAN, RUKAL);
 		
-		addKillId(HARPY, MARSH_STAKATO, WYRM, MARSH_STAKATO_WORKER, TOAD_LORD, MARSH_STAKATO_SOLDIER, MARSH_STAKATO_DRONE, WINDSUS, ENCHANTED_MONSTEREYE, ENCHANTED_STONE_GOLEM, ENCHANTED_IRON_GOLEM, SINGING_FLOWER_PHANTASM, SINGING_FLOWER_NIGHTMARE, SINGING_FLOWER_DARKLING, GHOST_FIRE);
+		addMyDying(HARPY, MARSH_STAKATO, WYRM, MARSH_STAKATO_WORKER, TOAD_LORD, MARSH_STAKATO_SOLDIER, MARSH_STAKATO_DRONE, WINDSUS, ENCHANTED_MONSTEREYE, ENCHANTED_STONE_GOLEM, ENCHANTED_IRON_GOLEM, SINGING_FLOWER_PHANTASM, SINGING_FLOWER_NIGHTMARE, SINGING_FLOWER_DARKLING, GHOST_FIRE);
 	}
 	
 	@Override
@@ -215,7 +215,7 @@ public class Q228_TestOfMagus extends SecondClassQuest
 					case WATER_UNDINE:
 						if (cond == 5)
 						{
-							if (player.getInventory().hasItems(UNDINE_CHARM))
+							if (player.getInventory().hasItem(UNDINE_CHARM))
 							{
 								if (player.getInventory().getItemCount(DAZZLING_DROP) < 20)
 									htmltext = "30413-02.htm";
@@ -235,7 +235,7 @@ public class Q228_TestOfMagus extends SecondClassQuest
 										playSound(player, SOUND_ITEMGET);
 								}
 							}
-							else if (!player.getInventory().hasItems(TONE_OF_WATER))
+							else if (!player.getInventory().hasItem(TONE_OF_WATER))
 							{
 								htmltext = "30413-01.htm";
 								playSound(player, SOUND_ITEMGET);
@@ -251,7 +251,7 @@ public class Q228_TestOfMagus extends SecondClassQuest
 					case FLAME_SALAMANDER:
 						if (cond == 5)
 						{
-							if (player.getInventory().hasItems(SALAMANDER_CHARM))
+							if (player.getInventory().hasItem(SALAMANDER_CHARM))
 							{
 								if (player.getInventory().getItemCount(FLAME_CRYSTAL) < 5)
 									htmltext = "30411-02.htm";
@@ -271,7 +271,7 @@ public class Q228_TestOfMagus extends SecondClassQuest
 										playSound(player, SOUND_ITEMGET);
 								}
 							}
-							else if (!player.getInventory().hasItems(TONE_OF_FIRE))
+							else if (!player.getInventory().hasItem(TONE_OF_FIRE))
 							{
 								htmltext = "30411-01.htm";
 								giveItems(player, SALAMANDER_CHARM, 1);
@@ -286,7 +286,7 @@ public class Q228_TestOfMagus extends SecondClassQuest
 					case WIND_SYLPH:
 						if (cond == 5)
 						{
-							if (player.getInventory().hasItems(SYLPH_CHARM))
+							if (player.getInventory().hasItem(SYLPH_CHARM))
 							{
 								if (player.getInventory().getItemCount(HARPY_FEATHER) + player.getInventory().getItemCount(WYRM_WINGBONE) + player.getInventory().getItemCount(WINDSUS_MANE) < 40)
 									htmltext = "30412-03.htm";
@@ -308,7 +308,7 @@ public class Q228_TestOfMagus extends SecondClassQuest
 										playSound(player, SOUND_ITEMGET);
 								}
 							}
-							else if (!player.getInventory().hasItems(TONE_OF_WIND))
+							else if (!player.getInventory().hasItem(TONE_OF_WIND))
 								htmltext = "30412-01.htm";
 							else
 								htmltext = "30412-05.htm";
@@ -320,7 +320,7 @@ public class Q228_TestOfMagus extends SecondClassQuest
 					case EARTH_SNAKE:
 						if (cond == 5)
 						{
-							if (player.getInventory().hasItems(SERPENT_CHARM))
+							if (player.getInventory().hasItem(SERPENT_CHARM))
 							{
 								if (player.getInventory().getItemCount(EN_MONSTEREYE_SHELL) + player.getInventory().getItemCount(EN_STONEGOLEM_POWDER) + player.getInventory().getItemCount(EN_IRONGOLEM_SCRAP) < 30)
 									htmltext = "30409-04.htm";
@@ -342,7 +342,7 @@ public class Q228_TestOfMagus extends SecondClassQuest
 										playSound(player, SOUND_ITEMGET);
 								}
 							}
-							else if (!player.getInventory().hasItems(TONE_OF_EARTH))
+							else if (!player.getInventory().hasItem(TONE_OF_EARTH))
 								htmltext = "30409-01.htm";
 							else
 								htmltext = "30409-06.htm";
@@ -362,13 +362,13 @@ public class Q228_TestOfMagus extends SecondClassQuest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final int cond = st.getCond();
 		
@@ -377,7 +377,7 @@ public class Q228_TestOfMagus extends SecondClassQuest
 			switch (npc.getNpcId())
 			{
 				case SINGING_FLOWER_PHANTASM:
-					if (!player.getInventory().hasItems(GOLDEN_SEED_1))
+					if (!player.getInventory().hasItem(GOLDEN_SEED_1))
 					{
 						npc.broadcastNpcSay(NpcStringId.ID_22819);
 						dropItemsAlways(player, GOLDEN_SEED_1, 1, 1);
@@ -387,7 +387,7 @@ public class Q228_TestOfMagus extends SecondClassQuest
 					break;
 				
 				case SINGING_FLOWER_NIGHTMARE:
-					if (!player.getInventory().hasItems(GOLDEN_SEED_2))
+					if (!player.getInventory().hasItem(GOLDEN_SEED_2))
 					{
 						npc.broadcastNpcSay(NpcStringId.ID_22820);
 						dropItemsAlways(player, GOLDEN_SEED_2, 1, 1);
@@ -397,7 +397,7 @@ public class Q228_TestOfMagus extends SecondClassQuest
 					break;
 				
 				case SINGING_FLOWER_DARKLING:
-					if (!player.getInventory().hasItems(GOLDEN_SEED_3))
+					if (!player.getInventory().hasItem(GOLDEN_SEED_3))
 					{
 						npc.broadcastNpcSay(NpcStringId.ID_22821);
 						dropItemsAlways(player, GOLDEN_SEED_3, 1, 1);
@@ -412,59 +412,55 @@ public class Q228_TestOfMagus extends SecondClassQuest
 			switch (npc.getNpcId())
 			{
 				case GHOST_FIRE:
-					if (player.getInventory().hasItems(SALAMANDER_CHARM))
+					if (player.getInventory().hasItem(SALAMANDER_CHARM))
 						dropItems(player, FLAME_CRYSTAL, 1, 5, 500000);
 					break;
 				
-				case TOAD_LORD:
-				case MARSH_STAKATO:
-				case MARSH_STAKATO_WORKER:
-					if (player.getInventory().hasItems(UNDINE_CHARM))
+				case TOAD_LORD, MARSH_STAKATO, MARSH_STAKATO_WORKER:
+					if (player.getInventory().hasItem(UNDINE_CHARM))
 						dropItems(player, DAZZLING_DROP, 1, 20, 300000);
 					break;
 				
 				case MARSH_STAKATO_SOLDIER:
-					if (player.getInventory().hasItems(UNDINE_CHARM))
+					if (player.getInventory().hasItem(UNDINE_CHARM))
 						dropItems(player, DAZZLING_DROP, 1, 20, 400000);
 					break;
 				
 				case MARSH_STAKATO_DRONE:
-					if (player.getInventory().hasItems(UNDINE_CHARM))
+					if (player.getInventory().hasItem(UNDINE_CHARM))
 						dropItems(player, DAZZLING_DROP, 1, 20, 500000);
 					break;
 				
 				case HARPY:
-					if (player.getInventory().hasItems(SYLPH_CHARM))
+					if (player.getInventory().hasItem(SYLPH_CHARM))
 						dropItemsAlways(player, HARPY_FEATHER, 1, 20);
 					break;
 				
 				case WYRM:
-					if (player.getInventory().hasItems(SYLPH_CHARM))
+					if (player.getInventory().hasItem(SYLPH_CHARM))
 						dropItems(player, WYRM_WINGBONE, 1, 10, 500000);
 					break;
 				
 				case WINDSUS:
-					if (player.getInventory().hasItems(SYLPH_CHARM))
+					if (player.getInventory().hasItem(SYLPH_CHARM))
 						dropItems(player, WINDSUS_MANE, 1, 10, 500000);
 					break;
 				
 				case ENCHANTED_MONSTEREYE:
-					if (player.getInventory().hasItems(SERPENT_CHARM))
+					if (player.getInventory().hasItem(SERPENT_CHARM))
 						dropItemsAlways(player, EN_MONSTEREYE_SHELL, 1, 10);
 					break;
 				
 				case ENCHANTED_STONE_GOLEM:
-					if (player.getInventory().hasItems(SERPENT_CHARM))
+					if (player.getInventory().hasItem(SERPENT_CHARM))
 						dropItemsAlways(player, EN_STONEGOLEM_POWDER, 1, 10);
 					break;
 				
 				case ENCHANTED_IRON_GOLEM:
-					if (player.getInventory().hasItems(SERPENT_CHARM))
+					if (player.getInventory().hasItem(SERPENT_CHARM))
 						dropItemsAlways(player, EN_IRONGOLEM_SCRAP, 1, 10);
 					break;
 			}
 		}
-		
-		return null;
 	}
 }

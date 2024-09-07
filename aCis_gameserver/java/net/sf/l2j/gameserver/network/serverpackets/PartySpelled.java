@@ -6,7 +6,7 @@ import java.util.List;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.instance.Pet;
 import net.sf.l2j.gameserver.model.actor.instance.Servitor;
-import net.sf.l2j.gameserver.model.holder.EffectHolder;
+import net.sf.l2j.gameserver.model.records.EffectHolder;
 import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class PartySpelled extends L2GameServerPacket
@@ -17,7 +17,7 @@ public class PartySpelled extends L2GameServerPacket
 	
 	public PartySpelled(Creature creature)
 	{
-		_type = creature instanceof Servitor ? 2 : creature instanceof Pet ? 1 : 0;
+		_type = (creature instanceof Servitor) ? 2 : (creature instanceof Pet) ? 1 : 0;
 		_objectId = creature.getObjectId();
 	}
 	
@@ -30,12 +30,9 @@ public class PartySpelled extends L2GameServerPacket
 		writeD(_objectId);
 		
 		writeD(_effects.size());
-		for (EffectHolder holder : _effects)
-		{
-			writeD(holder.getId());
-			writeH(holder.getValue());
-			writeD(holder.getDuration() / 1000);
-		}
+		
+		for (EffectHolder effect : _effects)
+			writeEffect(effect, false);
 	}
 	
 	public void addEffect(L2Skill skill, int duration)

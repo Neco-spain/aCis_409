@@ -13,7 +13,7 @@ public abstract class ResidenceZoneType extends ZoneType
 {
 	private int _residenceId;
 	
-	public ResidenceZoneType(int id)
+	protected ResidenceZoneType(int id)
 	{
 		super(id);
 	}

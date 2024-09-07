@@ -34,7 +34,7 @@ public class Q005_MinersFavor extends Quest
 		
 		setItemsIds(BOLTERS_LIST, MINING_BOOTS, MINERS_PICK, BOOMBOOM_POWDER, REDSTONE_BEER, BOLTERS_SMELLY_SOCKS);
 		
-		addStartNpc(BOLTER);
+		addQuestStart(BOLTER);
 		addTalkId(BOLTER, SHARI, GARITA, REED, BRUNON);
 	}
 	
@@ -107,7 +107,7 @@ public class Q005_MinersFavor extends Quest
 						break;
 					
 					case SHARI:
-						if (cond == 1 && !player.getInventory().hasItems(BOOMBOOM_POWDER))
+						if (cond == 1 && !player.getInventory().hasItem(BOOMBOOM_POWDER))
 						{
 							htmltext = "30517-01.htm";
 							giveItems(player, BOOMBOOM_POWDER, 1);
@@ -125,7 +125,7 @@ public class Q005_MinersFavor extends Quest
 						break;
 					
 					case GARITA:
-						if (cond == 1 && !player.getInventory().hasItems(MINING_BOOTS))
+						if (cond == 1 && !player.getInventory().hasItem(MINING_BOOTS))
 						{
 							htmltext = "30518-01.htm";
 							giveItems(player, MINING_BOOTS, 1);
@@ -143,7 +143,7 @@ public class Q005_MinersFavor extends Quest
 						break;
 					
 					case REED:
-						if (cond == 1 && !player.getInventory().hasItems(REDSTONE_BEER))
+						if (cond == 1 && !player.getInventory().hasItem(REDSTONE_BEER))
 						{
 							htmltext = "30520-01.htm";
 							giveItems(player, REDSTONE_BEER, 1);
@@ -161,7 +161,7 @@ public class Q005_MinersFavor extends Quest
 						break;
 					
 					case BRUNON:
-						if (cond == 1 && !player.getInventory().hasItems(MINERS_PICK))
+						if (cond == 1 && !player.getInventory().hasItem(MINERS_PICK))
 							htmltext = "30526-01.htm";
 						else
 							htmltext = "30526-03.htm";

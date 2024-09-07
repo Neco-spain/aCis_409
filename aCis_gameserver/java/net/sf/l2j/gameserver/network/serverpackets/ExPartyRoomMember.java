@@ -1,7 +1,9 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
+import net.sf.l2j.gameserver.data.xml.RestartPointData;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.group.PartyMatchRoom;
+import net.sf.l2j.gameserver.model.restart.RestartPoint;
 
 public class ExPartyRoomMember extends L2GameServerPacket
 {
@@ -28,7 +30,9 @@ public class ExPartyRoomMember extends L2GameServerPacket
 			writeS(member.getName());
 			writeD(member.getActiveClass());
 			writeD(member.getStatus().getLevel());
-			writeD(1); // TODO Implement bbs behavior.
+			
+			final RestartPoint rp = RestartPointData.getInstance().getRestartPoint(member);
+			writeD((rp == null) ? 100 : rp.getBbs());
 			
 			if (_room.isLeader(member))
 				writeD(1);

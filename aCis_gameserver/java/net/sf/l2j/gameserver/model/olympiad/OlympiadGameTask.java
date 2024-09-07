@@ -11,9 +11,7 @@ import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 
 public final class OlympiadGameTask implements Runnable
 {
-	protected static final CLogger LOGGER = new CLogger(OlympiadGameTask.class.getName());
-	
-	protected static final long BATTLE_PERIOD = Config.OLY_BATTLE; // 6 mins
+	private static final CLogger LOGGER = new CLogger(OlympiadGameTask.class.getName());
 	
 	public static final int[] TELEPORT_TO_ARENA =
 	{
@@ -245,10 +243,7 @@ public final class OlympiadGameTask implements Runnable
 		{
 			switch (_state)
 			{
-				case GAME_STOPPED:
-				case TELE_TO_TOWN:
-				case CLEANUP:
-				case IDLE:
+				case GAME_STOPPED, TELE_TO_TOWN, CLEANUP, IDLE:
 					LOGGER.error("Couldn't return players back in town.", e);
 					_state = GameState.IDLE;
 					_game = null;
@@ -313,7 +308,7 @@ public final class OlympiadGameTask implements Runnable
 		{
 			_game.broadcastOlympiadInfo(_zone);
 			_zone.broadcastPacket(SystemMessage.getSystemMessage(SystemMessageId.STARTS_THE_GAME));
-			_zone.updateZoneStatusForCharactersInside();
+			_zone.updateZoneStatus();
 			return true;
 		}
 		return false;
@@ -334,7 +329,7 @@ public final class OlympiadGameTask implements Runnable
 	private final void stopGame()
 	{
 		_game.validateWinner(_zone);
-		_zone.updateZoneStatusForCharactersInside();
+		_zone.updateZoneStatus();
 		_game.cleanEffects();
 	}
 	

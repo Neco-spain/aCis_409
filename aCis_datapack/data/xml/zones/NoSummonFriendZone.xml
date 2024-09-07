@@ -18,6 +18,10 @@
 		<node x="-113990" y="-177851"/>
 		<node x="-115606" y="-177858"/>
 	</zone>
+	<zone shape="Cuboid" minZ="-10000" maxZ="10000"><!-- Dimensional Rift (Room Zones) -->
+		<node x="-131072" y="-196608"/>
+		<node x="-98304" y="-163840"/>
+	</zone>
 	<zone shape="NPoly" minZ="-3668" maxZ="-3168"><!-- monster_derby_track -->
 		<node x="14566" y="182997"/>
 		<node x="13257" y="182976"/>

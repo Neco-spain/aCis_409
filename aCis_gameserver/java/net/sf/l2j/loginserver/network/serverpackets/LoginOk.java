@@ -9,8 +9,8 @@ public final class LoginOk extends L2LoginServerPacket
 	
 	public LoginOk(SessionKey sessionKey)
 	{
-		_loginOk1 = sessionKey.loginOkID1;
-		_loginOk2 = sessionKey.loginOkID2;
+		_loginOk1 = sessionKey.loginOkId1();
+		_loginOk2 = sessionKey.loginOkId2();
 	}
 	
 	@Override

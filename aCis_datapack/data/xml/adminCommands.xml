@@ -9,7 +9,7 @@
 	<aCar name="admin_help" accessLevel="7" params="[page]" desc="Open this panel."/>
 	<aCar name="admin_link" accessLevel="7" params="file name" desc="Open the proper admin htm."/>
 	<aCar name="admin_msg" accessLevel="7" params="id" desc="Send the associated SystemMessage id."/>
-	<aCar name="admin_show" accessLevel="7" params="clear|door|html|move|path|walker" desc="Show visual paths. For html, show the complete folder."/>
+	<aCar name="admin_show" accessLevel="7" params="clear|door|html|move|restart|path|walker" desc="Show visual paths. For html, show the complete folder."/>
 
 	<!-- ANNOUNCEMENTS -->
 	<aCar name="admin_announce" accessLevel="7" params="[list|all|add|add_auto|del]" desc="Open the Announcements panel."/>
@@ -22,10 +22,10 @@
 	<aCar name="admin_delbk" accessLevel="7" params="name" desc="Delete the associated Bookmark."/>
 
 	<!-- CLANHALL -->
-	<aCar name="admin_ch" accessLevel="7" params="[set|remove|open|close|teleportto|end chId]" desc="Open the Clan Hall panel."/>
+	<aCar name="admin_ch" accessLevel="7" params="[set|remove|open|close|teleportto|end|siege chId]" desc="Open the Clan Hall panel."/>
 
 	<!-- CURSED WEAPONS -->
-	<aCar name="admin_cw" accessLevel="7" params="[add|remove|teleportto itemid|name]" desc="Open the Cursed Weapons panel."/>
+	<aCar name="admin_cw" accessLevel="7" params="[set|remove|teleportto itemid|name]" desc="Open the Cursed Weapons panel."/>
 
 	<!-- DOOR -->
 	<aCar name="admin_open" accessLevel="7" params="[doorId]" desc="Open the Door set as parameter/target."/>
@@ -55,13 +55,13 @@
 	<aCar name="admin_enchant" accessLevel="7" params="slot enchant" desc="Enchant your target's item slot."/>
 
 	<!-- FIND -->
-	<aCar name="admin_find" accessLevel="7" params="[account|dualbox|ip|player name]" desc="Find Player(s) based on account/name/ip."/>
-	<aCar name="admin_list" accessLevel="7" params="[page]" desc="List all Players, 1 page for 20 results."/>
+	<aCar name="admin_find" accessLevel="7" params="[account|dualbox|ip|item|npc|player]" desc="Find chosen entity based on account/name/ip."/>
 
 	<!-- INFO -->
-	<aCar name="admin_info" accessLevel="7" params="with Npc : [ai|aggro|drop|spoil|skill|spawn|stat]" desc="Provide informations of your target."/>
+	<aCar name="admin_info" accessLevel="7" params="[ai|aggro|desire|drop|spoil|skill|spawn|stat]" desc="Provide informations of your target."/>
 
 	<!-- ITEM -->
+	<aCar name="admin_give" accessLevel="7" params="itemId" desc="Create an Item for the selected Player."/>
 	<aCar name="admin_item" accessLevel="7" params="[coin|set]" desc="Create an Item for the selected Player."/>
 
 	<!-- GEOENGINE -->
@@ -97,7 +97,7 @@
 	<aCar name="admin_add_peti_chat" accessLevel="7" params="" desc="Add your target to your active Petition."/>
 
 	<!-- PLEDGE -->
-	<aCar name="admin_pledge" accessLevel="7" params="create|dismiss|info|level|rep" desc="Affect your target's Clan."/>
+	<aCar name="admin_pledge" accessLevel="7" params="create|dismiss|info|level|rep|transfer" desc="Affect your target's Clan."/>
 
 	<!-- POLYMORPH -->
 	<aCar name="admin_polymorph" accessLevel="7" params="npcId" desc="Polymorph on/off your target (Player or Npc) into a Npc."/>
@@ -114,7 +114,7 @@
 
 	<!-- SIEGE -->
 	<aCar name="admin_siege" accessLevel="7" params="[attack|clear|defend|end|list|start castleName]" desc="Run one of the siege related commands."/>
-	<aCar name="admin_castle" accessLevel="7" params="[set|remove|certificates castleName]" desc="Run one of the castle related commands."/>
+	<aCar name="admin_castle" accessLevel="7" params="[set|remove|certificates|tax castleName]" desc="Run one of the castle related commands."/>
 
 	<!-- SKILL -->
 	<aCar name="admin_clan_skill" accessLevel="7" params="[set|remove all|id level [page]]" desc="Add/remove a Clan skill to/from selected Player."/>
@@ -122,21 +122,19 @@
 
 	<!-- SPAWN -->
 	<aCar name="admin_list_spawns" accessLevel="7" params="" desc=""/>
-	<aCar name="admin_show_spawns" accessLevel="7" params="" desc=""/>
 	<aCar name="admin_spawn" accessLevel="7" params="" desc=""/>
-	<aCar name="admin_spawn_index" accessLevel="7" params="" desc=""/>
 	<aCar name="admin_unspawnall" accessLevel="7" params="" desc=""/>
 	<aCar name="admin_respawnall" accessLevel="7" params="" desc=""/>
-	<aCar name="admin_spawn_reload" accessLevel="7" params="" desc=""/>
-	<aCar name="admin_npc_index" accessLevel="7" params="" desc=""/>
-	<aCar name="admin_spawn_once" accessLevel="7" params="" desc=""/>
-	<aCar name="admin_show_npcs" accessLevel="7" params="" desc=""/>
-	<aCar name="admin_spawnnight" accessLevel="7" params="" desc=""/>
-	<aCar name="admin_spawnday" accessLevel="7" params="" desc=""/>
 	<aCar name="admin_spawnfence" accessLevel="7" params="" desc=""/>
 	<aCar name="admin_deletefence" accessLevel="7" params="" desc=""/>
 	<aCar name="admin_listfence" accessLevel="7" params="" desc=""/>
 	<aCar name="admin_delete" accessLevel="7" params="" desc=""/>
+
+	<!-- SPAWN -->
+	<aCar name="admin_maker" accessLevel="7" params="[delete|respawn|switch|scripts|spawn [name]]" desc="Open the Maker panel."/>
+	<aCar name="admin_terr" accessLevel="7" params="[go|visual|visual_clear [name]]" desc="Run one Territory-based command."/>
+	<aCar name="admin_spawn_event" accessLevel="7" params="name" desc="Spawn NPCs of Makers with given event name."/>
+	<aCar name="admin_despawn_event" accessLevel="7" params="name" desc="Despawn NPCs of Makers with given event name."/>
  
  	<!-- SUMMON -->
 	<aCar name="admin_ride" accessLevel="7" params="1|2 or strider|wyvern" desc="Ride the associated mount. Most checks are undone."/>

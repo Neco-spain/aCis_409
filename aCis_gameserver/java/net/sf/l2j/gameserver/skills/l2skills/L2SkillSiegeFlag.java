@@ -6,15 +6,15 @@ import net.sf.l2j.gameserver.data.manager.CastleManager;
 import net.sf.l2j.gameserver.data.manager.ClanHallManager;
 import net.sf.l2j.gameserver.enums.SiegeSide;
 import net.sf.l2j.gameserver.enums.ZoneId;
-import net.sf.l2j.gameserver.idfactory.IdFactory;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.SiegeFlag;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
-import net.sf.l2j.gameserver.model.entity.ClanHallSiege;
-import net.sf.l2j.gameserver.model.entity.Siege;
 import net.sf.l2j.gameserver.model.pledge.Clan;
+import net.sf.l2j.gameserver.model.residence.castle.Siege;
+import net.sf.l2j.gameserver.model.residence.clanhall.ClanHallSiege;
+import net.sf.l2j.gameserver.model.spawn.Spawn;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.skills.L2Skill;
@@ -31,12 +31,10 @@ public class L2SkillSiegeFlag extends L2Skill
 	}
 	
 	@Override
-	public void useSkill(Creature activeChar, WorldObject[] targets)
+	public void useSkill(Creature creature, WorldObject[] targets)
 	{
-		if (!(activeChar instanceof Player))
+		if (!(creature instanceof Player player))
 			return;
-		
-		final Player player = activeChar.getActingPlayer();
 		
 		if (!check(player, true))
 			return;
@@ -49,16 +47,13 @@ public class L2SkillSiegeFlag extends L2Skill
 		final StatSet npcDat = new StatSet();
 		
 		npcDat.set("id", 35062);
-		npcDat.set("type", "");
+		npcDat.set("type", "SiegeFlag");
 		
 		npcDat.set("name", clan.getName());
 		npcDat.set("usingServerSideName", true);
 		
 		npcDat.set("hp", (_isAdvanced) ? 100000 : 50000);
 		npcDat.set("mp", 0);
-		
-		npcDat.set("radius", 10);
-		npcDat.set("height", 80);
 		
 		npcDat.set("pAtk", 0);
 		npcDat.set("mAtk", 0);
@@ -67,10 +62,25 @@ public class L2SkillSiegeFlag extends L2Skill
 		
 		npcDat.set("runSpd", 0); // Have to keep this, static object MUST BE 0 (critical error otherwise).
 		
-		// Spawn a new flag.
-		final SiegeFlag flag = new SiegeFlag(clan, IdFactory.getInstance().getNextId(), new NpcTemplate(npcDat));
-		flag.getStatus().setMaxHp();
-		flag.spawnMe(player.getPosition());
+		npcDat.set("radius", 10);
+		npcDat.set("height", 80);
+		
+		npcDat.set("baseDamageRange", "0;0;80;120");
+		
+		try
+		{
+			// Create spawn.
+			final Spawn spawn = new Spawn(new NpcTemplate(npcDat));
+			spawn.setLoc(player.getPosition());
+			
+			// Spawn NPC.
+			final SiegeFlag flag = (SiegeFlag) spawn.doSpawn(false);
+			flag.setClan(clan);
+		}
+		catch (Exception e)
+		{
+			LOGGER.error("Couldn't spawn SiegeFlag for {}.", e, clan.getName());
+		}
 	}
 	
 	/**

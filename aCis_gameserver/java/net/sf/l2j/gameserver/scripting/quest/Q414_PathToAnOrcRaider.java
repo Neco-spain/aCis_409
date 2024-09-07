@@ -42,10 +42,10 @@ public class Q414_PathToAnOrcRaider extends Quest
 		
 		setItemsIds(GREEN_BLOOD, GOBLIN_DWELLING_MAP, KURUKA_RATMAN_TOOTH, BETRAYER_REPORT_1, BETRAYER_REPORT_2, HEAD_OF_BETRAYER, TIMORA_ORC_HEAD);
 		
-		addStartNpc(KARUKIA);
+		addQuestStart(KARUKIA);
 		addTalkId(KARUKIA, KASMAN, TAZEER);
 		
-		addKillId(GOBLIN_TOMB_RAIDER_LEADER, KURUKA_RATMAN_LEADER, UMBAR_ORC, TIMORA_ORC);
+		addMyDying(GOBLIN_TOMB_RAIDER_LEADER, KURUKA_RATMAN_LEADER, UMBAR_ORC, TIMORA_ORC);
 	}
 	
 	@Override
@@ -63,7 +63,7 @@ public class Q414_PathToAnOrcRaider extends Quest
 				htmltext = (player.getClassId() == ClassId.ORC_RAIDER) ? "30570-02a.htm" : "30570-03.htm";
 			else if (player.getStatus().getLevel() < 19)
 				htmltext = "30570-02.htm";
-			else if (player.getInventory().hasItems(MARK_OF_RAIDER))
+			else if (player.getInventory().hasItem(MARK_OF_RAIDER))
 				htmltext = "30570-04.htm";
 			else
 			{
@@ -128,7 +128,7 @@ public class Q414_PathToAnOrcRaider extends Quest
 					
 					case KASMAN:
 						if (cond == 3)
-							htmltext = player.getInventory().hasItems(HEAD_OF_BETRAYER) ? "30501-02.htm" : "30501-01.htm";
+							htmltext = player.getInventory().hasItem(HEAD_OF_BETRAYER) ? "30501-02.htm" : "30501-01.htm";
 						else if (cond == 4)
 						{
 							htmltext = "30501-03.htm";
@@ -167,13 +167,13 @@ public class Q414_PathToAnOrcRaider extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final int cond = st.getCond();
 		
@@ -210,7 +210,5 @@ public class Q414_PathToAnOrcRaider extends Quest
 					st.setCond(7);
 				break;
 		}
-		
-		return null;
 	}
 }

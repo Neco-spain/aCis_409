@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import net.sf.l2j.commons.math.MathUtil;
 import net.sf.l2j.commons.random.Rnd;
 
 import net.sf.l2j.Config;
@@ -14,6 +13,7 @@ import net.sf.l2j.gameserver.enums.skills.SkillType;
 import net.sf.l2j.gameserver.handler.ISkillHandler;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.skills.AbstractEffect;
 import net.sf.l2j.gameserver.skills.Formulas;
 import net.sf.l2j.gameserver.skills.L2Skill;
@@ -28,7 +28,7 @@ public class Cancel implements ISkillHandler
 	};
 	
 	@Override
-	public void useSkill(Creature activeChar, L2Skill skill, WorldObject[] targets)
+	public void useSkill(Creature creature, L2Skill skill, WorldObject[] targets, ItemInstance item)
 	{
 		// Delimit min/max % success.
 		final int minRate = (skill.getSkillType() == SkillType.CANCEL) ? 25 : 40;
@@ -39,20 +39,19 @@ public class Cancel implements ISkillHandler
 		
 		for (WorldObject obj : targets)
 		{
-			if (!(obj instanceof Creature))
+			if (!(obj instanceof Creature targetCreature))
 				continue;
 			
-			final Creature target = (Creature) obj;
-			if (target.isDead())
+			if (targetCreature.isDead())
 				continue;
 			
 			int count = skill.getMaxNegatedEffects();
 			
 			// Calculate the difference of level between skill level and victim, and retrieve the vuln/prof.
-			final int diffLevel = skill.getMagicLevel() - target.getStatus().getLevel();
-			final double skillVuln = Formulas.calcSkillVulnerability(activeChar, target, skill, skill.getSkillType());
+			final int diffLevel = skill.getMagicLevel() - targetCreature.getStatus().getLevel();
+			final double skillVuln = Formulas.calcSkillVulnerability(creature, targetCreature, skill, skill.getSkillType());
 			
-			final List<AbstractEffect> list = Arrays.asList(target.getAllEffects());
+			final List<AbstractEffect> list = Arrays.asList(targetCreature.getAllEffects());
 			Collections.shuffle(list);
 			
 			for (AbstractEffect effect : list)
@@ -102,13 +101,13 @@ public class Cancel implements ISkillHandler
 		
 		if (skill.hasSelfEffects())
 		{
-			final AbstractEffect effect = activeChar.getFirstEffect(skill.getId());
+			final AbstractEffect effect = creature.getFirstEffect(skill.getId());
 			if (effect != null && effect.isSelfEffect())
 				effect.exit();
 			
-			skill.getEffectsSelf(activeChar);
+			skill.getEffectsSelf(creature);
 		}
-		activeChar.setChargedShot(activeChar.isChargedShot(ShotType.BLESSED_SPIRITSHOT) ? ShotType.BLESSED_SPIRITSHOT : ShotType.SPIRITSHOT, skill.isStaticReuse());
+		creature.setChargedShot(creature.isChargedShot(ShotType.BLESSED_SPIRITSHOT) ? ShotType.BLESSED_SPIRITSHOT : ShotType.SPIRITSHOT, skill.isStaticReuse());
 	}
 	
 	private static boolean calcCancelSuccess(int effectPeriod, int diffLevel, double baseRate, double vuln, int minRate, int maxRate)
@@ -118,7 +117,7 @@ public class Cancel implements ISkillHandler
 		if (Config.DEVELOPER)
 			LOGGER.info("calcCancelSuccess(): diffLevel:{}, baseRate:{}, vuln:{}, total:{}.", diffLevel, baseRate, vuln, rate);
 		
-		return Rnd.get(100) < MathUtil.limit((int) rate, minRate, maxRate);
+		return Rnd.get(100) < Math.clamp(rate, minRate, maxRate);
 	}
 	
 	@Override

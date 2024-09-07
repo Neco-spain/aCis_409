@@ -249,7 +249,7 @@ public class CommandChannel extends AbstractGroup
 			return true;
 		
 		// The Player is now tested for Strategy Guide.
-		final boolean hasItem = (deleteItem) ? player.destroyItemByItemId("CommandChannel Creation", 8871, 1, player, true) : player.getInventory().getItemByItemId(8871) != null;
+		final boolean hasItem = (deleteItem) ? player.destroyItemByItemId(8871, 1, true) : player.getInventory().getItemByItemId(8871) != null;
 		if (!hasItem)
 			player.sendPacket(SystemMessageId.CANNOT_LONGER_SETUP_COMMAND_CHANNEL);
 		

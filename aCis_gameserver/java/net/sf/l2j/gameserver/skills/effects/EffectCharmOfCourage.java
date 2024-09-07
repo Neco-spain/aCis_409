@@ -24,9 +24,9 @@ public class EffectCharmOfCourage extends AbstractEffect
 	@Override
 	public boolean onStart()
 	{
-		if (getEffected() instanceof Player)
+		if (getEffected() instanceof Player targetPlayer)
 		{
-			getEffected().broadcastPacket(new EtcStatusUpdate((Player) getEffected()));
+			getEffected().broadcastPacket(new EtcStatusUpdate(targetPlayer));
 			return true;
 		}
 		return false;
@@ -35,8 +35,8 @@ public class EffectCharmOfCourage extends AbstractEffect
 	@Override
 	public void onExit()
 	{
-		if (getEffected() instanceof Player)
-			getEffected().broadcastPacket(new EtcStatusUpdate((Player) getEffected()));
+		if (getEffected() instanceof Player targetPlayer)
+			getEffected().broadcastPacket(new EtcStatusUpdate(targetPlayer));
 	}
 	
 	@Override

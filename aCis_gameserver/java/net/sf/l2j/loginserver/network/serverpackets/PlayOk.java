@@ -9,8 +9,8 @@ public final class PlayOk extends L2LoginServerPacket
 	
 	public PlayOk(SessionKey sessionKey)
 	{
-		_playOk1 = sessionKey.playOkID1;
-		_playOk2 = sessionKey.playOkID2;
+		_playOk1 = sessionKey.playOkId1();
+		_playOk2 = sessionKey.playOkId2();
 	}
 	
 	@Override

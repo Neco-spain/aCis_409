@@ -84,9 +84,9 @@ public class Q233_TestOfTheWarSpirit extends SecondClassQuest
 		
 		setItemsIds(VENDETTA_TOTEM, TAMLIN_ORC_HEAD, WARSPIRIT_TOTEM, ORIM_CONTRACT, PORTA_EYE, EXCURO_SCALE, MORDEO_TALON, BRAKI_REMAINS_1, PEKIRON_TOTEM, TONAR_SKULL, TONAR_RIBBONE, TONAR_SPINE, TONAR_ARMBONE, TONAR_THIGHBONE, TONAR_REMAINS_1, MANAKIA_TOTEM, HERMODT_SKULL, HERMODT_RIBBONE, HERMODT_SPINE, HERMODT_ARMBONE, HERMODT_THIGHBONE, HERMODT_REMAINS_1, RACOY_TOTEM, VIVYAN_LETTER, INSECT_DIAGRAM_BOOK, KIRUNA_SKULL, KIRUNA_RIBBONE, KIRUNA_SPINE, KIRUNA_ARMBONE, KIRUNA_THIGHBONE, KIRUNA_REMAINS_1, BRAKI_REMAINS_2, TONAR_REMAINS_2, HERMODT_REMAINS_2, KIRUNA_REMAINS_2);
 		
-		addStartNpc(SOMAK);
+		addQuestStart(SOMAK);
 		addTalkId(SOMAK, VIVYAN, SARIEN, RACOY, MANAKIA, ORIM, ANCESTOR_MARTANKUS, PEKIRON);
-		addKillId(NOBLE_ANT, NOBLE_ANT_LEADER, MEDUSA, PORTA, EXCURO, MORDEO, LETO_LIZARDMAN_SHAMAN, LETO_LIZARDMAN_OVERLORD, TAMLIN_ORC, TAMLIN_ORC_ARCHER, STENOA_GORGON_QUEEN);
+		addMyDying(NOBLE_ANT, NOBLE_ANT_LEADER, MEDUSA, PORTA, EXCURO, MORDEO, LETO_LIZARDMAN_SHAMAN, LETO_LIZARDMAN_OVERLORD, TAMLIN_ORC, TAMLIN_ORC_ARCHER, STENOA_GORGON_QUEEN);
 	}
 	
 	@Override
@@ -210,9 +210,9 @@ public class Q233_TestOfTheWarSpirit extends SecondClassQuest
 						break;
 					
 					case ORIM:
-						if (cond == 1 && !player.getInventory().hasItems(BRAKI_REMAINS_1))
+						if (cond == 1 && !player.getInventory().hasItem(BRAKI_REMAINS_1))
 						{
-							if (!player.getInventory().hasItems(ORIM_CONTRACT))
+							if (!player.getInventory().hasItem(ORIM_CONTRACT))
 								htmltext = "30630-01.htm";
 							else if (player.getInventory().getItemCount(PORTA_EYE) + player.getInventory().getItemCount(EXCURO_SCALE) + player.getInventory().getItemCount(MORDEO_TALON) == 30)
 							{
@@ -239,13 +239,13 @@ public class Q233_TestOfTheWarSpirit extends SecondClassQuest
 						break;
 					
 					case RACOY:
-						if (cond == 1 && !player.getInventory().hasItems(KIRUNA_REMAINS_1))
+						if (cond == 1 && !player.getInventory().hasItem(KIRUNA_REMAINS_1))
 						{
-							if (!player.getInventory().hasItems(RACOY_TOTEM))
+							if (!player.getInventory().hasItem(RACOY_TOTEM))
 								htmltext = "30507-01.htm";
-							else if (player.getInventory().hasItems(VIVYAN_LETTER))
+							else if (player.getInventory().hasItem(VIVYAN_LETTER))
 								htmltext = "30507-04.htm";
-							else if (player.getInventory().hasItems(INSECT_DIAGRAM_BOOK))
+							else if (player.getInventory().hasItem(INSECT_DIAGRAM_BOOK))
 							{
 								if (player.getInventory().hasItems(KIRUNA_ARMBONE, KIRUNA_RIBBONE, KIRUNA_SKULL, KIRUNA_SPINE, KIRUNA_THIGHBONE))
 								{
@@ -278,11 +278,11 @@ public class Q233_TestOfTheWarSpirit extends SecondClassQuest
 						break;
 					
 					case VIVYAN:
-						if (cond == 1 && player.getInventory().hasItems(RACOY_TOTEM))
+						if (cond == 1 && player.getInventory().hasItem(RACOY_TOTEM))
 						{
-							if (player.getInventory().hasItems(VIVYAN_LETTER))
+							if (player.getInventory().hasItem(VIVYAN_LETTER))
 								htmltext = "30030-05.htm";
-							else if (player.getInventory().hasItems(INSECT_DIAGRAM_BOOK))
+							else if (player.getInventory().hasItem(INSECT_DIAGRAM_BOOK))
 								htmltext = "30030-06.htm";
 							else
 								htmltext = "30030-01.htm";
@@ -292,16 +292,16 @@ public class Q233_TestOfTheWarSpirit extends SecondClassQuest
 						break;
 					
 					case SARIEN:
-						if (cond == 1 && player.getInventory().hasItems(RACOY_TOTEM))
+						if (cond == 1 && player.getInventory().hasItem(RACOY_TOTEM))
 						{
-							if (player.getInventory().hasItems(VIVYAN_LETTER))
+							if (player.getInventory().hasItem(VIVYAN_LETTER))
 							{
 								htmltext = "30436-01.htm";
 								playSound(player, SOUND_ITEMGET);
 								takeItems(player, VIVYAN_LETTER, 1);
 								giveItems(player, INSECT_DIAGRAM_BOOK, 1);
 							}
-							else if (player.getInventory().hasItems(INSECT_DIAGRAM_BOOK))
+							else if (player.getInventory().hasItem(INSECT_DIAGRAM_BOOK))
 								htmltext = "30436-02.htm";
 						}
 						else
@@ -309,9 +309,9 @@ public class Q233_TestOfTheWarSpirit extends SecondClassQuest
 						break;
 					
 					case PEKIRON:
-						if (cond == 1 && !player.getInventory().hasItems(TONAR_REMAINS_1))
+						if (cond == 1 && !player.getInventory().hasItem(TONAR_REMAINS_1))
 						{
-							if (!player.getInventory().hasItems(PEKIRON_TOTEM))
+							if (!player.getInventory().hasItem(PEKIRON_TOTEM))
 								htmltext = "30682-01.htm";
 							else if (player.getInventory().hasItems(TONAR_ARMBONE, TONAR_RIBBONE, TONAR_SKULL, TONAR_SPINE, TONAR_THIGHBONE))
 							{
@@ -340,9 +340,9 @@ public class Q233_TestOfTheWarSpirit extends SecondClassQuest
 						break;
 					
 					case MANAKIA:
-						if (cond == 1 && !player.getInventory().hasItems(HERMODT_REMAINS_1))
+						if (cond == 1 && !player.getInventory().hasItem(HERMODT_REMAINS_1))
 						{
-							if (!player.getInventory().hasItems(MANAKIA_TOTEM))
+							if (!player.getInventory().hasItem(MANAKIA_TOTEM))
 								htmltext = "30515-01.htm";
 							else if (player.getInventory().hasItems(HERMODT_ARMBONE, HERMODT_RIBBONE, HERMODT_SKULL, HERMODT_SPINE, HERMODT_THIGHBONE))
 							{
@@ -386,46 +386,45 @@ public class Q233_TestOfTheWarSpirit extends SecondClassQuest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
 			case PORTA:
-				if (player.getInventory().hasItems(ORIM_CONTRACT))
+				if (player.getInventory().hasItem(ORIM_CONTRACT))
 					dropItemsAlways(player, PORTA_EYE, 1, 10);
 				break;
 			
 			case EXCURO:
-				if (player.getInventory().hasItems(ORIM_CONTRACT))
+				if (player.getInventory().hasItem(ORIM_CONTRACT))
 					dropItemsAlways(player, EXCURO_SCALE, 1, 10);
 				break;
 			
 			case MORDEO:
-				if (player.getInventory().hasItems(ORIM_CONTRACT))
+				if (player.getInventory().hasItem(ORIM_CONTRACT))
 					dropItemsAlways(player, MORDEO_TALON, 1, 10);
 				break;
 			
-			case NOBLE_ANT:
-			case NOBLE_ANT_LEADER:
-				if (player.getInventory().hasItems(INSECT_DIAGRAM_BOOK))
+			case NOBLE_ANT, NOBLE_ANT_LEADER:
+				if (player.getInventory().hasItem(INSECT_DIAGRAM_BOOK))
 				{
 					int rndAnt = Rnd.get(100);
 					if (rndAnt > 70)
 					{
-						if (player.getInventory().hasItems(KIRUNA_THIGHBONE))
+						if (player.getInventory().hasItem(KIRUNA_THIGHBONE))
 							dropItemsAlways(player, KIRUNA_ARMBONE, 1, 1);
 						else
 							dropItemsAlways(player, KIRUNA_THIGHBONE, 1, 1);
 					}
 					else if (rndAnt > 40)
 					{
-						if (player.getInventory().hasItems(KIRUNA_SPINE))
+						if (player.getInventory().hasItem(KIRUNA_SPINE))
 							dropItemsAlways(player, KIRUNA_RIBBONE, 1, 1);
 						else
 							dropItemsAlways(player, KIRUNA_SPINE, 1, 1);
@@ -435,17 +434,16 @@ public class Q233_TestOfTheWarSpirit extends SecondClassQuest
 				}
 				break;
 			
-			case LETO_LIZARDMAN_SHAMAN:
-			case LETO_LIZARDMAN_OVERLORD:
-				if (player.getInventory().hasItems(PEKIRON_TOTEM) && Rnd.nextBoolean())
+			case LETO_LIZARDMAN_SHAMAN, LETO_LIZARDMAN_OVERLORD:
+				if (player.getInventory().hasItem(PEKIRON_TOTEM) && Rnd.nextBoolean())
 				{
-					if (!player.getInventory().hasItems(TONAR_SKULL))
+					if (!player.getInventory().hasItem(TONAR_SKULL))
 						dropItemsAlways(player, TONAR_SKULL, 1, 1);
-					else if (!player.getInventory().hasItems(TONAR_RIBBONE))
+					else if (!player.getInventory().hasItem(TONAR_RIBBONE))
 						dropItemsAlways(player, TONAR_RIBBONE, 1, 1);
-					else if (!player.getInventory().hasItems(TONAR_SPINE))
+					else if (!player.getInventory().hasItem(TONAR_SPINE))
 						dropItemsAlways(player, TONAR_SPINE, 1, 1);
-					else if (!player.getInventory().hasItems(TONAR_ARMBONE))
+					else if (!player.getInventory().hasItem(TONAR_ARMBONE))
 						dropItemsAlways(player, TONAR_ARMBONE, 1, 1);
 					else
 						dropItemsAlways(player, TONAR_THIGHBONE, 1, 1);
@@ -453,13 +451,13 @@ public class Q233_TestOfTheWarSpirit extends SecondClassQuest
 				break;
 			
 			case MEDUSA:
-				if (player.getInventory().hasItems(MANAKIA_TOTEM) && Rnd.nextBoolean())
+				if (player.getInventory().hasItem(MANAKIA_TOTEM) && Rnd.nextBoolean())
 				{
-					if (!player.getInventory().hasItems(HERMODT_RIBBONE))
+					if (!player.getInventory().hasItem(HERMODT_RIBBONE))
 						dropItemsAlways(player, HERMODT_RIBBONE, 1, 1);
-					else if (!player.getInventory().hasItems(HERMODT_SPINE))
+					else if (!player.getInventory().hasItem(HERMODT_SPINE))
 						dropItemsAlways(player, HERMODT_SPINE, 1, 1);
-					else if (!player.getInventory().hasItems(HERMODT_ARMBONE))
+					else if (!player.getInventory().hasItem(HERMODT_ARMBONE))
 						dropItemsAlways(player, HERMODT_ARMBONE, 1, 1);
 					else
 						dropItemsAlways(player, HERMODT_THIGHBONE, 1, 1);
@@ -467,17 +465,14 @@ public class Q233_TestOfTheWarSpirit extends SecondClassQuest
 				break;
 			
 			case STENOA_GORGON_QUEEN:
-				if (player.getInventory().hasItems(MANAKIA_TOTEM))
+				if (player.getInventory().hasItem(MANAKIA_TOTEM))
 					dropItemsAlways(player, HERMODT_SKULL, 1, 1);
 				break;
 			
-			case TAMLIN_ORC:
-			case TAMLIN_ORC_ARCHER:
-				if (player.getInventory().hasItems(VENDETTA_TOTEM) && dropItems(player, TAMLIN_ORC_HEAD, 1, 13, 500000))
+			case TAMLIN_ORC, TAMLIN_ORC_ARCHER:
+				if (player.getInventory().hasItem(VENDETTA_TOTEM) && dropItems(player, TAMLIN_ORC_HEAD, 1, 13, 500000))
 					st.setCond(4);
 				break;
 		}
-		
-		return null;
 	}
 }

@@ -46,12 +46,12 @@ public class Q409_PathToAnElvenOracle extends Quest
 		
 		setItemsIds(CRYSTAL_MEDALLION, SWINDLER_MONEY, ALLANA_DIARY, LIZARD_CAPTAIN_ORDER, HALF_OF_DIARY, TAMIL_NECKLACE);
 		
-		addStartNpc(MANUEL);
+		addQuestStart(MANUEL);
 		addTalkId(MANUEL, ALLANA, PERRIN);
 		
-		addAttackId(LIZARDMAN_WARRIOR, LIZARDMAN_SCOUT, LIZARDMAN, TAMIL);
-		addKillId(LIZARDMAN_WARRIOR, LIZARDMAN_SCOUT, LIZARDMAN, TAMIL);
-		addDecayId(LIZARDMAN_WARRIOR, LIZARDMAN_SCOUT, LIZARDMAN, TAMIL);
+		addAttacked(LIZARDMAN_WARRIOR, LIZARDMAN_SCOUT, LIZARDMAN, TAMIL);
+		addDecayed(LIZARDMAN_WARRIOR, LIZARDMAN_SCOUT, LIZARDMAN, TAMIL);
+		addMyDying(LIZARDMAN_WARRIOR, LIZARDMAN_SCOUT, LIZARDMAN, TAMIL);
 	}
 	
 	@Override
@@ -106,7 +106,7 @@ public class Q409_PathToAnElvenOracle extends Quest
 					htmltext = (player.getClassId() == ClassId.ELVEN_ORACLE) ? "30293-02a.htm" : "30293-02.htm";
 				else if (player.getStatus().getLevel() < 19)
 					htmltext = "30293-03.htm";
-				else if (player.getInventory().hasItems(LEAF_OF_ORACLE))
+				else if (player.getInventory().hasItem(LEAF_OF_ORACLE))
 					htmltext = "30293-04.htm";
 				else
 					htmltext = "30293-01.htm";
@@ -196,16 +196,16 @@ public class Q409_PathToAnElvenOracle extends Quest
 	}
 	
 	@Override
-	public String onAttack(Npc npc, Creature attacker, int damage, L2Skill skill)
+	public void onAttacked(Npc npc, Creature attacker, int damage, L2Skill skill)
 	{
 		final int condition = npc.getScriptValue();
 		if (condition < 0)
-			return null;
+			return;
 		
 		// Attacker must be player with started quest.
 		final Player player = attacker.getActingPlayer();
 		if (player == null || checkPlayerState(player, npc, QuestStatus.STARTED) == null)
-			return null;
+			return;
 		
 		if (condition == 0)
 		{
@@ -234,24 +234,26 @@ public class Q409_PathToAnElvenOracle extends Quest
 			if (condition != player.getObjectId())
 				npc.setScriptValue(-1);
 		}
-		
-		return null;
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onDecayed(Npc npc)
+	{
+		_spawns.remove(npc);
+	}
+	
+	@Override
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null || npc.getScriptValue() < 0)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
-			case LIZARDMAN_WARRIOR:
-			case LIZARDMAN_SCOUT:
-			case LIZARDMAN:
+			case LIZARDMAN_WARRIOR, LIZARDMAN_SCOUT, LIZARDMAN:
 				if (st.getCond() == 2)
 				{
 					npc.broadcastNpcSay(NpcStringId.ID_40910);
@@ -271,15 +273,5 @@ public class Q409_PathToAnElvenOracle extends Quest
 				}
 				break;
 		}
-		
-		return null;
-	}
-	
-	@Override
-	public String onDecay(Npc npc)
-	{
-		_spawns.remove(npc);
-		
-		return null;
 	}
 }

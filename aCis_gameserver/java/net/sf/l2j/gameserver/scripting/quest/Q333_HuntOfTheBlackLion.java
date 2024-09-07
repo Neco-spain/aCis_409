@@ -236,11 +236,11 @@ public class Q333_HuntOfTheBlackLion extends Quest
 		
 		setItemsIds(LION_CLAW, LION_EYE, GUILD_COIN, UNDEAD_ASH, BLOODY_AXE_INSIGNIA, DELU_FANG, STAKATO_TALON, SOPHYA_LETTER_1, SOPHYA_LETTER_2, SOPHYA_LETTER_3, SOPHYA_LETTER_4);
 		
-		addStartNpc(SOPHYA);
+		addQuestStart(SOPHYA);
 		addTalkId(SOPHYA, REDFOOT, RUPIO, UNDRIAS, LOCKIRIN, MORGAN);
 		
 		for (int[] i : DROPLIST)
-			addKillId(i[1]);
+			addMyDying(i[1]);
 	}
 	
 	@Override
@@ -259,7 +259,7 @@ public class Q333_HuntOfTheBlackLion extends Quest
 		}
 		else if (event.equalsIgnoreCase("30735-10.htm"))
 		{
-			if (!player.getInventory().hasItems(SOPHYA_LETTER_1))
+			if (!player.getInventory().hasItem(SOPHYA_LETTER_1))
 			{
 				giveItems(player, SOPHYA_LETTER_1, 1);
 				playSound(player, SOUND_ITEMGET);
@@ -267,7 +267,7 @@ public class Q333_HuntOfTheBlackLion extends Quest
 		}
 		else if (event.equalsIgnoreCase("30735-11.htm"))
 		{
-			if (!player.getInventory().hasItems(SOPHYA_LETTER_2))
+			if (!player.getInventory().hasItem(SOPHYA_LETTER_2))
 			{
 				giveItems(player, SOPHYA_LETTER_2, 1);
 				playSound(player, SOUND_ITEMGET);
@@ -275,7 +275,7 @@ public class Q333_HuntOfTheBlackLion extends Quest
 		}
 		else if (event.equalsIgnoreCase("30735-12.htm"))
 		{
-			if (!player.getInventory().hasItems(SOPHYA_LETTER_3))
+			if (!player.getInventory().hasItem(SOPHYA_LETTER_3))
 			{
 				giveItems(player, SOPHYA_LETTER_3, 1);
 				playSound(player, SOUND_ITEMGET);
@@ -283,7 +283,7 @@ public class Q333_HuntOfTheBlackLion extends Quest
 		}
 		else if (event.equalsIgnoreCase("30735-13.htm"))
 		{
-			if (!player.getInventory().hasItems(SOPHYA_LETTER_4))
+			if (!player.getInventory().hasItem(SOPHYA_LETTER_4))
 			{
 				giveItems(player, SOPHYA_LETTER_4, 1);
 				playSound(player, SOUND_ITEMGET);
@@ -367,10 +367,10 @@ public class Q333_HuntOfTheBlackLion extends Quest
 		}
 		else if (event.equalsIgnoreCase("30736-03.htm"))
 		{
-			final boolean cargo1 = player.getInventory().hasItems(CARGO_BOX_1);
-			final boolean cargo2 = player.getInventory().hasItems(CARGO_BOX_2);
-			final boolean cargo3 = player.getInventory().hasItems(CARGO_BOX_3);
-			final boolean cargo4 = player.getInventory().hasItems(CARGO_BOX_4);
+			final boolean cargo1 = player.getInventory().hasItem(CARGO_BOX_1);
+			final boolean cargo2 = player.getInventory().hasItem(CARGO_BOX_2);
+			final boolean cargo3 = player.getInventory().hasItem(CARGO_BOX_3);
+			final boolean cargo4 = player.getInventory().hasItem(CARGO_BOX_4);
 			
 			if ((cargo1 || cargo2 || cargo3 || cargo4) && player.getAdena() > 649)
 			{
@@ -586,22 +586,22 @@ public class Q333_HuntOfTheBlackLion extends Quest
 					htmltext = "30471-08.htm";
 			}
 		}
-		else if (event.equalsIgnoreCase("30130-04.htm") && player.getInventory().hasItems(COMPLETE_STATUE))
+		else if (event.equalsIgnoreCase("30130-04.htm") && player.getInventory().hasItem(COMPLETE_STATUE))
 		{
 			takeItems(player, COMPLETE_STATUE, 1);
 			giveItems(player, ADENA, 30000);
 		}
-		else if (event.equalsIgnoreCase("30531-04.htm") && player.getInventory().hasItems(COMPLETE_TABLET))
+		else if (event.equalsIgnoreCase("30531-04.htm") && player.getInventory().hasItem(COMPLETE_TABLET))
 		{
 			takeItems(player, COMPLETE_TABLET, 1);
 			giveItems(player, ADENA, 30000);
 		}
 		else if (event.equalsIgnoreCase("30737-06.htm"))
 		{
-			final boolean cargo1 = player.getInventory().hasItems(CARGO_BOX_1);
-			final boolean cargo2 = player.getInventory().hasItems(CARGO_BOX_2);
-			final boolean cargo3 = player.getInventory().hasItems(CARGO_BOX_3);
-			final boolean cargo4 = player.getInventory().hasItems(CARGO_BOX_4);
+			final boolean cargo1 = player.getInventory().hasItem(CARGO_BOX_1);
+			final boolean cargo2 = player.getInventory().hasItem(CARGO_BOX_2);
+			final boolean cargo3 = player.getInventory().hasItem(CARGO_BOX_3);
+			final boolean cargo4 = player.getInventory().hasItem(CARGO_BOX_4);
 			
 			if (cargo1 || cargo2 || cargo3 || cargo4)
 			{
@@ -652,7 +652,7 @@ public class Q333_HuntOfTheBlackLion extends Quest
 			case CREATED:
 				if (player.getStatus().getLevel() < 25)
 					htmltext = "30735-01.htm";
-				else if (!player.getInventory().hasItems(BLACK_LION_MARK))
+				else if (!player.getInventory().hasItem(BLACK_LION_MARK))
 					htmltext = "30735-02.htm";
 				else
 					htmltext = "30735-03.htm";
@@ -702,14 +702,14 @@ public class Q333_HuntOfTheBlackLion extends Quest
 						break;
 					
 					case UNDRIAS:
-						if (!player.getInventory().hasItems(COMPLETE_STATUE))
+						if (!player.getInventory().hasItem(COMPLETE_STATUE))
 							htmltext = player.getInventory().hasItems(STATUE_SHILIEN_HEAD, STATUE_SHILIEN_TORSO, STATUE_SHILIEN_ARM, STATUE_SHILIEN_LEG) ? "30130-02.htm" : "30130-01.htm";
 						else
 							htmltext = "30130-03.htm";
 						break;
 					
 					case LOCKIRIN:
-						if (!player.getInventory().hasItems(COMPLETE_TABLET))
+						if (!player.getInventory().hasItem(COMPLETE_TABLET))
 							htmltext = player.getInventory().hasItems(TABLET_FRAGMENT_1, TABLET_FRAGMENT_2, TABLET_FRAGMENT_3, TABLET_FRAGMENT_4) ? "30531-02.htm" : "30531-01.htm";
 						else
 							htmltext = "30531-03.htm";
@@ -726,24 +726,22 @@ public class Q333_HuntOfTheBlackLion extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		for (int[] info : DROPLIST)
 		{
-			if (player.getInventory().hasItems(info[0]) && npc.getNpcId() == info[1])
+			if (player.getInventory().hasItem(info[0]) && npc.getNpcId() == info[1])
 			{
 				dropItems(player, info[2], 1, 0, info[3]);
 				dropItems(player, info[4], 1, 0, info[5]);
 				break;
 			}
 		}
-		
-		return null;
 	}
 }

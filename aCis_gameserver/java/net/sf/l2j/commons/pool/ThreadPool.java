@@ -1,20 +1,14 @@
 package net.sf.l2j.commons.pool;
 
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import net.sf.l2j.commons.logging.CLogger;
 
-import net.sf.l2j.Config;
-
 /**
- * This class handles thread pooling system. It relies on two ThreadPoolExecutor arrays, which poolers number is generated using config.
- * <p>
- * Those arrays hold following pools :
- * </p>
+ * This class handles threads, using {@link Executors} backed by virtual threads :
  * <ul>
  * <li>Scheduled pool keeps a track about incoming, future events.</li>
  * <li>Instant pool handles short-life events.</li>
@@ -22,150 +16,82 @@ import net.sf.l2j.Config;
  */
 public final class ThreadPool
 {
-	protected static final CLogger LOGGER = new CLogger(ThreadPool.class.getName());
+	private ThreadPool()
+	{
+		throw new IllegalStateException("Utility class");
+	}
 	
-	private static final long MAX_DELAY = TimeUnit.NANOSECONDS.toMillis(Long.MAX_VALUE - System.nanoTime()) / 2;
+	private static final CLogger LOGGER = new CLogger(ThreadPool.class.getName());
 	
-	private static int _threadPoolRandomizer;
-	
-	protected static ScheduledThreadPoolExecutor[] _scheduledPools;
-	protected static ThreadPoolExecutor[] _instantPools;
+	private static ScheduledExecutorService _scheduledFactory;
 	
 	/**
-	 * Init the different pools, based on Config. It is launched only once, on Gameserver instance.
+	 * Initialize the factories, based on available processors.
 	 */
 	public static void init()
 	{
-		// Feed scheduled pool.
-		int poolCount = Config.SCHEDULED_THREAD_POOL_COUNT;
-		if (poolCount == -1)
-			poolCount = Runtime.getRuntime().availableProcessors();
-		
-		_scheduledPools = new ScheduledThreadPoolExecutor[poolCount];
-		for (int i = 0; i < poolCount; i++)
-			_scheduledPools[i] = new ScheduledThreadPoolExecutor(Config.THREADS_PER_SCHEDULED_THREAD_POOL);
-		
-		// Feed instant pool.
-		poolCount = Config.INSTANT_THREAD_POOL_COUNT;
-		if (poolCount == -1)
-			poolCount = Runtime.getRuntime().availableProcessors();
-		
-		_instantPools = new ThreadPoolExecutor[poolCount];
-		for (int i = 0; i < poolCount; i++)
-			_instantPools[i] = new ThreadPoolExecutor(Config.THREADS_PER_INSTANT_THREAD_POOL, Config.THREADS_PER_INSTANT_THREAD_POOL, 0, TimeUnit.SECONDS, new ArrayBlockingQueue<>(100000));
-		
-		// Prestart core threads.
-		for (ScheduledThreadPoolExecutor threadPool : _scheduledPools)
-			threadPool.prestartAllCoreThreads();
-		
-		for (ThreadPoolExecutor threadPool : _instantPools)
-			threadPool.prestartAllCoreThreads();
-		
-		// Launch purge task.
-		scheduleAtFixedRate(() ->
-		{
-			for (ScheduledThreadPoolExecutor threadPool : _scheduledPools)
-				threadPool.purge();
-			
-			for (ThreadPoolExecutor threadPool : _instantPools)
-				threadPool.purge();
-		}, 600000, 600000);
+		_scheduledFactory = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors(), Thread.ofVirtual().name("scheduled-", 0).factory());
 		
 		LOGGER.info("Initializing ThreadPool.");
 	}
 	
 	/**
-	 * Schedules a one-shot action that becomes enabled after a delay. The pool is chosen based on pools activity.
-	 * @param r : the task to execute.
+	 * Schedule a one-shot action activating after a delay.
+	 * @param r : the {@link Runnable} to execute.
 	 * @param delay : the time from now to delay execution.
-	 * @return a ScheduledFuture representing pending completion of the task and whose get() method will return null upon completion.
+	 * @return a {@link ScheduledFuture} representing pending completion of the task and whose get() method will return null upon completion.
 	 */
 	public static ScheduledFuture<?> schedule(Runnable r, long delay)
 	{
 		try
 		{
-			return getPool(_scheduledPools).schedule(new TaskWrapper(r), validate(delay), TimeUnit.MILLISECONDS);
+			return _scheduledFactory.schedule(new TaskWrapper(r), delay, TimeUnit.MILLISECONDS);
 		}
 		catch (Exception e)
 		{
+			LOGGER.error("ThreadPool#schedule failed upon {}.", e, r.toString());
 			return null;
 		}
 	}
 	
 	/**
-	 * Schedules a periodic action that becomes enabled after a delay. The pool is chosen based on pools activity.
-	 * @param r : the task to execute.
+	 * Schedule a periodic action activating after a delay.
+	 * @param r : the {@link Runnable} to execute.
 	 * @param delay : the time from now to delay execution.
 	 * @param period : the period between successive executions.
-	 * @return a ScheduledFuture representing pending completion of the task and whose get() method will throw an exception upon cancellation.
+	 * @return a {@link ScheduledFuture} representing pending completion of the task and whose get() method will throw an exception upon cancellation.
 	 */
 	public static ScheduledFuture<?> scheduleAtFixedRate(Runnable r, long delay, long period)
 	{
 		try
 		{
-			return getPool(_scheduledPools).scheduleAtFixedRate(new TaskWrapper(r), validate(delay), validate(period), TimeUnit.MILLISECONDS);
+			return _scheduledFactory.scheduleAtFixedRate(new TaskWrapper(r), delay, period, TimeUnit.MILLISECONDS);
 		}
 		catch (Exception e)
 		{
+			LOGGER.error("ThreadPool#scheduleAtFixedRate failed upon {}.", e, r.toString());
 			return null;
 		}
 	}
 	
 	/**
-	 * Executes the given task sometime in the future.
-	 * @param r : the task to execute.
+	 * Execute the given task.
+	 * @param r : the {@link Runnable} to execute.
 	 */
 	public static void execute(Runnable r)
 	{
 		try
 		{
-			getPool(_instantPools).execute(new TaskWrapper(r));
+			Thread.ofVirtual().start(new TaskWrapper(r));
 		}
 		catch (Exception e)
 		{
+			LOGGER.error("ThreadPool#execute failed upon {}.", e, r.toString());
 		}
 	}
 	
 	/**
-	 * Retrieve stats of current running thread pools.
-	 */
-	public static void getStats()
-	{
-		for (int i = 0; i < _scheduledPools.length; i++)
-		{
-			final ScheduledThreadPoolExecutor threadPool = _scheduledPools[i];
-			
-			LOGGER.info("=================================================");
-			LOGGER.info("Scheduled pool #" + i + ":");
-			LOGGER.info("\tgetActiveCount: ...... " + threadPool.getActiveCount());
-			LOGGER.info("\tgetCorePoolSize: ..... " + threadPool.getCorePoolSize());
-			LOGGER.info("\tgetPoolSize: ......... " + threadPool.getPoolSize());
-			LOGGER.info("\tgetLargestPoolSize: .. " + threadPool.getLargestPoolSize());
-			LOGGER.info("\tgetMaximumPoolSize: .. " + threadPool.getMaximumPoolSize());
-			LOGGER.info("\tgetCompletedTaskCount: " + threadPool.getCompletedTaskCount());
-			LOGGER.info("\tgetQueuedTaskCount: .. " + threadPool.getQueue().size());
-			LOGGER.info("\tgetTaskCount: ........ " + threadPool.getTaskCount());
-		}
-		
-		for (int i = 0; i < _instantPools.length; i++)
-		{
-			final ThreadPoolExecutor threadPool = _instantPools[i];
-			
-			LOGGER.info("=================================================");
-			LOGGER.info("Instant pool #" + i + ":");
-			LOGGER.info("\tgetActiveCount: ...... " + threadPool.getActiveCount());
-			LOGGER.info("\tgetCorePoolSize: ..... " + threadPool.getCorePoolSize());
-			LOGGER.info("\tgetPoolSize: ......... " + threadPool.getPoolSize());
-			LOGGER.info("\tgetLargestPoolSize: .. " + threadPool.getLargestPoolSize());
-			LOGGER.info("\tgetMaximumPoolSize: .. " + threadPool.getMaximumPoolSize());
-			LOGGER.info("\tgetCompletedTaskCount: " + threadPool.getCompletedTaskCount());
-			LOGGER.info("\tgetQueuedTaskCount: .. " + threadPool.getQueue().size());
-			LOGGER.info("\tgetTaskCount: ........ " + threadPool.getTaskCount());
-		}
-	}
-	
-	/**
-	 * Shutdown thread pooling system correctly. Send different informations.
+	 * Shutdown factories instantly.
 	 */
 	public static void shutdown()
 	{
@@ -173,42 +99,19 @@ public final class ThreadPool
 		{
 			LOGGER.info("ThreadPool: Shutting down.");
 			
-			for (ScheduledThreadPoolExecutor threadPool : _scheduledPools)
-				threadPool.shutdownNow();
-			
-			for (ThreadPoolExecutor threadPool : _instantPools)
-				threadPool.shutdownNow();
+			_scheduledFactory.shutdownNow();
 		}
 		catch (Exception e)
 		{
-			e.printStackTrace();
+			LOGGER.error("Exception during shutdown.", e);
 		}
 	}
 	
-	/**
-	 * @param <T> : The pool type.
-	 * @param threadPools : The pool array to check.
-	 * @return the less fed pool.
-	 */
-	private static <T> T getPool(T[] threadPools)
-	{
-		return threadPools[_threadPoolRandomizer++ % threadPools.length];
-	}
-	
-	/**
-	 * @param delay : The delay to validate.
-	 * @return a secured value, from 0 to MAX_DELAY.
-	 */
-	private static long validate(long delay)
-	{
-		return Math.max(0, Math.min(MAX_DELAY, delay));
-	}
-	
-	public static final class TaskWrapper implements Runnable
+	private static final class TaskWrapper implements Runnable
 	{
 		private final Runnable _runnable;
 		
-		public TaskWrapper(Runnable runnable)
+		private TaskWrapper(Runnable runnable)
 		{
 			_runnable = runnable;
 		}

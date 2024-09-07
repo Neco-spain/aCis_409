@@ -21,7 +21,7 @@ import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
  */
 public class LotteryManager
 {
-	protected static final CLogger LOGGER = new CLogger(LotteryManager.class.getName());
+	private static final CLogger LOGGER = new CLogger(LotteryManager.class.getName());
 	
 	public static final long SECOND = 1000;
 	public static final long MINUTE = 60000;
@@ -268,7 +268,7 @@ public class LotteryManager
 			finishTime.set(Calendar.MINUTE, 0);
 			finishTime.set(Calendar.SECOND, 0);
 			
-			if (finishTime.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY)
+			if (finishTime.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY)
 			{
 				finishTime.set(Calendar.HOUR_OF_DAY, 19);
 				_endDate = finishTime.getTimeInMillis();
@@ -276,7 +276,7 @@ public class LotteryManager
 			}
 			else
 			{
-				finishTime.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
+				finishTime.set(Calendar.DAY_OF_WEEK, Calendar.SATURDAY);
 				finishTime.set(Calendar.HOUR_OF_DAY, 19);
 				_endDate = finishTime.getTimeInMillis();
 			}

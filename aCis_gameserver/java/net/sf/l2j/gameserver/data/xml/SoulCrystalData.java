@@ -7,8 +7,8 @@ import java.util.Map;
 import net.sf.l2j.commons.data.StatSet;
 import net.sf.l2j.commons.data.xml.IXmlReader;
 
-import net.sf.l2j.gameserver.model.soulcrystal.LevelingInfo;
-import net.sf.l2j.gameserver.model.soulcrystal.SoulCrystal;
+import net.sf.l2j.gameserver.model.records.LevelingInfo;
+import net.sf.l2j.gameserver.model.records.SoulCrystal;
 
 import org.w3c.dom.Document;
 

@@ -33,7 +33,7 @@ public class Q002_WhatWomenWant extends Quest
 		
 		setItemsIds(ARUJIEN_LETTER_1, ARUJIEN_LETTER_2, ARUJIEN_LETTER_3, POETRY_BOOK, GREENIS_LETTER);
 		
-		addStartNpc(ARUJIEN);
+		addQuestStart(ARUJIEN);
 		addTalkId(ARUJIEN, MIRABEL, HERBIEL, GREENIS);
 	}
 	
@@ -94,15 +94,15 @@ public class Q002_WhatWomenWant extends Quest
 				switch (npc.getNpcId())
 				{
 					case ARUJIEN:
-						if (player.getInventory().hasItems(ARUJIEN_LETTER_1))
+						if (player.getInventory().hasItem(ARUJIEN_LETTER_1))
 							htmltext = "30223-05.htm";
-						else if (player.getInventory().hasItems(ARUJIEN_LETTER_3))
+						else if (player.getInventory().hasItem(ARUJIEN_LETTER_3))
 							htmltext = "30223-07.htm";
-						else if (player.getInventory().hasItems(ARUJIEN_LETTER_2))
+						else if (player.getInventory().hasItem(ARUJIEN_LETTER_2))
 							htmltext = "30223-06.htm";
-						else if (player.getInventory().hasItems(POETRY_BOOK))
+						else if (player.getInventory().hasItem(POETRY_BOOK))
 							htmltext = "30223-11.htm";
-						else if (player.getInventory().hasItems(GREENIS_LETTER))
+						else if (player.getInventory().hasItem(GREENIS_LETTER))
 						{
 							htmltext = "30223-10.htm";
 							takeItems(player, GREENIS_LETTER, 1);

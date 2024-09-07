@@ -24,8 +24,8 @@ public class EffectHealOverTime extends AbstractEffect
 	public boolean onStart()
 	{
 		// If effected is a player, send a hp regen effect packet.
-		if (getEffected() instanceof Player && getTemplate().getCounter() > 0 && getPeriod() > 0)
-			getEffected().sendPacket(new ExRegenMax(getTemplate().getCounter() * getPeriod(), getPeriod(), getTemplate().getValue()));
+		if (getEffected() instanceof Player targetPlayer && getTemplate().getCounter() > 0 && getPeriod() > 0)
+			targetPlayer.sendPacket(new ExRegenMax(getTemplate().getCounter() * getPeriod(), getPeriod(), getTemplate().getValue()));
 		
 		return true;
 	}

@@ -3,12 +3,11 @@ package net.sf.l2j.gameserver.data.xml;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import net.sf.l2j.commons.data.xml.IXmlReader;
 import net.sf.l2j.commons.random.Rnd;
 
-import net.sf.l2j.gameserver.model.Fish;
+import net.sf.l2j.gameserver.model.records.Fish;
 
 import org.w3c.dom.Document;
 
@@ -47,7 +46,7 @@ public class FishData implements IXmlReader
 	 */
 	public Fish getFish(int lvl, int type, int group)
 	{
-		return Rnd.get(_fish.stream().filter(f -> f.getLevel() == lvl && f.getType() == type && f.getGroup() == group).collect(Collectors.toList()));
+		return Rnd.get(_fish.stream().filter(f -> f.level() == lvl && f.type() == type && f.group() == group).toList());
 	}
 	
 	public static FishData getInstance()

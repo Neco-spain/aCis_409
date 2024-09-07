@@ -32,12 +32,7 @@ public final class RequestPledgePower extends L2GameClientPacket
 		if (_action == 2)
 		{
 			if (player.isClanLeader())
-			{
-				if (_rank == 9)
-					_privs = (_privs & Clan.CP_CL_VIEW_WAREHOUSE) + (_privs & Clan.CP_CH_OPEN_DOOR) + (_privs & Clan.CP_CS_OPEN_DOOR) + (_privs & Clan.CP_CH_USE_FUNCTIONS) + (_privs & Clan.CP_CS_USE_FUNCTIONS);
-				
-				clan.setPrivilegesForRanking(_rank, _privs);
-			}
+				clan.setPrivilegesForRank(_rank, _privs);
 		}
 		else
 			player.sendPacket(new ManagePledgePower(clan, _action, _rank));

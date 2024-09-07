@@ -707,14 +707,14 @@ public class Q336_CoinsOfMagic extends Quest
 		
 		setItemsIds(COIN_DIAGRAM, KALDIS_GOLD_DRAGON, COIN_COLLECTOR_MEMBERSHIP_1, COIN_COLLECTOR_MEMBERSHIP_2, COIN_COLLECTOR_MEMBERSHIP_3);
 		
-		addStartNpc(SORINT);
+		addQuestStart(SORINT);
 		addTalkId(PANO, COLLOB, RALFORD, HAGGER, STAN, SORINT, LORAIN, DUNING, PAGE, BERNARD, FERRIS);
 		
 		for (Integer npcId : DROPLIST_FIRST.keySet())
-			addKillId(npcId);
+			addMyDying(npcId);
 		
 		for (Integer npcId : DROPLIST_SECOND.keySet())
-			addKillId(npcId);
+			addMyDying(npcId);
 	}
 	
 	@Override
@@ -731,7 +731,7 @@ public class Q336_CoinsOfMagic extends Quest
 		
 		if (event.equalsIgnoreCase("30232-05.htm"))
 		{
-			if (!player.getInventory().hasItems(COIN_DIAGRAM))
+			if (!player.getInventory().hasItem(COIN_DIAGRAM))
 				giveItems(player, COIN_DIAGRAM, 1);
 			
 			st.setState(QuestStatus.STARTED);
@@ -741,7 +741,7 @@ public class Q336_CoinsOfMagic extends Quest
 		}
 		else if (event.equalsIgnoreCase("upgrade"))
 		{
-			if (player.getInventory().hasItems(COIN_COLLECTOR_MEMBERSHIP_3))
+			if (player.getInventory().hasItem(COIN_COLLECTOR_MEMBERSHIP_3))
 			{
 				if (player.getInventory().hasItems(BLOOD_WEREWOLF, BLOOD_DREVANUL, GOLD_KNIGHT, GOLD_DRAKE, SILVER_FAIRY, SILVER_GOLEM))
 				{
@@ -763,7 +763,7 @@ public class Q336_CoinsOfMagic extends Quest
 					st.setCond(8);
 				}
 			}
-			else if (player.getInventory().hasItems(COIN_COLLECTOR_MEMBERSHIP_2))
+			else if (player.getInventory().hasItem(COIN_COLLECTOR_MEMBERSHIP_2))
 			{
 				if (player.getInventory().hasItems(BLOOD_BASILISK, BLOOD_SUCCUBUS, GOLD_GIANT, GOLD_WYRM, SILVER_DRYAD, SILVER_UNDINE))
 				{
@@ -785,7 +785,7 @@ public class Q336_CoinsOfMagic extends Quest
 					st.setCond(10);
 				}
 			}
-			else if (player.getInventory().hasItems(COIN_COLLECTOR_MEMBERSHIP_1))
+			else if (player.getInventory().hasItem(COIN_COLLECTOR_MEMBERSHIP_1))
 				htmltext = "30232-15.htm";
 		}
 		else if (event.equalsIgnoreCase("30232-22.htm"))
@@ -834,7 +834,7 @@ public class Q336_CoinsOfMagic extends Quest
 				giveItems(player, SWORD_OF_LIMIT, 1);
 				playSound(player, SOUND_MIDDLE);
 			}
-			else if (item == 2435 && player.getInventory().hasItems(MANAK_GOLD_GIANT))
+			else if (item == 2435 && player.getInventory().hasItem(MANAK_GOLD_GIANT))
 			{
 				htmltext = "30232-24e.htm";
 				takeItems(player, MANAK_GOLD_GIANT, 1);
@@ -849,7 +849,7 @@ public class Q336_CoinsOfMagic extends Quest
 				giveItems(player, DEMON_STOCKINGS, 1);
 				playSound(player, SOUND_MIDDLE);
 			}
-			else if (item == 2459 && player.getInventory().hasItems(MANAK_GOLD_GIANT))
+			else if (item == 2459 && player.getInventory().hasItem(MANAK_GOLD_GIANT))
 			{
 				htmltext = "30232-24g.htm";
 				takeItems(player, MANAK_GOLD_GIANT, 1);
@@ -1219,7 +1219,7 @@ public class Q336_CoinsOfMagic extends Quest
 					case SORINT:
 						if (state == 1 || state == 2)
 						{
-							if (player.getInventory().hasItems(KALDIS_GOLD_DRAGON))
+							if (player.getInventory().hasItem(KALDIS_GOLD_DRAGON))
 							{
 								htmltext = "30232-07.htm";
 								st.setCond(4);
@@ -1234,11 +1234,11 @@ public class Q336_CoinsOfMagic extends Quest
 						}
 						else if (state == 3)
 						{
-							if (player.getInventory().hasItems(COIN_COLLECTOR_MEMBERSHIP_3))
+							if (player.getInventory().hasItem(COIN_COLLECTOR_MEMBERSHIP_3))
 								htmltext = "30232-10.htm";
-							else if (player.getInventory().hasItems(COIN_COLLECTOR_MEMBERSHIP_2))
+							else if (player.getInventory().hasItem(COIN_COLLECTOR_MEMBERSHIP_2))
 								htmltext = "30232-11.htm";
-							else if (player.getInventory().hasItems(COIN_COLLECTOR_MEMBERSHIP_1))
+							else if (player.getInventory().hasItem(COIN_COLLECTOR_MEMBERSHIP_1))
 								htmltext = "30232-12.htm";
 						}
 						break;
@@ -1252,9 +1252,7 @@ public class Q336_CoinsOfMagic extends Quest
 							htmltext = "30702-05.htm";
 						break;
 					
-					case LORAIN:
-					case PAGE:
-					case HAGGER:
+					case LORAIN, PAGE, HAGGER:
 						if (isCollector(player, 3))
 						{
 							htmltext = npcId + "-01.htm";
@@ -1262,27 +1260,23 @@ public class Q336_CoinsOfMagic extends Quest
 						}
 						break;
 					
-					case RALFORD:
-					case STAN:
-					case DUNING:
+					case RALFORD, STAN, DUNING:
 						if (isCollector(player, 2))
 						{
 							htmltext = npcId + "-01.htm";
 							unset(st);
 						}
-						else if (player.getInventory().hasItems(COIN_COLLECTOR_MEMBERSHIP_3))
+						else if (player.getInventory().hasItem(COIN_COLLECTOR_MEMBERSHIP_3))
 							htmltext = npcId + "-54.htm";
 						break;
 					
-					case COLLOB:
-					case FERRIS:
-					case PANO:
+					case COLLOB, FERRIS, PANO:
 						if (isCollector(player, 1))
 						{
 							htmltext = npcId + "-01.htm";
 							unset(st);
 						}
-						else if (player.getInventory().hasItems(COIN_COLLECTOR_MEMBERSHIP_3) || player.getInventory().hasItems(COIN_COLLECTOR_MEMBERSHIP_2))
+						else if (player.getInventory().hasItem(COIN_COLLECTOR_MEMBERSHIP_3) || player.getInventory().hasItem(COIN_COLLECTOR_MEMBERSHIP_2))
 							htmltext = npcId + "-54.htm";
 						break;
 				}
@@ -1293,17 +1287,17 @@ public class Q336_CoinsOfMagic extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		if (player == null)
-			return null;
+			return;
 		
 		if (DROPLIST_FIRST.containsKey(npc.getNpcId()))
 		{
 			final QuestState st = getRandomPartyMember(player, npc, 2);
 			if (st == null)
-				return null;
+				return;
 			
 			final IntIntHolder drop = DROPLIST_FIRST.get(npc.getNpcId());
 			if (dropItems(st.getPlayer(), drop.getId(), 1, 1, drop.getValue()))
@@ -1313,13 +1307,11 @@ public class Q336_CoinsOfMagic extends Quest
 		{
 			final QuestState st = getRandomPartyMember(player, npc, "state", "3");
 			if (st == null)
-				return null;
+				return;
 			
 			final IntIntHolder drop = DROPLIST_SECOND.get(npc.getNpcId());
 			dropItems(st.getPlayer(), drop.getId(), 1, 0, drop.getValue());
 		}
-		
-		return null;
 	}
 	
 	/**
@@ -1332,7 +1324,7 @@ public class Q336_CoinsOfMagic extends Quest
 		switch (level)
 		{
 			case 1:
-				return player.getInventory().hasItems(COIN_COLLECTOR_MEMBERSHIP_1);
+				return player.getInventory().hasItem(COIN_COLLECTOR_MEMBERSHIP_1);
 			
 			case 2:
 				return player.getInventory().hasAtLeastOneItem(COIN_COLLECTOR_MEMBERSHIP_1, COIN_COLLECTOR_MEMBERSHIP_2);
@@ -1363,19 +1355,13 @@ public class Q336_CoinsOfMagic extends Quest
 	{
 		switch (npcId)
 		{
-			case LORAIN:
-			case PAGE:
-			case HAGGER:
+			case LORAIN, PAGE, HAGGER:
 				return 3;
 			
-			case RALFORD:
-			case STAN:
-			case DUNING:
+			case RALFORD, STAN, DUNING:
 				return 2;
 			
-			case COLLOB:
-			case FERRIS:
-			case PANO:
+			case COLLOB, FERRIS, PANO:
 				return 1;
 			
 			default:

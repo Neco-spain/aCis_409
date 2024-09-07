@@ -1,6 +1,5 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
-import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 
@@ -29,7 +28,7 @@ public final class DlgAnswer extends L2GameClientPacket
 			player.reviveAnswer(_answer);
 		else if (_messageId == SystemMessageId.S1_WISHES_TO_SUMMON_YOU_FROM_S2_DO_YOU_ACCEPT.getId())
 			player.teleportAnswer(_answer, _requesterId);
-		else if (_messageId == 1983 && Config.ALLOW_WEDDING)
+		else if (_messageId == 1983)
 			player.engageAnswer(_answer);
 		else if (_messageId == SystemMessageId.WOULD_YOU_LIKE_TO_OPEN_THE_GATE.getId())
 			player.activateGate(_answer, 1);

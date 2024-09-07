@@ -24,10 +24,10 @@ public class Q627_HeartInSearchOfPower extends Quest
 	private static final int GEM_OF_SAINTS = 7172;
 	
 	// Drop chances
-	private static final Map<Integer, Integer> CHANCES = new HashMap<>(14);
+	private static final Map<Integer, Integer> CHANCES = HashMap.newHashMap(14);
 	
 	// Rewards
-	private static final Map<String, int[]> REWARDS = new HashMap<>(5);
+	private static final Map<String, int[]> REWARDS = HashMap.newHashMap(5);
 	
 	public Q627_HeartInSearchOfPower()
 	{
@@ -81,11 +81,11 @@ public class Q627_HeartInSearchOfPower extends Quest
 		
 		setItemsIds(BEAD_OF_OBEDIENCE);
 		
-		addStartNpc(NECROMANCER);
+		addQuestStart(NECROMANCER);
 		addTalkId(NECROMANCER, ENFEUX);
 		
 		for (int npcId : CHANCES.keySet())
-			addKillId(npcId);
+			addMyDying(npcId);
 	}
 	
 	@Override
@@ -195,17 +195,15 @@ public class Q627_HeartInSearchOfPower extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMember(player, npc, 1);
 		if (st == null)
-			return null;
+			return;
 		
 		if (dropItems(st.getPlayer(), BEAD_OF_OBEDIENCE, 1, 300, CHANCES.get(npc.getNpcId())))
 			st.setCond(2);
-		
-		return null;
 	}
 }

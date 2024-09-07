@@ -5,7 +5,7 @@ import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.WorldRegion;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.entity.Castle;
+import net.sf.l2j.gameserver.model.residence.castle.Castle;
 import net.sf.l2j.gameserver.network.serverpackets.EventTrigger;
 
 /**
@@ -38,15 +38,15 @@ public abstract class CastleZoneType extends ZoneType
 	@Override
 	public void addKnownObject(WorldObject object)
 	{
-		if (_eventId > 0 && _enabled && object instanceof Player)
-			((Player) object).sendPacket(new EventTrigger(getEventId(), true));
+		if (_eventId > 0 && _enabled && object instanceof Player player)
+			player.sendPacket(new EventTrigger(getEventId(), true));
 	}
 	
 	@Override
 	public void removeKnownObject(WorldObject object)
 	{
-		if (_eventId > 0 && object instanceof Player)
-			((Player) object).sendPacket(new EventTrigger(getEventId(), false));
+		if (_eventId > 0 && object instanceof Player player)
+			player.sendPacket(new EventTrigger(getEventId(), false));
 	}
 	
 	public Castle getCastle()
@@ -75,12 +75,7 @@ public abstract class CastleZoneType extends ZoneType
 		if (_eventId > 0)
 		{
 			final WorldRegion region = World.getInstance().getRegion(this);
-			for (WorldRegion reg : region.getSurroundingRegions())
-			{
-				for (WorldObject obj : reg.getObjects())
-					if (obj instanceof Player)
-						((Player) obj).sendPacket(new EventTrigger(_eventId, val));
-			}
+			region.forEachSurroundingRegion(r -> r.forEachType(Player.class, p -> p.sendPacket(new EventTrigger(_eventId, val))));
 		}
 	}
 }

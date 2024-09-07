@@ -41,7 +41,7 @@ public class TargetUnlockable implements ITargetHandler
 			return false;
 		}
 		
-		if (target instanceof Door && !((Door) target).isUnlockable())
+		if (target instanceof Door targetDoor && !targetDoor.isUnlockable())
 			return false;
 		
 		return true;

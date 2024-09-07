@@ -1,7 +1,7 @@
 package net.sf.l2j.gameserver.network.serverpackets;
 
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.item.Henna;
+import net.sf.l2j.gameserver.model.records.Henna;
 
 public class HennaItemUnequipInfo extends L2GameServerPacket
 {
@@ -30,23 +30,23 @@ public class HennaItemUnequipInfo extends L2GameServerPacket
 	protected final void writeImpl()
 	{
 		writeC(0xe6);
-		writeD(_henna.getSymbolId());
-		writeD(_henna.getDyeId());
+		writeD(_henna.symbolId());
+		writeD(_henna.dyeId());
 		writeD(Henna.REMOVE_AMOUNT);
 		writeD(_henna.getRemovePrice());
 		writeD(1);
 		writeD(_adena);
 		writeD(_int);
-		writeC(_int - _henna.getINT());
+		writeC(_int - _henna.INT());
 		writeD(_str);
-		writeC(_str - _henna.getSTR());
+		writeC(_str - _henna.STR());
 		writeD(_con);
-		writeC(_con - _henna.getCON());
+		writeC(_con - _henna.CON());
 		writeD(_men);
-		writeC(_men - _henna.getMEN());
+		writeC(_men - _henna.MEN());
 		writeD(_dex);
-		writeC(_dex - _henna.getDEX());
+		writeC(_dex - _henna.DEX());
 		writeD(_wit);
-		writeC(_wit - _henna.getWIT());
+		writeC(_wit - _henna.WIT());
 	}
 }

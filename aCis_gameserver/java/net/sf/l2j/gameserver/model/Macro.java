@@ -1,5 +1,9 @@
 package net.sf.l2j.gameserver.model;
 
+import java.util.Arrays;
+
+import net.sf.l2j.gameserver.model.records.MacroCmd;
+
 /**
  * Macros are used to automate some processes, to perform a series of actions or to use several skills at once.
  */
@@ -16,24 +20,6 @@ public class Macro
 	public final String acronym;
 	public final MacroCmd[] commands;
 	
-	public static class MacroCmd
-	{
-		public final int entry;
-		public final int type;
-		public final int d1; // skill_id or page for shortcuts
-		public final int d2; // shortcut
-		public final String cmd;
-		
-		public MacroCmd(int pEntry, int pType, int pD1, int pD2, String pCmd)
-		{
-			entry = pEntry;
-			type = pType;
-			d1 = pD1;
-			d2 = pD2;
-			cmd = pCmd;
-		}
-	}
-	
 	public Macro(int pId, int pIcon, String pName, String pDescr, String pAcronym, MacroCmd[] pCommands)
 	{
 		id = pId;
@@ -47,6 +33,6 @@ public class Macro
 	@Override
 	public String toString()
 	{
-		return "macro id=" + id + ", icon=" + icon + ", name=" + name + ", descr=" + descr + ", acronym=" + acronym;
+		return "Macro [id=" + id + ", icon=" + icon + ", name=" + name + ", descr=" + descr + ", acronym=" + acronym + ", commands=" + Arrays.toString(commands) + "]";
 	}
 }

@@ -6,6 +6,7 @@ import net.sf.l2j.gameserver.enums.skills.SkillType;
 import net.sf.l2j.gameserver.handler.ISkillHandler;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.serverpackets.ValidateLocation;
 import net.sf.l2j.gameserver.skills.L2Skill;
 
@@ -17,14 +18,12 @@ public class InstantJump implements ISkillHandler
 	};
 	
 	@Override
-	public void useSkill(Creature activeChar, L2Skill skill, WorldObject[] targets)
+	public void useSkill(Creature creature, L2Skill skill, WorldObject[] targets, ItemInstance item)
 	{
-		Creature target = (Creature) targets[0];
+		if (!(targets[0] instanceof Creature targetCreature))
+			return;
 		
-		int px = target.getX();
-		int py = target.getY();
-		double ph = MathUtil.convertHeadingToDegree(target.getHeading());
-		
+		double ph = MathUtil.convertHeadingToDegree(targetCreature.getHeading());
 		ph += 180;
 		
 		if (ph > 360)
@@ -32,16 +31,15 @@ public class InstantJump implements ISkillHandler
 		
 		ph = (Math.PI * ph) / 180;
 		
-		int x = (int) (px + (25 * Math.cos(ph)));
-		int y = (int) (py + (25 * Math.sin(ph)));
-		int z = target.getZ();
+		final int x = (int) (targetCreature.getX() + (25 * Math.cos(ph)));
+		final int y = (int) (targetCreature.getY() + (25 * Math.sin(ph)));
 		
 		// Abort attack, cast and move.
-		activeChar.abortAll(false);
+		creature.abortAll(false);
 		
 		// Teleport the actor.
-		activeChar.setXYZ(x, y, z);
-		activeChar.broadcastPacket(new ValidateLocation(activeChar));
+		creature.setXYZ(x, y, targetCreature.getZ());
+		creature.broadcastPacket(new ValidateLocation(creature));
 	}
 	
 	@Override

@@ -8,17 +8,12 @@ import java.io.RandomAccessFile;
 import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import net.sf.l2j.commons.config.ExProperties;
-import net.sf.l2j.commons.lang.StringUtil;
 import net.sf.l2j.commons.logging.CLogger;
-import net.sf.l2j.commons.math.MathUtil;
 
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.enums.GeoType;
@@ -33,17 +28,18 @@ import net.sf.l2j.gameserver.geoengine.geodata.BlockNull;
 import net.sf.l2j.gameserver.geoengine.geodata.GeoStructure;
 import net.sf.l2j.gameserver.geoengine.geodata.IBlockDynamic;
 import net.sf.l2j.gameserver.geoengine.geodata.IGeoObject;
-import net.sf.l2j.gameserver.geoengine.pathfinding.NodeBuffer;
+import net.sf.l2j.gameserver.geoengine.pathfinding.PathFinder;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
+import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.instance.Door;
 import net.sf.l2j.gameserver.model.location.Location;
 import net.sf.l2j.gameserver.network.serverpackets.ExServerPrimitive;
 
 public class GeoEngine
 {
-	protected static final CLogger LOGGER = new CLogger(GeoEngine.class.getName());
+	private static final CLogger LOGGER = new CLogger(GeoEngine.class.getName());
 	
 	private static final String GEO_BUG = "%d;%d;%d;%d;%d;%d;%d;%s\r\n";
 	
@@ -51,16 +47,6 @@ public class GeoEngine
 	private final BlockNull _nullBlock;
 	
 	private final PrintWriter _geoBugReports;
-	
-	// pre-allocated buffers
-	private BufferHolder[] _buffers;
-	
-	// pathfinding statistics
-	private int _findSuccess = 0;
-	private int _findFails = 0;
-	private int _postFilterPlayableUses = 0;
-	private int _postFilterUses = 0;
-	private long _postFilterElapsed = 0;
 	
 	/**
 	 * GeoEngine constructor. Loads all geodata files based on geoengine.properties config.
@@ -121,53 +107,6 @@ public class GeoEngine
 			LOGGER.error("Couldn't load \"geo_bugs.txt\" file.", e);
 		}
 		_geoBugReports = writer;
-		
-		String[] array = Config.PATHFIND_BUFFERS.split(";");
-		_buffers = new BufferHolder[array.length];
-		
-		int count = 0;
-		for (int i = 0; i < array.length; i++)
-		{
-			String buf = array[i];
-			String[] args = buf.split("x");
-			
-			try
-			{
-				int size = Integer.parseInt(args[1]);
-				count += size;
-				_buffers[i] = new BufferHolder(Integer.parseInt(args[0]), size);
-			}
-			catch (Exception e)
-			{
-				LOGGER.error("Couldn't load buffer setting: {}.", e, buf);
-			}
-		}
-		
-		LOGGER.info("Loaded {} node buffers.", count);
-	}
-	
-	/**
-	 * Provides optimize selection of the buffer. When all pre-initialized buffer are locked, creates new buffer and log this situation.
-	 * @param size : pre-calculated minimal required size
-	 * @param playable : moving object is playable?
-	 * @return NodeBuffer : buffer
-	 */
-	private final NodeBuffer getBuffer(int size, boolean playable)
-	{
-		NodeBuffer current = null;
-		for (BufferHolder holder : _buffers)
-		{
-			// Find proper size of buffer.
-			if (holder._size < size)
-				continue;
-			
-			// Get NodeBuffer.
-			current = holder.getBuffer(playable);
-			if (current != null)
-				return current;
-		}
-		
-		return current;
 	}
 	
 	/**
@@ -544,22 +483,22 @@ public class GeoEngine
 							continue;
 						
 						// not a dynamic block, convert it
-						if (block instanceof BlockFlat)
+						if (block instanceof BlockFlat bf)
 						{
 							// convert flat block to the dynamic complex block
-							block = new BlockComplexDynamic(bx, by, (BlockFlat) block);
+							block = new BlockComplexDynamic(bx, by, bf);
 							_blocks[bx][by] = block;
 						}
-						else if (block instanceof BlockComplex)
+						else if (block instanceof BlockComplex bc)
 						{
 							// convert complex block to the dynamic complex block
-							block = new BlockComplexDynamic(bx, by, (BlockComplex) block);
+							block = new BlockComplexDynamic(bx, by, bc);
 							_blocks[bx][by] = block;
 						}
-						else if (block instanceof BlockMultilayer)
+						else if (block instanceof BlockMultilayer bm)
 						{
 							// convert multilayer block to the dynamic multilayer block
-							block = new BlockMultilayerDynamic(bx, by, (BlockMultilayer) block);
+							block = new BlockMultilayerDynamic(bx, by, bm);
 							_blocks[bx][by] = block;
 						}
 					}
@@ -594,15 +533,15 @@ public class GeoEngine
 		// Get object's and target's line of sight height (if relevant).
 		// Note: real creature height = collision height * 2
 		double oheight = 0;
-		if (object instanceof Creature)
-			oheight += ((Creature) object).getCollisionHeight() * 2 * Config.PART_OF_CHARACTER_HEIGHT / 100;
+		if (object instanceof Creature creature)
+			oheight += creature.getCollisionHeight() * 2 * Config.PART_OF_CHARACTER_HEIGHT / 100;
 		
 		double theight = 0;
-		if (target instanceof Creature)
-			theight += ((Creature) target).getCollisionHeight() * 2 * Config.PART_OF_CHARACTER_HEIGHT / 100;
+		if (target instanceof Creature creature)
+			theight += creature.getCollisionHeight() * 2 * Config.PART_OF_CHARACTER_HEIGHT / 100;
 		
 		// Check if target is geo object. If so, it must be ignored for line of sight check.
-		final IGeoObject ignore = target instanceof IGeoObject ? (IGeoObject) target : null;
+		final IGeoObject ignore = (target instanceof IGeoObject igo) ? igo : null;
 		
 		// Perform geodata check.
 		return canSee(ox, oy, oz, oheight, tx, ty, tz, theight, ignore, null) && canSee(tx, ty, tz, theight, ox, oy, oz, oheight, ignore, null);
@@ -628,8 +567,8 @@ public class GeoEngine
 		// Get object's line of sight height (if relevant).
 		// Note: real creature height = collision height * 2
 		double oheight = 0;
-		if (object instanceof Creature)
-			oheight += ((Creature) object).getCollisionHeight() * 2 * Config.PART_OF_CHARACTER_HEIGHT / 100;
+		if (object instanceof Creature creature)
+			oheight += creature.getCollisionHeight() * 2 * Config.PART_OF_CHARACTER_HEIGHT / 100;
 		
 		// Perform geodata check.
 		return canSee(ox, oy, oz, oheight, tx, ty, tz, 0, null, null) && canSee(tx, ty, tz, 0, ox, oy, oz, oheight, null, null);
@@ -726,7 +665,7 @@ public class GeoEngine
 				// Calculate intersection with cell's Y border.
 				checkY = gridY + mdt.getOffsetY();
 				checkX = (int) (ox + (checkY - oy) / m);
-				checkX = MathUtil.limit(checkX, gridX, gridX + 15);
+				checkX = Math.clamp(checkX, gridX, gridX + 15);
 				
 				// Show border points.
 				if (debug != null)
@@ -792,6 +731,20 @@ public class GeoEngine
 		
 		// Iteration is completed, no obstacle is found.
 		return true;
+	}
+	
+	/**
+	 * Check movement of {@link WorldObject} to {@link WorldObject} including pathfinding.
+	 * @param object : The origin object.
+	 * @param target : The target object.
+	 * @return True, there is a found path to target.
+	 */
+	public final boolean canFindPathToTarget(WorldObject object, WorldObject target)
+	{
+		if (canMoveToTarget(object.getPosition(), target.getPosition()))
+			return true;
+		
+		return findPath(object.getX(), object.getY(), object.getZ(), target.getX(), target.getY(), target.getZ(), object instanceof Playable, null).size() >= 2;
 	}
 	
 	/**
@@ -920,7 +873,7 @@ public class GeoEngine
 				// Calculate intersection with cell's Y border.
 				checkY = gridY + mdt.getOffsetY();
 				checkX = (int) (ox + (checkY - oy) / m);
-				checkX = MathUtil.limit(checkX, gridX, gridX + 15);
+				checkX = Math.clamp(checkX, gridX, gridX + 15);
 				
 				// Show border points.
 				if (debug != null)
@@ -1138,7 +1091,7 @@ public class GeoEngine
 				// Calculate intersection with cell's Y border.
 				checkY = gridY + mdt.getOffsetY();
 				checkX = (int) (ox + (checkY - oy) / m);
-				checkX = MathUtil.limit(checkX, gridX, gridX + 15);
+				checkX = Math.clamp(checkX, gridX, gridX + 15);
 				
 				// Show border points.
 				if (debug != null)
@@ -1289,7 +1242,7 @@ public class GeoEngine
 				// Calculate intersection with cell's Y border.
 				checkY = gridY + mdt.getOffsetY();
 				checkX = (int) (ox + (checkY - oy) / m);
-				checkX = MathUtil.limit(checkX, gridX, gridX + 15);
+				checkX = Math.clamp(checkX, gridX, gridX + 15);
 				
 				// Show border points.
 				if (debug != null)
@@ -1494,7 +1447,7 @@ public class GeoEngine
 				// Calculate intersection with cell's Y border.
 				checkY = gridY + mdt.getOffsetY();
 				checkX = (int) (ox + (checkY - oy) / m);
-				checkX = MathUtil.limit(checkX, gridX, gridX + 15);
+				checkX = Math.clamp(checkX, gridX, gridX + 15);
 				
 				// Set direction and color for debug, if enabled.
 				if (debug != null)
@@ -1651,7 +1604,7 @@ public class GeoEngine
 				// Calculate intersection with cell's Y border.
 				checkY = gridY + mdt.getOffsetY();
 				checkX = (int) (ox + (checkY - oy) / m);
-				checkX = MathUtil.limit(checkX, gridX, gridX + 15);
+				checkX = Math.clamp(checkX, gridX, gridX + 15);
 				
 				// Set direction and color for debug, if enabled.
 				if (debug != null)
@@ -1753,6 +1706,37 @@ public class GeoEngine
 	}
 	
 	/**
+	 * Returns the possibility of free movement in given coordinates and distance.
+	 * @param worldX : world x
+	 * @param worldY : world y
+	 * @param worldZ : world z
+	 * @return boolean : Returns true, if free movement in given coordinates and distance is allowed.
+	 */
+	public final boolean canMoveAround(int worldX, int worldY, int worldZ)
+	{
+		// Get center coordinates and cell distance.
+		final int geoX = getGeoX(worldX);
+		final int geoY = getGeoY(worldY);
+		
+		// Loop each cell in the square.
+		for (int ix = -1; ix <= 1; ix++)
+		{
+			for (int iy = -1; iy <= 1; iy++)
+			{
+				// Get real geo coordinates.
+				final int gx = geoX + ix;
+				final int gy = geoY + iy;
+				
+				// Check NSWE flag for free movement, return if blocked.
+				if (getNsweNearest(gx, gy, worldZ) != GeoStructure.CELL_FLAG_ALL)
+					return false;
+			}
+		}
+		
+		return true;
+	}
+	
+	/**
 	 * Returns the list of location objects as a result of complete path calculation.
 	 * @param ox : origin x
 	 * @param oy : origin y
@@ -1771,77 +1755,33 @@ public class GeoEngine
 			return Collections.emptyList();
 		
 		// get origin and check existing geo coords
-		int gox = getGeoX(ox);
-		int goy = getGeoY(oy);
+		final int gox = getGeoX(ox);
+		final int goy = getGeoY(oy);
 		if (!hasGeoPos(gox, goy))
 			return Collections.emptyList();
 		
-		int goz = getHeightNearest(gox, goy, oz);
+		final int goz = getHeightNearest(gox, goy, oz);
 		
 		// get target and check existing geo coords
-		int gtx = getGeoX(tx);
-		int gty = getGeoY(ty);
+		final int gtx = getGeoX(tx);
+		final int gty = getGeoY(ty);
 		if (!hasGeoPos(gtx, gty))
 			return Collections.emptyList();
 		
-		int gtz = getHeightNearest(gtx, gty, tz);
-		
-		// Prepare buffer for pathfinding calculations
-		int dx = Math.abs(gox - gtx);
-		int dy = Math.abs(goy - gty);
-		int dz = Math.abs(goz - gtz) / 8;
-		int total = dx + dy + dz;
-		int size = 1000 + (10 * total);
-		// System.out.println("dx: " + dx + " dy: " + dy + " dz: " + dz + " total: " + total + " size: " + size);
-		NodeBuffer buffer = getBuffer(size, playable);
-		if (buffer == null)
+		final int gtz = getHeightNearest(gtx, gty, tz);
+		if (Math.abs(gtz - tz) > 500)
 			return Collections.emptyList();
+		
+		final PathFinder pf = new PathFinder();
 		
 		// find path
-		List<Location> path = null;
-		try
-		{
-			path = buffer.findPath(gox, goy, goz, gtx, gty, gtz, debug);
-			
-			if (path.isEmpty())
-			{
-				_findFails++;
-				return Collections.emptyList();
-			}
-			
-			if (debug != null)
-			{
-				// path origin and target
-				debug.addPoint(Color.BLUE, ox, oy, oz);
-				debug.addPoint(Color.BLUE, tx, ty, tz);
-				
-				// path
-				buffer.debugPath(debug);
-			}
-			
-			_findSuccess++;
-		}
-		catch (Exception e)
-		{
-			LOGGER.error("Failed to generate a path.", e);
-			
-			_findFails++;
+		final List<Location> path = pf.findPath(gox, goy, goz, gtx, gty, gtz, debug);
+		if (path.isEmpty())
 			return Collections.emptyList();
-		}
-		finally
-		{
-			buffer.free();
-		}
 		
 		// check path
 		if (path.size() < 3)
 			return path;
-		
-		// log data
-		long timeStamp = System.currentTimeMillis();
-		_postFilterUses++;
-		if (playable)
-			_postFilterPlayableUses++;
 		
 		// get path list iterator
 		ListIterator<Location> point = path.listIterator();
@@ -1903,31 +1843,7 @@ public class GeoEngine
 			}
 		}
 		
-		// log data
-		_postFilterElapsed += System.currentTimeMillis() - timeStamp;
-		
 		return path;
-	}
-	
-	/**
-	 * Return pathfinding statistics, useful for getting information about pathfinding status.
-	 * @return {@code List<String>} : stats
-	 */
-	public List<String> getStat()
-	{
-		List<String> list = new ArrayList<>();
-		
-		for (BufferHolder buffer : _buffers)
-			list.add(buffer.toString());
-		
-		list.add("Use: playable=" + _postFilterPlayableUses + " non-playable=" + (_postFilterUses - _postFilterPlayableUses));
-		
-		if (_postFilterUses > 0)
-			list.add("Time (ms): total=" + _postFilterElapsed + " avg=" + String.format("%1.2f", (double) _postFilterElapsed / _postFilterUses));
-		
-		list.add("Pathfind: success=" + _findSuccess + ", fail=" + _findFails);
-		
-		return list;
 	}
 	
 	/**
@@ -1957,89 +1873,6 @@ public class GeoEngine
 		{
 			LOGGER.error("Couldn't save new entry to \"geo_bugs.txt\" file.", e);
 			return false;
-		}
-	}
-	
-	/**
-	 * NodeBuffer container with specified size and count of separate buffers.
-	 */
-	private static final class BufferHolder
-	{
-		final int _size;
-		final int _count;
-		final Set<NodeBuffer> _buffer;
-		
-		// statistics
-		int _playableUses = 0;
-		int _uses = 0;
-		int _playableOverflows = 0;
-		int _overflows = 0;
-		long _elapsed = 0;
-		
-		public BufferHolder(int size, int count)
-		{
-			_size = size;
-			_count = count * 4;
-			_buffer = ConcurrentHashMap.newKeySet(_count);
-			
-			for (int i = 0; i < count; i++)
-				_buffer.add(new NodeBuffer(size));
-		}
-		
-		public NodeBuffer getBuffer(boolean playable)
-		{
-			// Get available free NodeBuffer.
-			for (NodeBuffer buffer : _buffer)
-			{
-				if (!buffer.isLocked())
-					continue;
-				
-				_uses++;
-				if (playable)
-					_playableUses++;
-				
-				_elapsed += buffer.getElapsedTime();
-				return buffer;
-			}
-			
-			// No free NodeBuffer found, try allocate new buffer.
-			if (_buffer.size() < _count)
-			{
-				NodeBuffer buffer = new NodeBuffer(_size);
-				buffer.isLocked();
-				_buffer.add(buffer);
-				
-				if (_buffer.size() == _count)
-					LOGGER.warn("NodeBuffer holder with {} size reached max capacity.", _size);
-				
-				_uses++;
-				if (playable)
-					_playableUses++;
-				
-				return buffer;
-			}
-			
-			// Not possible to retrieve buffer.
-			_overflows++;
-			if (playable)
-				_playableOverflows++;
-			
-			return null;
-		}
-		
-		@Override
-		public String toString()
-		{
-			final StringBuilder sb = new StringBuilder(100);
-			
-			StringUtil.append(sb, "Buffer ", String.valueOf(_size), "x", String.valueOf(_size), ": count=", String.valueOf(_buffer.size()), " uses=", String.valueOf(_playableUses), "/", String.valueOf(_uses));
-			
-			if (_uses > 0)
-				StringUtil.append(sb, " total/avg(ms)=", String.valueOf(_elapsed), "/", String.format("%1.2f", (double) _elapsed / _uses));
-			
-			StringUtil.append(sb, " ovf=", String.valueOf(_playableOverflows), "/", String.valueOf(_overflows));
-			
-			return sb.toString();
 		}
 	}
 	

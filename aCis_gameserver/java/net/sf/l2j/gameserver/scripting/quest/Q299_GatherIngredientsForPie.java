@@ -27,10 +27,10 @@ public class Q299_GatherIngredientsForPie extends Quest
 		
 		setItemsIds(FRUIT_BASKET, AVELLAN_SPICE, HONEY_POUCH);
 		
-		addStartNpc(EMILY);
+		addQuestStart(EMILY);
 		addTalkId(EMILY, LARA, BRIGHT);
 		
-		addKillId(20934, 20935); // Wasp Worker, Wasp Leader
+		addMyDying(20934, 20935); // Wasp Worker, Wasp Leader
 	}
 	
 	@Override
@@ -73,7 +73,7 @@ public class Q299_GatherIngredientsForPie extends Quest
 		}
 		else if (event.equalsIgnoreCase("30620-7a.htm"))
 		{
-			if (player.getInventory().hasItems(FRUIT_BASKET))
+			if (player.getInventory().hasItem(FRUIT_BASKET))
 			{
 				htmltext = "30620-7.htm";
 				takeItems(player, FRUIT_BASKET, 1);
@@ -123,7 +123,7 @@ public class Q299_GatherIngredientsForPie extends Quest
 							htmltext = "30620-3a.htm";
 						else if (cond == 4)
 						{
-							if (player.getInventory().hasItems(AVELLAN_SPICE))
+							if (player.getInventory().hasItem(AVELLAN_SPICE))
 								htmltext = "30620-4.htm";
 							else
 							{
@@ -158,17 +158,15 @@ public class Q299_GatherIngredientsForPie extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMember(player, npc, 1);
 		if (st == null)
-			return null;
+			return;
 		
 		if (dropItems(st.getPlayer(), HONEY_POUCH, 1, 100, (npc.getNpcId() == 20934) ? 571000 : 625000))
 			st.setCond(2);
-		
-		return null;
 	}
 }

@@ -4,11 +4,15 @@ import net.sf.l2j.gameserver.model.pledge.ClanMember;
 
 public class PledgeReceivePowerInfo extends L2GameServerPacket
 {
-	private final ClanMember _member;
+	private final int _powerGrade;
+	private final String _name;
+	private final int _privs;
 	
 	public PledgeReceivePowerInfo(ClanMember member)
 	{
-		_member = member;
+		_powerGrade = member.getPowerGrade();
+		_name = member.getName();
+		_privs = member.getClan().getPrivilegesByRank(_powerGrade);
 	}
 	
 	@Override
@@ -17,8 +21,8 @@ public class PledgeReceivePowerInfo extends L2GameServerPacket
 		writeC(0xfe);
 		writeH(0x3c);
 		
-		writeD(_member.getPowerGrade());
-		writeS(_member.getName());
-		writeD(_member.getClan().getPrivilegesByRank(_member.getPowerGrade()));
+		writeD(_powerGrade);
+		writeS(_name);
+		writeD(_privs);
 	}
 }

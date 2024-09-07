@@ -16,10 +16,8 @@ public class RollingDices implements IItemHandler
 	@Override
 	public void useItem(Playable playable, ItemInstance item, boolean forceUse)
 	{
-		if (!(playable instanceof Player))
+		if (!(playable instanceof Player player))
 			return;
-		
-		final Player player = (Player) playable;
 		
 		if (!player.getClient().performAction(FloodProtector.ROLL_DICE))
 		{

@@ -3,78 +3,44 @@ package net.sf.l2j.gameserver.model.trade;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.item.kind.Item;
 
-public class TradeItem
+public class TradeItem extends ItemRequest
 {
-	private int _objectId;
-	private final Item _item;
-	private int _enchant;
-	private int _count;
+	private Item _item;
 	private int _quantity;
-	private int _price;
 	
 	public TradeItem(ItemInstance item, int count, int price)
 	{
-		_objectId = item.getObjectId();
+		super(item.getObjectId(), item.getItem().getItemId(), count, price, item.getEnchantLevel());
+		
 		_item = item.getItem();
-		_enchant = item.getEnchantLevel();
-		_count = count;
 		_quantity = count;
-		_price = price;
 	}
 	
 	public TradeItem(Item item, int count, int price, int enchant)
 	{
-		_objectId = 0;
+		super(0, item.getItemId(), count, price, enchant);
+		
 		_item = item;
-		_enchant = enchant;
-		_count = count;
 		_quantity = count;
-		_price = price;
 	}
 	
 	public TradeItem(TradeItem item, int count, int price)
 	{
-		_objectId = item.getObjectId();
+		super(item.getObjectId(), item.getItemId(), count, price, item.getEnchant());
+		
 		_item = item.getItem();
-		_enchant = item.getEnchant();
-		_count = count;
 		_quantity = count;
-		_price = price;
 	}
 	
-	public int getObjectId()
+	@Override
+	public String toString()
 	{
-		return _objectId;
-	}
-	
-	public void setObjectId(int objectId)
-	{
-		_objectId = objectId;
+		return "TradeItem [item=" + _item + ", quantity=" + _quantity + ", objectId=" + _objectId + ", itemId=" + _itemId + ", count=" + _count + ", price=" + _price + ", enchant=" + _enchant + "]";
 	}
 	
 	public Item getItem()
 	{
 		return _item;
-	}
-	
-	public int getEnchant()
-	{
-		return _enchant;
-	}
-	
-	public void setEnchant(int enchant)
-	{
-		_enchant = enchant;
-	}
-	
-	public int getCount()
-	{
-		return _count;
-	}
-	
-	public void setCount(int count)
-	{
-		_count = count;
 	}
 	
 	public int getQuantity()
@@ -85,15 +51,5 @@ public class TradeItem
 	public void setQuantity(int quantity)
 	{
 		_quantity = quantity;
-	}
-	
-	public int getPrice()
-	{
-		return _price;
-	}
-	
-	public void setPrice(int price)
-	{
-		_price = price;
 	}
 }

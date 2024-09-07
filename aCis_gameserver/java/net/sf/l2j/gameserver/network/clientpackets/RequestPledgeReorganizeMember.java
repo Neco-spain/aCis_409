@@ -1,8 +1,10 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
+import net.sf.l2j.gameserver.enums.PrivilegeType;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.model.pledge.ClanMember;
+import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.PledgeReceiveMemberInfo;
 
 public final class RequestPledgeReorganizeMember extends L2GameClientPacket
@@ -32,8 +34,11 @@ public final class RequestPledgeReorganizeMember extends L2GameClientPacket
 		if (clan == null)
 			return;
 		
-		if (!player.hasClanPrivileges(Clan.CP_CL_MANAGE_RANKS))
+		if (!player.hasClanPrivileges(PrivilegeType.SP_MANAGE_RANKS))
+		{
+			player.sendPacket(SystemMessageId.YOU_ARE_NOT_AUTHORIZED_TO_DO_THAT);
 			return;
+		}
 		
 		final ClanMember member1 = clan.getClanMember(_memberName);
 		

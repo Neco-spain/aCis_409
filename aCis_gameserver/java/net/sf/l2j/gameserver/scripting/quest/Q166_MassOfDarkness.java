@@ -29,7 +29,7 @@ public class Q166_MassOfDarkness extends Quest
 		
 		setItemsIds(UNDRIAS_LETTER, CEREMONIAL_DAGGER, DREVIANT_WINE, GARMIEL_SCRIPTURE);
 		
-		addStartNpc(UNDRIAS);
+		addQuestStart(UNDRIAS);
 		addTalkId(UNDRIAS, IRIA, DORANKUS, TRUDY);
 	}
 	
@@ -93,7 +93,7 @@ public class Q166_MassOfDarkness extends Quest
 						break;
 					
 					case IRIA:
-						if (cond == 1 && !player.getInventory().hasItems(CEREMONIAL_DAGGER))
+						if (cond == 1 && !player.getInventory().hasItem(CEREMONIAL_DAGGER))
 						{
 							htmltext = "30135-01.htm";
 							giveItems(player, CEREMONIAL_DAGGER, 1);
@@ -111,7 +111,7 @@ public class Q166_MassOfDarkness extends Quest
 						break;
 					
 					case DORANKUS:
-						if (cond == 1 && !player.getInventory().hasItems(DREVIANT_WINE))
+						if (cond == 1 && !player.getInventory().hasItem(DREVIANT_WINE))
 						{
 							htmltext = "30139-01.htm";
 							giveItems(player, DREVIANT_WINE, 1);
@@ -129,7 +129,7 @@ public class Q166_MassOfDarkness extends Quest
 						break;
 					
 					case TRUDY:
-						if (cond == 1 && !player.getInventory().hasItems(GARMIEL_SCRIPTURE))
+						if (cond == 1 && !player.getInventory().hasItem(GARMIEL_SCRIPTURE))
 						{
 							htmltext = "30143-01.htm";
 							giveItems(player, GARMIEL_SCRIPTURE, 1);

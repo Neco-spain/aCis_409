@@ -3,19 +3,20 @@ package net.sf.l2j.gameserver.network.serverpackets;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.sf.l2j.gameserver.data.manager.RelationManager;
 import net.sf.l2j.gameserver.data.sql.PlayerInfoTable;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
 
 public class FriendList extends L2GameServerPacket
 {
-	private final List<FriendInfo> _info;
+	private final List<FriendInfo> _info = new ArrayList<>(0);
 	
 	private static class FriendInfo
 	{
-		int _objId;
-		String _name;
-		boolean _online;
+		private final int _objId;
+		private final String _name;
+		private final boolean _online;
 		
 		public FriendInfo(int objId, String name, boolean online)
 		{
@@ -27,9 +28,7 @@ public class FriendList extends L2GameServerPacket
 	
 	public FriendList(Player player)
 	{
-		_info = new ArrayList<>(player.getFriendList().size());
-		
-		for (int objId : player.getFriendList())
+		for (int objId : RelationManager.getInstance().getFriendList(player.getObjectId()))
 		{
 			final String name = PlayerInfoTable.getInstance().getPlayerName(objId);
 			final Player player1 = World.getInstance().getPlayer(objId);

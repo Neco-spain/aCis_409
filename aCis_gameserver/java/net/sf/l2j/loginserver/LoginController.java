@@ -31,7 +31,7 @@ import net.sf.l2j.loginserver.network.serverpackets.ServerList;
 
 public class LoginController
 {
-	protected static final CLogger LOGGER = new CLogger(LoginController.class.getName());
+	private static final CLogger LOGGER = new CLogger(LoginController.class.getName());
 	
 	public static final int LOGIN_TIMEOUT = 60 * 1000;
 	
@@ -187,31 +187,31 @@ public class LoginController
 		}
 		
 		// Account is already set on ls, return.
-		if (isAccountInAnyGameServer(login))
+		final GameServerInfo gsi = getAccountOnGameServer(login);
+		if (gsi != null)
 		{
-			final GameServerInfo gsi = LoginController.getInstance().getAccountOnGameServer(login);
-			if (gsi != null)
-			{
-				client.close(LoginFail.REASON_ACCOUNT_IN_USE);
-				
-				if (gsi.isAuthed())
-					gsi.getGameServerThread().kickPlayer(login);
-			}
+			client.close(LoginFail.REASON_ACCOUNT_IN_USE);
+			
+			if (gsi.isAuthed())
+				gsi.getGameServerThread().kickPlayer(login);
+			
 			return;
 		}
 		
 		// Account is already set on gs, close the previous client.
 		if (_clients.putIfAbsent(login, client) != null)
 		{
-			final LoginClient oldClient = LoginController.getInstance().getAuthedClient(login);
+			final LoginClient oldClient = getAuthedClient(login);
 			if (oldClient != null)
 			{
 				oldClient.close(LoginFail.REASON_ACCOUNT_IN_USE);
-				LoginController.getInstance().removeAuthedLoginClient(login);
+				removeAuthedLoginClient(login);
 			}
 			client.close(LoginFail.REASON_ACCOUNT_IN_USE);
 			return;
 		}
+		
+		account.setClientIp(addr);
 		
 		client.setAccount(account);
 		client.setState(LoginClientState.AUTHED_LOGIN);
@@ -223,17 +223,6 @@ public class LoginController
 	{
 		final LoginClient client = _clients.get(account);
 		return (client == null) ? null : client.getSessionKey();
-	}
-	
-	public boolean isAccountInAnyGameServer(String account)
-	{
-		for (GameServerInfo gsi : GameServerManager.getInstance().getRegisteredGameServers().values())
-		{
-			final GameServerThread gst = gsi.getGameServerThread();
-			if (gst != null && gst.hasAccountOnGameServer(account))
-				return true;
-		}
-		return false;
 	}
 	
 	public GameServerInfo getAccountOnGameServer(String account)

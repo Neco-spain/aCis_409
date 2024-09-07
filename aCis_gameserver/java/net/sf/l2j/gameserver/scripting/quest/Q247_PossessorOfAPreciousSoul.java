@@ -23,7 +23,7 @@ public class Q247_PossessorOfAPreciousSoul extends Quest
 	{
 		super(247, "Possessor of a Precious Soul - 4");
 		
-		addStartNpc(CARADINE);
+		addQuestStart(CARADINE);
 		addTalkId(CARADINE, LADY_OF_THE_LAKE);
 	}
 	
@@ -73,7 +73,7 @@ public class Q247_PossessorOfAPreciousSoul extends Quest
 		switch (st.getState())
 		{
 			case CREATED:
-				if (player.getInventory().hasItems(CARADINE_LETTER))
+				if (player.getInventory().hasItem(CARADINE_LETTER))
 					htmltext = (!player.isSubClassActive() || player.getStatus().getLevel() < 75) ? "31740-02.htm" : "31740-01.htm";
 				break;
 			

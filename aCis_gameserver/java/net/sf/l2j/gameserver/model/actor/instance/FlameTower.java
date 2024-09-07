@@ -9,10 +9,12 @@ import net.sf.l2j.gameserver.model.actor.Npc;
 import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
-import net.sf.l2j.gameserver.model.spawn.Spawn;
 import net.sf.l2j.gameserver.model.zone.type.subtype.CastleZoneType;
 import net.sf.l2j.gameserver.model.zone.type.subtype.ZoneType;
 import net.sf.l2j.gameserver.network.SystemMessageId;
+import net.sf.l2j.gameserver.network.serverpackets.AbstractNpcInfo.NpcInfo;
+import net.sf.l2j.gameserver.network.serverpackets.ServerObjectInfo;
+import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class FlameTower extends Npc
 {
@@ -25,6 +27,14 @@ public class FlameTower extends Npc
 	}
 	
 	@Override
+	public void deleteMe()
+	{
+		enableZones(false);
+		
+		super.deleteMe();
+	}
+	
+	@Override
 	public boolean isAttackableBy(Creature attacker)
 	{
 		if (!super.isAttackableBy(attacker))
@@ -34,7 +44,7 @@ public class FlameTower extends Npc
 			return false;
 		
 		if (getCastle() != null && getCastle().getSiege().isInProgress())
-			return getCastle().getSiege().checkSides(attacker.getActingPlayer().getClan(), SiegeSide.ATTACKER);
+			return getPolymorphTemplate() != null && getCastle().getSiege().checkSides(attacker.getActingPlayer().getClan(), SiegeSide.ATTACKER);
 		
 		return false;
 	}
@@ -48,50 +58,32 @@ public class FlameTower extends Npc
 	@Override
 	public void onInteract(Player player)
 	{
+		// Do nothing.
 	}
 	
 	@Override
-	public boolean doDie(Creature killer)
+	public void reduceCurrentHp(double damage, Creature attacker, boolean awake, boolean isDOT, L2Skill skill)
 	{
-		enableZones(false);
+		super.reduceCurrentHp(damage, attacker, awake, isDOT, skill);
 		
-		if (getCastle() != null)
+		if (getCastle() != null && getCastle().getSiege().isInProgress() && getPolymorphTemplate() != null && getStatus().getHp() <= 1)
 		{
+			unpolymorph();
+			enableZones(false);
+			
 			// Message occurs only if the trap was triggered first.
 			if (_zoneList != null && _upgradeLevel != 0)
 				getCastle().getSiege().announce(SystemMessageId.A_TRAP_DEVICE_HAS_BEEN_STOPPED, SiegeSide.DEFENDER);
-			
-			// Spawn a little version of it. This version is a simple NPC, cleaned on siege end.
-			try
-			{
-				final Spawn spawn = new Spawn(13005);
-				spawn.setLoc(getPosition());
-				
-				final Npc tower = spawn.doSpawn(false);
-				tower.setCastle(getCastle());
-				
-				getCastle().getSiege().getDestroyedTowers().add(tower);
-			}
-			catch (Exception e)
-			{
-				LOGGER.error("Couldn't spawn the flame tower.", e);
-			}
 		}
-		
-		return super.doDie(killer);
 	}
 	
 	@Override
-	public boolean hasRandomAnimation()
+	public void sendInfo(Player player)
 	{
-		return false;
-	}
-	
-	@Override
-	public void deleteMe()
-	{
-		enableZones(false);
-		super.deleteMe();
+		if (getPolymorphTemplate() != null)
+			player.sendPacket(new NpcInfo(this, player));
+		else
+			player.sendPacket(new ServerObjectInfo(this, player));
 	}
 	
 	public final void enableZones(boolean state)
@@ -102,8 +94,8 @@ public class FlameTower extends Npc
 			for (int i = 0; i < maxIndex; i++)
 			{
 				final ZoneType zone = ZoneManager.getInstance().getZoneById(_zoneList.get(i));
-				if (zone instanceof CastleZoneType)
-					((CastleZoneType) zone).setEnabled(state);
+				if (zone instanceof CastleZoneType czt)
+					czt.setEnabled(state);
 			}
 		}
 	}
@@ -116,6 +108,7 @@ public class FlameTower extends Npc
 	public final void setZoneList(List<Integer> list)
 	{
 		_zoneList = list;
+		
 		enableZones(true);
 	}
 }

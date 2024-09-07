@@ -31,10 +31,10 @@ public class Q406_PathToAnElvenKnight extends Quest
 		
 		setItemsIds(SORIUS_LETTER, KLUTO_BOX, TOPAZ_PIECE, EMERALD_PIECE, KLUTO_MEMO);
 		
-		addStartNpc(SORIUS);
+		addQuestStart(SORIUS);
 		addTalkId(SORIUS, KLUTO);
 		
-		addKillId(20035, 20042, 20045, 20051, 20054, 20060, 20782);
+		addMyDying(20035, 20042, 20045, 20051, 20054, 20060, 20782);
 	}
 	
 	@Override
@@ -51,7 +51,7 @@ public class Q406_PathToAnElvenKnight extends Quest
 				htmltext = (player.getClassId() == ClassId.ELVEN_KNIGHT) ? "30327-02a.htm" : "30327-02.htm";
 			else if (player.getStatus().getLevel() < 19)
 				htmltext = "30327-03.htm";
-			else if (player.getInventory().hasItems(ELVEN_KNIGHT_BROOCH))
+			else if (player.getInventory().hasItem(ELVEN_KNIGHT_BROOCH))
 				htmltext = "30327-04.htm";
 		}
 		else if (event.equalsIgnoreCase("30327-06.htm"))
@@ -91,7 +91,7 @@ public class Q406_PathToAnElvenKnight extends Quest
 				{
 					case SORIUS:
 						if (cond == 1)
-							htmltext = (!player.getInventory().hasItems(TOPAZ_PIECE)) ? "30327-07.htm" : "30327-08.htm";
+							htmltext = (!player.getInventory().hasItem(TOPAZ_PIECE)) ? "30327-07.htm" : "30327-08.htm";
 						else if (cond == 2)
 						{
 							htmltext = "30327-09.htm";
@@ -118,7 +118,7 @@ public class Q406_PathToAnElvenKnight extends Quest
 						if (cond == 3)
 							htmltext = "30317-01.htm";
 						else if (cond == 4)
-							htmltext = (!player.getInventory().hasItems(EMERALD_PIECE)) ? "30317-03.htm" : "30317-04.htm";
+							htmltext = (!player.getInventory().hasItem(EMERALD_PIECE)) ? "30317-03.htm" : "30317-04.htm";
 						else if (cond == 5)
 						{
 							htmltext = "30317-05.htm";
@@ -139,22 +139,17 @@ public class Q406_PathToAnElvenKnight extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
-			case 20035:
-			case 20042:
-			case 20045:
-			case 20051:
-			case 20054:
-			case 20060:
+			case 20035, 20042, 20045, 20051, 20054, 20060:
 				if (st.getCond() == 1 && dropItems(player, TOPAZ_PIECE, 1, 20, 700000))
 					st.setCond(2);
 				break;
@@ -164,7 +159,5 @@ public class Q406_PathToAnElvenKnight extends Quest
 					st.setCond(5);
 				break;
 		}
-		
-		return null;
 	}
 }

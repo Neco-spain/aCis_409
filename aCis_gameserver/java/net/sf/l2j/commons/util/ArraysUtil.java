@@ -4,6 +4,11 @@ import java.util.Arrays;
 
 public class ArraysUtil
 {
+	private ArraysUtil()
+	{
+		throw new IllegalStateException("Utility class");
+	}
+	
 	public static final int[] EMPTY_INT_ARRAY = {};
 	
 	/**

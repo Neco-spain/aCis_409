@@ -3,7 +3,6 @@ package net.sf.l2j.gameserver.network.clientpackets;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Pet;
 import net.sf.l2j.gameserver.network.SystemMessageId;
-import net.sf.l2j.gameserver.network.serverpackets.EnchantResult;
 
 public final class RequestGetItemFromPet extends L2GameClientPacket
 {
@@ -36,15 +35,10 @@ public final class RequestGetItemFromPet extends L2GameClientPacket
 			return;
 		}
 		
-		if (player.getActiveEnchantItem() != null)
-		{
-			player.setActiveEnchantItem(null);
-			player.sendPacket(EnchantResult.CANCELLED);
-			player.sendPacket(SystemMessageId.ENCHANT_SCROLL_CANCELLED);
-		}
+		player.cancelActiveEnchant();
 		
 		final Pet pet = (Pet) player.getSummon();
 		
-		pet.transferItem("Transfer", _objectId, _amount, player.getInventory(), player, pet);
+		pet.transferItem(_objectId, _amount, player);
 	}
 }

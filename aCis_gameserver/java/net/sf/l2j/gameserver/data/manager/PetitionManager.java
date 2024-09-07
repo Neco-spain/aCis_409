@@ -16,6 +16,7 @@ import net.sf.l2j.gameserver.data.xml.AdminData;
 import net.sf.l2j.gameserver.enums.SayType;
 import net.sf.l2j.gameserver.enums.petitions.PetitionState;
 import net.sf.l2j.gameserver.enums.petitions.PetitionType;
+import net.sf.l2j.gameserver.idfactory.IdFactory;
 import net.sf.l2j.gameserver.model.Petition;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.network.serverpackets.CreatureSay;
@@ -27,14 +28,14 @@ import net.sf.l2j.gameserver.network.serverpackets.CreatureSay;
  */
 public final class PetitionManager
 {
-	protected static final CLogger LOGGER = new CLogger(PetitionManager.class.getName());
+	private static final CLogger LOGGER = new CLogger(PetitionManager.class.getName());
 	
 	private static final String SELECT_PETITIONS = "SELECT * FROM petition ORDER BY oid ASC";
-	private static final String TRUNCATE_PETITIONS = "TRUNCATE TABLE petition";
+	private static final String TRUNCATE_PETITIONS = "TRUNCATE petition";
 	private static final String INSERT_PETITION = "INSERT INTO petition (oid, type, petitioner_oid, submit_date, content, is_unread, state, rate, feedback, responders) VALUES (?,?,?,?,?,?,?,?,?,?)";
 	
 	private static final String SELECT_PETITION_MESSAGES = "SELECT * FROM petition_message ORDER BY id ASC, petition_oid ASC";
-	private static final String TRUNCATE_PETITION_MESSAGES = "TRUNCATE TABLE petition_message";
+	private static final String TRUNCATE_PETITION_MESSAGES = "TRUNCATE petition_message";
 	private static final String INSERT_PETITION_MESSAGE = "INSERT INTO petition_message (id, petition_oid, player_oid, type, player_name, content) VALUES (?,?,?,?,?,?)";
 	
 	private final Map<Integer, Petition> _petitions = new ConcurrentSkipListMap<>();
@@ -77,7 +78,7 @@ public final class PetitionManager
 	
 	public List<Petition> getPetitions(Predicate<Petition> predicate)
 	{
-		return _petitions.values().stream().filter(predicate).collect(Collectors.toList());
+		return _petitions.values().stream().filter(predicate).toList();
 	}
 	
 	/**
@@ -264,6 +265,18 @@ public final class PetitionManager
 			return;
 		
 		petition.showCompleteLog(player);
+	}
+	
+	/**
+	 * Release all ids and clear the Map.
+	 */
+	public void clearPetitions()
+	{
+		// Release all ids.
+		_petitions.values().forEach(p -> IdFactory.getInstance().releaseId(p.getId()));
+		
+		// Clear the Map.
+		_petitions.clear();
 	}
 	
 	public void store()

@@ -6,8 +6,8 @@ import java.util.logging.LogRecord;
 public class ErrorFilter implements Filter
 {
 	@Override
-	public boolean isLoggable(LogRecord record)
+	public boolean isLoggable(LogRecord logRecord)
 	{
-		return record.getThrown() != null;
+		return logRecord.getThrown() != null;
 	}
 }

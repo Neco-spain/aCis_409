@@ -1,9 +1,9 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
-import net.sf.l2j.gameserver.data.manager.BoatManager;
+import net.sf.l2j.gameserver.data.xml.BoatData;
 import net.sf.l2j.gameserver.model.actor.Boat;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.network.SystemMessageId;
+import net.sf.l2j.gameserver.model.actor.container.player.BoatInfo;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 import net.sf.l2j.gameserver.network.serverpackets.GetOnVehicle;
 
@@ -30,38 +30,32 @@ public final class RequestGetOnVehicle extends L2GameClientPacket
 		if (player == null)
 			return;
 		
-		Boat boat;
-		if (player.isInBoat())
+		final BoatInfo info = player.getBoatInfo();
+		
+		if (!info.canBoard())
 		{
-			boat = player.getBoat();
-			if (boat.getObjectId() != _boatId)
-			{
-				sendPacket(ActionFailed.STATIC_PACKET);
-				return;
-			}
+			sendPacket(ActionFailed.STATIC_PACKET);
+			return;
 		}
-		else
+		final boolean isInBoat = info.isInBoat();
+		final Boat boat = isInBoat ? info.getBoat() : BoatData.getInstance().getBoat(_boatId);
+		
+		if (boat == null || (isInBoat && boat.getObjectId() != _boatId))
 		{
-			boat = BoatManager.getInstance().getBoat(_boatId);
-			if (boat == null)
-			{
-				sendPacket(ActionFailed.STATIC_PACKET);
-				return;
-			}
-			
-			// It is only here as first shot warning. Player can actually onboard freely.
-			if (player.getSummon() != null)
-				player.sendPacket(SystemMessageId.RELEASE_PET_ON_BOAT);
-			
-			// Assigning boat and its coordinates to the player.
-			player.setBoat(boat);
-			player.setXYZ(boat.getX(), boat.getY(), boat.getZ());
-			player.revalidateZone(true);
-			
-			// In case player jumped into departing boat.
-			if (boat.isMoving())
-				boat.addPassenger(player);
+			sendPacket(ActionFailed.STATIC_PACKET);
+			return;
 		}
+		
+		// Summon is not allowed to board. Player can actually onboard freely.
+		if (player.getSummon() != null)
+			player.getSummon().unSummon(player);
+		
+		// Assigning boat and its coordinates to the player.
+		info.setBoat(boat);
+		player.setXYZ(boat.getX(), boat.getY(), boat.getZ());
+		player.revalidateZone(true);
+		
+		boat.addPassenger(player);
 		
 		player.broadcastPacket(new GetOnVehicle(player.getObjectId(), boat.getObjectId(), _x, _y, _z));
 	}

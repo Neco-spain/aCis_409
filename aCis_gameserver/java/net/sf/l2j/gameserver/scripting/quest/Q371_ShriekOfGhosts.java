@@ -25,8 +25,12 @@ public class Q371_ShriekOfGhosts extends Quest
 	private static final int PORCELAIN = 6002;
 	
 	// Drop chances
-	private static final Map<Integer, int[]> CHANCES = new HashMap<>();
+	private static final Map<Integer, int[]> CHANCES = HashMap.newHashMap(3);
+	
+	public Q371_ShriekOfGhosts()
 	{
+		super(371, "Shriek of Ghosts");
+		
 		CHANCES.put(20818, new int[]
 		{
 			38,
@@ -42,18 +46,13 @@ public class Q371_ShriekOfGhosts extends Quest
 			50,
 			58
 		});
-	}
-	
-	public Q371_ShriekOfGhosts()
-	{
-		super(371, "Shriek of Ghosts");
 		
 		setItemsIds(URN, PORCELAIN);
 		
-		addStartNpc(REVA);
+		addQuestStart(REVA);
 		addTalkId(REVA, PATRIN);
 		
-		addKillId(20818, 20820, 20824);
+		addMyDying(20818, 20820, 20824);
 	}
 	
 	@Override
@@ -93,7 +92,7 @@ public class Q371_ShriekOfGhosts extends Quest
 		}
 		else if (event.equalsIgnoreCase("APPR"))
 		{
-			if (player.getInventory().hasItems(PORCELAIN))
+			if (player.getInventory().hasItem(PORCELAIN))
 			{
 				int chance = Rnd.get(100);
 				
@@ -147,8 +146,8 @@ public class Q371_ShriekOfGhosts extends Quest
 				switch (npc.getNpcId())
 				{
 					case REVA:
-						if (player.getInventory().hasItems(URN))
-							htmltext = (player.getInventory().hasItems(PORCELAIN)) ? "30867-05.htm" : "30867-04.htm";
+						if (player.getInventory().hasItem(URN))
+							htmltext = (player.getInventory().hasItem(PORCELAIN)) ? "30867-05.htm" : "30867-04.htm";
 						else
 							htmltext = "30867-06.htm";
 						break;
@@ -164,20 +163,18 @@ public class Q371_ShriekOfGhosts extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMemberState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final int[] chances = CHANCES.get(npc.getNpcId());
 		final int random = Rnd.get(100);
 		
 		if (random < chances[1])
 			dropItemsAlways(st.getPlayer(), (random < chances[0]) ? URN : PORCELAIN, 1, 0);
-		
-		return null;
 	}
 }

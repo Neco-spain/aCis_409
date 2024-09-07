@@ -23,8 +23,8 @@ public class AttackableStatus extends NpcStatus<Attackable>
 		if (_actor.isDead())
 			return;
 		
-		if (_actor instanceof Monster)
-			((Monster) _actor).getOverhitState().test(attacker, value);
+		if (_actor instanceof Monster monster)
+			monster.getOverhitState().test(attacker, value);
 		
 		super.reduceHp(value, attacker, awake, isDOT, isHpConsumption);
 	}

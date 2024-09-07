@@ -15,14 +15,14 @@ public class PeaceZone extends ZoneType
 	}
 	
 	@Override
-	protected void onEnter(Creature character)
+	protected void onEnter(Creature creature)
 	{
-		character.setInsideZone(ZoneId.PEACE, true);
+		creature.setInsideZone(ZoneId.PEACE, true);
 	}
 	
 	@Override
-	protected void onExit(Creature character)
+	protected void onExit(Creature creature)
 	{
-		character.setInsideZone(ZoneId.PEACE, false);
+		creature.setInsideZone(ZoneId.PEACE, false);
 	}
 }

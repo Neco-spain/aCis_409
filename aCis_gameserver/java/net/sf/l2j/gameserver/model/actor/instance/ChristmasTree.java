@@ -31,14 +31,11 @@ public class ChristmasTree extends Folk
 			if (recoveryAura == null)
 				return;
 			
-			_aiTask = ThreadPool.scheduleAtFixedRate(() ->
+			_aiTask = ThreadPool.scheduleAtFixedRate(() -> forEachKnownTypeInRadius(Player.class, 200, player ->
 			{
-				for (Player player : getKnownTypeInRadius(Player.class, 200))
-				{
-					if (player.getFirstEffect(recoveryAura) == null)
-						recoveryAura.getEffects(player, player);
-				}
-			}, 3000, 3000);
+				if (player.getFirstEffect(recoveryAura) == null)
+					recoveryAura.getEffects(player, player);
+			}), 3000, 3000);
 		}
 	}
 	

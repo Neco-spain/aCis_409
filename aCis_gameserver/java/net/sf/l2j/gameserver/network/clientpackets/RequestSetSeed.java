@@ -5,10 +5,10 @@ import java.util.List;
 
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.manager.CastleManorManager;
+import net.sf.l2j.gameserver.enums.PrivilegeType;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.manor.Seed;
 import net.sf.l2j.gameserver.model.manor.SeedProduction;
-import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
 
 public class RequestSetSeed extends L2GameClientPacket
@@ -58,7 +58,7 @@ public class RequestSetSeed extends L2GameClientPacket
 		
 		// Check player privileges
 		final Player player = getClient().getPlayer();
-		if (player == null || player.getClan() == null || player.getClan().getCastleId() != _manorId || !player.hasClanPrivileges(Clan.CP_CS_MANOR_ADMIN) || !player.getAI().canDoInteract(player.getCurrentFolk()))
+		if (player == null || player.getClan() == null || player.getClan().getCastleId() != _manorId || !player.hasClanPrivileges(PrivilegeType.CP_MANOR_ADMINISTRATION) || !player.getAI().canDoInteract(player.getCurrentFolk()))
 		{
 			sendPacket(ActionFailed.STATIC_PACKET);
 			return;
@@ -69,7 +69,7 @@ public class RequestSetSeed extends L2GameClientPacket
 		for (SeedProduction sp : _items)
 		{
 			final Seed s = manor.getSeed(sp.getId());
-			if (s != null && sp.getStartAmount() <= s.getSeedLimit() && sp.getPrice() >= s.getSeedMinPrice() && sp.getPrice() <= s.getSeedMaxPrice())
+			if (s != null && sp.getStartAmount() <= s.getSeedsLimit() && sp.getPrice() >= s.getSeedMinPrice() && sp.getPrice() <= s.getSeedMaxPrice())
 				list.add(sp);
 		}
 		

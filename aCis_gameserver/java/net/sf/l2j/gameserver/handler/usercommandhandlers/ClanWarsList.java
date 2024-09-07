@@ -35,8 +35,24 @@ public class ClanWarsList implements IUserCommandHandler
 			return;
 		}
 		
+		String query;
+		switch (id)
+		{
+			case 88:
+				query = SELECT_ATTACK_LIST;
+				break;
+			
+			case 89:
+				query = SELECT_UNDER_ATTACK_LIST;
+				break;
+			
+			default:
+				query = SELECT_WAR_LIST;
+				break;
+		}
+		
 		try (Connection con = ConnectionPool.getConnection();
-			PreparedStatement ps = con.prepareStatement((id == 88) ? SELECT_ATTACK_LIST : ((id == 89) ? SELECT_UNDER_ATTACK_LIST : SELECT_WAR_LIST)))
+			PreparedStatement ps = con.prepareStatement(query))
 		{
 			ps.setInt(1, clan.getClanId());
 			ps.setInt(2, clan.getClanId());
@@ -45,12 +61,20 @@ public class ClanWarsList implements IUserCommandHandler
 			{
 				if (rs.first())
 				{
-					if (id == 88)
-						player.sendPacket(SystemMessageId.CLANS_YOU_DECLARED_WAR_ON);
-					else if (id == 89)
-						player.sendPacket(SystemMessageId.CLANS_THAT_HAVE_DECLARED_WAR_ON_YOU);
-					else
-						player.sendPacket(SystemMessageId.WAR_LIST);
+					switch (id)
+					{
+						case 88:
+							player.sendPacket(SystemMessageId.CLANS_YOU_DECLARED_WAR_ON);
+							break;
+						
+						case 89:
+							player.sendPacket(SystemMessageId.CLANS_THAT_HAVE_DECLARED_WAR_ON_YOU);
+							break;
+						
+						default:
+							player.sendPacket(SystemMessageId.WAR_LIST);
+							break;
+					}
 					
 					SystemMessage sm;
 					while (rs.next())
@@ -79,6 +103,7 @@ public class ClanWarsList implements IUserCommandHandler
 		}
 		catch (Exception e)
 		{
+			// Do nothing.
 		}
 	}
 	

@@ -274,12 +274,7 @@ public class EffectList
 			{
 				switch (e.getSkill().getSkillType())
 				{
-					case BUFF:
-					case COMBATPOINTHEAL:
-					case REFLECT:
-					case HEAL_PERCENT:
-					case HEAL_STATIC:
-					case MANAHEAL_PERCENT:
+					case BUFF, COMBATPOINTHEAL, REFLECT, HEAL_PERCENT, HEAL_STATIC, MANAHEAL_PERCENT:
 						buffCount++;
 				}
 			}
@@ -648,12 +643,7 @@ public class EffectList
 				{
 					switch (newSkill.getSkillType())
 					{
-						case BUFF:
-						case REFLECT:
-						case HEAL_PERCENT:
-						case HEAL_STATIC:
-						case MANAHEAL_PERCENT:
-						case COMBATPOINTHEAL:
+						case BUFF, REFLECT, HEAL_PERCENT, HEAL_STATIC, MANAHEAL_PERCENT, COMBATPOINTHEAL:
 							for (AbstractEffect e : _buffs)
 							{
 								if (e == null)
@@ -661,21 +651,19 @@ public class EffectList
 								
 								switch (e.getSkill().getSkillType())
 								{
-									case BUFF:
-									case REFLECT:
-									case HEAL_PERCENT:
-									case HEAL_STATIC:
-									case MANAHEAL_PERCENT:
-									case COMBATPOINTHEAL:
+									case BUFF, REFLECT, HEAL_PERCENT, HEAL_STATIC, MANAHEAL_PERCENT, COMBATPOINTHEAL:
 										e.exit();
 										effectsToRemove--;
-										break; // break switch()
+										break;
+									
 									default:
-										continue; // continue for()
+										continue;
 								}
+								
 								if (effectsToRemove < 0)
-									break; // break for()
+									break;
 							}
+							break;
 					}
 				}
 			}
@@ -796,21 +784,21 @@ public class EffectList
 		PartySpelled ps = null;
 		ExOlympiadSpelledInfo os = null;
 		
-		if (_owner instanceof Player)
+		if (_owner instanceof Player player)
 		{
 			if (_partyOnly)
 				_partyOnly = false;
 			else
 				mi = new AbnormalStatusUpdate();
 			
-			if (_owner.isInParty())
-				ps = new PartySpelled(_owner);
+			if (player.isInParty())
+				ps = new PartySpelled(player);
 			
-			if (((Player) _owner).isInOlympiadMode() && ((Player) _owner).isOlympiadStart())
-				os = new ExOlympiadSpelledInfo((Player) _owner);
+			if (player.isInOlympiadMode() && player.isOlympiadStart())
+				os = new ExOlympiadSpelledInfo(player);
 		}
-		else if (_owner instanceof Summon)
-			ps = new PartySpelled(_owner);
+		else if (_owner instanceof Summon summon)
+			ps = new PartySpelled(summon);
 		
 		if (_buffs != null && !_buffs.isEmpty())
 		{
@@ -859,9 +847,9 @@ public class EffectList
 		
 		if (ps != null)
 		{
-			if (_owner instanceof Summon)
+			if (_owner instanceof Summon summon)
 			{
-				final Player summonOwner = ((Summon) _owner).getOwner();
+				final Player summonOwner = summon.getOwner();
 				if (summonOwner != null)
 				{
 					final Party party = summonOwner.getParty();
@@ -871,8 +859,8 @@ public class EffectList
 						summonOwner.sendPacket(ps);
 				}
 			}
-			else if (_owner instanceof Player && _owner.isInParty())
-				_owner.getParty().broadcastPacket(ps);
+			else if (_owner instanceof Player player && player.isInParty())
+				player.getParty().broadcastPacket(ps);
 		}
 		
 		if (os != null)

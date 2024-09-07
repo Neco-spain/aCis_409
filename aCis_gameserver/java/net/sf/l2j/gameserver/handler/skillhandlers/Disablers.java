@@ -14,6 +14,7 @@ import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.Summon;
 import net.sf.l2j.gameserver.model.actor.instance.SiegeSummon;
+import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.skills.AbstractEffect;
@@ -42,76 +43,57 @@ public class Disablers implements ISkillHandler
 	};
 	
 	@Override
-	public void useSkill(Creature activeChar, L2Skill skill, WorldObject[] targets)
+	public void useSkill(Creature creature, L2Skill skill, WorldObject[] targets, ItemInstance item)
 	{
 		final SkillType type = skill.getSkillType();
 		
-		final boolean bsps = activeChar.isChargedShot(ShotType.BLESSED_SPIRITSHOT);
+		final boolean bsps = creature.isChargedShot(ShotType.BLESSED_SPIRITSHOT);
 		
 		for (WorldObject obj : targets)
 		{
-			if (!(obj instanceof Creature))
+			if (!(obj instanceof Creature targetCreature))
 				continue;
 			
-			Creature target = (Creature) obj;
-			if (target.isDead() || (target.isInvul() && !target.isParalyzed())) // bypass if target is dead or invul (excluding invul from Petrification)
+			// Bypass if target is dead or invul (excluding invul from Petrification)
+			if (targetCreature.isDead() || (targetCreature.isInvul() && !targetCreature.isParalyzed()))
 				continue;
 			
-			if (skill.isOffensive() && target.getFirstEffect(EffectType.BLOCK_DEBUFF) != null)
+			if (skill.isOffensive() && targetCreature.getFirstEffect(EffectType.BLOCK_DEBUFF) != null)
 				continue;
 			
-			final ShieldDefense sDef = Formulas.calcShldUse(activeChar, target, skill, false);
+			final ShieldDefense sDef = Formulas.calcShldUse(creature, targetCreature, skill, false);
 			
 			switch (type)
 			{
 				case BETRAY:
-					if (Formulas.calcSkillSuccess(activeChar, target, skill, sDef, bsps))
-						skill.getEffects(activeChar, target, sDef, bsps);
-					else
-						activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(target).addSkillName(skill));
+					if (Formulas.calcSkillSuccess(creature, targetCreature, skill, sDef, bsps))
+						skill.getEffects(creature, targetCreature, sDef, bsps);
+					else if (creature instanceof Player player)
+						player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(targetCreature).addSkillName(skill));
 					break;
 				
 				case FAKE_DEATH:
-					// stun/fakedeath is not mdef dependant, it depends on lvl difference, target CON and power of stun
-					skill.getEffects(activeChar, target, sDef, bsps);
+					skill.getEffects(creature, targetCreature, sDef, bsps);
 					break;
 				
-				case ROOT:
-				case STUN:
-					if (Formulas.calcSkillReflect(target, skill) == Formulas.SKILL_REFLECT_SUCCEED)
-						target = activeChar;
+				case ROOT, STUN, SLEEP, PARALYZE:
+					if (Formulas.calcSkillReflect(targetCreature, skill) == Formulas.SKILL_REFLECT_SUCCEED)
+						targetCreature = creature;
 					
-					if (Formulas.calcSkillSuccess(activeChar, target, skill, sDef, bsps))
-						skill.getEffects(activeChar, target, sDef, bsps);
-					else
-					{
-						if (activeChar instanceof Player)
-							activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(target).addSkillName(skill.getId()));
-					}
-					break;
-				
-				case SLEEP:
-				case PARALYZE: // use same as root for now
-					if (Formulas.calcSkillReflect(target, skill) == Formulas.SKILL_REFLECT_SUCCEED)
-						target = activeChar;
-					
-					if (Formulas.calcSkillSuccess(activeChar, target, skill, sDef, bsps))
-						skill.getEffects(activeChar, target, sDef, bsps);
-					else
-					{
-						if (activeChar instanceof Player)
-							activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(target).addSkillName(skill.getId()));
-					}
+					if (Formulas.calcSkillSuccess(creature, targetCreature, skill, sDef, bsps))
+						skill.getEffects(creature, targetCreature, sDef, bsps);
+					else if (creature instanceof Player player)
+						player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(targetCreature).addSkillName(skill.getId()));
 					break;
 				
 				case MUTE:
-					if (Formulas.calcSkillReflect(target, skill) == Formulas.SKILL_REFLECT_SUCCEED)
-						target = activeChar;
+					if (Formulas.calcSkillReflect(targetCreature, skill) == Formulas.SKILL_REFLECT_SUCCEED)
+						targetCreature = creature;
 					
-					if (Formulas.calcSkillSuccess(activeChar, target, skill, sDef, bsps))
+					if (Formulas.calcSkillSuccess(creature, targetCreature, skill, sDef, bsps))
 					{
 						// stop same type effect if available
-						for (AbstractEffect effect : target.getAllEffects())
+						for (AbstractEffect effect : targetCreature.getAllEffects())
 						{
 							if (effect.getTemplate().getStackOrder() == 99)
 								continue;
@@ -119,22 +101,19 @@ public class Disablers implements ISkillHandler
 							if (effect.getSkill().getSkillType() == type)
 								effect.exit();
 						}
-						skill.getEffects(activeChar, target, sDef, bsps);
+						skill.getEffects(creature, targetCreature, sDef, bsps);
 					}
-					else
-					{
-						if (activeChar instanceof Player)
-							activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(target).addSkillName(skill.getId()));
-					}
+					else if (creature instanceof Player player)
+						player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(targetCreature).addSkillName(skill.getId()));
 					break;
 				
 				case CONFUSION:
 					// do nothing if not on mob
-					if (target instanceof Attackable)
+					if (targetCreature instanceof Attackable targetAttackable)
 					{
-						if (Formulas.calcSkillSuccess(activeChar, target, skill, sDef, bsps))
+						if (Formulas.calcSkillSuccess(creature, targetAttackable, skill, sDef, bsps))
 						{
-							for (AbstractEffect effect : target.getAllEffects())
+							for (AbstractEffect effect : targetAttackable.getAllEffects())
 							{
 								if (effect.getTemplate().getStackOrder() == 99)
 									continue;
@@ -142,102 +121,102 @@ public class Disablers implements ISkillHandler
 								if (effect.getSkill().getSkillType() == type)
 									effect.exit();
 							}
-							skill.getEffects(activeChar, target, sDef, bsps);
+							skill.getEffects(creature, targetAttackable, sDef, bsps);
 						}
-						else
-						{
-							if (activeChar instanceof Player)
-								activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(target).addSkillName(skill));
-						}
+						else if (creature instanceof Player player)
+							player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(targetAttackable).addSkillName(skill));
 					}
-					else
-						activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.INVALID_TARGET));
+					else if (creature instanceof Player player)
+						player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.INVALID_TARGET));
 					break;
 				
 				case AGGDAMAGE:
-					if (target instanceof Attackable)
-						target.getAI().notifyEvent(AiEventType.AGGRESSION, activeChar, (int) (skill.getPower() / (target.getStatus().getLevel() + 7) * 150));
+					if (targetCreature instanceof Attackable targetAttackable)
+						targetAttackable.getAI().notifyEvent(AiEventType.AGGRESSION, creature, (int) (skill.getPower() / (targetAttackable.getStatus().getLevel() + 7) * 150));
 					
-					skill.getEffects(activeChar, target, sDef, bsps);
+					skill.getEffects(creature, targetCreature, sDef, bsps);
 					break;
 				
 				case AGGREDUCE:
 					// TODO these skills needs to be rechecked
-					if (target instanceof Attackable)
+					if (targetCreature instanceof Attackable targetAttackable)
 					{
-						skill.getEffects(activeChar, target, sDef, bsps);
+						skill.getEffects(creature, targetAttackable, sDef, bsps);
 						
 						if (skill.getPower() > 0)
-							((Attackable) target).getAggroList().reduceAllHate((int) skill.getPower());
+							targetAttackable.getAI().getAggroList().reduceAllHate((int) skill.getPower());
 						else
 						{
-							final int hate = ((Attackable) target).getAggroList().getHate(activeChar);
-							final double diff = hate - target.getStatus().calcStat(Stats.AGGRESSION, hate, target, skill);
+							final double hate = targetAttackable.getAI().getAggroList().getHate(creature);
+							final double diff = hate - targetAttackable.getStatus().calcStat(Stats.AGGRESSION, hate, targetAttackable, skill);
 							if (diff > 0)
-								((Attackable) target).getAggroList().reduceAllHate((int) diff);
+								targetAttackable.getAI().getAggroList().reduceAllHate((int) diff);
 						}
 					}
 					break;
 				
 				case AGGREDUCE_CHAR:
 					// TODO these skills need to be rechecked
-					if (Formulas.calcSkillSuccess(activeChar, target, skill, sDef, bsps))
+					if (Formulas.calcSkillSuccess(creature, targetCreature, skill, sDef, bsps))
 					{
-						if (target instanceof Attackable)
-							((Attackable) target).getAggroList().stopHate(activeChar);
+						if (targetCreature instanceof Attackable targetAttackable)
+						{
+							targetAttackable.getAI().getAggroList().stopHate(creature);
+							targetAttackable.getAI().getHateList().stopHate(creature);
+						}
 						
-						skill.getEffects(activeChar, target, sDef, bsps);
+						skill.getEffects(creature, targetCreature, sDef, bsps);
 					}
-					else
-					{
-						if (activeChar instanceof Player)
-							activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(target).addSkillName(skill));
-					}
+					else if (creature instanceof Player player)
+						player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(targetCreature).addSkillName(skill));
 					break;
 				
 				case AGGREMOVE:
 					// TODO these skills needs to be rechecked
-					if (target instanceof Attackable && !target.isRaidRelated())
+					if (targetCreature instanceof Attackable targetAttackable && !targetCreature.isRaidRelated())
 					{
-						if (Formulas.calcSkillSuccess(activeChar, target, skill, sDef, bsps))
+						if (Formulas.calcSkillSuccess(creature, targetCreature, skill, sDef, bsps))
 						{
 							if (skill.getTargetType() == SkillTargetType.UNDEAD)
 							{
-								if (target.isUndead())
-									((Attackable) target).getAggroList().stopHate(activeChar);
+								if (targetCreature.isUndead())
+								{
+									targetAttackable.getAI().getAggroList().cleanAllHate();
+									targetAttackable.getAI().getHateList().cleanAllHate();
+								}
 							}
 							else
-								((Attackable) target).getAggroList().stopHate(activeChar);
+							{
+								targetAttackable.getAI().getAggroList().cleanAllHate();
+								targetAttackable.getAI().getHateList().cleanAllHate();
+							}
 						}
-						else
-						{
-							if (activeChar instanceof Player)
-								activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(target).addSkillName(skill));
-						}
+						else if (creature instanceof Player player)
+							player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(targetCreature).addSkillName(skill));
 					}
 					break;
 				
 				case ERASE:
-					// doesn't affect siege summons
-					if (Formulas.calcSkillSuccess(activeChar, target, skill, sDef, bsps) && !(target instanceof SiegeSummon))
+					if (Formulas.calcSkillSuccess(creature, targetCreature, skill, sDef, bsps))
 					{
-						final Player summonOwner = ((Summon) target).getOwner();
-						final Summon summonPet = summonOwner.getSummon();
-						if (summonPet != null)
+						// Doesn't affect anything, except Summons which aren't Siege Summons.
+						if (targetCreature instanceof Summon targetSummon && !(targetCreature instanceof SiegeSummon))
 						{
-							summonPet.unSummon(summonOwner);
-							summonOwner.sendPacket(SystemMessageId.YOUR_SERVITOR_HAS_VANISHED);
+							final Player summonOwner = targetCreature.getActingPlayer();
+							if (summonOwner != null)
+							{
+								targetSummon.unSummon(summonOwner);
+								
+								summonOwner.sendPacket(SystemMessageId.YOUR_SERVITOR_HAS_VANISHED);
+							}
 						}
 					}
-					else
-					{
-						if (activeChar instanceof Player)
-							activeChar.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(target).addSkillName(skill));
-					}
+					else if (creature instanceof Player player)
+						player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(targetCreature).addSkillName(skill));
 					break;
 				
 				case CANCEL_DEBUFF:
-					final AbstractEffect[] effects = target.getAllEffects();
+					final AbstractEffect[] effects = targetCreature.getAllEffects();
 					if (effects == null || effects.length == 0)
 						break;
 					
@@ -259,8 +238,8 @@ public class Disablers implements ISkillHandler
 					break;
 				
 				case NEGATE:
-					if (Formulas.calcSkillReflect(target, skill) == Formulas.SKILL_REFLECT_SUCCEED)
-						target = activeChar;
+					if (Formulas.calcSkillReflect(targetCreature, skill) == Formulas.SKILL_REFLECT_SUCCEED)
+						targetCreature = creature;
 					
 					// Skills with negateId (skillId)
 					if (skill.getNegateId().length != 0)
@@ -268,13 +247,13 @@ public class Disablers implements ISkillHandler
 						for (int id : skill.getNegateId())
 						{
 							if (id != 0)
-								target.stopSkillEffects(id);
+								targetCreature.stopSkillEffects(id);
 						}
 					}
 					// All others negate type skills
 					else
 					{
-						for (AbstractEffect effect : target.getAllEffects())
+						for (AbstractEffect effect : targetCreature.getAllEffects())
 						{
 							if (effect.getTemplate().getStackOrder() == 99)
 								continue;
@@ -302,20 +281,20 @@ public class Disablers implements ISkillHandler
 							}
 						}
 					}
-					skill.getEffects(activeChar, target, sDef, bsps);
+					skill.getEffects(creature, targetCreature, sDef, bsps);
 					break;
 			}
 		}
 		
 		if (skill.hasSelfEffects())
 		{
-			final AbstractEffect effect = activeChar.getFirstEffect(skill.getId());
+			final AbstractEffect effect = creature.getFirstEffect(skill.getId());
 			if (effect != null && effect.isSelfEffect())
 				effect.exit();
 			
-			skill.getEffectsSelf(activeChar);
+			skill.getEffectsSelf(creature);
 		}
-		activeChar.setChargedShot(bsps ? ShotType.BLESSED_SPIRITSHOT : ShotType.SPIRITSHOT, skill.isStaticReuse());
+		creature.setChargedShot(bsps ? ShotType.BLESSED_SPIRITSHOT : ShotType.SPIRITSHOT, skill.isStaticReuse());
 	}
 	
 	@Override

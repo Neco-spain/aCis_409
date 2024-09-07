@@ -41,7 +41,7 @@ public class EffectChameleonRest extends AbstractEffect
 		if (getSkill().getSkillType() != SkillType.CONT)
 			return false;
 		
-		if (getEffected() instanceof Player && !((Player) getEffected()).isSitting())
+		if (getEffected() instanceof Player targetPlayer && !targetPlayer.isSitting())
 			return false;
 		
 		if (getTemplate().getValue() > getEffected().getStatus().getMp())

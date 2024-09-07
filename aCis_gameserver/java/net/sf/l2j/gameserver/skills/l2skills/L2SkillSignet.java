@@ -26,25 +26,25 @@ public final class L2SkillSignet extends L2Skill
 	}
 	
 	@Override
-	public void useSkill(Creature caster, WorldObject[] targets)
+	public void useSkill(Creature creature, WorldObject[] targets)
 	{
-		if (caster.isAlikeDead())
+		if (creature.isAlikeDead())
 			return;
 		
 		final NpcTemplate template = NpcData.getInstance().getTemplate(effectNpcId);
 		if (template == null)
 			return;
 		
-		final EffectPoint effectPoint = new EffectPoint(IdFactory.getInstance().getNextId(), template, caster);
+		final EffectPoint effectPoint = new EffectPoint(IdFactory.getInstance().getNextId(), template, creature);
 		effectPoint.getStatus().setMaxHpMp();
 		
 		Location worldPosition = null;
-		if (caster instanceof Player && getTargetType() == SkillTargetType.GROUND)
-			worldPosition = ((Player) caster).getCast().getSignetLocation();
+		if (creature instanceof Player player && getTargetType() == SkillTargetType.GROUND)
+			worldPosition = player.getCast().getSignetLocation();
 		
-		getEffects(caster, effectPoint);
+		getEffects(creature, effectPoint);
 		
 		effectPoint.setInvul(true);
-		effectPoint.spawnMe((worldPosition != null) ? worldPosition : caster.getPosition());
+		effectPoint.spawnMe((worldPosition != null) ? worldPosition : creature.getPosition());
 	}
 }

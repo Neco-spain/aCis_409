@@ -63,11 +63,11 @@ public class Q223_TestOfTheChampion extends SecondClassQuest
 		
 		setItemsIds(MASON_LETTER, MEDUSA_VENOM, WINDSUS_BILE, WHITE_ROSE_INSIGNIA, HARPY_EGG, GROOT_LETTER, MOUEN_LETTER, ASCALON_LETTER_1, IRON_ROSE_RING, BLOODY_AXE_HEAD, ASCALON_LETTER_2, ASCALON_LETTER_3, MOUEN_ORDER_1, ROAD_RATMAN_HEAD, MOUEN_ORDER_2, LETO_LIZARDMAN_FANG);
 		
-		addStartNpc(ASCALON);
+		addQuestStart(ASCALON);
 		addTalkId(ASCALON, GROOT, MOUEN, MASON);
 		
-		addAttackId(HARPY, ROAD_SCAVENGER);
-		addKillId(HARPY, MEDUSA, HARPY_MATRIARCH, ROAD_COLLECTOR, ROAD_SCAVENGER, WINDSUS, LETO_LIZARDMAN, LETO_LIZARDMAN_ARCHER, LETO_LIZARDMAN_SOLDIER, LETO_LIZARDMAN_WARRIOR, LETO_LIZARDMAN_SHAMAN, LETO_LIZARDMAN_OVERLORD, BLOODY_AXE_ELITE);
+		addAttacked(HARPY, ROAD_SCAVENGER);
+		addMyDying(HARPY, MEDUSA, HARPY_MATRIARCH, ROAD_COLLECTOR, ROAD_SCAVENGER, WINDSUS, LETO_LIZARDMAN, LETO_LIZARDMAN_ARCHER, LETO_LIZARDMAN_SOLDIER, LETO_LIZARDMAN_WARRIOR, LETO_LIZARDMAN_SHAMAN, LETO_LIZARDMAN_OVERLORD, BLOODY_AXE_ELITE);
 	}
 	
 	@Override
@@ -263,13 +263,13 @@ public class Q223_TestOfTheChampion extends SecondClassQuest
 	}
 	
 	@Override
-	public String onAttack(Npc npc, Creature attacker, int damage, L2Skill skill)
+	public void onAttacked(Npc npc, Creature attacker, int damage, L2Skill skill)
 	{
 		final Player player = attacker.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
@@ -280,7 +280,7 @@ public class Q223_TestOfTheChampion extends SecondClassQuest
 					for (int i = 1; i < ((Rnd.get(10) < 7) ? 2 : 3); i++)
 					{
 						final Npc matriarch = addSpawn(HARPY_MATRIARCH, npc, true, 0, false);
-						matriarch.forceAttack(attacker, 200);
+						matriarch.getAI().addAttackDesire(attacker, 200);
 					}
 					npc.setScriptValue(1);
 				}
@@ -293,24 +293,22 @@ public class Q223_TestOfTheChampion extends SecondClassQuest
 					for (int i = 1; i < ((Rnd.get(10) < 7) ? 2 : 3); i++)
 					{
 						final Npc collector = addSpawn(ROAD_COLLECTOR, npc, true, 0, false);
-						collector.forceAttack(attacker, 200);
+						collector.getAI().addAttackDesire(attacker, 200);
 					}
 					npc.setScriptValue(1);
 				}
 				break;
 		}
-		
-		return null;
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final int npcId = npc.getNpcId();
 		
@@ -321,8 +319,7 @@ public class Q223_TestOfTheChampion extends SecondClassQuest
 					st.setCond(3);
 				break;
 			
-			case HARPY:
-			case HARPY_MATRIARCH:
+			case HARPY, HARPY_MATRIARCH:
 				if (st.getCond() == 6 && dropItems(player, HARPY_EGG, 1, 30, 500000))
 					if (player.getInventory().getItemCount(MEDUSA_VENOM) == 30 && player.getInventory().getItemCount(WINDSUS_BILE) == 30)
 						st.setCond(7);
@@ -340,23 +337,15 @@ public class Q223_TestOfTheChampion extends SecondClassQuest
 						st.setCond(7);
 				break;
 			
-			case ROAD_COLLECTOR:
-			case ROAD_SCAVENGER:
+			case ROAD_COLLECTOR, ROAD_SCAVENGER:
 				if (st.getCond() == 10 && dropItemsAlways(player, ROAD_RATMAN_HEAD, 1, 100))
 					st.setCond(11);
 				break;
 			
-			case LETO_LIZARDMAN:
-			case LETO_LIZARDMAN_ARCHER:
-			case LETO_LIZARDMAN_SOLDIER:
-			case LETO_LIZARDMAN_WARRIOR:
-			case LETO_LIZARDMAN_SHAMAN:
-			case LETO_LIZARDMAN_OVERLORD:
+			case LETO_LIZARDMAN, LETO_LIZARDMAN_ARCHER, LETO_LIZARDMAN_SOLDIER, LETO_LIZARDMAN_WARRIOR, LETO_LIZARDMAN_SHAMAN, LETO_LIZARDMAN_OVERLORD:
 				if (st.getCond() == 12 && dropItems(player, LETO_LIZARDMAN_FANG, 1, 100, 500000 + (100000 * (npcId - 20577))))
 					st.setCond(13);
 				break;
 		}
-		
-		return null;
 	}
 }

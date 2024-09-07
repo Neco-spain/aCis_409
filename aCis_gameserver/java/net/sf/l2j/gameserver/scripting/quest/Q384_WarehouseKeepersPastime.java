@@ -26,35 +26,7 @@ public class Q384_WarehouseKeepersPastime extends Quest
 	// Items
 	private static final int MEDAL = 5964;
 	
-	private static final Map<Integer, Integer> CHANCES = new HashMap<>();
-	{
-		CHANCES.put(20947, 160000); // Connabi
-		CHANCES.put(20948, 180000); // Bartal
-		CHANCES.put(20945, 120000); // Cadeine
-		CHANCES.put(20946, 150000); // Sanhidro
-		CHANCES.put(20635, 150000); // Carinkain
-		CHANCES.put(20773, 610000); // Conjurer Bat Lord
-		CHANCES.put(20774, 600000); // Conjurer Bat
-		CHANCES.put(20760, 240000); // Dragon Bearer Archer
-		CHANCES.put(20758, 240000); // Dragon Bearer Chief
-		CHANCES.put(20759, 230000); // Dragon Bearer Warrior
-		CHANCES.put(20242, 220000); // Dustwind Gargoyle
-		CHANCES.put(20281, 220000); // Dustwind Gargoyle (2)
-		CHANCES.put(20556, 140000); // Giant Monstereye
-		CHANCES.put(20668, 210000); // Grave Guard
-		CHANCES.put(20241, 220000); // Hunter Gargoyle
-		CHANCES.put(20286, 220000); // Hunter Gargoyle (2)
-		CHANCES.put(20949, 190000); // Luminun
-		CHANCES.put(20950, 200000); // Innersen
-		CHANCES.put(20942, 90000); // Nightmare Guide
-		CHANCES.put(20943, 120000); // Nightmare Keeper
-		CHANCES.put(20944, 110000); // Nightmare Lord
-		CHANCES.put(20559, 140000); // Rotting Golem
-		CHANCES.put(20243, 210000); // Thunder Wyrm
-		CHANCES.put(20282, 210000); // Thunder Wyrm (2)
-		CHANCES.put(20677, 340000); // Tulben
-		CHANCES.put(20605, 150000); // Weird Drake
-	}
+	private static final Map<Integer, Integer> CHANCES = HashMap.newHashMap(26);
 	
 	private static final IntIntHolder[] REWARDS_10_WIN =
 	{
@@ -99,11 +71,38 @@ public class Q384_WarehouseKeepersPastime extends Quest
 	{
 		super(384, "Warehouse Keeper's Pastime");
 		
-		addStartNpc(CLIFF);
+		CHANCES.put(20947, 160000); // Connabi
+		CHANCES.put(20948, 180000); // Bartal
+		CHANCES.put(20945, 120000); // Cadeine
+		CHANCES.put(20946, 150000); // Sanhidro
+		CHANCES.put(20635, 150000); // Carinkain
+		CHANCES.put(20773, 610000); // Conjurer Bat Lord
+		CHANCES.put(20774, 600000); // Conjurer Bat
+		CHANCES.put(20760, 240000); // Dragon Bearer Archer
+		CHANCES.put(20758, 240000); // Dragon Bearer Chief
+		CHANCES.put(20759, 230000); // Dragon Bearer Warrior
+		CHANCES.put(20242, 220000); // Dustwind Gargoyle
+		CHANCES.put(20281, 220000); // Dustwind Gargoyle (2)
+		CHANCES.put(20556, 140000); // Giant Monstereye
+		CHANCES.put(20668, 210000); // Grave Guard
+		CHANCES.put(20241, 220000); // Hunter Gargoyle
+		CHANCES.put(20286, 220000); // Hunter Gargoyle (2)
+		CHANCES.put(20949, 190000); // Luminun
+		CHANCES.put(20950, 200000); // Innersen
+		CHANCES.put(20942, 90000); // Nightmare Guide
+		CHANCES.put(20943, 120000); // Nightmare Keeper
+		CHANCES.put(20944, 110000); // Nightmare Lord
+		CHANCES.put(20559, 140000); // Rotting Golem
+		CHANCES.put(20243, 210000); // Thunder Wyrm
+		CHANCES.put(20282, 210000); // Thunder Wyrm (2)
+		CHANCES.put(20677, 340000); // Tulben
+		CHANCES.put(20605, 150000); // Weird Drake
+		
+		addQuestStart(CLIFF);
 		addTalkId(CLIFF, BAXT);
 		
 		for (int npcId : CHANCES.keySet())
-			addKillId(npcId);
+			addMyDying(npcId);
 	}
 	
 	@Override
@@ -209,39 +208,43 @@ public class Q384_WarehouseKeepersPastime extends Quest
 						winningLines++;
 				}
 				
-				if (winningLines == 3)
+				switch (winningLines)
 				{
-					htmltext = getHtmlText(npcId + "-23.htm");
-					
-					final int chance = Rnd.get(100);
-					for (IntIntHolder reward : ((st.getInteger("bet") == 10) ? REWARDS_10_WIN : REWARDS_100_WIN))
-					{
-						if (chance < reward.getId())
+					case 3:
+						htmltext = getHtmlText(npcId + "-23.htm");
+						
+						int chance = Rnd.get(100);
+						for (IntIntHolder reward : ((st.getInteger("bet") == 10) ? REWARDS_10_WIN : REWARDS_100_WIN))
 						{
-							giveItems(player, reward.getValue(), 1);
-							if (reward.getValue() == 2437)
-								giveItems(player, 2463, 1);
-							
-							break;
+							if (chance < reward.getId())
+							{
+								giveItems(player, reward.getValue(), 1);
+								if (reward.getValue() == 2437)
+									giveItems(player, 2463, 1);
+								
+								break;
+							}
 						}
-					}
-				}
-				else if (winningLines == 0)
-				{
-					htmltext = getHtmlText(npcId + "-25.htm");
+						break;
 					
-					final int chance = Rnd.get(100);
-					for (IntIntHolder reward : ((st.getInteger("bet") == 10) ? REWARDS_10_LOSE : REWARDS_100_LOSE))
-					{
-						if (chance < reward.getId())
+					case 0:
+						htmltext = getHtmlText(npcId + "-25.htm");
+						
+						chance = Rnd.get(100);
+						for (IntIntHolder reward : ((st.getInteger("bet") == 10) ? REWARDS_10_LOSE : REWARDS_100_LOSE))
 						{
-							giveItems(player, reward.getValue(), 1);
-							break;
+							if (chance < reward.getId())
+							{
+								giveItems(player, reward.getValue(), 1);
+								break;
+							}
 						}
-					}
+						break;
+					
+					default:
+						htmltext = getHtmlText(npcId + "-24.htm");
+						break;
 				}
-				else
-					htmltext = getHtmlText(npcId + "-24.htm");
 				
 				for (int i = 1; i < 10; i++)
 				{
@@ -286,17 +289,15 @@ public class Q384_WarehouseKeepersPastime extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMemberState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		dropItems(st.getPlayer(), MEDAL, 1, 0, CHANCES.get(npc.getNpcId()));
-		
-		return null;
 	}
 	
 	private static final String fillBoard(QuestState st, String htmltext)

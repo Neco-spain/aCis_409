@@ -6,6 +6,7 @@ import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Monster;
+import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.scripting.QuestState;
 import net.sf.l2j.gameserver.skills.L2Skill;
 
@@ -19,34 +20,31 @@ public class DrainSoul implements ISkillHandler
 	};
 	
 	@Override
-	public void useSkill(Creature activeChar, L2Skill skill, WorldObject[] targets)
+	public void useSkill(Creature creature, L2Skill skill, WorldObject[] targets, ItemInstance item)
 	{
 		// Check player.
-		if (activeChar == null || activeChar.isDead() || !(activeChar instanceof Player))
+		if (!(creature instanceof Player player) || creature.isDead())
 			return;
 		
 		// Check quest condition.
-		final Player player = (Player) activeChar;
-		QuestState st = player.getQuestList().getQuestState(qn);
+		final QuestState st = player.getQuestList().getQuestState(qn);
 		if (st == null || !st.isStarted())
 			return;
 		
 		// Get target.
-		WorldObject target = targets[0];
-		if (!(target instanceof Monster))
+		if (!(targets[0] instanceof Monster targetMonster))
 			return;
 		
 		// Check monster.
-		final Monster mob = (Monster) target;
-		if (mob.isDead())
+		if (targetMonster.isDead())
 			return;
 		
 		// Range condition, cannot be higher than skill's effectRange.
-		if (!player.isIn3DRadius(mob, skill.getEffectRange()))
+		if (!player.isIn3DRadius(targetMonster, skill.getEffectRange()))
 			return;
 		
 		// Register.
-		mob.registerAbsorber(player);
+		targetMonster.registerAbsorber(player);
 	}
 	
 	@Override

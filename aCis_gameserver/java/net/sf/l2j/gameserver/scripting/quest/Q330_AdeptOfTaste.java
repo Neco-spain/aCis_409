@@ -65,8 +65,12 @@ public class Q330_AdeptOfTaste extends Quest
 	private static final int JONAS_STEAK_RECIPE = 1457;
 	
 	// Drop chances
-	private static final Map<Integer, int[]> CHANCES = new HashMap<>();
+	private static final Map<Integer, int[]> CHANCES = HashMap.newHashMap(6);
+	
+	public Q330_AdeptOfTaste()
 	{
+		super(330, "Adept of Taste");
+		
 		CHANCES.put(20204, new int[]
 		{
 			92,
@@ -97,18 +101,13 @@ public class Q330_AdeptOfTaste extends Quest
 			77,
 			85
 		});
-	}
-	
-	public Q330_AdeptOfTaste()
-	{
-		super(330, "Adept of Taste");
 		
 		setItemsIds(INGREDIENT_LIST, RED_MANDRAGORA_SAP, WHITE_MANDRAGORA_SAP, HONEY, GOLDEN_HONEY, DIONIAN_POTATO, GREEN_MOSS_BUNDLE, BROWN_MOSS_BUNDLE, MONSTER_EYE_MEAT, MIRIEN_REVIEW_1, MIRIEN_REVIEW_2, MIRIEN_REVIEW_3, MIRIEN_REVIEW_4, MIRIEN_REVIEW_5, JONAS_STEAK_DISH_1, JONAS_STEAK_DISH_2, JONAS_STEAK_DISH_3, JONAS_STEAK_DISH_4, JONAS_STEAK_DISH_5, SONIA_BOTANY_BOOK, RED_MANDRAGORA_ROOT, WHITE_MANDRAGORA_ROOT, JACOB_INSECT_BOOK, NECTAR, ROYAL_JELLY, PANO_CONTRACT, HOBGOBLIN_AMULET, GLYVKA_BOTANY_BOOK, GREEN_MARSH_MOSS, BROWN_MARSH_MOSS, ROLANT_CREATURE_BOOK, MONSTER_EYE_BODY);
 		
-		addStartNpc(JONAS); // Jonas
+		addQuestStart(JONAS); // Jonas
 		addTalkId(JONAS, SONIA, GLYVKA, ROLLANT, JACOB, PANO, MIRIEN);
 		
-		addKillId(20147, 20154, 20155, 20156, 20204, 20223, 20226, 20228, 20229, 20265, 20266);
+		addMyDying(20147, 20154, 20155, 20156, 20204, 20223, 20226, 20228, 20229, 20265, 20266);
 	}
 	
 	@Override
@@ -173,7 +172,7 @@ public class Q330_AdeptOfTaste extends Quest
 				switch (npc.getNpcId())
 				{
 					case JONAS:
-						if (player.getInventory().hasItems(INGREDIENT_LIST))
+						if (player.getInventory().hasItem(INGREDIENT_LIST))
 						{
 							if (!hasAllIngredients(player))
 								htmltext = "30469-04.htm";
@@ -213,21 +212,21 @@ public class Q330_AdeptOfTaste extends Quest
 							htmltext = "30469-06.htm";
 						else if (player.getInventory().hasAtLeastOneItem(MIRIEN_REVIEW_1, MIRIEN_REVIEW_2, MIRIEN_REVIEW_3, MIRIEN_REVIEW_4, MIRIEN_REVIEW_5))
 						{
-							if (player.getInventory().hasItems(MIRIEN_REVIEW_1))
+							if (player.getInventory().hasItem(MIRIEN_REVIEW_1))
 							{
 								htmltext = "30469-06t1.htm";
 								takeItems(player, MIRIEN_REVIEW_1, 1);
 								rewardItems(player, 57, 7500);
 								rewardExpAndSp(player, 6000, 0);
 							}
-							else if (player.getInventory().hasItems(MIRIEN_REVIEW_2))
+							else if (player.getInventory().hasItem(MIRIEN_REVIEW_2))
 							{
 								htmltext = "30469-06t2.htm";
 								takeItems(player, MIRIEN_REVIEW_2, 1);
 								rewardItems(player, 57, 9000);
 								rewardExpAndSp(player, 7000, 0);
 							}
-							else if (player.getInventory().hasItems(MIRIEN_REVIEW_3))
+							else if (player.getInventory().hasItem(MIRIEN_REVIEW_3))
 							{
 								htmltext = "30469-06t3.htm";
 								takeItems(player, MIRIEN_REVIEW_3, 1);
@@ -235,7 +234,7 @@ public class Q330_AdeptOfTaste extends Quest
 								giveItems(player, JONAS_SALAD_RECIPE, 1);
 								rewardExpAndSp(player, 9000, 0);
 							}
-							else if (player.getInventory().hasItems(MIRIEN_REVIEW_4))
+							else if (player.getInventory().hasItem(MIRIEN_REVIEW_4))
 							{
 								htmltext = "30469-06t4.htm";
 								takeItems(player, MIRIEN_REVIEW_4, 1);
@@ -243,7 +242,7 @@ public class Q330_AdeptOfTaste extends Quest
 								giveItems(player, JONAS_SAUCE_RECIPE, 1);
 								rewardExpAndSp(player, 10500, 0);
 							}
-							else if (player.getInventory().hasItems(MIRIEN_REVIEW_5))
+							else if (player.getInventory().hasItem(MIRIEN_REVIEW_5))
 							{
 								htmltext = "30469-06t5.htm";
 								takeItems(player, MIRIEN_REVIEW_5, 1);
@@ -257,36 +256,36 @@ public class Q330_AdeptOfTaste extends Quest
 						break;
 					
 					case MIRIEN:
-						if (player.getInventory().hasItems(INGREDIENT_LIST))
+						if (player.getInventory().hasItem(INGREDIENT_LIST))
 							htmltext = "30461-01.htm";
 						else if (player.getInventory().hasAtLeastOneItem(JONAS_STEAK_DISH_1, JONAS_STEAK_DISH_2, JONAS_STEAK_DISH_3, JONAS_STEAK_DISH_4, JONAS_STEAK_DISH_5))
 						{
 							playSound(player, SOUND_ITEMGET);
-							if (player.getInventory().hasItems(JONAS_STEAK_DISH_1))
+							if (player.getInventory().hasItem(JONAS_STEAK_DISH_1))
 							{
 								htmltext = "30461-02t1.htm";
 								takeItems(player, JONAS_STEAK_DISH_1, 1);
 								giveItems(player, MIRIEN_REVIEW_1, 1);
 							}
-							else if (player.getInventory().hasItems(JONAS_STEAK_DISH_2))
+							else if (player.getInventory().hasItem(JONAS_STEAK_DISH_2))
 							{
 								htmltext = "30461-02t2.htm";
 								takeItems(player, JONAS_STEAK_DISH_2, 1);
 								giveItems(player, MIRIEN_REVIEW_2, 1);
 							}
-							else if (player.getInventory().hasItems(JONAS_STEAK_DISH_3))
+							else if (player.getInventory().hasItem(JONAS_STEAK_DISH_3))
 							{
 								htmltext = "30461-02t3.htm";
 								takeItems(player, JONAS_STEAK_DISH_3, 1);
 								giveItems(player, MIRIEN_REVIEW_3, 1);
 							}
-							else if (player.getInventory().hasItems(JONAS_STEAK_DISH_4))
+							else if (player.getInventory().hasItem(JONAS_STEAK_DISH_4))
 							{
 								htmltext = "30461-02t4.htm";
 								takeItems(player, JONAS_STEAK_DISH_4, 1);
 								giveItems(player, MIRIEN_REVIEW_4, 1);
 							}
-							else if (player.getInventory().hasItems(JONAS_STEAK_DISH_5))
+							else if (player.getInventory().hasItem(JONAS_STEAK_DISH_5))
 							{
 								htmltext = "30461-02t5.htm";
 								takeItems(player, JONAS_STEAK_DISH_5, 1);
@@ -298,9 +297,9 @@ public class Q330_AdeptOfTaste extends Quest
 						break;
 					
 					case SONIA:
-						if (!player.getInventory().hasItems(RED_MANDRAGORA_SAP) && !player.getInventory().hasItems(WHITE_MANDRAGORA_SAP))
+						if (!player.getInventory().hasItem(RED_MANDRAGORA_SAP) && !player.getInventory().hasItem(WHITE_MANDRAGORA_SAP))
 						{
-							if (!player.getInventory().hasItems(SONIA_BOTANY_BOOK))
+							if (!player.getInventory().hasItem(SONIA_BOTANY_BOOK))
 							{
 								htmltext = "30062-01.htm";
 								giveItems(player, SONIA_BOTANY_BOOK, 1);
@@ -328,9 +327,9 @@ public class Q330_AdeptOfTaste extends Quest
 						break;
 					
 					case JACOB:
-						if (!player.getInventory().hasItems(HONEY) && !player.getInventory().hasItems(GOLDEN_HONEY))
+						if (!player.getInventory().hasItem(HONEY) && !player.getInventory().hasItem(GOLDEN_HONEY))
 						{
-							if (!player.getInventory().hasItems(JACOB_INSECT_BOOK))
+							if (!player.getInventory().hasItem(JACOB_INSECT_BOOK))
 							{
 								htmltext = "30073-01.htm";
 								giveItems(player, JACOB_INSECT_BOOK, 1);
@@ -361,9 +360,9 @@ public class Q330_AdeptOfTaste extends Quest
 						break;
 					
 					case PANO:
-						if (!player.getInventory().hasItems(DIONIAN_POTATO))
+						if (!player.getInventory().hasItem(DIONIAN_POTATO))
 						{
-							if (!player.getInventory().hasItems(PANO_CONTRACT))
+							if (!player.getInventory().hasItem(PANO_CONTRACT))
 							{
 								htmltext = "30078-01.htm";
 								giveItems(player, PANO_CONTRACT, 1);
@@ -388,9 +387,9 @@ public class Q330_AdeptOfTaste extends Quest
 						break;
 					
 					case GLYVKA:
-						if (!player.getInventory().hasItems(GREEN_MOSS_BUNDLE) && !player.getInventory().hasItems(BROWN_MOSS_BUNDLE))
+						if (!player.getInventory().hasItem(GREEN_MOSS_BUNDLE) && !player.getInventory().hasItem(BROWN_MOSS_BUNDLE))
 						{
-							if (!player.getInventory().hasItems(GLYVKA_BOTANY_BOOK))
+							if (!player.getInventory().hasItem(GLYVKA_BOTANY_BOOK))
 							{
 								giveItems(player, GLYVKA_BOTANY_BOOK, 1);
 								htmltext = "30067-01.htm";
@@ -418,9 +417,9 @@ public class Q330_AdeptOfTaste extends Quest
 						break;
 					
 					case ROLLANT:
-						if (!player.getInventory().hasItems(MONSTER_EYE_MEAT))
+						if (!player.getInventory().hasItem(MONSTER_EYE_MEAT))
 						{
-							if (!player.getInventory().hasItems(ROLANT_CREATURE_BOOK))
+							if (!player.getInventory().hasItem(ROLANT_CREATURE_BOOK))
 							{
 								htmltext = "30069-01.htm";
 								giveItems(player, ROLANT_CREATURE_BOOK, 1);
@@ -451,46 +450,45 @@ public class Q330_AdeptOfTaste extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		final int npcId = npc.getNpcId();
 		
 		switch (npcId)
 		{
 			case 20265:
-				if (player.getInventory().hasItems(ROLANT_CREATURE_BOOK))
+				if (player.getInventory().hasItem(ROLANT_CREATURE_BOOK))
 					dropItems(player, MONSTER_EYE_BODY, (Rnd.get(97) < 77) ? 2 : 3, 30, 970000);
 				break;
 			
 			case 20266:
-				if (player.getInventory().hasItems(ROLANT_CREATURE_BOOK))
+				if (player.getInventory().hasItem(ROLANT_CREATURE_BOOK))
 					dropItemsAlways(player, MONSTER_EYE_BODY, (Rnd.get(10) < 7) ? 1 : 2, 30);
 				break;
 			
 			case 20226:
-				if (player.getInventory().hasItems(GLYVKA_BOTANY_BOOK))
+				if (player.getInventory().hasItem(GLYVKA_BOTANY_BOOK))
 					dropItems(player, ((Rnd.get(96) < 87) ? GREEN_MARSH_MOSS : BROWN_MARSH_MOSS), 1, 20, 960000);
 				break;
 			
 			case 20228:
-				if (player.getInventory().hasItems(GLYVKA_BOTANY_BOOK))
+				if (player.getInventory().hasItem(GLYVKA_BOTANY_BOOK))
 					dropItemsAlways(player, ((Rnd.get(10) < 9) ? GREEN_MARSH_MOSS : BROWN_MARSH_MOSS), 1, 20);
 				break;
 			
 			case 20147:
-				if (player.getInventory().hasItems(PANO_CONTRACT))
+				if (player.getInventory().hasItem(PANO_CONTRACT))
 					dropItemsAlways(player, HOBGOBLIN_AMULET, 1, 30);
 				break;
 			
-			case 20204:
-			case 20229:
-				if (player.getInventory().hasItems(JACOB_INSECT_BOOK))
+			case 20204, 20229:
+				if (player.getInventory().hasItem(JACOB_INSECT_BOOK))
 				{
 					final int random = Rnd.get(100);
 					final int[] chances = CHANCES.get(npcId);
@@ -501,11 +499,8 @@ public class Q330_AdeptOfTaste extends Quest
 				}
 				break;
 			
-			case 20223:
-			case 20154:
-			case 20155:
-			case 20156:
-				if (player.getInventory().hasItems(SONIA_BOTANY_BOOK))
+			case 20154, 20155, 20156, 20223:
+				if (player.getInventory().hasItem(SONIA_BOTANY_BOOK))
 				{
 					final int random = Rnd.get(100);
 					final int[] chances = CHANCES.get(npcId);
@@ -514,8 +509,6 @@ public class Q330_AdeptOfTaste extends Quest
 				}
 				break;
 		}
-		
-		return null;
 	}
 	
 	private static boolean hasAllIngredients(Player player)

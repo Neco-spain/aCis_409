@@ -42,10 +42,10 @@ public class Q242_PossessorOfAPreciousSoul extends Quest
 		
 		setItemsIds(GOLDEN_HAIR, SORCERY_INGREDIENT, ORB_OF_BINDING);
 		
-		addStartNpc(VIRGIL);
+		addQuestStart(VIRGIL);
 		addTalkId(VIRGIL, KASSANDRA, OGMAR, MYSTERIOUS_KNIGHT, ANGEL_CORPSE, KALIS, MATILD, CORNERSTONE, FALLEN_UNICORN, PURE_UNICORN);
 		
-		addKillId(RESTRAINER_OF_GLORY);
+		addMyDying(RESTRAINER_OF_GLORY);
 	}
 	
 	@Override
@@ -82,7 +82,7 @@ public class Q242_PossessorOfAPreciousSoul extends Quest
 		}
 		else if (event.equalsIgnoreCase("30759-05.htm"))
 		{
-			if (player.getInventory().hasItems(SORCERY_INGREDIENT))
+			if (player.getInventory().hasItem(SORCERY_INGREDIENT))
 			{
 				st.setCond(9);
 				playSound(player, SOUND_MIDDLE);
@@ -105,7 +105,7 @@ public class Q242_PossessorOfAPreciousSoul extends Quest
 		// Cornerstone
 		else if (event.equalsIgnoreCase("31748-03.htm"))
 		{
-			if (player.getInventory().hasItems(ORB_OF_BINDING))
+			if (player.getInventory().hasItem(ORB_OF_BINDING))
 			{
 				npc.deleteMe();
 				takeItems(player, ORB_OF_BINDING, 1);
@@ -135,8 +135,6 @@ public class Q242_PossessorOfAPreciousSoul extends Quest
 		{
 			if (_pureUnicorn == null)
 			{
-				// Despawn Fallen Unicorn (we rely on native respawn of the Npc)
-				npc.getSpawn().setRespawnState(true);
 				npc.deleteMe();
 				
 				// Spawn Pure Unicorn (spawn for 30 seconds)
@@ -167,7 +165,7 @@ public class Q242_PossessorOfAPreciousSoul extends Quest
 		switch (st.getState())
 		{
 			case CREATED:
-				if (player.getInventory().hasItems(VIRGIL_LETTER))
+				if (player.getInventory().hasItem(VIRGIL_LETTER))
 				{
 					if (!player.isSubClassActive() || player.getStatus().getLevel() < 60)
 						htmltext = "31742-02.htm";
@@ -226,7 +224,7 @@ public class Q242_PossessorOfAPreciousSoul extends Quest
 							htmltext = "31751-03.htm";
 						else if (cond == 5)
 						{
-							if (player.getInventory().hasItems(GOLDEN_HAIR))
+							if (player.getInventory().hasItem(GOLDEN_HAIR))
 							{
 								htmltext = "31751-04.htm";
 								st.setCond(6);
@@ -273,7 +271,7 @@ public class Q242_PossessorOfAPreciousSoul extends Quest
 							htmltext = "30759-03.htm";
 						else if (cond == 8)
 						{
-							if (player.getInventory().hasItems(SORCERY_INGREDIENT))
+							if (player.getInventory().hasItem(SORCERY_INGREDIENT))
 								htmltext = "30759-04.htm";
 							else
 							{
@@ -295,7 +293,7 @@ public class Q242_PossessorOfAPreciousSoul extends Quest
 					case CORNERSTONE:
 						if (cond == 9)
 						{
-							if (player.getInventory().hasItems(ORB_OF_BINDING))
+							if (player.getInventory().hasItem(ORB_OF_BINDING))
 								htmltext = "31748-02.htm";
 							else
 								htmltext = "31748-01.htm";
@@ -334,13 +332,13 @@ public class Q242_PossessorOfAPreciousSoul extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerCondition(player, npc, 9);
 		if (st == null || !player.isSubClassActive())
-			return null;
+			return;
 		
 		// Check orbs internally, because player can use them before he gets them all.
 		final int orbs = st.getInteger("orb");
@@ -350,7 +348,5 @@ public class Q242_PossessorOfAPreciousSoul extends Quest
 			playSound(player, SOUND_ITEMGET);
 			giveItems(player, ORB_OF_BINDING, 1);
 		}
-		
-		return null;
 	}
 }

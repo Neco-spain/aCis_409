@@ -1,13 +1,13 @@
 package net.sf.l2j.gameserver.data.cache;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileFilter;
-import java.io.FileInputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.sf.l2j.commons.io.UnicodeReader;
 import net.sf.l2j.commons.logging.CLogger;
 
 /**
@@ -20,14 +20,9 @@ public class HtmCache
 	private static final CLogger LOGGER = new CLogger(HtmCache.class.getName());
 	
 	private final Map<Integer, String> _htmCache = new HashMap<>();
-	private final FileFilter _htmFilter = new HtmFilter();
-	
-	protected HtmCache()
-	{
-	}
 	
 	/**
-	 * Cleans the HTM cache.
+	 * Clean the HTM cache.
 	 */
 	public void reload()
 	{
@@ -37,15 +32,13 @@ public class HtmCache
 	}
 	
 	/**
-	 * Loads and stores the HTM file content.
-	 * @param file : The file to be cached.
+	 * Load and store the HTM file content.
+	 * @param filePath : The path of the file to be cached.
 	 * @return the content of the file under a {@link String}.
 	 */
-	private String loadFile(File file)
+	private String loadFile(Path filePath)
 	{
-		try (FileInputStream fis = new FileInputStream(file);
-			UnicodeReader ur = new UnicodeReader(fis, "UTF-8");
-			BufferedReader br = new BufferedReader(ur))
+		try (BufferedReader br = Files.newBufferedReader(filePath, StandardCharsets.UTF_8))
 		{
 			final StringBuilder sb = new StringBuilder();
 			
@@ -54,8 +47,7 @@ public class HtmCache
 				sb.append(line).append('\n');
 			
 			final String content = sb.toString().replaceAll("\r\n", "\n");
-			
-			_htmCache.put(file.getPath().replace("\\", "/").hashCode(), content);
+			_htmCache.put(filePath.toString().replace("\\", "/").hashCode(), content);
 			return content;
 		}
 		catch (Exception e)
@@ -72,15 +64,15 @@ public class HtmCache
 	 */
 	public boolean isLoadable(String path)
 	{
-		final File file = new File(path);
-		if (!_htmFilter.accept(file))
+		final Path filePath = Paths.get(path);
+		if (!isValidHtmFile(filePath))
 			return false;
 		
-		return loadFile(file) != null;
+		return loadFile(filePath) != null;
 	}
 	
 	/**
-	 * Returns the HTM content given by filename. Test the cache first, then try to load the file if unsuccessful.
+	 * Return the HTM content given by filename. Test the cache first, then try to load the file if unsuccessful.
 	 * @param path : The path to the HTM.
 	 * @return the {@link String} content if filename exists, otherwise returns null.
 	 */
@@ -92,11 +84,10 @@ public class HtmCache
 		String content = _htmCache.get(path.hashCode());
 		if (content == null)
 		{
-			final File file = new File(path);
-			if (_htmFilter.accept(file))
-				content = loadFile(file);
+			final Path filePath = Paths.get(path);
+			if (isValidHtmFile(filePath))
+				content = loadFile(filePath);
 		}
-		
 		return content;
 	}
 	
@@ -117,13 +108,18 @@ public class HtmCache
 		return content;
 	}
 	
-	protected class HtmFilter implements FileFilter
+	/**
+	 * Validate whether a file is an HTML file (.htm or .html).
+	 * @param filePath : The path to the file.
+	 * @return True if the file is a valid HTML file or false otherwise.
+	 */
+	private static boolean isValidHtmFile(Path filePath)
 	{
-		@Override
-		public boolean accept(File file)
-		{
-			return file.isFile() && (file.getName().endsWith(".htm") || file.getName().endsWith(".html"));
-		}
+		if (!Files.isRegularFile(filePath))
+			return false;
+		
+		final String fileName = filePath.getFileName().toString().toLowerCase();
+		return fileName.endsWith(".htm") || fileName.endsWith(".html");
 	}
 	
 	public static HtmCache getInstance()

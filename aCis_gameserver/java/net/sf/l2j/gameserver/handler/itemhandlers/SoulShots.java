@@ -17,10 +17,9 @@ public class SoulShots implements IItemHandler
 	@Override
 	public void useItem(Playable playable, ItemInstance item, boolean forceUse)
 	{
-		if (!(playable instanceof Player))
+		if (!(playable instanceof Player player))
 			return;
 		
-		final Player player = (Player) playable;
 		final ItemInstance weaponInst = player.getActiveWeaponInstance();
 		final Weapon weaponItem = player.getActiveWeaponItem();
 		
@@ -50,7 +49,7 @@ public class SoulShots implements IItemHandler
 		if (weaponItem.getReducedSoulShot() > 0 && Rnd.get(100) < weaponItem.getReducedSoulShotChance())
 			ssCount = weaponItem.getReducedSoulShot();
 		
-		if (!player.destroyItemWithoutTrace(item.getObjectId(), ssCount))
+		if (!player.destroyItem(item.getObjectId(), ssCount, false))
 		{
 			if (!player.disableAutoShot(item.getItemId()))
 				player.sendPacket(SystemMessageId.NOT_ENOUGH_SOULSHOTS);

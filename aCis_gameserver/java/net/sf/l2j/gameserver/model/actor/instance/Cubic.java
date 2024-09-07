@@ -10,23 +10,20 @@ import net.sf.l2j.commons.random.Rnd;
 import net.sf.l2j.gameserver.data.SkillTable;
 import net.sf.l2j.gameserver.data.manager.DuelManager;
 import net.sf.l2j.gameserver.enums.AiEventType;
-import net.sf.l2j.gameserver.enums.ZoneId;
 import net.sf.l2j.gameserver.enums.items.ShotType;
 import net.sf.l2j.gameserver.enums.skills.ShieldDefense;
 import net.sf.l2j.gameserver.enums.skills.SkillTargetType;
 import net.sf.l2j.gameserver.enums.skills.SkillType;
-import net.sf.l2j.gameserver.handler.ISkillHandler;
+import net.sf.l2j.gameserver.enums.skills.Stats;
 import net.sf.l2j.gameserver.handler.SkillHandler;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Attackable;
 import net.sf.l2j.gameserver.model.actor.Creature;
-import net.sf.l2j.gameserver.model.actor.Playable;
 import net.sf.l2j.gameserver.model.actor.Player;
-import net.sf.l2j.gameserver.model.entity.Duel;
 import net.sf.l2j.gameserver.model.group.Party;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.MagicSkillUse;
-import net.sf.l2j.gameserver.skills.AbstractEffect;
+import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.skills.Formulas;
 import net.sf.l2j.gameserver.skills.L2Skill;
 import net.sf.l2j.gameserver.skills.l2skills.L2SkillDrain;
@@ -192,99 +189,17 @@ public class Cubic
 	 */
 	private Creature pickEnemyTarget()
 	{
-		final WorldObject ownerTarget = _owner.getTarget();
-		if (ownerTarget == null || !_owner.isIn3DRadius(ownerTarget, MAX_MAGIC_RANGE))
+		final WorldObject target = _owner.getTarget();
+		if (!(target instanceof Creature targetCreature))
 			return null;
 		
-		Creature target = null;
+		if (!_owner.isIn3DRadius(targetCreature, MAX_MAGIC_RANGE))
+			return null;
 		
-		if (_owner.isInDuel())
-		{
-			final Duel duel = DuelManager.getInstance().getDuel(_owner.getDuelId());
-			final Player playerA = duel.getPlayerA();
-			final Player playerB = duel.getPlayerB();
-			
-			if (duel.isPartyDuel())
-			{
-				final Party partyA = playerA.getParty();
-				final Party partyB = playerB.getParty();
-				if (partyA == null || partyB == null)
-					return null;
-				
-				final Party partyEnemy = (partyA.containsPlayer(_owner)) ? partyB : partyA;
-				if (partyEnemy.containsPlayer(ownerTarget))
-					target = (Creature) ownerTarget;
-			}
-			else
-			{
-				if (playerA != _owner && ownerTarget == playerA)
-					target = playerA;
-				else if (playerB != _owner && ownerTarget == playerB)
-					target = playerB;
-			}
-		}
-		else if (_owner.isInOlympiadMode())
-		{
-			if (_owner.isOlympiadStart() && ownerTarget instanceof Playable)
-			{
-				final Player targetPlayer = ownerTarget.getActingPlayer();
-				if (targetPlayer != null && targetPlayer.getOlympiadGameId() == _owner.getOlympiadGameId() && targetPlayer.getOlympiadSide() != _owner.getOlympiadSide())
-					target = (Creature) ownerTarget;
-			}
-		}
-		else if (ownerTarget instanceof Creature && ownerTarget != _owner.getSummon() && ownerTarget != _owner)
-		{
-			if (ownerTarget instanceof Attackable && !((Attackable) ownerTarget).isDead())
-			{
-				if (((Attackable) ownerTarget).getAggroList().get(_owner) != null)
-					target = (Creature) ownerTarget;
-				else if (_owner.getSummon() != null && ((Attackable) ownerTarget).getAggroList().get(_owner.getSummon()) != null)
-					target = (Creature) ownerTarget;
-			}
-			else if (ownerTarget instanceof Playable && ((_owner.getPvpFlag() > 0 && !_owner.isInsideZone(ZoneId.PEACE)) || _owner.isInsideZone(ZoneId.PVP)))
-			{
-				Player enemy = null;
-				if (!((Creature) ownerTarget).isDead())
-					enemy = ownerTarget.getActingPlayer();
-				
-				if (enemy != null)
-				{
-					final Party ownerParty = _owner.getParty();
-					if (ownerParty != null)
-					{
-						if (ownerParty.containsPlayer(enemy))
-							return null;
-						
-						if (ownerParty.getCommandChannel() != null && ownerParty.getCommandChannel().containsPlayer(enemy))
-							return null;
-					}
-					
-					if (_owner.getClan() != null && !_owner.isInsideZone(ZoneId.PVP))
-					{
-						if (_owner.getClan().isMember(enemy.getObjectId()))
-							return null;
-						
-						if (_owner.getAllyId() > 0 && enemy.getAllyId() > 0 && _owner.getAllyId() == enemy.getAllyId())
-							return null;
-					}
-					
-					if (enemy.getPvpFlag() == 0 && !enemy.isInsideZone(ZoneId.PVP))
-						return null;
-					
-					if (enemy.isInsideZone(ZoneId.PEACE))
-						return null;
-					
-					if (_owner.getSiegeState() > 0 && _owner.getSiegeState() == enemy.getSiegeState())
-						return null;
-					
-					if (!enemy.isVisible())
-						return null;
-					
-					target = enemy;
-				}
-			}
-		}
-		return target;
+		if (!targetCreature.isAttackableWithoutForceBy(_owner))
+			return null;
+		
+		return targetCreature;
 	}
 	
 	/**
@@ -387,21 +302,10 @@ public class Cubic
 			if (target == null)
 				return;
 			
-			final Creature[] targets =
-			{
-				target
-			};
+			_castTask = ThreadPool.schedule(() -> useHealSkill(skill, target), CAST_DELAY);
 			
-			_castTask = ThreadPool.schedule(() ->
-			{
-				final ISkillHandler handler = SkillHandler.getInstance().getHandler(skill.getSkillType());
-				if (handler != null)
-					handler.useSkill(_owner, skill, targets);
-				else
-					skill.useSkill(_owner, targets);
-			}, CAST_DELAY);
-			
-			_owner.broadcastPacket(new MagicSkillUse(_owner, target, skill.getId(), skill.getLevel(), CAST_DELAY, CAST_DELAY));
+			// Life Cubic for Beginners got a level of 8 on L2J, but it's 20 on L2OFF.
+			_owner.broadcastPacket(new MagicSkillUse(_owner, target, skill.getId(), (skill.getLevel() == 8) ? 20 : skill.getLevel(), CAST_DELAY, CAST_DELAY));
 		}
 		else
 		{
@@ -431,10 +335,7 @@ public class Cubic
 			{
 				switch (skill.getSkillType())
 				{
-					case PARALYZE:
-					case STUN:
-					case ROOT:
-					case AGGDAMAGE:
+					case PARALYZE, STUN, ROOT, AGGDAMAGE:
 						useDisablerSkill(skill, target);
 						break;
 					
@@ -442,9 +343,7 @@ public class Cubic
 						useMdamSkill(skill, target);
 						break;
 					
-					case POISON:
-					case DEBUFF:
-					case DOT:
+					case POISON, DEBUFF, DOT:
 						useContinuousSkill(skill, target);
 						break;
 					
@@ -453,13 +352,24 @@ public class Cubic
 						break;
 					
 					default:
-						SkillHandler.getInstance().getHandler(skill.getSkillType()).useSkill(_owner, skill, targets);
+						SkillHandler.getInstance().getHandler(skill.getSkillType()).useSkill(_owner, skill, targets, null);
 						break;
 				}
 			}, CAST_DELAY);
 			
 			_owner.broadcastPacket(new MagicSkillUse(_owner, target, skill.getId(), skill.getLevel(), CAST_DELAY, CAST_DELAY));
 		}
+	}
+	
+	private static void useHealSkill(L2Skill skill, Creature target)
+	{
+		if (!target.canBeHealed())
+			return;
+		
+		target.getStatus().addHp(skill.getPower() * target.getStatus().calcStat(Stats.HEAL_EFFECTIVNESS, 100, null, null) / 100.);
+		
+		if (target instanceof Player)
+			target.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.REJUVENATING_HP));
 	}
 	
 	private void useDisablerSkill(L2Skill skill, Creature target)
@@ -473,24 +383,10 @@ public class Cubic
 		if (!Formulas.calcCubicSkillSuccess(this, target, skill, sDef, bss))
 			return;
 		
-		if (skill.getSkillType() == SkillType.AGGDAMAGE)
-		{
-			if (target instanceof Attackable)
-				target.getAI().notifyEvent(AiEventType.AGGRESSION, getOwner(), (int) ((150 * skill.getPower()) / (target.getStatus().getLevel() + 7)));
-			
-			skill.getEffects(this, target);
-		}
-		else
-		{
-			// If this is a debuff, let the duel manager know about it so the debuff can be removed after the duel (player & target must be in the same duel)
-			if (target instanceof Player && ((Player) target).isInDuel() && skill.getSkillType() == SkillType.DEBUFF && getOwner().getDuelId() == ((Player) target).getDuelId())
-			{
-				for (AbstractEffect effect : skill.getEffects(getOwner(), target))
-					DuelManager.getInstance().onBuff(((Player) target), effect);
-			}
-			else
-				skill.getEffects(this, target);
-		}
+		if (skill.getSkillType() == SkillType.AGGDAMAGE && target instanceof Attackable)
+			target.getAI().notifyEvent(AiEventType.AGGRESSION, getOwner(), (int) ((150 * skill.getPower()) / (target.getStatus().getLevel() + 7)));
+		
+		skill.getEffects(this, target);
 	}
 	
 	private void useMdamSkill(L2Skill skill, Creature target)
@@ -549,14 +445,7 @@ public class Cubic
 			}
 		}
 		
-		// If this is a debuff, let the duel manager know about it so the debuff can be removed after the duel (player & target must be in the same duel)
-		if (target instanceof Player && ((Player) target).isInDuel() && skill.getSkillType() == SkillType.DEBUFF && getOwner().getDuelId() == ((Player) target).getDuelId())
-		{
-			for (AbstractEffect effect : skill.getEffects(getOwner(), target))
-				DuelManager.getInstance().onBuff(((Player) target), effect);
-		}
-		else
-			skill.getEffects(this, target);
+		skill.getEffects(this, target);
 	}
 	
 	private void useDrainSkill(L2SkillDrain skill, Creature target)

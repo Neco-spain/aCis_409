@@ -52,10 +52,10 @@ public class Q402_PathToAHumanKnight extends Quest
 		
 		setItemsIds(MARK_OF_ESQUIRE, COIN_OF_LORDS_1, COIN_OF_LORDS_2, COIN_OF_LORDS_3, COIN_OF_LORDS_4, COIN_OF_LORDS_5, COIN_OF_LORDS_6, GLUDIO_GUARD_MARK_1, BUGBEAR_NECKLACE, EINHASAD_CHURCH_MARK_1, EINHASAD_CRUCIFIX, GLUDIO_GUARD_MARK_2, SPIDER_LEG, EINHASAD_CHURCH_MARK_2, LIZARDMAN_TOTEM, GLUDIO_GUARD_MARK_3, GIANT_SPIDER_HUSK, EINHASAD_CHURCH_MARK_3, LIZARDMAN_TOTEM, GLUDIO_GUARD_MARK_3, GIANT_SPIDER_HUSK, EINHASAD_CHURCH_MARK_3, HORRIBLE_SKULL);
 		
-		addStartNpc(SIR_KLAUS_VASPER);
+		addQuestStart(SIR_KLAUS_VASPER);
 		addTalkId(SIR_KLAUS_VASPER, BATHIS, RAYMOND, BEZIQUE, LEVIAN, GILBERT, BIOTIN, SIR_AARON_TANFORD, SIR_COLLIN_WINDAWOOD);
 		
-		addKillId(20775, 27024, 20038, 20043, 20050, 20030, 20027, 20024, 20103, 20106, 20108, 20404);
+		addMyDying(20775, 27024, 20038, 20043, 20050, 20030, 20027, 20024, 20103, 20106, 20108, 20404);
 	}
 	
 	@Override
@@ -72,7 +72,7 @@ public class Q402_PathToAHumanKnight extends Quest
 				htmltext = (player.getClassId() == ClassId.KNIGHT) ? "30417-02a.htm" : "30417-03.htm";
 			else if (player.getStatus().getLevel() < 19)
 				htmltext = "30417-02.htm";
-			else if (player.getInventory().hasItems(SWORD_OF_RITUAL))
+			else if (player.getInventory().hasItem(SWORD_OF_RITUAL))
 				htmltext = "30417-04.htm";
 		}
 		else if (event.equalsIgnoreCase("30417-08.htm"))
@@ -177,9 +177,9 @@ public class Q402_PathToAHumanKnight extends Quest
 						break;
 					
 					case BATHIS:
-						if (player.getInventory().hasItems(COIN_OF_LORDS_1))
+						if (player.getInventory().hasItem(COIN_OF_LORDS_1))
 							htmltext = "30332-05.htm";
-						else if (player.getInventory().hasItems(GLUDIO_GUARD_MARK_1))
+						else if (player.getInventory().hasItem(GLUDIO_GUARD_MARK_1))
 						{
 							if (player.getInventory().getItemCount(BUGBEAR_NECKLACE) < 10)
 								htmltext = "30332-03.htm";
@@ -197,9 +197,9 @@ public class Q402_PathToAHumanKnight extends Quest
 						break;
 					
 					case RAYMOND:
-						if (player.getInventory().hasItems(COIN_OF_LORDS_2))
+						if (player.getInventory().hasItem(COIN_OF_LORDS_2))
 							htmltext = "30289-06.htm";
-						else if (player.getInventory().hasItems(EINHASAD_CHURCH_MARK_1))
+						else if (player.getInventory().hasItem(EINHASAD_CHURCH_MARK_1))
 						{
 							if (player.getInventory().getItemCount(EINHASAD_CRUCIFIX) < 12)
 								htmltext = "30289-04.htm";
@@ -217,9 +217,9 @@ public class Q402_PathToAHumanKnight extends Quest
 						break;
 					
 					case BEZIQUE:
-						if (player.getInventory().hasItems(COIN_OF_LORDS_3))
+						if (player.getInventory().hasItem(COIN_OF_LORDS_3))
 							htmltext = "30379-05.htm";
-						else if (player.getInventory().hasItems(GLUDIO_GUARD_MARK_2))
+						else if (player.getInventory().hasItem(GLUDIO_GUARD_MARK_2))
 						{
 							if (player.getInventory().getItemCount(SPIDER_LEG) < 20)
 								htmltext = "30379-03.htm";
@@ -237,9 +237,9 @@ public class Q402_PathToAHumanKnight extends Quest
 						break;
 					
 					case LEVIAN:
-						if (player.getInventory().hasItems(COIN_OF_LORDS_4))
+						if (player.getInventory().hasItem(COIN_OF_LORDS_4))
 							htmltext = "30037-05.htm";
-						else if (player.getInventory().hasItems(EINHASAD_CHURCH_MARK_2))
+						else if (player.getInventory().hasItem(EINHASAD_CHURCH_MARK_2))
 						{
 							if (player.getInventory().getItemCount(LIZARDMAN_TOTEM) < 20)
 								htmltext = "30037-03.htm";
@@ -257,9 +257,9 @@ public class Q402_PathToAHumanKnight extends Quest
 						break;
 					
 					case GILBERT:
-						if (player.getInventory().hasItems(COIN_OF_LORDS_5))
+						if (player.getInventory().hasItem(COIN_OF_LORDS_5))
 							htmltext = "30039-05.htm";
-						else if (player.getInventory().hasItems(GLUDIO_GUARD_MARK_3))
+						else if (player.getInventory().hasItem(GLUDIO_GUARD_MARK_3))
 						{
 							if (player.getInventory().getItemCount(GIANT_SPIDER_HUSK) < 20)
 								htmltext = "30039-03.htm";
@@ -277,9 +277,9 @@ public class Q402_PathToAHumanKnight extends Quest
 						break;
 					
 					case BIOTIN:
-						if (player.getInventory().hasItems(COIN_OF_LORDS_6))
+						if (player.getInventory().hasItem(COIN_OF_LORDS_6))
 							htmltext = "30031-05.htm";
-						else if (player.getInventory().hasItems(EINHASAD_CHURCH_MARK_3))
+						else if (player.getInventory().hasItem(EINHASAD_CHURCH_MARK_3))
 						{
 							if (player.getInventory().getItemCount(HORRIBLE_SKULL) < 10)
 								htmltext = "30031-03.htm";
@@ -307,53 +307,45 @@ public class Q402_PathToAHumanKnight extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
 			case 20775: // Bugbear Raider
-				if (player.getInventory().hasItems(GLUDIO_GUARD_MARK_1))
+				if (player.getInventory().hasItem(GLUDIO_GUARD_MARK_1))
 					dropItemsAlways(player, BUGBEAR_NECKLACE, 1, 10);
 				break;
 			
 			case 27024: // Undead Priest
-				if (player.getInventory().hasItems(EINHASAD_CHURCH_MARK_1))
+				if (player.getInventory().hasItem(EINHASAD_CHURCH_MARK_1))
 					dropItems(player, EINHASAD_CRUCIFIX, 1, 12, 500000);
 				break;
 			
-			case 20038: // Poison Spider
-			case 20043: // Arachnid Tracker
-			case 20050: // Arachnid Predator
-				if (player.getInventory().hasItems(GLUDIO_GUARD_MARK_2))
+			case 20038, 20043, 20050: // Poison Spider, Arachnid Tracker, Arachnid Predator
+				if (player.getInventory().hasItem(GLUDIO_GUARD_MARK_2))
 					dropItemsAlways(player, SPIDER_LEG, 1, 20);
 				break;
 			
-			case 20030: // Langk Lizardman
-			case 20027: // Langk Lizardman Scout
-			case 20024: // Langk Lizardman Warrior
-				if (player.getInventory().hasItems(EINHASAD_CHURCH_MARK_2))
+			case 20024, 20027, 20030: // Langk Lizardman Warrior, Langk Lizardman Scout, Langk Lizardman
+				if (player.getInventory().hasItem(EINHASAD_CHURCH_MARK_2))
 					dropItems(player, LIZARDMAN_TOTEM, 1, 20, 500000);
 				break;
 			
-			case 20103: // Giant Spider
-			case 20106: // Talon Spider
-			case 20108: // Blade Spider
-				if (player.getInventory().hasItems(GLUDIO_GUARD_MARK_3))
+			case 20103, 20106, 20108: // Giant Spider, Talon Spider, Blade Spider
+				if (player.getInventory().hasItem(GLUDIO_GUARD_MARK_3))
 					dropItems(player, GIANT_SPIDER_HUSK, 1, 20, 400000);
 				break;
 			
 			case 20404: // Silent Horror
-				if (player.getInventory().hasItems(EINHASAD_CHURCH_MARK_3))
+				if (player.getInventory().hasItem(EINHASAD_CHURCH_MARK_3))
 					dropItems(player, HORRIBLE_SKULL, 1, 10, 400000);
 				break;
 		}
-		
-		return null;
 	}
 }

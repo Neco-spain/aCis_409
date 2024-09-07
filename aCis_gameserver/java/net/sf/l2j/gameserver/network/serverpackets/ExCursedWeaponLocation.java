@@ -2,7 +2,7 @@ package net.sf.l2j.gameserver.network.serverpackets;
 
 import java.util.List;
 
-import net.sf.l2j.gameserver.model.location.Location;
+import net.sf.l2j.gameserver.model.records.CursedWeaponInfo;
 
 public class ExCursedWeaponLocation extends L2GameServerPacket
 {
@@ -22,34 +22,17 @@ public class ExCursedWeaponLocation extends L2GameServerPacket
 		if (!_cursedWeaponInfo.isEmpty())
 		{
 			writeD(_cursedWeaponInfo.size());
-			for (CursedWeaponInfo w : _cursedWeaponInfo)
+			for (CursedWeaponInfo cwi : _cursedWeaponInfo)
 			{
-				writeD(w.id);
-				writeD(w.activated);
-				
-				writeD(w.pos.getX());
-				writeD(w.pos.getY());
-				writeD(w.pos.getZ());
+				writeD(cwi.id());
+				writeD(cwi.activated());
+				writeLoc(cwi.pos());
 			}
 		}
 		else
 		{
 			writeD(0);
 			writeD(0);
-		}
-	}
-	
-	public static class CursedWeaponInfo
-	{
-		public Location pos;
-		public int id;
-		public int activated; // 0 - not activated ? 1 - activated
-		
-		public CursedWeaponInfo(Location p, int ID, int status)
-		{
-			pos = p;
-			id = ID;
-			activated = status;
 		}
 	}
 }

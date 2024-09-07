@@ -33,7 +33,7 @@ public class Q048_ToTheImmortalPlateau extends Quest
 		
 		setItemsIds(ORDER_DOCUMENT_1, ORDER_DOCUMENT_2, ORDER_DOCUMENT_3, MAGIC_SWORD_HILT, GEMSTONE_POWDER, PURIFIED_MAGIC_NECKLACE);
 		
-		addStartNpc(GALLADUCCI);
+		addQuestStart(GALLADUCCI);
 		addTalkId(GALLADUCCI, SANDRA, DUSTIN, GENTLER);
 	}
 	
@@ -112,7 +112,7 @@ public class Q048_ToTheImmortalPlateau extends Quest
 			case CREATED:
 				if (player.getRace() == ClassRace.ORC && player.getStatus().getLevel() >= 3)
 				{
-					if (player.getInventory().hasItems(MARK_OF_TRAVELER))
+					if (player.getInventory().hasItem(MARK_OF_TRAVELER))
 						htmltext = "30097-02.htm";
 					else
 						htmltext = "30097-01.htm";

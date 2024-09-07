@@ -11,21 +11,22 @@ import net.sf.l2j.commons.pool.ThreadPool;
 import net.sf.l2j.commons.random.Rnd;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.gameserver.data.manager.DimensionalRiftManager;
 import net.sf.l2j.gameserver.data.manager.DuelManager;
 import net.sf.l2j.gameserver.data.manager.FestivalOfDarknessManager;
 import net.sf.l2j.gameserver.data.manager.PartyMatchRoomManager;
+import net.sf.l2j.gameserver.data.manager.RelationManager;
 import net.sf.l2j.gameserver.enums.LootRule;
 import net.sf.l2j.gameserver.enums.MessageType;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Attackable;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.actor.Summon;
 import net.sf.l2j.gameserver.model.actor.container.npc.RewardInfo;
+import net.sf.l2j.gameserver.model.actor.instance.Pet;
 import net.sf.l2j.gameserver.model.actor.instance.Servitor;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
-import net.sf.l2j.gameserver.model.rift.DimensionalRift;
 import net.sf.l2j.gameserver.network.NpcStringId;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.CreatureSay;
@@ -66,7 +67,6 @@ public class Party extends AbstractGroup
 	private int _itemLastLoot;
 	
 	private CommandChannel _commandChannel;
-	private DimensionalRift _rift;
 	
 	private Future<?> _positionBroadcastTask;
 	protected PartyMemberPosition _positionPacket;
@@ -141,7 +141,7 @@ public class Party extends AbstractGroup
 	{
 		for (Player member : _members)
 		{
-			if (!member.getBlockList().isInBlockList(broadcaster))
+			if (!RelationManager.getInstance().isInBlockList(member, broadcaster))
 				member.sendPacket(msg);
 		}
 	}
@@ -173,9 +173,6 @@ public class Party extends AbstractGroup
 	@Override
 	public void disband()
 	{
-		// Cancel current rift session.
-		DimensionalRiftManager.getInstance().onPartyEdit(this);
-		
 		// Cancel party duel based on leader, as it will affect all players anyway.
 		DuelManager.getInstance().onPartyEdit(getLeader());
 		
@@ -201,10 +198,9 @@ public class Party extends AbstractGroup
 			if (member.getFusionSkill() != null)
 				member.getCast().stop();
 			
-			for (final Creature creature : member.getKnownType(Creature.class))
-				if (creature.getFusionSkill() != null && creature.getFusionSkill().getTarget() == member)
-					creature.getCast().stop();
-				
+			// Stop casting for any player that may be casting a force buff on this Player.
+			member.forEachKnownType(Creature.class, creature -> creature.getFusionSkill() != null && creature.getFusionSkill().getTarget() == member, creature -> creature.getCast().stop());
+			
 			member.sendPacket(SystemMessageId.PARTY_DISPERSED);
 		}
 		_members.clear();
@@ -351,9 +347,6 @@ public class Party extends AbstractGroup
 		player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.YOU_JOINED_S1_PARTY).addCharName(getLeader()));
 		broadcastPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_JOINED_PARTY).addCharName(player));
 		
-		// Cancel current rift session.
-		DimensionalRiftManager.getInstance().onPartyEdit(this);
-		
 		// Cancel party duel based on leader, as it will affect all players anyway.
 		DuelManager.getInstance().onPartyEdit(getLeader());
 		
@@ -419,9 +412,6 @@ public class Party extends AbstractGroup
 				}
 			}
 			
-			// Cancel current rift session.
-			DimensionalRiftManager.getInstance().onPartyEdit(this);
-			
 			// Cancel party duel based on leader, as it will affect all players anyway.
 			DuelManager.getInstance().onPartyEdit(getLeader());
 			
@@ -434,10 +424,9 @@ public class Party extends AbstractGroup
 			if (player.getFusionSkill() != null)
 				player.getCast().stop();
 			
-			for (final Creature creature : player.getKnownType(Creature.class))
-				if (creature.getFusionSkill() != null && creature.getFusionSkill().getTarget() == player)
-					creature.getCast().stop();
-				
+			// Stop casting for any player that may be casting a force buff on this Player.
+			player.forEachKnownType(Creature.class, creature -> creature.getFusionSkill() != null && creature.getFusionSkill().getTarget() == player, creature -> creature.getCast().stop());
+			
 			if (type == MessageType.EXPELLED)
 			{
 				player.sendPacket(SystemMessageId.HAVE_BEEN_EXPELLED_FROM_PARTY);
@@ -529,13 +518,14 @@ public class Party extends AbstractGroup
 	 * Distribute item(s) to one {@link Party} member, based on {@link Party}'s {@link LootRule}.
 	 * @param player : The initial {@link Player} looter.
 	 * @param item : The {@link ItemInstance} used as looted item to distribute.
+	 * @param summon : If different than null, use the {@link Pet} as benefactor.
 	 */
-	public void distributeItem(Player player, ItemInstance item)
+	public void distributeItem(Player player, ItemInstance item, Summon summon)
 	{
 		if (item.getItemId() == 57)
 		{
 			distributeAdena(player, item.getCount(), player);
-			item.destroyMe("Party", player, null);
+			item.destroyMe();
 			return;
 		}
 		
@@ -543,55 +533,61 @@ public class Party extends AbstractGroup
 		if (target == null)
 			return;
 		
-		// Send messages to other party members about reward.
-		if (item.getCount() > 1)
-			broadcastToPartyMembers(target, SystemMessage.getSystemMessage(SystemMessageId.S1_OBTAINED_S3_S2).addCharName(target).addItemName(item).addItemNumber(item.getCount()));
-		else if (item.getEnchantLevel() > 0)
-			broadcastToPartyMembers(target, SystemMessage.getSystemMessage(SystemMessageId.S1_OBTAINED_S2_S3).addCharName(target).addNumber(item.getEnchantLevel()).addItemName(item));
+		if (summon instanceof Pet && target == summon.getOwner())
+			summon.addItem(item, true);
 		else
-			broadcastToPartyMembers(target, SystemMessage.getSystemMessage(SystemMessageId.S1_OBTAINED_S2).addCharName(target).addItemName(item));
-		
-		target.addItem("Party", item, player, true);
+		{
+			// Send messages to other party members about reward.
+			if (item.getCount() > 1)
+				broadcastToPartyMembers(target, SystemMessage.getSystemMessage(SystemMessageId.S1_OBTAINED_S3_S2).addCharName(target).addItemName(item).addItemNumber(item.getCount()));
+			else if (item.getEnchantLevel() > 0)
+				broadcastToPartyMembers(target, SystemMessage.getSystemMessage(SystemMessageId.S1_OBTAINED_S2_S3).addCharName(target).addNumber(item.getEnchantLevel()).addItemName(item));
+			else
+				broadcastToPartyMembers(target, SystemMessage.getSystemMessage(SystemMessageId.S1_OBTAINED_S2).addCharName(target).addItemName(item));
+			
+			target.addItem(item, true);
+		}
 	}
 	
 	/**
 	 * Distribute item(s) to one {@link Party} member, based on {@link Party}'s {@link LootRule}.
 	 * @param player : The initial {@link Player} looter.
-	 * @param item : The {@link IntIntHolder} used as looted item to distribute.
+	 * @param itemId : The {@link IntIntHolder} used as looted item to distribute.
+	 * @param amount : The {@link IntIntHolder} used as looted item to distribute.
 	 * @param isSpoil : True if the item comes from a spoil process, false otherwise.
 	 * @param target : The {@link Attackable} used as looted target.
 	 */
-	public void distributeItem(Player player, IntIntHolder item, boolean isSpoil, Attackable target)
+	public void distributeItem(Player player, int itemId, int amount, boolean isSpoil, Attackable target)
 	{
-		if (item == null)
-			return;
-		
-		if (item.getId() == 57)
+		if (itemId == 57)
 		{
-			distributeAdena(player, item.getValue(), target);
+			distributeAdena(player, amount, target);
 			return;
 		}
 		
-		final Player looter = getValidLooter(player, item.getId(), isSpoil, target);
+		final Player looter = getValidLooter(player, itemId, isSpoil, target);
 		if (looter == null)
 			return;
 		
-		looter.addItem((isSpoil) ? "Sweep" : "Party", item.getId(), item.getValue(), player, true);
+		if (isSpoil)
+			looter.addEarnedItem(itemId, amount, true);
+		else
+			looter.addItem(itemId, amount, true);
 		
 		// Send messages to other party members about reward.
 		SystemMessage msg;
-		if (item.getValue() > 1)
+		if (amount > 1)
 		{
 			msg = (isSpoil) ? SystemMessage.getSystemMessage(SystemMessageId.S1_SWEEPED_UP_S3_S2) : SystemMessage.getSystemMessage(SystemMessageId.S1_OBTAINED_S3_S2);
 			msg.addCharName(looter);
-			msg.addItemName(item.getId());
-			msg.addItemNumber(item.getValue());
+			msg.addItemName(itemId);
+			msg.addItemNumber(amount);
 		}
 		else
 		{
 			msg = (isSpoil) ? SystemMessage.getSystemMessage(SystemMessageId.S1_SWEEPED_UP_S2) : SystemMessage.getSystemMessage(SystemMessageId.S1_OBTAINED_S2);
 			msg.addCharName(looter);
-			msg.addItemName(item.getId());
+			msg.addItemName(itemId);
 		}
 		broadcastToPartyMembers(looter, msg);
 	}
@@ -599,7 +595,7 @@ public class Party extends AbstractGroup
 	/**
 	 * Distribute adena to {@link Party} members.
 	 * @param player : The {@link Player} picker.
-	 * @param adena : The amount of adenas.
+	 * @param adena : The Adena amount.
 	 * @param target : The {@link Creature} of which the member must be within a certain range (must not be null).
 	 */
 	public void distributeAdena(Player player, int adena, Creature target)
@@ -619,7 +615,7 @@ public class Party extends AbstractGroup
 		
 		final int count = adena / toReward.size();
 		for (Player member : toReward)
-			member.addAdena("Party", count, player, true);
+			member.addAdena(count, true);
 	}
 	
 	/**
@@ -666,7 +662,7 @@ public class Party extends AbstractGroup
 				sqLevelSum += (member.getStatus().getLevel() * member.getStatus().getLevel());
 			
 			// Have to use range 1 to 9, since we -1 it : 0 can't be a good number (would lead to a IOOBE). Since 0 and 1 got same values, it's not a problem.
-			final int partySize = MathUtil.limit(rewardedMembers.size(), 1, 9);
+			final int partySize = Math.clamp(rewardedMembers.size(), 1, 9);
 			
 			for (Player member : rewardedMembers)
 			{
@@ -674,6 +670,10 @@ public class Party extends AbstractGroup
 				if (sqLevel >= sqLevelSum * (1 - 1 / (1 + BONUS_EXP_SP[partySize] - BONUS_EXP_SP[partySize - 1])))
 					validMembers.add(member);
 			}
+		}
+		else if (Config.PARTY_XP_CUTOFF_METHOD.equalsIgnoreCase("none"))
+		{
+			validMembers.addAll(rewardedMembers);
 		}
 		
 		// Since validMembers can also hold CommandChannel members, we have to restrict the value.
@@ -735,21 +735,6 @@ public class Party extends AbstractGroup
 		_commandChannel = channel;
 	}
 	
-	public boolean isInDimensionalRift()
-	{
-		return _rift != null;
-	}
-	
-	public DimensionalRift getDimensionalRift()
-	{
-		return _rift;
-	}
-	
-	public void setDimensionalRift(DimensionalRift rift)
-	{
-		_rift = rift;
-	}
-	
 	/**
 	 * @return True if the entire party is currently dead, false otherwise.
 	 */
@@ -766,5 +751,21 @@ public class Party extends AbstractGroup
 	public boolean equals(Party party)
 	{
 		return party != null && getLeaderObjectId() == party.getLeaderObjectId();
+	}
+	
+	/**
+	 * Reset the duel state of each {@link Party} member.
+	 */
+	public void resetDuelState()
+	{
+		_members.forEach(Player::resetDuelState);
+	}
+	
+	/**
+	 * Reset the fight state of each {@link Party} member.
+	 */
+	public void stopToFight()
+	{
+		_members.forEach(Player::stopToFight);
 	}
 }

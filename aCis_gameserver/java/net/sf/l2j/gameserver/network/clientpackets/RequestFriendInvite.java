@@ -1,5 +1,6 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
+import net.sf.l2j.gameserver.data.manager.RelationManager;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.network.SystemMessageId;
@@ -39,19 +40,28 @@ public final class RequestFriendInvite extends L2GameClientPacket
 			return;
 		}
 		
-		if (target.getBlockList().isBlockingAll())
+		if (target.isBlockingAll())
 		{
-			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_BLOCKED_EVERYTHING).addString(target.getName()));
+			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_BLOCKED_EVERYTHING).addString(_targetName));
+			player.sendPacket(FriendAddRequestResult.STATIC_FAIL);
 			return;
 		}
 		
-		if (target.getBlockList().isInBlockList(player))
+		if (!player.isGM() && target.isGM())
 		{
-			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_HAS_ADDED_YOU_TO_IGNORE_LIST2).addString(target.getName()));
+			player.sendPacket(SystemMessageId.THE_PLAYER_IS_REJECTING_FRIEND_INVITATIONS);
+			player.sendPacket(FriendAddRequestResult.STATIC_FAIL);
 			return;
 		}
 		
-		if (player.getFriendList().contains(target.getObjectId()))
+		if (RelationManager.getInstance().isInBlockList(target, player))
+		{
+			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_HAS_ADDED_YOU_TO_IGNORE_LIST2).addString(_targetName));
+			player.sendPacket(FriendAddRequestResult.STATIC_FAIL);
+			return;
+		}
+		
+		if (RelationManager.getInstance().areFriends(player.getObjectId(), target.getObjectId()))
 		{
 			player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_ALREADY_IN_FRIENDS_LIST).addString(_targetName));
 			player.sendPacket(FriendAddRequestResult.STATIC_FAIL);

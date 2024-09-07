@@ -12,8 +12,8 @@ import net.sf.l2j.commons.data.StatSet;
 import net.sf.l2j.commons.data.xml.IXmlReader;
 
 import net.sf.l2j.gameserver.model.AccessLevel;
-import net.sf.l2j.gameserver.model.AdminCommand;
 import net.sf.l2j.gameserver.model.actor.Player;
+import net.sf.l2j.gameserver.model.records.AdminCommand;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.L2GameServerPacket;
 import net.sf.l2j.gameserver.network.serverpackets.PlaySound;
@@ -111,14 +111,14 @@ public final class AdminData implements IXmlReader
 	 */
 	public boolean hasAccess(String command, AccessLevel accessToCheck)
 	{
-		final AdminCommand ac = _adminCommands.stream().filter(c -> c.getName().equalsIgnoreCase(command)).findFirst().orElse(null);
+		final AdminCommand ac = _adminCommands.stream().filter(c -> c.name().equalsIgnoreCase(command)).findFirst().orElse(null);
 		if (ac == null)
 		{
 			LOGGER.warn("No rights defined for admin command '{}'.", command);
 			return false;
 		}
 		
-		final AccessLevel access = getAccessLevel(ac.getAccessLevel());
+		final AccessLevel access = getAccessLevel(ac.accessLevel());
 		return access != null && (access.getLevel() == accessToCheck.getLevel() || accessToCheck.hasChildAccess(access));
 	}
 	
@@ -131,7 +131,7 @@ public final class AdminData implements IXmlReader
 		final List<Player> list = new ArrayList<>();
 		for (Entry<Player, Boolean> entry : _gmList.entrySet())
 		{
-			if (includeHidden || !entry.getValue())
+			if (includeHidden || entry.getValue() == Boolean.FALSE)
 				list.add(entry.getKey());
 		}
 		return list;
@@ -146,7 +146,7 @@ public final class AdminData implements IXmlReader
 		final List<String> list = new ArrayList<>();
 		for (Entry<Player, Boolean> entry : _gmList.entrySet())
 		{
-			if (!entry.getValue())
+			if (entry.getValue() == Boolean.FALSE)
 				list.add(entry.getKey().getName());
 			else if (includeHidden)
 				list.add(entry.getKey().getName() + " (invis)");
@@ -191,7 +191,7 @@ public final class AdminData implements IXmlReader
 	{
 		for (Entry<Player, Boolean> entry : _gmList.entrySet())
 		{
-			if (includeHidden || !entry.getValue())
+			if (includeHidden || entry.getValue() == Boolean.FALSE)
 				return true;
 		}
 		return false;

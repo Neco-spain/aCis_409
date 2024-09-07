@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 
 import net.sf.l2j.commons.data.StatSet;
@@ -18,12 +19,11 @@ import net.sf.l2j.commons.random.Rnd;
 import net.sf.l2j.Config;
 import net.sf.l2j.gameserver.data.sql.ClanTable;
 import net.sf.l2j.gameserver.data.sql.PlayerInfoTable;
-import net.sf.l2j.gameserver.data.sql.SpawnTable;
-import net.sf.l2j.gameserver.data.xml.MapRegionData.TeleportType;
 import net.sf.l2j.gameserver.enums.CabalType;
 import net.sf.l2j.gameserver.enums.FestivalType;
 import net.sf.l2j.gameserver.enums.IntentionType;
 import net.sf.l2j.gameserver.enums.MessageType;
+import net.sf.l2j.gameserver.enums.RestartType;
 import net.sf.l2j.gameserver.enums.SayType;
 import net.sf.l2j.gameserver.model.World;
 import net.sf.l2j.gameserver.model.actor.Npc;
@@ -46,8 +46,7 @@ public class FestivalOfDarknessManager
 	
 	private static final String RESTORE_FESTIVAL = "SELECT festivalId, cabal, cycle, date, score, members FROM seven_signs_festival";
 	private static final String RESTORE_FESTIVAL_2 = "SELECT festival_cycle, accumulated_bonus0, accumulated_bonus1, accumulated_bonus2, accumulated_bonus3, accumulated_bonus4 FROM seven_signs_status WHERE id=0";
-	private static final String UPDATE = "UPDATE seven_signs_festival SET date=?, score=?, members=? WHERE cycle=? AND cabal=? AND festivalId=?";
-	private static final String INSERT = "INSERT INTO seven_signs_festival (festivalId, cabal, cycle, date, score, members) VALUES (?,?,?,?,?,?)";
+	private static final String INSERT_OR_UPDATE_FESTIVAL = "INSERT INTO seven_signs_festival (festivalId, cabal, cycle, date, score, members) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE date = VALUES(date), score = VALUES(score), members = VALUES(members)";
 	private static final String GET_CLAN_NAME = "SELECT clan_name FROM clan_data WHERE clan_id = (SELECT clanid FROM characters WHERE char_name = ?)";
 	
 	/**
@@ -3131,7 +3130,7 @@ public class FestivalOfDarknessManager
 	private Map<Integer, Integer> _dawnFestivalScores = new HashMap<>();
 	private Map<Integer, Integer> _duskFestivalScores = new HashMap<>();
 	
-	private Map<Integer, Map<Integer, StatSet>> _festivalData = new HashMap<>();
+	private Map<Integer, Map<Integer, StatSet>> _festivalData = new ConcurrentHashMap<>();
 	
 	protected FestivalOfDarknessManager()
 	{
@@ -3223,13 +3222,8 @@ public class FestivalOfDarknessManager
 					if (cabal.equalsIgnoreCase("dawn"))
 						festivalId += FESTIVAL_COUNT;
 					
-					Map<Integer, StatSet> map = _festivalData.get(festivalCycle);
-					if (map == null)
-						map = new HashMap<>();
-					
+					final Map<Integer, StatSet> map = _festivalData.computeIfAbsent(festivalCycle, m -> new HashMap<>());
 					map.put(festivalId, set);
-					
-					_festivalData.put(festivalCycle, map);
 				}
 			}
 			
@@ -3260,39 +3254,22 @@ public class FestivalOfDarknessManager
 	public void saveFestivalData(boolean updateSettings)
 	{
 		try (Connection con = ConnectionPool.getConnection();
-			PreparedStatement ps = con.prepareStatement(UPDATE);
-			PreparedStatement ps2 = con.prepareStatement(INSERT))
+			PreparedStatement ps = con.prepareStatement(INSERT_OR_UPDATE_FESTIVAL))
 		{
 			for (Map<Integer, StatSet> map : _festivalData.values())
 			{
 				for (StatSet set : map.values())
 				{
-					final int festivalCycle = set.getInteger("cycle");
-					final int festivalId = set.getInteger("festivalId");
-					final String cabal = set.getString("cabal");
-					
-					// Try to update an existing record.
-					ps.setLong(1, set.getLong("date"));
-					ps.setInt(2, set.getInteger("score"));
-					ps.setString(3, set.getString("members"));
-					ps.setInt(4, festivalCycle);
-					ps.setString(5, cabal);
-					ps.setInt(6, festivalId);
-					
-					// If there was no record to update, assume it doesn't exist and add a new one, otherwise continue with the next record to store.
-					if (ps.executeUpdate() > 0)
-						continue;
-					
-					ps2.setInt(1, festivalId);
-					ps2.setString(2, cabal);
-					ps2.setInt(3, festivalCycle);
-					ps2.setLong(4, set.getLong("date"));
-					ps2.setInt(5, set.getInteger("score"));
-					ps2.setString(6, set.getString("members"));
-					ps2.execute();
-					ps2.clearParameters();
+					ps.setInt(1, set.getInteger("festivalId"));
+					ps.setString(2, set.getString("cabal"));
+					ps.setInt(3, set.getInteger("cycle"));
+					ps.setLong(4, set.getLong("date"));
+					ps.setInt(5, set.getInteger("score"));
+					ps.setString(6, set.getString("members"));
+					ps.addBatch();
 				}
 			}
+			ps.executeBatch();
 			
 			// Updates Seven Signs DB data also, so call only if really necessary.
 			if (updateSettings)
@@ -3382,7 +3359,7 @@ public class FestivalOfDarknessManager
 		_duskFestivalScores.clear();
 		
 		// Set up a new data set for the current cycle of festivals
-		Map<Integer, StatSet> map = new HashMap<>();
+		final Map<Integer, StatSet> map = new HashMap<>();
 		
 		for (int i = 0; i < FESTIVAL_COUNT * 2; i++)
 		{
@@ -3392,23 +3369,18 @@ public class FestivalOfDarknessManager
 				festivalId -= FESTIVAL_COUNT;
 			
 			// Create a new StatSet with "default" data for Dusk
-			StatSet set = new StatSet();
+			final StatSet set = new StatSet();
 			set.set("festivalId", festivalId);
 			set.set("cycle", _signsCycle);
 			set.set("date", "0");
 			set.set("score", 0);
 			set.set("members", "");
-			
-			if (i >= FESTIVAL_COUNT)
-				set.set("cabal", CabalType.DAWN);
-			else
-				set.set("cabal", CabalType.DUSK);
+			set.set("cabal", (i >= FESTIVAL_COUNT) ? CabalType.DAWN : CabalType.DUSK);
 			
 			map.put(i, set);
 		}
 		
-		// Add the newly created cycle data to the existing festival data, and
-		// subsequently save it to the database.
+		// Add the newly created cycle data to the existing festival data, and subsequently save it to the database.
 		_festivalData.put(_signsCycle, map);
 		
 		saveFestivalData(updateSettings);
@@ -3418,7 +3390,7 @@ public class FestivalOfDarknessManager
 		{
 			ItemInstance bloodOfferings = player.getInventory().getItemByItemId(FESTIVAL_OFFERING_ID);
 			if (bloodOfferings != null)
-				player.destroyItem("SevenSigns", bloodOfferings, null, false);
+				player.destroyItem(bloodOfferings, false);
 		}
 		
 		LOGGER.info("Reinitialized Seven Signs Festival for next competition period.");
@@ -3898,8 +3870,9 @@ public class FestivalOfDarknessManager
 			{
 				wait(FESTIVAL_SIGNUP_TIME);
 			}
-			catch (InterruptedException e)
+			catch (InterruptedException ie)
 			{
+				// Do nothing.
 			}
 			
 			// Clear past participants, they can no longer register their score if not done so already.
@@ -3928,8 +3901,9 @@ public class FestivalOfDarknessManager
 								festivalInst.unspawnMobs();
 						}
 					}
-					catch (InterruptedException e)
+					catch (InterruptedException ie)
 					{
+						// Do nothing.
 					}
 				}
 				else
@@ -3962,8 +3936,9 @@ public class FestivalOfDarknessManager
 			{
 				wait(Config.FESTIVAL_FIRST_SPAWN);
 			}
-			catch (InterruptedException e)
+			catch (InterruptedException ie)
 			{
+				// Do nothing.
 			}
 			
 			elapsedTime = Config.FESTIVAL_FIRST_SPAWN;
@@ -3984,8 +3959,9 @@ public class FestivalOfDarknessManager
 			{
 				wait(Config.FESTIVAL_FIRST_SWARM - Config.FESTIVAL_FIRST_SPAWN);
 			}
-			catch (InterruptedException e)
+			catch (InterruptedException ie)
 			{
+				// Do nothing.
 			}
 			
 			elapsedTime += Config.FESTIVAL_FIRST_SWARM - Config.FESTIVAL_FIRST_SPAWN;
@@ -3998,8 +3974,9 @@ public class FestivalOfDarknessManager
 			{
 				wait(Config.FESTIVAL_SECOND_SPAWN - Config.FESTIVAL_FIRST_SWARM);
 			}
-			catch (InterruptedException e)
+			catch (InterruptedException ie)
 			{
+				// Do nothing.
 			}
 			
 			// Spawn an extra set of monsters (archers) on the free platforms with
@@ -4019,8 +3996,9 @@ public class FestivalOfDarknessManager
 			{
 				wait(Config.FESTIVAL_SECOND_SWARM - Config.FESTIVAL_SECOND_SPAWN);
 			}
-			catch (InterruptedException e)
+			catch (InterruptedException ie)
 			{
+				// Do nothing.
 			}
 			
 			for (L2DarknessFestival festivalInst : _festivalInstances.values())
@@ -4033,8 +4011,9 @@ public class FestivalOfDarknessManager
 			{
 				wait(Config.FESTIVAL_CHEST_SPAWN - Config.FESTIVAL_SECOND_SWARM);
 			}
-			catch (InterruptedException e)
+			catch (InterruptedException ie)
 			{
+				// Do nothing.
 			}
 			
 			// Spawn the festival chests, which enable the team to gain greater rewards
@@ -4052,8 +4031,9 @@ public class FestivalOfDarknessManager
 			{
 				wait(Config.FESTIVAL_LENGTH - elapsedTime);
 			}
-			catch (InterruptedException e)
+			catch (InterruptedException ie)
 			{
+				// Do nothing.
 			}
 			
 			// Participants can no longer opt to increase the challenge, as the festival will soon close.
@@ -4182,7 +4162,7 @@ public class FestivalOfDarknessManager
 					// Remove any stray blood offerings in inventory
 					ItemInstance bloodOfferings = participant.getInventory().getItemByItemId(FESTIVAL_OFFERING_ID);
 					if (bloodOfferings != null)
-						participant.destroyItem("SevenSigns", bloodOfferings, null, true);
+						participant.destroyItem(bloodOfferings, true);
 				}
 			}
 			
@@ -4193,10 +4173,6 @@ public class FestivalOfDarknessManager
 				spawn.setLoc(_witchSpawn._x, _witchSpawn._y, _witchSpawn._z, _witchSpawn._heading);
 				spawn.setRespawnDelay(1);
 				
-				// Needed as doSpawn() is required to be called also for the NpcInstance it returns.
-				spawn.setRespawnState(true);
-				
-				SpawnTable.getInstance().addSpawn(spawn, false);
 				_witchInst = spawn.doSpawn(false);
 			}
 			catch (Exception e)
@@ -4231,7 +4207,7 @@ public class FestivalOfDarknessManager
 				// Only move monsters that are idle or doing their usual functions.
 				IntentionType currIntention = festivalMob.getAI().getCurrentIntention().getType();
 				
-				if (currIntention != IntentionType.IDLE && currIntention != IntentionType.ACTIVE)
+				if (currIntention != IntentionType.IDLE)
 					continue;
 				
 				int x = _startLocation._x;
@@ -4249,7 +4225,7 @@ public class FestivalOfDarknessManager
 				}
 				
 				festivalMob.forceRunStance();
-				festivalMob.getAI().tryToMoveTo(new Location(x, y, _startLocation._z), null);
+				festivalMob.getAI().addMoveToDesire(new Location(x, y, _startLocation._z), 1000000);
 			}
 		}
 		
@@ -4269,8 +4245,7 @@ public class FestivalOfDarknessManager
 			
 			switch (spawnType)
 			{
-				case 0:
-				case 1:
+				case 0, 1:
 					npcSpawns = (_cabal == CabalType.DAWN) ? FESTIVAL_DAWN_PRIMARY_SPAWNS[_levelRange] : FESTIVAL_DUSK_PRIMARY_SPAWNS[_levelRange];
 					break;
 				
@@ -4299,9 +4274,7 @@ public class FestivalOfDarknessManager
 					final Spawn spawn = new Spawn(currSpawn._npcId);
 					spawn.setLoc(currSpawn._x, currSpawn._y, currSpawn._z, Rnd.get(65536));
 					spawn.setRespawnDelay(respawnDelay);
-					spawn.setRespawnState(true);
 					
-					SpawnTable.getInstance().addSpawn(spawn, false);
 					FestivalMonster festivalMob = (FestivalMonster) spawn.doSpawn(false);
 					
 					// Set the offering bonus to 2x or 5x the amount per kill, if this spawn is part of an increased challenge or is a festival chest.
@@ -4366,20 +4339,12 @@ public class FestivalOfDarknessManager
 		{
 			// Delete all the NPCs in the current festival arena.
 			if (_witchInst != null)
-			{
-				_witchInst.getSpawn().setRespawnState(false);
-				_witchInst.deleteMe();
-				SpawnTable.getInstance().deleteSpawn(_witchInst.getSpawn(), false);
-			}
+				_witchInst.getSpawn().doDelete();
 			
 			if (_npcInsts != null)
 				for (FestivalMonster monsterInst : _npcInsts)
 					if (monsterInst != null)
-					{
-						monsterInst.getSpawn().setRespawnState(false);
-						monsterInst.deleteMe();
-						SpawnTable.getInstance().deleteSpawn(monsterInst.getSpawn(), false);
-					}
+						monsterInst.getSpawn().doDelete();
 		}
 		
 		public void relocatePlayer(Player participant, boolean isRemoving)
@@ -4401,7 +4366,7 @@ public class FestivalOfDarknessManager
 			catch (Exception e)
 			{
 				// If an exception occurs, just move the player to the nearest town.
-				participant.teleportTo(TeleportType.TOWN);
+				participant.teleportTo(RestartType.TOWN);
 				participant.sendMessage("You have been removed from the festival arena.");
 			}
 		}

@@ -3,22 +3,25 @@ package net.sf.l2j.gameserver.data.xml;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import net.sf.l2j.commons.data.StatSet;
 import net.sf.l2j.commons.data.xml.IXmlReader;
 
 import net.sf.l2j.gameserver.data.SkillTable;
-import net.sf.l2j.gameserver.model.MinionData;
-import net.sf.l2j.gameserver.model.PetDataEntry;
+import net.sf.l2j.gameserver.enums.DropType;
+import net.sf.l2j.gameserver.enums.actors.NpcRace;
+import net.sf.l2j.gameserver.enums.actors.NpcSkillType;
 import net.sf.l2j.gameserver.model.actor.template.NpcTemplate;
 import net.sf.l2j.gameserver.model.actor.template.PetTemplate;
 import net.sf.l2j.gameserver.model.item.DropCategory;
 import net.sf.l2j.gameserver.model.item.DropData;
+import net.sf.l2j.gameserver.model.memo.NpcMemo;
+import net.sf.l2j.gameserver.model.records.PetDataEntry;
+import net.sf.l2j.gameserver.model.records.PrivateData;
 import net.sf.l2j.gameserver.skills.L2Skill;
 
 import org.w3c.dom.Document;
@@ -56,6 +59,7 @@ public class NpcData implements IXmlReader
 			set.set("idTemplate", templateId);
 			set.set("name", parseString(attrs, "name"));
 			set.set("title", parseString(attrs, "title"));
+			set.set("alias", parseString(attrs, "alias"));
 			
 			forEach(npcNode, "set", setNode ->
 			{
@@ -64,61 +68,42 @@ public class NpcData implements IXmlReader
 			});
 			forEach(npcNode, "ai", aiNode ->
 			{
-				final NamedNodeMap aiAttrs = aiNode.getAttributes();
-				set.set("aiType", parseString(aiAttrs, "type"));
-				set.set("ssCount", parseInteger(aiAttrs, "ssCount"));
-				set.set("ssRate", parseInteger(aiAttrs, "ssRate"));
-				set.set("spsCount", parseInteger(aiAttrs, "spsCount"));
-				set.set("spsRate", parseInteger(aiAttrs, "spsRate"));
-				set.set("aggro", parseInteger(aiAttrs, "aggro"));
-				if (aiAttrs.getNamedItem("clan") != null)
+				final NpcMemo aiParams = new NpcMemo();
+				forEach(aiNode, "set", setNode ->
 				{
-					set.set("clan", parseString(aiAttrs, "clan").split(";"));
-					set.set("clanRange", parseInteger(aiAttrs, "clanRange"));
-					if (aiAttrs.getNamedItem("ignoredIds") != null)
-						set.set("ignoredIds", parseString(aiAttrs, "ignoredIds"));
-				}
-				set.set("canMove", parseBoolean(aiAttrs, "canMove"));
-				set.set("seedable", parseBoolean(aiAttrs, "seedable"));
+					final NamedNodeMap setAttrs = setNode.getAttributes();
+					aiParams.set(parseString(setAttrs, "name"), parseString(setAttrs, "val"));
+				});
+				set.set("aiParams", aiParams);
 			});
 			forEach(npcNode, "drops", dropsNode ->
 			{
-				final String type = set.getString("type");
-				final boolean isRaid = type.equalsIgnoreCase("RaidBoss") || type.equalsIgnoreCase("GrandBoss");
 				final List<DropCategory> drops = new ArrayList<>();
 				forEach(dropsNode, "category", categoryNode ->
 				{
 					final NamedNodeMap categoryAttrs = categoryNode.getAttributes();
-					final DropCategory category = new DropCategory(parseInteger(categoryAttrs, "id"));
+					final DropCategory category = new DropCategory(parseEnum(categoryAttrs, DropType.class, "type"), parseDouble(categoryAttrs, "chance", 100.0));
 					forEach(categoryNode, "drop", dropNode ->
 					{
 						final NamedNodeMap dropAttrs = dropNode.getAttributes();
-						final DropData data = new DropData(parseInteger(dropAttrs, "itemid"), parseInteger(dropAttrs, "min"), parseInteger(dropAttrs, "max"), parseInteger(dropAttrs, "chance"));
+						final DropData data = new DropData(parseInteger(dropAttrs, "itemid"), parseInteger(dropAttrs, "min"), parseInteger(dropAttrs, "max"), parseDouble(dropAttrs, "chance"));
 						
-						if (ItemData.getInstance().getTemplate(data.getItemId()) == null)
+						if (ItemData.getInstance().getTemplate(data.itemId()) == null)
 						{
-							LOGGER.warn("Droplist data for undefined itemId: {}.", data.getItemId());
+							LOGGER.warn("Droplist data for undefined itemId: {}.", data.itemId());
 							return;
 						}
-						category.addDropData(data, isRaid);
+						category.add(data);
 					});
 					drops.add(category);
 				});
 				set.set("drops", drops);
 			});
-			forEach(npcNode, "minions", minionsNode ->
+			forEach(npcNode, "privates", privatesNode ->
 			{
-				final List<MinionData> minions = new ArrayList<>();
-				forEach(minionsNode, "minion", minionNode ->
-				{
-					final NamedNodeMap minionAttrs = minionNode.getAttributes();
-					final MinionData data = new MinionData();
-					data.setMinionId(parseInteger(minionAttrs, "id"));
-					data.setAmountMin(parseInteger(minionAttrs, "min"));
-					data.setAmountMax(parseInteger(minionAttrs, "max"));
-					minions.add(data);
-				});
-				set.set("minions", minions);
+				final List<PrivateData> privateData = new ArrayList<>();
+				forEach(privatesNode, "private", privateNode -> privateData.add(new PrivateData(parseAttributes(privateNode))));
+				set.set("privates", privateData);
 			});
 			forEach(npcNode, "petdata", petdataNode ->
 			{
@@ -134,30 +119,79 @@ public class NpcData implements IXmlReader
 				forEach(petdataNode, "stat", statNode ->
 				{
 					final StatSet petSet = parseAttributes(statNode);
+					
+					final int mountBaseSpeed;
+					final int mountWaterSpeed;
+					final int mountFlySpeed;
+					
+					final String speed = petSet.getString("speedOnRide", null);
+					if (speed != null)
+					{
+						final String[] speeds = speed.split(";");
+						mountBaseSpeed = Integer.parseInt(speeds[0]);
+						mountWaterSpeed = Integer.parseInt(speeds[2]);
+						mountFlySpeed = Integer.parseInt(speeds[4]);
+					}
+					else
+					{
+						mountBaseSpeed = 0;
+						mountWaterSpeed = 0;
+						mountFlySpeed = 0;
+					}
+					
+					petSet.set("mountBaseSpeed", mountBaseSpeed);
+					petSet.set("mountWaterSpeed", mountWaterSpeed);
+					petSet.set("mountFlySpeed", mountFlySpeed);
+					
 					entries.put(petSet.getInteger("level"), new PetDataEntry(petSet));
 				});
 				set.set("petData", entries);
 			});
 			forEach(npcNode, "skills", skillsNode ->
 			{
-				final List<L2Skill> skills = new ArrayList<>();
+				final List<L2Skill> passives = new ArrayList<>();
+				final Map<NpcSkillType, L2Skill> skills = new EnumMap<>(NpcSkillType.class);
+				
 				forEach(skillsNode, "skill", skillNode ->
 				{
 					final NamedNodeMap skillAttrs = skillNode.getAttributes();
 					final int skillId = parseInteger(skillAttrs, "id");
 					final int level = parseInteger(skillAttrs, "level");
-					if (skillId == L2Skill.SKILL_NPC_RACE)
+					
+					// Attempt to check secondary skill ids related to NpcRace. DUMMY means no valid NpcRace was found, continue to investigate.
+					final NpcRace nr = NpcRace.retrieveBySecondarySkillId(skillId);
+					if (nr != null && nr != NpcRace.DUMMY)
 					{
-						set.set("raceId", level);
+						set.set("race", nr);
 						return;
 					}
 					
-					final L2Skill skill = SkillTable.getInstance().getInfo(skillId, level);
-					if (skill == null)
+					// Test the primary NpcRace if not already set.
+					if (skillId == L2Skill.SKILL_NPC_RACE && !set.containsKey("race"))
+					{
+						set.set("race", NpcRace.VALUES[level]);
 						return;
+					}
 					
-					skills.add(skill);
+					// Allow the split of multiple types.
+					for (String nstString : parseString(skillAttrs, "type").split(";"))
+					{
+						final L2Skill skill = SkillTable.getInstance().getInfo(skillId, level);
+						if (skill == null)
+						{
+							LOGGER.warn("Invalid skill data {}-{} for : {}.", skillId, level, npcId);
+							return;
+						}
+						
+						// Add the L2Skill to either passives or skills container.
+						final NpcSkillType nst = Enum.valueOf(NpcSkillType.class, nstString);
+						if (nst == NpcSkillType.PASSIVE)
+							passives.add(skill);
+						else
+							skills.put(nst, skill);
+					}
 				});
+				set.set("passives", passives);
 				set.set("skills", skills);
 			});
 			forEach(npcNode, "teachTo", teachToNode -> set.set("teachTo", parseString(teachToNode.getAttributes(), "classes")));
@@ -187,17 +221,7 @@ public class NpcData implements IXmlReader
 		return _npcs.values().stream().filter(t -> t.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
 	}
 	
-	/**
-	 * Gets all {@link NpcTemplate}s matching the filter.
-	 * @param filter : The Predicate filter used as a filter.
-	 * @return a NpcTemplate list matching the given filter.
-	 */
-	public List<NpcTemplate> getTemplates(Predicate<NpcTemplate> filter)
-	{
-		return _npcs.values().stream().filter(filter).collect(Collectors.toList());
-	}
-	
-	public Collection<NpcTemplate> getAllNpcs()
+	public Collection<NpcTemplate> getTemplates()
 	{
 		return _npcs.values();
 	}

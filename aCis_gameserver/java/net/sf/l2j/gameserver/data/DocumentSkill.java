@@ -3,7 +3,6 @@ package net.sf.l2j.gameserver.data;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
 
 import net.sf.l2j.commons.data.StatSet;
 
@@ -62,7 +61,7 @@ public final class DocumentSkill extends DocumentBase
 		}
 		catch (RuntimeException e)
 		{
-			_log.log(Level.SEVERE, "Error in table: " + name + " of Skill Id " + _currentSkill.id, e);
+			LOGGER.error("Error in table {} of Skill Id {}.", e, name, _currentSkill.id);
 			return "";
 		}
 	}
@@ -76,7 +75,7 @@ public final class DocumentSkill extends DocumentBase
 		}
 		catch (RuntimeException e)
 		{
-			_log.log(Level.SEVERE, "wrong level count in skill Id " + _currentSkill.id, e);
+			LOGGER.error("Wrong level count in skill Id {}.", e, _currentSkill.id);
 			return "";
 		}
 	}
@@ -234,7 +233,9 @@ public final class DocumentSkill extends DocumentBase
 		for (int i = lastLvl; i < lastLvl + enchantLevels1; i++)
 		{
 			_currentSkill.currentLevel = i - lastLvl;
-			boolean foundCond = false, foundFor = false;
+			boolean foundCond = false;
+			boolean foundFor = false;
+			
 			for (n = first; n != null; n = n.getNextSibling())
 			{
 				if ("enchant1cond".equalsIgnoreCase(n.getNodeName()))
@@ -275,7 +276,9 @@ public final class DocumentSkill extends DocumentBase
 		}
 		for (int i = lastLvl + enchantLevels1; i < lastLvl + enchantLevels1 + enchantLevels2; i++)
 		{
-			boolean foundCond = false, foundFor = false;
+			boolean foundCond = false;
+			boolean foundFor = false;
+			
 			_currentSkill.currentLevel = i - lastLvl - enchantLevels1;
 			for (n = first; n != null; n = n.getNextSibling())
 			{
@@ -332,7 +335,7 @@ public final class DocumentSkill extends DocumentBase
 			}
 			catch (Exception e)
 			{
-				_log.log(Level.SEVERE, "Skill id=" + _currentSkill.sets[i].getEnum("skillType", SkillType.class).makeSkill(_currentSkill.sets[i]).getId() + "level" + _currentSkill.sets[i].getEnum("skillType", SkillType.class).makeSkill(_currentSkill.sets[i]).getLevel(), e);
+				LOGGER.error("Failed parsing skill.", e);
 			}
 		}
 		int _count = count;
@@ -345,7 +348,7 @@ public final class DocumentSkill extends DocumentBase
 			}
 			catch (Exception e)
 			{
-				_log.log(Level.SEVERE, "Skill id=" + _currentSkill.enchsets1[i].getEnum("skillType", SkillType.class).makeSkill(_currentSkill.enchsets1[i]).getId() + " level=" + _currentSkill.enchsets1[i].getEnum("skillType", SkillType.class).makeSkill(_currentSkill.enchsets1[i]).getLevel(), e);
+				LOGGER.error("Failed parsing skill.", e);
 			}
 		}
 		_count = count;
@@ -358,7 +361,7 @@ public final class DocumentSkill extends DocumentBase
 			}
 			catch (Exception e)
 			{
-				_log.log(Level.SEVERE, "Skill id=" + _currentSkill.enchsets2[i].getEnum("skillType", SkillType.class).makeSkill(_currentSkill.enchsets2[i]).getId() + " level=" + _currentSkill.enchsets2[i].getEnum("skillType", SkillType.class).makeSkill(_currentSkill.enchsets2[i]).getLevel(), e);
+				LOGGER.error("Failed parsing skill.", e);
 			}
 		}
 	}

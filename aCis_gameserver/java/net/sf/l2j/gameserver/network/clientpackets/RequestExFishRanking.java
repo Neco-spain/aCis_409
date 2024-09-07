@@ -9,6 +9,7 @@ public final class RequestExFishRanking extends L2GameClientPacket
 	@Override
 	protected void readImpl()
 	{
+		// Do nothing.
 	}
 	
 	@Override

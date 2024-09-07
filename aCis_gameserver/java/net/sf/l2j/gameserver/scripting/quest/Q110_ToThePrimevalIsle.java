@@ -23,7 +23,7 @@ public class Q110_ToThePrimevalIsle extends Quest
 		
 		setItemsIds(ANCIENT_BOOK);
 		
-		addStartNpc(ANTON);
+		addQuestStart(ANTON);
 		addTalkId(ANTON, MARQUEZ);
 	}
 	
@@ -42,7 +42,7 @@ public class Q110_ToThePrimevalIsle extends Quest
 			playSound(player, SOUND_ACCEPT);
 			giveItems(player, ANCIENT_BOOK, 1);
 		}
-		else if (event.equalsIgnoreCase("32113-03.htm") && player.getInventory().hasItems(ANCIENT_BOOK))
+		else if (event.equalsIgnoreCase("32113-03.htm") && player.getInventory().hasItem(ANCIENT_BOOK))
 		{
 			takeItems(player, ANCIENT_BOOK, 1);
 			rewardItems(player, 57, 169380);

@@ -4,6 +4,7 @@ import net.sf.l2j.commons.data.StatSet;
 
 import net.sf.l2j.gameserver.enums.items.ShotType;
 import net.sf.l2j.gameserver.enums.skills.ShieldDefense;
+import net.sf.l2j.gameserver.enums.skills.Stats;
 import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
@@ -21,87 +22,107 @@ public class L2SkillChargeDmg extends L2Skill
 	}
 	
 	@Override
-	public void useSkill(Creature caster, WorldObject[] targets)
+	public void useSkill(Creature creature, WorldObject[] targets)
 	{
-		if (caster.isAlikeDead())
+		if (creature.isAlikeDead())
 			return;
 		
 		double modifier = 0;
 		
-		if (caster instanceof Player)
-			modifier = 0.8 + 0.2 * (((Player) caster).getCharges() + getNumCharges());
+		if (creature instanceof Player player)
+			modifier = 0.8 + 0.2 * (player.getCharges() + getNumCharges());
 		
-		final boolean ss = caster.isChargedShot(ShotType.SOULSHOT);
+		final boolean ss = creature.isChargedShot(ShotType.SOULSHOT);
 		
-		for (WorldObject obj : targets)
+		for (WorldObject target : targets)
 		{
-			if (!(obj instanceof Creature))
+			if (!(target instanceof Creature targetCreature))
 				continue;
 			
-			final Creature target = ((Creature) obj);
-			if (target.isAlikeDead())
+			if (targetCreature.isAlikeDead())
 				continue;
 			
 			// Calculate skill evasion.
-			boolean skillIsEvaded = Formulas.calcPhysicalSkillEvasion(target, this);
+			boolean skillIsEvaded = Formulas.calcPhysicalSkillEvasion(targetCreature, this);
 			if (skillIsEvaded)
 			{
-				if (caster instanceof Player)
-					((Player) caster).sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_DODGES_ATTACK).addCharName(target));
+				if (creature instanceof Player player)
+					player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_DODGES_ATTACK).addCharName(targetCreature));
 				
-				if (target instanceof Player)
-					((Player) target).sendPacket(SystemMessage.getSystemMessage(SystemMessageId.AVOIDED_S1_ATTACK).addCharName(caster));
+				if (target instanceof Player targetPlayer)
+					targetPlayer.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.AVOIDED_S1_ATTACK).addCharName(creature));
 				
 				continue;
 			}
 			
-			final boolean isCrit = getBaseCritRate() > 0 && Formulas.calcCrit(getBaseCritRate() * 10 * Formulas.getSTRBonus(caster));
-			final ShieldDefense sDef = Formulas.calcShldUse(caster, target, this, isCrit);
+			final boolean isCrit = getBaseCritRate() > 0 && Formulas.calcCrit(getBaseCritRate() * 10 * Formulas.getSTRBonus(creature));
+			final ShieldDefense sDef = Formulas.calcShldUse(creature, targetCreature, this, isCrit);
+			final byte reflect = Formulas.calcSkillReflect(targetCreature, this);
 			
-			final double damage = Formulas.calcPhysicalSkillDamage(caster, target, this, sDef, isCrit, ss);
-			if (damage > 0)
+			if (hasEffects())
 			{
-				byte reflect = Formulas.calcSkillReflect(target, this);
-				if (hasEffects())
+				if ((reflect & Formulas.SKILL_REFLECT_SUCCEED) != 0)
 				{
-					if ((reflect & Formulas.SKILL_REFLECT_SUCCEED) != 0)
-					{
-						caster.stopSkillEffects(getId());
-						getEffects(target, caster);
-					}
-					else
-					{
-						// activate attacked effects, if any
-						target.stopSkillEffects(getId());
-						if (Formulas.calcSkillSuccess(caster, target, this, sDef, true))
-							getEffects(caster, target, sDef, false);
-						else
-							caster.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(target).addSkillName(this));
-					}
+					creature.stopSkillEffects(getId());
+					
+					getEffects(targetCreature, creature);
 				}
+				else
+				{
+					targetCreature.stopSkillEffects(getId());
+					
+					if (Formulas.calcSkillSuccess(creature, targetCreature, this, sDef, true))
+						getEffects(creature, targetCreature, sDef, false);
+					else
+						creature.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_RESISTED_YOUR_S2).addCharName(targetCreature).addSkillName(this));
+				}
+			}
+			
+			double damage = Formulas.calcPhysicalSkillDamage(creature, targetCreature, this, sDef, isCrit, ss);
+			damage *= modifier;
+			
+			// Skill counter.
+			if ((reflect & Formulas.SKILL_COUNTER) != 0)
+			{
+				if (target instanceof Player targetPlayer)
+					targetPlayer.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.COUNTERED_S1_ATTACK).addCharName(creature));
 				
-				double finalDamage = damage * modifier;
-				target.reduceCurrentHp(finalDamage, caster, this);
+				if (creature instanceof Player player)
+					player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_PERFORMING_COUNTERATTACK).addCharName(targetCreature));
 				
-				// vengeance reflected damage
-				if ((reflect & Formulas.SKILL_REFLECT_VENGEANCE) != 0)
-					caster.reduceCurrentHp(damage, target, this);
+				// Calculate the counter percent.
+				final double counteredPercent = targetCreature.getStatus().calcStat(Stats.COUNTER_SKILL_PHYSICAL, 0, targetCreature, null) / 100.;
 				
-				caster.sendDamageMessage(target, (int) finalDamage, false, isCrit, false);
+				damage *= counteredPercent;
+				
+				// Reduce caster HPs.
+				creature.reduceCurrentHp(damage, targetCreature, this);
+				
+				// Send damage message.
+				targetCreature.sendDamageMessage(creature, (int) damage, false, false, false);
 			}
 			else
-				caster.sendDamageMessage(target, 0, false, false, true);
+			{
+				// Manage cast break of the target (calculating rate, sending message...)
+				Formulas.calcCastBreak(targetCreature, damage);
+				
+				// Reduce target HPs.
+				targetCreature.reduceCurrentHp(damage, creature, this);
+				
+				// Send damage message.
+				creature.sendDamageMessage(targetCreature, (int) damage, false, false, false);
+			}
 		}
 		
 		if (hasSelfEffects())
 		{
-			final AbstractEffect effect = caster.getFirstEffect(getId());
+			final AbstractEffect effect = creature.getFirstEffect(getId());
 			if (effect != null && effect.isSelfEffect())
 				effect.exit();
 			
-			getEffectsSelf(caster);
+			getEffectsSelf(creature);
 		}
 		
-		caster.setChargedShot(ShotType.SOULSHOT, isStaticReuse());
+		creature.setChargedShot(ShotType.SOULSHOT, isStaticReuse());
 	}
 }

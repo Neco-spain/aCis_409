@@ -1,6 +1,7 @@
 package net.sf.l2j.gameserver.handler.skillhandlers;
 
-import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import net.sf.l2j.gameserver.enums.skills.SkillType;
 import net.sf.l2j.gameserver.handler.ISkillHandler;
@@ -8,7 +9,7 @@ import net.sf.l2j.gameserver.model.WorldObject;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.actor.instance.Monster;
-import net.sf.l2j.gameserver.model.holder.IntIntHolder;
+import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.skills.L2Skill;
 
 public class Sweep implements ISkillHandler
@@ -19,39 +20,36 @@ public class Sweep implements ISkillHandler
 	};
 	
 	@Override
-	public void useSkill(Creature activeChar, L2Skill skill, WorldObject[] targets)
+	public void useSkill(Creature creature, L2Skill skill, WorldObject[] targets, ItemInstance item)
 	{
-		if (!(activeChar instanceof Player))
+		// Must be called by a Player.
+		if (!(creature instanceof Player player))
 			return;
-		
-		final Player player = (Player) activeChar;
 		
 		for (WorldObject target : targets)
 		{
-			if (!(target instanceof Monster))
+			if (!(target instanceof Monster targetMonster))
 				continue;
 			
-			final Monster monster = ((Monster) target);
-			
-			final List<IntIntHolder> items = monster.getSpoilState();
+			final Map<Integer, Integer> items = targetMonster.getSpoilState();
 			if (items.isEmpty())
 				continue;
 			
 			// Reward spoiler, based on sweep items retained on List.
-			for (IntIntHolder item : items)
+			for (Entry<Integer, Integer> entry : items.entrySet())
 			{
 				if (player.isInParty())
-					player.getParty().distributeItem(player, item, true, monster);
+					player.getParty().distributeItem(player, entry.getKey(), entry.getValue(), true, targetMonster);
 				else
-					player.addItem("Sweep", item.getId(), item.getValue(), player, true);
+					player.addEarnedItem(entry.getKey(), entry.getValue(), true);
 			}
 			
 			// Reset variables.
-			monster.getSpoilState().clear();
+			targetMonster.getSpoilState().clear();
 		}
 		
 		if (skill.hasSelfEffects())
-			skill.getEffectsSelf(activeChar);
+			skill.getEffectsSelf(creature);
 	}
 	
 	@Override

@@ -65,62 +65,39 @@ public class AdminManage implements IAdminCommandHandler
 		
 		if (command.startsWith("admin_cancel"))
 		{
+			// Stop effects over target.
+			targetCreature.stopAllEffects();
+			
+			// Stop effects over all creatures surrounding the target.
 			if (radius > 0)
-			{
-				targetCreature.stopAllEffects();
-				
-				for (Creature knownCreature : player.getKnownTypeInRadius(Creature.class, radius))
-					knownCreature.stopAllEffects();
-				
-				player.sendMessage("All creatures around " + targetCreature.getName() + " within " + radius + " range got their buffs canceled.");
-			}
-			else
-			{
-				targetCreature.stopAllEffects();
-				player.sendMessage(targetCreature.getName() + " got her/his buffs canceled.");
-			}
+				targetCreature.forEachKnownTypeInRadius(Creature.class, radius, Creature::stopAllEffects);
 		}
 		else if (command.startsWith("admin_heal"))
 		{
+			// Heal target.
+			heal(targetCreature);
+			
+			// Heal all creatures surrounding the target.
 			if (radius > 0)
-			{
-				heal(targetCreature);
-				
-				for (Creature knownCreature : targetCreature.getKnownTypeInRadius(Creature.class, radius))
-					heal(knownCreature);
-				
-				player.sendMessage("All creatures around " + targetCreature.getName() + " within " + radius + " range are healed.");
-			}
-			else if (heal(targetCreature))
-				player.sendMessage(targetCreature.getName() + " is healed.");
+				targetCreature.forEachKnownTypeInRadius(Creature.class, radius, c -> heal(c));
 		}
 		else if (command.startsWith("admin_kill"))
 		{
+			// Kill target.
+			kill(targetCreature, player);
+			
+			// Kill all creatures surrounding the target.
 			if (radius > 0)
-			{
-				kill(targetCreature, player);
-				
-				for (Creature knownCreature : targetCreature.getKnownTypeInRadius(Creature.class, radius))
-					kill(knownCreature, player);
-				
-				player.sendMessage("All creatures around " + targetCreature.getName() + " within " + radius + " range are killed.");
-			}
-			else if (kill(targetCreature, player))
-				player.sendMessage(targetCreature.getName() + " is killed.");
+				targetCreature.forEachKnownTypeInRadius(Creature.class, radius, c -> kill(c, player));
 		}
 		else if (command.startsWith("admin_res"))
 		{
+			// Resurrect target.
+			resurrect(targetCreature);
+			
+			// Resurrect all creatures surrounding the target.
 			if (radius > 0)
-			{
-				resurrect(targetCreature);
-				
-				for (Creature knownCreature : targetCreature.getKnownTypeInRadius(Creature.class, radius))
-					resurrect(knownCreature);
-				
-				player.sendMessage("All creatures around " + targetCreature.getName() + " within " + radius + " range are resurrected.");
-			}
-			else if (resurrect(targetCreature))
-				player.sendMessage(targetCreature.getName() + " is resurrected.");
+				targetCreature.forEachKnownTypeInRadius(Creature.class, radius, c -> resurrect(c));
 		}
 	}
 	
@@ -130,42 +107,38 @@ public class AdminManage implements IAdminCommandHandler
 		return ADMIN_COMMANDS;
 	}
 	
-	private static boolean heal(Creature creature)
+	private static void heal(Creature creature)
 	{
 		if (creature.isDead())
-			return false;
+			return;
 		
-		if (creature instanceof Player)
-			((Player) creature).getStatus().setMaxCpHpMp();
+		if (creature instanceof Player player)
+			player.getStatus().setMaxCpHpMp();
 		else
 			creature.getStatus().setMaxHpMp();
-		
-		return true;
 	}
 	
-	private static boolean kill(Creature creature, Player player)
+	private static void kill(Creature creature, Player player)
 	{
 		if (creature.isDead() || creature == player)
-			return false;
+			return;
 		
 		creature.stopAllEffects();
-		creature.reduceCurrentHp(creature.getStatus().getMaxHp() + creature.getStatus().getMaxCp() + 1, player, null);
-		return true;
+		creature.reduceCurrentHp(creature.getStatus().getMaxHp() + creature.getStatus().getMaxCp() + 1d, player, null);
 	}
 	
-	private static boolean resurrect(Creature creature)
+	private static void resurrect(Creature creature)
 	{
 		if (!creature.isDead())
-			return false;
+			return;
 		
 		// If the target is a player, then restore the XP lost on death.
-		if (creature instanceof Player)
-			((Player) creature).restoreExp(100.0);
+		if (creature instanceof Player player)
+			player.restoreExp(100.0);
 		// If the target is an NPC, then abort it's auto decay and respawn.
 		else
 			DecayTaskManager.getInstance().cancel(creature);
 		
 		creature.doRevive();
-		return true;
 	}
 }

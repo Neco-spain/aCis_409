@@ -211,6 +211,14 @@
 		<loc x="79519" y="-152303" z="-651" />
 		<loc x="79009" y="-152303" z="-651" />
 	</telPosList>
+	<telPosList npcId="35551">
+		<loc x="76353" y="-153342" z="1016" />
+		<loc x="76269" y="-152986" z="1040" />
+	</telPosList>
+	<telPosList npcId="35552">
+		<loc x="78780" y="-153325" z="1024" />
+		<loc x="78843" y="-153011" z="1040" />
+	</telPosList>
 
 	<!-- Other instant loc -->
 	<telPosList npcId="30162">

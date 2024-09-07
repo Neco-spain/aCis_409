@@ -1,6 +1,7 @@
 package net.sf.l2j.gameserver.network.clientpackets;
 
 import net.sf.l2j.Config;
+import net.sf.l2j.gameserver.enums.PrivilegeType;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.pledge.Clan;
 import net.sf.l2j.gameserver.model.pledge.ClanMember;
@@ -36,7 +37,7 @@ public final class RequestOustPledgeMember extends L2GameClientPacket
 		if (member == null)
 			return;
 		
-		if (!player.hasClanPrivileges(Clan.CP_CL_DISMISS))
+		if (!player.hasClanPrivileges(PrivilegeType.SP_DISMISS))
 		{
 			player.sendPacket(SystemMessageId.YOU_ARE_NOT_AUTHORIZED_TO_DO_THAT);
 			return;
@@ -72,5 +73,8 @@ public final class RequestOustPledgeMember extends L2GameClientPacket
 		
 		if (member.isOnline())
 			member.getPlayerInstance().sendPacket(SystemMessageId.CLAN_MEMBERSHIP_TERMINATED);
+		
+		// Refresh surrounding Clan War tags.
+		player.forEachKnownType(Player.class, attacker -> clan.getWarList().contains(attacker.getClanId()), Player::broadcastUserInfo);
 	}
 }

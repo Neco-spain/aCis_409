@@ -5,6 +5,7 @@ import net.sf.l2j.gameserver.enums.skills.SkillTargetType;
 import net.sf.l2j.gameserver.handler.ITargetHandler;
 import net.sf.l2j.gameserver.model.actor.Creature;
 import net.sf.l2j.gameserver.model.actor.Playable;
+import net.sf.l2j.gameserver.model.actor.instance.Door;
 import net.sf.l2j.gameserver.model.actor.instance.Folk;
 import net.sf.l2j.gameserver.model.actor.instance.Guard;
 import net.sf.l2j.gameserver.model.actor.instance.Monster;
@@ -48,10 +49,9 @@ public class TargetOne implements ITargetHandler
 				return false;
 			}
 			
-			if (target instanceof Playable)
+			if (target instanceof Playable targetPlayable)
 			{
-				final Playable playableTarget = (Playable) target;
-				if (!caster.getActingPlayer().canCastOffensiveSkillOnPlayable(playableTarget, skill, isCtrlPressed))
+				if (!caster.getActingPlayer().canCastOffensiveSkillOnPlayable(targetPlayable, skill, isCtrlPressed))
 				{
 					caster.sendPacket(SystemMessageId.INVALID_TARGET);
 					return false;
@@ -69,7 +69,7 @@ public class TargetOne implements ITargetHandler
 					return false;
 				}
 				
-				if (playableTarget.isInsideZone(ZoneId.PEACE))
+				if (targetPlayable.isInsideZone(ZoneId.PEACE))
 				{
 					caster.sendPacket(SystemMessageId.TARGET_IN_PEACEZONE);
 					return false;
@@ -84,12 +84,17 @@ public class TargetOne implements ITargetHandler
 					return false;
 				}
 			}
+			else if (target instanceof Door && !target.isAttackableBy(caster))
+			{
+				caster.sendPacket(SystemMessageId.INVALID_TARGET);
+				return false;
+			}
 		}
 		else
 		{
-			if (target instanceof Playable)
+			if (target instanceof Playable targetPlayable)
 			{
-				if (!caster.getActingPlayer().canCastBeneficialSkillOnPlayable((Playable) target, skill, isCtrlPressed))
+				if (!caster.getActingPlayer().canCastBeneficialSkillOnPlayable(targetPlayable, skill, isCtrlPressed))
 				{
 					caster.sendPacket(SystemMessageId.INVALID_TARGET);
 					return false;

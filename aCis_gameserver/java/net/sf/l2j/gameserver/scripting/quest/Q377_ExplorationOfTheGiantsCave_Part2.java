@@ -69,11 +69,11 @@ public class Q377_ExplorationOfTheGiantsCave_Part2 extends Quest
 	{
 		super(377, "Exploration of the Giants' Cave, Part 2");
 		
-		addStartNpc(31147); // Sobling
+		addQuestStart(31147); // Sobling
 		addTalkId(31147);
 		
 		for (int npcId : CHANCES.keySet())
-			addKillId(npcId);
+			addMyDying(npcId);
 	}
 	
 	@Override
@@ -114,7 +114,7 @@ public class Q377_ExplorationOfTheGiantsCave_Part2 extends Quest
 		switch (st.getState())
 		{
 			case CREATED:
-				htmltext = (player.getStatus().getLevel() < 57 || !player.getInventory().hasItems(ANCIENT_DICTIONARY_INTERMEDIATE_LEVEL)) ? "31147-01.htm" : "31147-02.htm";
+				htmltext = (player.getStatus().getLevel() < 57 || !player.getInventory().hasItem(ANCIENT_DICTIONARY_INTERMEDIATE_LEVEL)) ? "31147-01.htm" : "31147-02.htm";
 				break;
 			
 			case STARTED:
@@ -126,17 +126,15 @@ public class Q377_ExplorationOfTheGiantsCave_Part2 extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = getRandomPartyMemberState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		dropItems(st.getPlayer(), ANCIENT_TITAN_BOOK, 1, 0, CHANCES.get(npc.getNpcId()));
-		
-		return null;
 	}
 	
 	private static String checkItems(Player player)
@@ -146,7 +144,7 @@ public class Q377_ExplorationOfTheGiantsCave_Part2 extends Quest
 			boolean complete = true;
 			for (int book : BOOKS[type])
 			{
-				if (!player.getInventory().hasItems(book))
+				if (!player.getInventory().hasItem(book))
 					complete = false;
 			}
 			

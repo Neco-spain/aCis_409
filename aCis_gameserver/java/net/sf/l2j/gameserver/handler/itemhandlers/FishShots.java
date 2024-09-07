@@ -16,10 +16,9 @@ public class FishShots implements IItemHandler
 	@Override
 	public void useItem(Playable playable, ItemInstance item, boolean forceUse)
 	{
-		if (!(playable instanceof Player))
+		if (!(playable instanceof Player player))
 			return;
 		
-		final Player player = (Player) playable;
 		final ItemInstance weaponInst = player.getActiveWeaponInstance();
 		final Weapon weaponItem = player.getActiveWeaponItem();
 		
@@ -37,7 +36,7 @@ public class FishShots implements IItemHandler
 			return;
 		}
 		
-		if (!player.destroyItemWithoutTrace(item.getObjectId(), 1))
+		if (!player.destroyItem(item.getObjectId(), 1, false))
 		{
 			player.sendPacket(SystemMessageId.NOT_ENOUGH_SOULSHOTS);
 			return;

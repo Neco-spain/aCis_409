@@ -5,19 +5,22 @@ import java.util.List;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.trade.TradeItem;
+import net.sf.l2j.gameserver.model.trade.TradeList;
 
 public class PrivateStoreManageListBuy extends L2GameServerPacket
 {
-	private final int _objId;
+	private final int _objectId;
 	private final int _playerAdena;
-	private final ItemInstance[] _itemList;
-	private final List<TradeItem> _buyList;
+	private final List<ItemInstance> _itemList;
+	private final TradeList _buyList;
 	
 	public PrivateStoreManageListBuy(Player player)
 	{
-		_objId = player.getObjectId();
+		player.getBuyList().updateItems(true);
+		
+		_objectId = player.getObjectId();
 		_playerAdena = player.getAdena();
-		_itemList = player.getInventory().getUniqueItems(false, true, true);
+		_itemList = player.getInventory().getUniqueItems(false, false, true, true, false);
 		_buyList = player.getBuyList();
 	}
 	
@@ -25,10 +28,10 @@ public class PrivateStoreManageListBuy extends L2GameServerPacket
 	protected final void writeImpl()
 	{
 		writeC(0xb7);
-		writeD(_objId);
+		writeD(_objectId);
 		writeD(_playerAdena);
 		
-		writeD(_itemList.length); // inventory items for potential buy
+		writeD(_itemList.size());
 		for (ItemInstance item : _itemList)
 		{
 			writeD(item.getItemId());
@@ -40,7 +43,7 @@ public class PrivateStoreManageListBuy extends L2GameServerPacket
 			writeH(item.getItem().getType2());
 		}
 		
-		writeD(_buyList.size()); // count for all items already added for buy
+		writeD(_buyList.size());
 		for (TradeItem item : _buyList)
 		{
 			writeD(item.getItem().getItemId());
@@ -50,8 +53,8 @@ public class PrivateStoreManageListBuy extends L2GameServerPacket
 			writeH(0x00);
 			writeD(item.getItem().getBodyPart());
 			writeH(item.getItem().getType2());
-			writeD(item.getPrice());// your price
-			writeD(item.getItem().getReferencePrice());// fixed store price
+			writeD(item.getPrice());
+			writeD(item.getItem().getReferencePrice());
 		}
 	}
 }

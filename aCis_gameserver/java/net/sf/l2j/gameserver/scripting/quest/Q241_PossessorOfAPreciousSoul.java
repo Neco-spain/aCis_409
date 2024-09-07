@@ -54,10 +54,10 @@ public class Q241_PossessorOfAPreciousSoul extends Quest
 		
 		setItemsIds(LEGEND_OF_SEVENTEEN, MALRUK_SUCCUBUS_CLAW, ECHO_CRYSTAL, POETRY_BOOK, CRIMSON_MOSS, RAHORAKTI_MEDICINE);
 		
-		addStartNpc(TALIEN);
+		addQuestStart(TALIEN);
 		addTalkId(TALIEN, GABRIELLE, GILMORE, KANTABILON, STEDMIEL, VIRGIL, OGMAR, RAHORAKTI, KASSANDRA, CARADINE, NOEL);
 		
-		addKillId(BARAHAM, MALRUK_SUCCUBUS_1, MALRUK_SUCCUBUS_2, MALRUK_SUCCUBUS_TUREN_1, MALRUK_SUCCUBUS_TUREN_2, SPLINTER_STAKATO, SPLINTER_STAKATO_WALKER, SPLINTER_STAKATO_SOLDIER, SPLINTER_STAKATO_DRONE_1, SPLINTER_STAKATO_DRONE_2);
+		addMyDying(BARAHAM, MALRUK_SUCCUBUS_1, MALRUK_SUCCUBUS_2, MALRUK_SUCCUBUS_TUREN_1, MALRUK_SUCCUBUS_TUREN_2, SPLINTER_STAKATO, SPLINTER_STAKATO_WALKER, SPLINTER_STAKATO_SOLDIER, SPLINTER_STAKATO_DRONE_1, SPLINTER_STAKATO_DRONE_2);
 	}
 	
 	@Override
@@ -184,7 +184,7 @@ public class Q241_PossessorOfAPreciousSoul extends Quest
 		}
 		else if (event.equalsIgnoreCase("31272-05.htm"))
 		{
-			if (player.getInventory().hasItems(HELLFIRE_OIL) && player.getInventory().getItemCount(LUNARGENT) >= 5)
+			if (player.getInventory().hasItem(HELLFIRE_OIL) && player.getInventory().getItemCount(LUNARGENT) >= 5)
 			{
 				st.setCond(21);
 				playSound(player, SOUND_MIDDLE);
@@ -319,7 +319,7 @@ public class Q241_PossessorOfAPreciousSoul extends Quest
 							htmltext = "31272-01.htm";
 						else if (cond == 20)
 						{
-							if (player.getInventory().hasItems(HELLFIRE_OIL) && player.getInventory().getItemCount(LUNARGENT) >= 5)
+							if (player.getInventory().hasItem(HELLFIRE_OIL) && player.getInventory().getItemCount(LUNARGENT) >= 5)
 								htmltext = "31272-04.htm";
 							else
 								htmltext = "31272-03.htm";
@@ -338,13 +338,13 @@ public class Q241_PossessorOfAPreciousSoul extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null || !player.isSubClassActive())
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
@@ -357,27 +357,20 @@ public class Q241_PossessorOfAPreciousSoul extends Quest
 				}
 				break;
 			
-			case MALRUK_SUCCUBUS_1:
-			case MALRUK_SUCCUBUS_2:
+			case MALRUK_SUCCUBUS_1, MALRUK_SUCCUBUS_2:
 				if (st.getCond() == 6 && dropItems(player, MALRUK_SUCCUBUS_CLAW, 1, 10, 100000))
 					st.setCond(7);
 				break;
 			
-			case MALRUK_SUCCUBUS_TUREN_1:
-			case MALRUK_SUCCUBUS_TUREN_2:
+			case MALRUK_SUCCUBUS_TUREN_1, MALRUK_SUCCUBUS_TUREN_2:
 				if (st.getCond() == 6 && dropItems(player, MALRUK_SUCCUBUS_CLAW, 1, 10, 120000))
 					st.setCond(7);
 				break;
 			
-			case SPLINTER_STAKATO:
-			case SPLINTER_STAKATO_WALKER:
-			case SPLINTER_STAKATO_SOLDIER:
-			case SPLINTER_STAKATO_DRONE_1:
-			case SPLINTER_STAKATO_DRONE_2:
+			case SPLINTER_STAKATO, SPLINTER_STAKATO_WALKER, SPLINTER_STAKATO_SOLDIER, SPLINTER_STAKATO_DRONE_1, SPLINTER_STAKATO_DRONE_2:
 				if (st.getCond() == 14 && dropItems(player, CRIMSON_MOSS, 1, 5, 100000))
 					st.setCond(15);
 				break;
 		}
-		return null;
 	}
 }

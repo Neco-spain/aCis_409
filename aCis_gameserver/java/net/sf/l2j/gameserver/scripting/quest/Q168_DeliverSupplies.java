@@ -30,7 +30,7 @@ public class Q168_DeliverSupplies extends Quest
 		
 		setItemsIds(JENNA_LETTER, SENTRY_BLADE_1, SENTRY_BLADE_2, SENTRY_BLADE_3, OLD_BRONZE_SWORD);
 		
-		addStartNpc(JENNA);
+		addQuestStart(JENNA);
 		addTalkId(JENNA, ROSELYN, KRISTIN, HARANT);
 	}
 	
@@ -116,7 +116,7 @@ public class Q168_DeliverSupplies extends Quest
 					case ROSELYN:
 						if (cond == 3)
 						{
-							if (player.getInventory().hasItems(SENTRY_BLADE_2))
+							if (player.getInventory().hasItem(SENTRY_BLADE_2))
 							{
 								htmltext = "30355-01.htm";
 								takeItems(player, SENTRY_BLADE_2, 1);
@@ -137,7 +137,7 @@ public class Q168_DeliverSupplies extends Quest
 					case KRISTIN:
 						if (cond == 3)
 						{
-							if (player.getInventory().hasItems(SENTRY_BLADE_3))
+							if (player.getInventory().hasItem(SENTRY_BLADE_3))
 							{
 								htmltext = "30357-01.htm";
 								takeItems(player, SENTRY_BLADE_3, 1);

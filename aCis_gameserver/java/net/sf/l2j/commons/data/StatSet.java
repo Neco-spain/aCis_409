@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
+import net.sf.l2j.gameserver.model.location.Location;
+import net.sf.l2j.gameserver.network.NpcStringId;
 
 /**
  * This class, extending {@link HashMap}, is used to store pairs :
@@ -47,7 +49,7 @@ public class StatSet extends HashMap<String, Object>
 	
 	public void set(final String key, final boolean value)
 	{
-		put(key, value ? Boolean.TRUE : Boolean.FALSE);
+		put(key, (value) ? Boolean.TRUE : Boolean.FALSE);
 	}
 	
 	public void set(final String key, final int value)
@@ -84,12 +86,14 @@ public class StatSet extends HashMap<String, Object>
 	{
 		final Object val = get(key);
 		
-		if (val instanceof Boolean)
-			return (Boolean) val;
-		if (val instanceof String)
-			return Boolean.parseBoolean((String) val);
-		if (val instanceof Number)
-			return ((Number) val).intValue() != 0;
+		if (val instanceof Boolean bool)
+			return bool;
+		
+		if (val instanceof String string)
+			return Boolean.parseBoolean(string);
+		
+		if (val instanceof Number number)
+			return number.intValue() != 0;
 		
 		throw new IllegalArgumentException("StatSet : Boolean value required, but found: " + val + " for key: " + key + ".");
 	}
@@ -98,12 +102,14 @@ public class StatSet extends HashMap<String, Object>
 	{
 		final Object val = get(key);
 		
-		if (val instanceof Boolean)
-			return (Boolean) val;
-		if (val instanceof String)
-			return Boolean.parseBoolean((String) val);
-		if (val instanceof Number)
-			return ((Number) val).intValue() != 0;
+		if (val instanceof Boolean bool)
+			return bool;
+		
+		if (val instanceof String string)
+			return Boolean.parseBoolean(string);
+		
+		if (val instanceof Number number)
+			return number.intValue() != 0;
 		
 		return defaultValue;
 	}
@@ -112,10 +118,11 @@ public class StatSet extends HashMap<String, Object>
 	{
 		final Object val = get(key);
 		
-		if (val instanceof Number)
-			return ((Number) val).byteValue();
-		if (val instanceof String)
-			return Byte.parseByte((String) val);
+		if (val instanceof Number number)
+			return number.byteValue();
+		
+		if (val instanceof String string)
+			return Byte.parseByte(string);
 		
 		throw new IllegalArgumentException("StatSet : Byte value required, but found: " + val + " for key: " + key + ".");
 	}
@@ -124,10 +131,11 @@ public class StatSet extends HashMap<String, Object>
 	{
 		final Object val = get(key);
 		
-		if (val instanceof Number)
-			return ((Number) val).byteValue();
-		if (val instanceof String)
-			return Byte.parseByte((String) val);
+		if (val instanceof Number number)
+			return number.byteValue();
+		
+		if (val instanceof String string)
+			return Byte.parseByte(string);
 		
 		return defaultValue;
 	}
@@ -136,12 +144,14 @@ public class StatSet extends HashMap<String, Object>
 	{
 		final Object val = get(key);
 		
-		if (val instanceof Number)
-			return ((Number) val).doubleValue();
-		if (val instanceof String)
-			return Double.parseDouble((String) val);
-		if (val instanceof Boolean)
-			return (Boolean) val ? 1. : 0.;
+		if (val instanceof Number number)
+			return number.doubleValue();
+		
+		if (val instanceof String string)
+			return Double.parseDouble(string);
+		
+		if (val instanceof Boolean bool)
+			return (Boolean.TRUE.equals((bool))) ? 1. : 0.;
 		
 		throw new IllegalArgumentException("StatSet : Double value required, but found: " + val + " for key: " + key + ".");
 	}
@@ -150,12 +160,14 @@ public class StatSet extends HashMap<String, Object>
 	{
 		final Object val = get(key);
 		
-		if (val instanceof Number)
-			return ((Number) val).doubleValue();
-		if (val instanceof String)
-			return Double.parseDouble((String) val);
-		if (val instanceof Boolean)
-			return (Boolean) val ? 1. : 0.;
+		if (val instanceof Number number)
+			return number.doubleValue();
+		
+		if (val instanceof String string)
+			return Double.parseDouble(string);
+		
+		if (val instanceof Boolean bool)
+			return (Boolean.TRUE.equals((bool))) ? 1. : 0.;
 		
 		return defaultValue;
 	}
@@ -164,15 +176,17 @@ public class StatSet extends HashMap<String, Object>
 	{
 		final Object val = get(key);
 		
-		if (val instanceof double[])
-			return (double[]) val;
-		if (val instanceof Number)
+		if (val instanceof double[] array)
+			return array;
+		
+		if (val instanceof Number number)
 			return new double[]
 			{
-				((Number) val).doubleValue()
+				number.doubleValue()
 			};
-		if (val instanceof String)
-			return Stream.of(((String) val).split(";")).mapToDouble(Double::parseDouble).toArray();
+		
+		if (val instanceof String string)
+			return Stream.of(string.split(";")).mapToDouble(Double::parseDouble).toArray();
 		
 		throw new IllegalArgumentException("StatSet : Double array required, but found: " + val + " for key: " + key + ".");
 	}
@@ -181,12 +195,14 @@ public class StatSet extends HashMap<String, Object>
 	{
 		final Object val = get(key);
 		
-		if (val instanceof Number)
-			return ((Number) val).floatValue();
-		if (val instanceof String)
-			return Float.parseFloat((String) val);
-		if (val instanceof Boolean)
-			return (Boolean) val ? 1 : 0;
+		if (val instanceof Number number)
+			return number.floatValue();
+		
+		if (val instanceof String string)
+			return Float.parseFloat(string);
+		
+		if (val instanceof Boolean bool)
+			return (Boolean.TRUE.equals((bool))) ? 1 : 0;
 		
 		throw new IllegalArgumentException("StatSet : Float value required, but found: " + val + " for key: " + key + ".");
 	}
@@ -195,12 +211,14 @@ public class StatSet extends HashMap<String, Object>
 	{
 		final Object val = get(key);
 		
-		if (val instanceof Number)
-			return ((Number) val).floatValue();
-		if (val instanceof String)
-			return Float.parseFloat((String) val);
-		if (val instanceof Boolean)
-			return (Boolean) val ? 1 : 0;
+		if (val instanceof Number number)
+			return number.floatValue();
+		
+		if (val instanceof String string)
+			return Float.parseFloat(string);
+		
+		if (val instanceof Boolean bool)
+			return (Boolean.TRUE.equals((bool))) ? 1 : 0;
 		
 		return defaultValue;
 	}
@@ -209,12 +227,14 @@ public class StatSet extends HashMap<String, Object>
 	{
 		final Object val = get(key);
 		
-		if (val instanceof Number)
-			return ((Number) val).intValue();
-		if (val instanceof String)
-			return Integer.parseInt((String) val);
-		if (val instanceof Boolean)
-			return (Boolean) val ? 1 : 0;
+		if (val instanceof Number number)
+			return number.intValue();
+		
+		if (val instanceof String string)
+			return Integer.parseInt(string);
+		
+		if (val instanceof Boolean bool)
+			return (Boolean.TRUE.equals((bool))) ? 1 : 0;
 		
 		throw new IllegalArgumentException("StatSet : Integer value required, but found: " + val + " for key: " + key + ".");
 	}
@@ -223,12 +243,14 @@ public class StatSet extends HashMap<String, Object>
 	{
 		final Object val = get(key);
 		
-		if (val instanceof Number)
-			return ((Number) val).intValue();
-		if (val instanceof String)
-			return Integer.parseInt((String) val);
-		if (val instanceof Boolean)
-			return (Boolean) val ? 1 : 0;
+		if (val instanceof Number number)
+			return number.intValue();
+		
+		if (val instanceof String string)
+			return Integer.parseInt(string);
+		
+		if (val instanceof Boolean bool)
+			return (Boolean.TRUE.equals((bool))) ? 1 : 0;
 		
 		return defaultValue;
 	}
@@ -237,15 +259,17 @@ public class StatSet extends HashMap<String, Object>
 	{
 		final Object val = get(key);
 		
-		if (val instanceof int[])
-			return (int[]) val;
-		if (val instanceof Number)
+		if (val instanceof int[] array)
+			return array;
+		
+		if (val instanceof Number number)
 			return new int[]
 			{
-				((Number) val).intValue()
+				number.intValue()
 			};
-		if (val instanceof String)
-			return Stream.of(((String) val).split(";")).mapToInt(Integer::parseInt).toArray();
+		
+		if (val instanceof String string)
+			return Stream.of(string.split(";")).mapToInt(Integer::parseInt).toArray();
 		
 		throw new IllegalArgumentException("StatSet : Integer array required, but found: " + val + " for key: " + key + ".");
 	}
@@ -277,12 +301,14 @@ public class StatSet extends HashMap<String, Object>
 	{
 		final Object val = get(key);
 		
-		if (val instanceof Number)
-			return ((Number) val).longValue();
-		if (val instanceof String)
-			return Long.parseLong((String) val);
-		if (val instanceof Boolean)
-			return (Boolean) val ? 1L : 0L;
+		if (val instanceof Number number)
+			return number.longValue();
+		
+		if (val instanceof String string)
+			return Long.parseLong(string);
+		
+		if (val instanceof Boolean bool)
+			return (Boolean.TRUE.equals((bool))) ? 1L : 0L;
 		
 		throw new IllegalArgumentException("StatSet : Long value required, but found: " + val + " for key: " + key + ".");
 	}
@@ -291,12 +317,14 @@ public class StatSet extends HashMap<String, Object>
 	{
 		final Object val = get(key);
 		
-		if (val instanceof Number)
-			return ((Number) val).longValue();
-		if (val instanceof String)
-			return Long.parseLong((String) val);
-		if (val instanceof Boolean)
-			return (Boolean) val ? 1L : 0L;
+		if (val instanceof Number number)
+			return number.longValue();
+		
+		if (val instanceof String string)
+			return Long.parseLong(string);
+		
+		if (val instanceof Boolean bool)
+			return (Boolean.TRUE.equals((bool))) ? 1L : 0L;
 		
 		return defaultValue;
 	}
@@ -305,15 +333,17 @@ public class StatSet extends HashMap<String, Object>
 	{
 		final Object val = get(key);
 		
-		if (val instanceof long[])
-			return (long[]) val;
-		if (val instanceof Number)
+		if (val instanceof long[] array)
+			return array;
+		
+		if (val instanceof Number number)
 			return new long[]
 			{
-				((Number) val).longValue()
+				number.longValue()
 			};
-		if (val instanceof String)
-			return Stream.of(((String) val).split(";")).mapToLong(Long::parseLong).toArray();
+		
+		if (val instanceof String string)
+			return Stream.of(string.split(";")).mapToLong(Long::parseLong).toArray();
 		
 		throw new IllegalArgumentException("StatSet : Long array required, but found: " + val + " for key: " + key + ".");
 	}
@@ -349,49 +379,109 @@ public class StatSet extends HashMap<String, Object>
 		return defaultValue;
 	}
 	
+	public String[] getStringArray(final String key, final String[] defaultArray)
+	{
+		try
+		{
+			return getStringArray(key);
+		}
+		catch (Exception e)
+		{
+			return defaultArray;
+		}
+	}
+	
 	public String[] getStringArray(final String key)
 	{
 		final Object val = get(key);
 		
-		if (val instanceof String[])
-			return (String[]) val;
-		if (val instanceof String)
-			return ((String) val).split(";");
+		if (val instanceof String[] array)
+			return array;
+		
+		if (val instanceof String string)
+			return string.split(";");
 		
 		throw new IllegalArgumentException("StatSet : String array required, but found: " + val + " for key: " + key + ".");
+	}
+	
+	public Location getLocation(final String key, final Location defaultLoc)
+	{
+		try
+		{
+			return getLocation(key);
+		}
+		catch (Exception e)
+		{
+			return defaultLoc;
+		}
+	}
+	
+	public Location getLocation(final String key)
+	{
+		final Object val = get(key);
+		
+		if (val instanceof Location loc)
+			return loc;
+		
+		if (val instanceof String string)
+		{
+			final int[] arr = Arrays.stream(string.split(";")).map(String::trim).mapToInt(Integer::parseInt).toArray();
+			return new Location(arr[0], arr[1], arr[2]);
+		}
+		
+		throw new IllegalArgumentException("StatSet : Location required, but found: " + val + " for key: " + key + ".");
+	}
+	
+	public IntIntHolder getIntIntHolder(final String key, final IntIntHolder defaultHolder)
+	{
+		try
+		{
+			return getIntIntHolder(key);
+		}
+		catch (Exception e)
+		{
+			return defaultHolder;
+		}
 	}
 	
 	public IntIntHolder getIntIntHolder(final String key)
 	{
 		final Object val = get(key);
 		
-		if (val instanceof String[])
-		{
-			final String[] toSplit = (String[]) val;
-			return new IntIntHolder(Integer.parseInt(toSplit[0]), Integer.parseInt(toSplit[1]));
-		}
+		if (val instanceof String[] array)
+			return new IntIntHolder(Integer.parseInt(array[0]), Integer.parseInt(array[1]));
 		
-		if (val instanceof String)
+		if (val instanceof String string)
 		{
-			final String[] toSplit = ((String) val).split("-");
+			final String[] toSplit = string.split("-");
 			return new IntIntHolder(Integer.parseInt(toSplit[0]), Integer.parseInt(toSplit[1]));
 		}
 		
 		throw new IllegalArgumentException("StatSet : int-int (IntIntHolder) required, but found: " + val + " for key: " + key + ".");
 	}
 	
+	public IntIntHolder[] getIntIntHolderArray(final String key, final IntIntHolder[] defaultHolderArray)
+	{
+		try
+		{
+			return getIntIntHolderArray(key);
+		}
+		catch (Exception e)
+		{
+			return defaultHolderArray;
+		}
+	}
+	
 	public IntIntHolder[] getIntIntHolderArray(final String key)
 	{
 		final Object val = get(key);
 		
-		if (val instanceof String[])
+		if (val instanceof String[] array)
 		{
-			final String[] toSplit = (String[]) val;
-			
-			final IntIntHolder[] tempArray = new IntIntHolder[toSplit.length];
+			final IntIntHolder[] tempArray = new IntIntHolder[array.length];
 			
 			int index = 0;
-			for (String splitted : toSplit)
+			for (String splitted : array)
 			{
 				final String[] splittedHolder = splitted.split("-");
 				tempArray[index++] = new IntIntHolder(Integer.parseInt(splittedHolder[0]), Integer.parseInt(splittedHolder[1]));
@@ -400,12 +490,11 @@ public class StatSet extends HashMap<String, Object>
 			return tempArray;
 		}
 		
-		if (val instanceof String)
+		if (val instanceof String string)
 		{
-			// String exists, but it empty : return null.
-			final String string = ((String) val);
+			// String exists, but it is empty : return empty array.
 			if (string.isEmpty())
-				return null;
+				return new IntIntHolder[0];
 			
 			// Single entry ; return the entry under array form.
 			if (!string.contains(";"))
@@ -437,10 +526,9 @@ public class StatSet extends HashMap<String, Object>
 	{
 		final Object val = get(key);
 		
-		if (val instanceof String)
+		if (val instanceof String string)
 		{
 			// String exists, but it empty : return a generic empty List.
-			final String string = ((String) val);
 			if (string.isEmpty())
 				return Collections.emptyList();
 			
@@ -498,10 +586,11 @@ public class StatSet extends HashMap<String, Object>
 		
 		if (val != null && enumClass.isInstance(val))
 			return (E) val;
-		if (val instanceof String)
-			return Enum.valueOf(enumClass, (String) val);
 		
-		throw new IllegalArgumentException("Enum value of type " + enumClass.getName() + "required, but found: " + val + ".");
+		if (val instanceof String string)
+			return Enum.valueOf(enumClass, string);
+		
+		throw new IllegalArgumentException("StatSet : Enum value of type " + enumClass.getName() + " required, but found: " + val + ".");
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -511,9 +600,21 @@ public class StatSet extends HashMap<String, Object>
 		
 		if (val != null && enumClass.isInstance(val))
 			return (E) val;
-		if (val instanceof String)
-			return Enum.valueOf(enumClass, (String) val);
+		
+		if (val instanceof String string)
+			return Enum.valueOf(enumClass, string);
 		
 		return defaultValue;
+	}
+	
+	public NpcStringId getNpcStringId(final String name)
+	{
+		return NpcStringId.get(getInteger(name));
+	}
+	
+	public NpcStringId getNpcStringId(final String name, final NpcStringId defaultValue)
+	{
+		final int id = getInteger(name, 0);
+		return (id > 0) ? NpcStringId.get(id) : defaultValue;
 	}
 }

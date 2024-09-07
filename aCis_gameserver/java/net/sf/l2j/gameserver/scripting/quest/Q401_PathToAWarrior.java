@@ -34,10 +34,10 @@ public class Q401_PathToAWarrior extends Quest
 		
 		setItemsIds(AURON_LETTER, WARRIOR_GUILD_MARK, RUSTED_BRONZE_SWORD_1, RUSTED_BRONZE_SWORD_2, RUSTED_BRONZE_SWORD_3, SIMPLON_LETTER, POISON_SPIDER_LEG);
 		
-		addStartNpc(AURON);
+		addQuestStart(AURON);
 		addTalkId(AURON, SIMPLON);
 		
-		addKillId(20035, 20038, 20042, 20043);
+		addMyDying(20035, 20038, 20042, 20043);
 	}
 	
 	@Override
@@ -54,7 +54,7 @@ public class Q401_PathToAWarrior extends Quest
 				htmltext = (player.getClassId() == ClassId.WARRIOR) ? "30010-03.htm" : "30010-02b.htm";
 			else if (player.getStatus().getLevel() < 19)
 				htmltext = "30010-02.htm";
-			else if (player.getInventory().hasItems(MEDALLION_OF_WARRIOR))
+			else if (player.getInventory().hasItem(MEDALLION_OF_WARRIOR))
 				htmltext = "30010-04.htm";
 		}
 		else if (event.equalsIgnoreCase("30010-06.htm"))
@@ -128,7 +128,7 @@ public class Q401_PathToAWarrior extends Quest
 							htmltext = "30253-01.htm";
 						else if (cond == 2)
 						{
-							if (!player.getInventory().hasItems(RUSTED_BRONZE_SWORD_1))
+							if (!player.getInventory().hasItem(RUSTED_BRONZE_SWORD_1))
 								htmltext = "30253-03.htm";
 							else if (player.getInventory().getItemCount(RUSTED_BRONZE_SWORD_1) <= 9)
 								htmltext = "30253-03b.htm";
@@ -154,30 +154,26 @@ public class Q401_PathToAWarrior extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerState(player, npc, QuestStatus.STARTED);
 		if (st == null)
-			return null;
+			return;
 		
 		switch (npc.getNpcId())
 		{
-			case 20035:
-			case 20042:
+			case 20035, 20042:
 				if (st.getCond() == 2 && dropItems(player, RUSTED_BRONZE_SWORD_1, 1, 10, 400000))
 					st.setCond(3);
 				break;
 			
-			case 20038:
-			case 20043:
+			case 20038, 20043:
 				if (st.getCond() == 5 && player.getInventory().getItemIdFrom(Paperdoll.RHAND) == RUSTED_BRONZE_SWORD_3)
 					if (dropItemsAlways(player, POISON_SPIDER_LEG, 1, 20))
 						st.setCond(6);
 				break;
 		}
-		
-		return null;
 	}
 }

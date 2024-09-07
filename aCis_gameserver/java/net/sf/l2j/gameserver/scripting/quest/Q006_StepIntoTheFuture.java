@@ -29,7 +29,7 @@ public class Q006_StepIntoTheFuture extends Quest
 		
 		setItemsIds(BAULRO_LETTER);
 		
-		addStartNpc(ROXXY);
+		addQuestStart(ROXXY);
 		addTalkId(ROXXY, BAULRO, SIR_COLLIN);
 	}
 	
@@ -55,7 +55,7 @@ public class Q006_StepIntoTheFuture extends Quest
 		}
 		else if (event.equalsIgnoreCase("30311-02.htm"))
 		{
-			if (player.getInventory().hasItems(BAULRO_LETTER))
+			if (player.getInventory().hasItem(BAULRO_LETTER))
 			{
 				st.setCond(3);
 				playSound(player, SOUND_MIDDLE);

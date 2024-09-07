@@ -3,18 +3,16 @@ package net.sf.l2j.gameserver.model.craft;
 import net.sf.l2j.commons.random.Rnd;
 
 import net.sf.l2j.Config;
-import net.sf.l2j.gameserver.enums.StatusType;
 import net.sf.l2j.gameserver.model.actor.Player;
 import net.sf.l2j.gameserver.model.holder.IntIntHolder;
-import net.sf.l2j.gameserver.model.item.Recipe;
 import net.sf.l2j.gameserver.model.item.instance.ItemInstance;
 import net.sf.l2j.gameserver.model.itemcontainer.Inventory;
+import net.sf.l2j.gameserver.model.records.ManufactureItem;
+import net.sf.l2j.gameserver.model.records.Recipe;
 import net.sf.l2j.gameserver.network.SystemMessageId;
 import net.sf.l2j.gameserver.network.serverpackets.ActionFailed;
-import net.sf.l2j.gameserver.network.serverpackets.ItemList;
 import net.sf.l2j.gameserver.network.serverpackets.RecipeItemMakeInfo;
 import net.sf.l2j.gameserver.network.serverpackets.RecipeShopItemInfo;
-import net.sf.l2j.gameserver.network.serverpackets.StatusUpdate;
 import net.sf.l2j.gameserver.network.serverpackets.SystemMessage;
 import net.sf.l2j.gameserver.skills.L2Skill;
 
@@ -25,7 +23,7 @@ import net.sf.l2j.gameserver.skills.L2Skill;
  */
 public class RecipeItemMaker implements Runnable
 {
-	public boolean _isValid;
+	private boolean _isValid;
 	
 	protected final Recipe _recipe;
 	protected final Player _player; // "crafter"
@@ -45,7 +43,7 @@ public class RecipeItemMaker implements Runnable
 		_skillId = (_recipe.isDwarven()) ? L2Skill.SKILL_CREATE_DWARVEN : L2Skill.SKILL_CREATE_COMMON;
 		_skillLevel = _player.getSkillLevel(_skillId);
 		
-		_manaRequired = _recipe.getMpCost();
+		_manaRequired = _recipe.mpCost();
 		
 		_player.setCrafting(true);
 		
@@ -64,7 +62,7 @@ public class RecipeItemMaker implements Runnable
 		}
 		
 		// Validate skill level.
-		if (_recipe.getLevel() > _skillLevel)
+		if (_recipe.level() > _skillLevel)
 		{
 			_player.sendPacket(ActionFailed.STATIC_PACKET);
 			abort();
@@ -77,9 +75,9 @@ public class RecipeItemMaker implements Runnable
 			for (ManufactureItem temp : _player.getManufactureList())
 			{
 				// Find recipe for item we want manufactured.
-				if (temp.getId() == _recipe.getId())
+				if (temp.recipeId() == _recipe.id())
 				{
-					_price = temp.getValue();
+					_price = temp.cost();
 					if (_target.getAdena() < _price)
 					{
 						_target.sendPacket(SystemMessageId.YOU_NOT_ENOUGH_ADENA);
@@ -105,9 +103,6 @@ public class RecipeItemMaker implements Runnable
 			abort();
 			return;
 		}
-		
-		updateMakeInfo(true);
-		updateStatus();
 		
 		_player.setCrafting(false);
 		_isValid = true;
@@ -140,7 +135,7 @@ public class RecipeItemMaker implements Runnable
 		// First take adena for manufacture ; customer must pay for services.
 		if (_target != _player && _price > 0)
 		{
-			final ItemInstance adenaTransfer = _target.transferItem("PayManufacture", _target.getInventory().getAdenaInstance().getObjectId(), _price, _player.getInventory(), _player);
+			final ItemInstance adenaTransfer = _target.transferItem(_target.getInventory().getAdenaInstance().getObjectId(), _price, _player);
 			if (adenaTransfer == null)
 			{
 				_target.sendPacket(SystemMessageId.YOU_NOT_ENOUGH_ADENA);
@@ -157,7 +152,7 @@ public class RecipeItemMaker implements Runnable
 		}
 		
 		// Success ; we reward the player and update the craft window.
-		if (Rnd.get(100) < _recipe.getSuccessRate())
+		if (Rnd.get(100) < _recipe.successRate())
 		{
 			rewardPlayer();
 			updateMakeInfo(true);
@@ -167,8 +162,8 @@ public class RecipeItemMaker implements Runnable
 		{
 			if (_target != _player)
 			{
-				_player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.CREATION_OF_S2_FOR_S1_AT_S3_ADENA_FAILED).addCharName(_target).addItemName(_recipe.getProduct().getId()).addItemNumber(_price));
-				_target.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_FAILED_TO_CREATE_S2_FOR_S3_ADENA).addCharName(_player).addItemName(_recipe.getProduct().getId()).addItemNumber(_price));
+				_player.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.CREATION_OF_S2_FOR_S1_AT_S3_ADENA_FAILED).addCharName(_target).addItemName(_recipe.product().getId()).addItemNumber(_price));
+				_target.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S1_FAILED_TO_CREATE_S2_FOR_S3_ADENA).addCharName(_player).addItemName(_recipe.product().getId()).addItemNumber(_price));
 			}
 			else
 				_target.sendPacket(SystemMessageId.ITEM_MIXING_FAILED);
@@ -176,11 +171,7 @@ public class RecipeItemMaker implements Runnable
 			updateMakeInfo(false);
 		}
 		
-		// Update load and mana bar of craft window.
-		updateStatus();
-		
 		_player.setCrafting(false);
-		_target.sendPacket(new ItemList(_target, false));
 	}
 	
 	/**
@@ -190,20 +181,9 @@ public class RecipeItemMaker implements Runnable
 	private void updateMakeInfo(boolean success)
 	{
 		if (_target == _player)
-			_target.sendPacket(new RecipeItemMakeInfo(_recipe.getId(), _target, (success) ? 1 : 0));
+			_target.sendPacket(new RecipeItemMakeInfo(_recipe.id(), _target, (success) ? 1 : 0));
 		else
-			_target.sendPacket(new RecipeShopItemInfo(_player, _recipe.getId()));
-	}
-	
-	/**
-	 * Update {@link Player} customer MP and load status.
-	 */
-	private void updateStatus()
-	{
-		final StatusUpdate su = new StatusUpdate(_target);
-		su.addAttribute(StatusType.CUR_MP, (int) _target.getStatus().getMp());
-		su.addAttribute(StatusType.CUR_LOAD, _target.getCurrentWeight());
-		_target.sendPacket(su);
+			_target.sendPacket(new RecipeShopItemInfo(_player, _recipe.id()));
 	}
 	
 	/**
@@ -216,7 +196,7 @@ public class RecipeItemMaker implements Runnable
 		final Inventory inv = _target.getInventory();
 		
 		boolean gotAllMats = true;
-		for (IntIntHolder material : _recipe.getMaterials())
+		for (IntIntHolder material : _recipe.materials())
 		{
 			final int quantity = material.getValue();
 			if (quantity > 0)
@@ -235,9 +215,9 @@ public class RecipeItemMaker implements Runnable
 		
 		if (remove)
 		{
-			for (IntIntHolder material : _recipe.getMaterials())
+			for (IntIntHolder material : _recipe.materials())
 			{
-				inv.destroyItemByItemId("Manufacture", material.getId(), material.getValue(), _target, _player);
+				inv.destroyItemByItemId(material.getId(), material.getValue());
 				
 				if (material.getValue() > 1)
 					_target.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.S2_S1_DISAPPEARED).addItemName(material.getId()).addItemNumber(material.getValue()));
@@ -262,10 +242,10 @@ public class RecipeItemMaker implements Runnable
 	 */
 	private void rewardPlayer()
 	{
-		final int itemId = _recipe.getProduct().getId();
-		final int itemCount = _recipe.getProduct().getValue();
+		final int itemId = _recipe.product().getId();
+		final int itemCount = _recipe.product().getValue();
 		
-		_target.getInventory().addItem("Manufacture", itemId, itemCount, _target, _player);
+		_target.getInventory().addItem(itemId, itemCount);
 		
 		// inform customer of earned item
 		if (_target != _player)
@@ -287,7 +267,10 @@ public class RecipeItemMaker implements Runnable
 			_target.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.EARNED_S2_S1_S).addItemName(itemId).addNumber(itemCount));
 		else
 			_target.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.EARNED_ITEM_S1).addItemName(itemId));
-		
-		updateMakeInfo(true); // success
+	}
+	
+	public boolean isValid()
+	{
+		return _isValid;
 	}
 }

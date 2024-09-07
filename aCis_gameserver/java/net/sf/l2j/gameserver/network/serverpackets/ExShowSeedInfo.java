@@ -39,27 +39,27 @@ public class ExShowSeedInfo extends L2GameServerPacket
 		writeD(_seeds.size());
 		for (SeedProduction seed : _seeds)
 		{
-			writeD(seed.getId()); // Seed id
-			writeD(seed.getAmount()); // Left to buy
-			writeD(seed.getStartAmount()); // Started amount
-			writeD(seed.getPrice()); // Sell Price
+			writeD(seed.getId());
+			writeD(seed.getAmount());
+			writeD(seed.getStartAmount());
+			writeD(seed.getPrice());
 			
 			final Seed s = CastleManorManager.getInstance().getSeed(seed.getId());
 			if (s == null)
 			{
-				writeD(0); // Seed level
-				writeC(0x01); // Reward 1
-				writeD(0); // Reward 1 - item id
-				writeC(0x01); // Reward 2
-				writeD(0); // Reward 2 - item id
+				writeD(0);
+				writeC(0x01);
+				writeD(0);
+				writeC(0x01);
+				writeD(0);
 			}
 			else
 			{
-				writeD(s.getLevel()); // Seed level
-				writeC(0x01); // Reward 1
-				writeD(s.getReward(1)); // Reward 1 - item id
-				writeC(0x01); // Reward 2
-				writeD(s.getReward(2)); // Reward 2 - item id
+				writeD(s.getLevel());
+				writeC(0x01);
+				writeD(s.getReward1());
+				writeC(0x01);
+				writeD(s.getReward2());
 			}
 		}
 	}

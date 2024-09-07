@@ -8,6 +8,7 @@ public final class RequestPrivateStoreQuitBuy extends L2GameClientPacket
 	@Override
 	protected void readImpl()
 	{
+		// Do nothing.
 	}
 	
 	@Override

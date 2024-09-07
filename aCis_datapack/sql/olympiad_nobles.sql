@@ -6,5 +6,6 @@ CREATE TABLE IF NOT EXISTS `olympiad_nobles` (
   `competitions_won` smallint(3) NOT NULL default 0,
   `competitions_lost` smallint(3) NOT NULL default 0,
   `competitions_drawn` smallint(3) NOT NULL default 0,
+  `rewarded` smallint(1) NOT NULL default 0,
   PRIMARY KEY (`char_id`)
 );

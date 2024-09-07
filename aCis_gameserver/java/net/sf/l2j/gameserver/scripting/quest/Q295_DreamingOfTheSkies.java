@@ -25,10 +25,10 @@ public class Q295_DreamingOfTheSkies extends Quest
 		
 		setItemsIds(FLOATING_STONE);
 		
-		addStartNpc(30536); // Arin
+		addQuestStart(30536); // Arin
 		addTalkId(30536);
 		
-		addKillId(20153); // Magical Weaver
+		addMyDying(20153); // Magical Weaver
 	}
 	
 	@Override
@@ -70,7 +70,7 @@ public class Q295_DreamingOfTheSkies extends Quest
 				{
 					takeItems(player, FLOATING_STONE, -1);
 					
-					if (!player.getInventory().hasItems(RING_OF_FIREFLY))
+					if (!player.getInventory().hasItem(RING_OF_FIREFLY))
 					{
 						htmltext = "30536-05.htm";
 						giveItems(player, RING_OF_FIREFLY, 1);
@@ -92,17 +92,15 @@ public class Q295_DreamingOfTheSkies extends Quest
 	}
 	
 	@Override
-	public String onKill(Npc npc, Creature killer)
+	public void onMyDying(Npc npc, Creature killer)
 	{
 		final Player player = killer.getActingPlayer();
 		
 		final QuestState st = checkPlayerCondition(player, npc, 1);
 		if (st == null)
-			return null;
+			return;
 		
 		if (dropItemsAlways(player, FLOATING_STONE, (Rnd.get(100) > 25) ? 1 : 2, 50))
 			st.setCond(2);
-		
-		return null;
 	}
 }
